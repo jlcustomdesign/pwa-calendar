@@ -312,7 +312,8 @@ const activeDayObj = days.find(d => d.active) || days[0];
            animatePillAndCircleDrop(activeBtn, false);
            pendingDrop = false;
          } else {
-           animatePillAndCircleDrop(activeBtn, true);
+           // Animate drop when swiping to a new week
+           animatePillAndCircleDrop(activeBtn, false);
          }
        }
     }
@@ -386,25 +387,19 @@ const activeDayObj = days.find(d => d.active) || days[0];
     if (strip.dataset.scrollAttached !== 'true') {
       strip.dataset.scrollAttached = 'true';
       
-      let scrollTimeout: number;
       strip.addEventListener('scroll', () => {
         if (isProgrammaticScroll) return;
         
-        clearTimeout(scrollTimeout);
-        scrollTimeout = window.setTimeout(() => {
-          const width = strip.offsetWidth;
-          const scrollPos = strip.scrollLeft;
-          
-          // Use a threshold to detect when we've solidly landed on a new week
-          const index = Math.round(scrollPos / width);
-          
-          if (index === 0) {
-            handleWeekChange(-1);
-          } else if (index === 2) {
-            handleWeekChange(1);
-          }
-        }, 100);
-      });
+        const width = strip.offsetWidth;
+        const scrollPos = strip.scrollLeft;
+        
+        // When native snap lands exactly on the edge (with 1px buffer for subpixel rendering)
+        if (scrollPos <= 1) {
+          handleWeekChange(-1);
+        } else if (scrollPos >= (width * 2) - 1) {
+          handleWeekChange(1);
+        }
+      }, { passive: true });
     }
 
     // Initial positioning on page load
@@ -426,3 +421,15 @@ const activeDayObj = days.find(d => d.active) || days[0];
   document.addEventListener('astro:page-load', initCalendarAnimation);
   document.addEventListener('astro:after-swap', initCalendarAnimation);
 </script>
+
+<style>
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+</style>
