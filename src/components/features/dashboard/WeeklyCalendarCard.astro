@@ -12,27 +12,39 @@ const mondayOffset = currentDayIndex === 0 ? -6 : 1 - currentDayIndex;
 const weekDayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-const days = weekDayLabels.map((dayLabel, index) => {
-  const d = new Date(now);
-  d.setDate(now.getDate() + mondayOffset + index);
-  const isToday = d.toDateString() === now.toDateString();
+function getWeekDaysData(baseDate: Date, weekOffset: number) {
+  const cDayIdx = baseDate.getDay();
+  const mOffset = (cDayIdx === 0 ? -6 : 1 - cDayIdx) + (weekOffset * 7);
   
-  return {
-    day: dayLabel,
-    fullDay: fullDayNames[index],
-    date: d.getDate(),
-    month: d.toLocaleString('default', { month: 'short' }),
-    isToday,
-    active: isToday || (currentDayIndex === 0 && index === 6) || (index === currentDayIndex - 1)
-  };
-});
+  return weekDayLabels.map((dayLabel, index) => {
+    const d = new Date(baseDate);
+    d.setDate(baseDate.getDate() + mOffset + index);
+    const isToday = d.toDateString() === baseDate.toDateString();
+    
+    return {
+      day: dayLabel,
+      fullDay: fullDayNames[index],
+      date: d.getDate(),
+      month: d.toLocaleString('default', { month: 'short' }),
+      isToday,
+      active: isToday || (cDayIdx === 0 && index === 6) || (index === cDayIdx - 1)
+    };
+  });
+}
+
+const daysPrev = getWeekDaysData(now, -1);
+const days = getWeekDaysData(now, 0);
+const daysNext = getWeekDaysData(now, 1);
 
 const activeDayObj = days.find(d => d.active) || days[0];
 ---
 
-<div class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm">
+<div
+  id="weekly-calendar-card"
+  class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none transition-transform duration-200 ease-out cursor-grab active:cursor-grabbing touch-pan-y"
+>
   <!-- Greeting Header & Action -->
-  <div class="flex items-start justify-between mb-6">
+  <div class="flex items-start justify-between mb-6 pointer-events-none">
     <div>
       <div id="calendar-selected-label" class="text-xs font-bold uppercase tracking-widest text-text-muted/60 mb-1">
         {activeDayObj.fullDay}, {activeDayObj.month} {activeDayObj.date}
@@ -40,138 +52,407 @@ const activeDayObj = days.find(d => d.active) || days[0];
       <h2 class="text-3xl font-bold tracking-tight text-text-main">Hello, {name}</h2>
     </div>
     
-    <button aria-label="Add appointment" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm">
+    <button aria-label="Add appointment" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm pointer-events-auto">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
       </svg>
     </button>
   </div>
 
-  <!-- Vertical Capsule Calendar Strip -->
-  <div id="calendar-strip" class="grid grid-cols-7 gap-2 text-center relative p-1">
-    
-    <!-- Absolute Sliding Active Pill (Yellow Background) -->
-    <div
-      id="calendar-active-pill"
-      class="absolute rounded-[2rem] bg-brand-primary pointer-events-none z-0"
-      style="left: 0; top: 0; width: 0; height: 0; opacity: 0; transition: transform 400ms cubic-bezier(0.34, 1.36, 0.64, 1), width 400ms cubic-bezier(0.34, 1.36, 0.64, 1), height 400ms cubic-bezier(0.34, 1.36, 0.64, 1), opacity 300ms ease;"
-    ></div>
+  <!-- Vertical Capsule Calendar Strip Container -->
+  <div id="calendar-strip" class="relative p-1 overflow-hidden rounded-[2rem]">
 
-    <!-- Absolute Dropping Active Circle (White Date Badge) -->
-    <div
-      id="calendar-active-circle"
-      class="absolute w-8 h-8 rounded-full bg-white shadow-sm pointer-events-none z-10"
-      style="left: 0; top: 0; opacity: 0;"
-    ></div>
+    <!-- 3-Week Continuous Sliding Track (Prev, Current, Next) -->
+    <div id="calendar-track" class="flex w-[300%] relative z-20" style="transform: translateX(-33.3333%);">
+      
+      <!-- Week -1 (Prev Week) -->
+      <div data-week-section="-1" class="grid grid-cols-7 gap-2 text-center w-1/3 shrink-0 relative">
+        {daysPrev.map((item, index) => (
+          <button
+            type="button"
+            data-calendar-item
+            data-week-offset="-1"
+            data-index={index}
+            data-full-date={`${item.fullDay}, ${item.month} ${item.date}`}
+            class="relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] text-text-main opacity-70 hover:opacity-100 transition-colors duration-300 active:scale-90"
+          >
+            <span class="text-xs font-bold tracking-wider pointer-events-none z-20">{item.day}</span>
+            <span class="w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20">{item.date}</span>
+          </button>
+        ))}
+      </div>
 
-    {days.map((item, index) => (
-      <button
-        type="button"
-        data-calendar-item
-        data-active={item.active ? "true" : "false"}
-        data-index={index}
-        data-full-date={`${item.fullDay}, ${item.month} ${item.date}`}
-        class={`relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] transition-colors duration-300 active:scale-90 ${
-          item.active ? 'text-black font-bold' : 'text-text-main opacity-70 hover:opacity-100'
-        }`}
-      >
-        <span class="text-xs font-bold tracking-wider">{item.day}</span>
-        <span class="w-8 h-8 flex items-center justify-center text-base font-bold pointer-events-none">
-          {item.date}
-        </span>
-      </button>
-    ))}
+      <!-- Week 0 (Current Visible Week) -->
+      <div data-week-section="0" id="current-week-section" class="grid grid-cols-7 gap-2 text-center w-1/3 shrink-0 relative">
+        
+        <!-- Absolute Active Pill (Yellow) inside Week 0 Section -->
+        <div
+          id="calendar-active-pill"
+          class="absolute rounded-[2rem] bg-brand-primary pointer-events-none z-0"
+          style="left: 0; top: 0; width: 0; height: 0; opacity: 1;"
+        ></div>
+
+        <!-- Absolute Active Circle (White) inside Week 0 Section -->
+        <div
+          id="calendar-active-circle"
+          class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-10"
+          style="left: 0; top: 0; opacity: 1;"
+        ></div>
+
+        {days.map((item, index) => (
+          <button
+            type="button"
+            data-calendar-item
+            data-week-offset="0"
+            data-active={item.active ? "true" : "false"}
+            data-index={index}
+            data-full-date={`${item.fullDay}, ${item.month} ${item.date}`}
+            class={`relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] transition-colors duration-300 active:scale-90 ${
+              item.active ? 'text-black font-bold' : 'text-text-main opacity-70 hover:opacity-100'
+            }`}
+          >
+            <span class="text-xs font-bold tracking-wider pointer-events-none z-20">{item.day}</span>
+            <span class="w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20">{item.date}</span>
+          </button>
+        ))}
+      </div>
+
+      <!-- Week +1 (Next Week) -->
+      <div data-week-section="1" class="grid grid-cols-7 gap-2 text-center w-1/3 shrink-0 relative">
+        {daysNext.map((item, index) => (
+          <button
+            type="button"
+            data-calendar-item
+            data-week-offset="1"
+            data-index={index}
+            data-full-date={`${item.fullDay}, ${item.month} ${item.date}`}
+            class="relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] text-text-main opacity-70 hover:opacity-100 transition-colors duration-300 active:scale-90"
+          >
+            <span class="text-xs font-bold tracking-wider pointer-events-none z-20">{item.day}</span>
+            <span class="w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20">{item.date}</span>
+          </button>
+        ))}
+      </div>
+
+    </div>
   </div>
 </div>
 
 <script>
   function initCalendarAnimation() {
+    const card = document.getElementById('weekly-calendar-card');
     const strip = document.getElementById('calendar-strip');
+    const track = document.getElementById('calendar-track');
     const pill = document.getElementById('calendar-active-pill');
     const circle = document.getElementById('calendar-active-circle');
-    if (!strip || !pill || !circle) return;
+    if (!card || !strip || !track || !pill || !circle) return;
 
-    const items = Array.from(strip.querySelectorAll<HTMLButtonElement>('[data-calendar-item]'));
-    let activeItem: HTMLButtonElement | null = items.find(el => el.getAttribute('data-active') === 'true') || items[0] || null;
     let dropTimeout: number | undefined;
+    let currentWeekOffset = 0;
+    let isSliding = false;
+    let selectedDayIndex = 0;
 
-    function positionElements(target: HTMLButtonElement, isInitial: boolean = false) {
-      if (!target || !pill || !circle || !strip) return;
+    const baseNow = new Date();
+
+    function getWeekDays(weekOffset: number) {
+      const currentDayIndex = baseNow.getDay();
+      const mondayOffset = (currentDayIndex === 0 ? -6 : 1 - currentDayIndex) + (weekOffset * 7);
       
-      // 1. Move Yellow Pill across
+      const weekDayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+      const fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+      return weekDayLabels.map((dayLabel, index) => {
+        const d = new Date(baseNow);
+        d.setDate(baseNow.getDate() + mondayOffset + index);
+        const isToday = d.toDateString() === baseNow.toDateString();
+        
+        return {
+          day: dayLabel,
+          fullDay: fullDayNames[index],
+          date: d.getDate(),
+          month: d.toLocaleString('default', { month: 'short' }),
+          isToday
+        };
+      });
+    }
+
+    // Set initial selectedDayIndex
+    const initialCurrentWeek = getWeekDays(0);
+    const initialTodayIdx = initialCurrentWeek.findIndex(d => d.isToday);
+    if (initialTodayIdx !== -1) selectedDayIndex = initialTodayIdx;
+
+    function getActiveButton(): HTMLButtonElement | null {
+      const centerSection = track?.querySelector('[data-week-section="0"]');
+      if (!centerSection) return null;
+      const btns = Array.from(centerSection.querySelectorAll<HTMLButtonElement>('[data-calendar-item]'));
+      return btns[selectedDayIndex] || btns[0] || null;
+    }
+
+    // Sequential Pill & Circle Drop Animation
+    function animatePillAndCircleDrop(target: HTMLButtonElement, isInitial: boolean = false) {
+      if (!target || !pill || !circle) return;
+      
       const width = target.offsetWidth;
       const height = target.offsetHeight;
       const left = target.offsetLeft;
       const top = target.offsetTop;
 
-      pill.style.opacity = '1';
-      pill.style.width = `${width}px`;
-      pill.style.height = `${height}px`;
-      pill.style.transform = `translate(${left}px, ${top}px)`;
-
-      // 2. Drop white circle from top of target pill after delay
       const numSpan = target.querySelector<HTMLSpanElement>('span:last-child');
-      if (numSpan) {
-        const cLeft = target.offsetLeft + numSpan.offsetLeft;
-        const cTop = target.offsetTop + numSpan.offsetTop;
+      if (!numSpan) return;
 
-        if (dropTimeout) clearTimeout(dropTimeout);
+      const cLeft = target.offsetLeft + numSpan.offsetLeft;
+      const cTop = target.offsetTop + numSpan.offsetTop;
 
-        if (isInitial) {
-          // Immediate placement on load
-          circle.style.transition = 'none';
-          circle.style.opacity = '1';
+      if (dropTimeout) clearTimeout(dropTimeout);
+
+      pill.style.opacity = '1';
+      circle.style.opacity = '1';
+
+      if (isInitial) {
+        pill.style.transition = 'none';
+        pill.style.width = `${width}px`;
+        pill.style.height = `${height}px`;
+        pill.style.transform = `translate(${left}px, ${top}px)`;
+
+        circle.style.transition = 'none';
+        circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
+      } else {
+        // Step 1: Position Pill & Circle above target off-screen (Fully Opaque!)
+        pill.style.transition = 'none';
+        pill.style.width = `${width}px`;
+        pill.style.height = `${height}px`;
+        pill.style.transform = `translate(${left}px, ${top - 55}px) scale(0.85)`;
+
+        circle.style.transition = 'none';
+        circle.style.transform = `translate(${cLeft}px, ${cTop - 45}px) scale(0.35)`;
+
+        void pill.offsetWidth;
+        void circle.offsetWidth;
+
+        // Step 2: Yellow Pill falls down first
+        pill.style.transition = 'transform 360ms cubic-bezier(0.34, 1.36, 0.64, 1)';
+        pill.style.transform = `translate(${left}px, ${top}px) scale(1)`;
+
+        // Step 3: White Circle falls down second after pill lands (130ms delay)
+        dropTimeout = window.setTimeout(() => {
+          circle.style.transition = 'transform 380ms cubic-bezier(0.34, 1.25, 0.64, 1)';
           circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
-        } else {
-          // Instantly start above new capsule
-          circle.style.transition = 'none';
-          circle.style.opacity = '0';
-          circle.style.transform = `translate(${cLeft}px, ${cTop - 50}px) scale(0.4)`;
-
-          // Force reflow
-          void circle.offsetWidth;
-
-          // Drop smoothly with a subtle bounce after pill finishes sliding (~160ms delay)
-          dropTimeout = window.setTimeout(() => {
-            circle.style.transition = 'transform 400ms cubic-bezier(0.34, 1.25, 0.64, 1), opacity 200ms ease';
-            circle.style.opacity = '1';
-            circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
-          }, 160);
-        }
+        }, 130);
       }
     }
 
-    if (activeItem) {
-      requestAnimationFrame(() => {
-        if (activeItem) positionElements(activeItem, true);
+    function updateSectionContent(sectionOffset: number, weekOffset: number) {
+      const sectionEl = track?.querySelector(`[data-week-section="${sectionOffset}"]`);
+      if (!sectionEl) return;
+
+      const weekDaysData = getWeekDays(weekOffset);
+      const items = Array.from(sectionEl.querySelectorAll<HTMLButtonElement>('[data-calendar-item]'));
+
+      items.forEach((item, index) => {
+        const data = weekDaysData[index];
+        const isSelected = sectionOffset === 0 && index === selectedDayIndex;
+
+        item.setAttribute('data-active', isSelected ? 'true' : 'false');
+        item.setAttribute('data-full-date', `${data.fullDay}, ${data.month} ${data.date}`);
+
+        const daySpan = item.querySelector('span:first-child');
+        if (daySpan) daySpan.textContent = data.day;
+
+        const dateSpan = item.querySelector('span:last-child');
+        if (dateSpan) {
+          dateSpan.textContent = String(data.date);
+          if (isSelected) {
+            dateSpan.classList.add('text-black', 'font-black');
+            dateSpan.classList.remove('text-text-main');
+          } else {
+            dateSpan.classList.remove('text-black');
+            dateSpan.classList.add('text-text-main');
+          }
+        }
+
+        if (isSelected) {
+          item.classList.add('text-black', 'font-bold');
+          item.classList.remove('opacity-70');
+
+          const label = document.getElementById('calendar-selected-label');
+          if (label) label.textContent = `${data.fullDay}, ${data.month} ${data.date}`;
+        } else {
+          item.classList.remove('text-black', 'font-bold');
+          item.classList.add('text-text-main', 'opacity-70');
+        }
       });
     }
 
-    items.forEach((item) => {
-      item.addEventListener('click', () => {
-        items.forEach(el => {
-          el.setAttribute('data-active', 'false');
-          el.classList.remove('text-black', 'font-bold');
-          el.classList.add('text-text-main', 'opacity-70');
-        });
+    function refreshTrackData() {
+      updateSectionContent(-1, currentWeekOffset - 1);
+      updateSectionContent(0, currentWeekOffset);
+      updateSectionContent(1, currentWeekOffset + 1);
+    }
 
-        item.setAttribute('data-active', 'true');
-        item.classList.add('text-black', 'font-bold');
-        item.classList.remove('opacity-70');
+    function slideToWeek(delta: number) {
+      if (isSliding || !track) return;
+      isSliding = true;
 
-        positionElements(item, false);
+      const targetTransform = delta > 0 ? 'translateX(-66.6666%)' : 'translateX(0%)';
 
-        const label = document.getElementById('calendar-selected-label');
-        if (label) {
-          const fullDateStr = item.getAttribute('data-full-date');
-          if (fullDateStr) label.textContent = fullDateStr;
+      track.style.transition = 'transform 360ms cubic-bezier(0.16, 1, 0.3, 1)';
+      track.style.transform = targetTransform;
+
+      setTimeout(() => {
+        currentWeekOffset += delta;
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(-33.3333%)';
+
+        refreshTrackData();
+        isSliding = false;
+
+        const activeBtn = getActiveButton();
+        if (activeBtn) {
+          animatePillAndCircleDrop(activeBtn, false);
         }
+      }, 340);
+    }
+
+    function attachClickHandlers() {
+      const allButtons = Array.from(track?.querySelectorAll<HTMLButtonElement>('[data-calendar-item]') || []);
+      allButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const secOffset = parseInt(button.getAttribute('data-week-offset') || '0', 10);
+          const btnIdx = parseInt(button.getAttribute('data-index') || '0', 10);
+
+          if (secOffset !== 0) {
+            selectedDayIndex = btnIdx;
+            slideToWeek(secOffset);
+          } else {
+            selectedDayIndex = btnIdx;
+            
+            const centerSection = track?.querySelector('[data-week-section="0"]');
+            centerSection?.querySelectorAll('[data-calendar-item]').forEach(el => {
+              el.setAttribute('data-active', 'false');
+              el.classList.remove('text-black', 'font-bold');
+              el.classList.add('text-text-main', 'opacity-70');
+              const dSpan = el.querySelector('span:last-child');
+              if (dSpan) {
+                dSpan.classList.remove('text-black');
+                dSpan.classList.add('text-text-main');
+              }
+            });
+
+            button.setAttribute('data-active', 'true');
+            button.classList.add('text-black', 'font-bold');
+            button.classList.remove('opacity-70');
+            const targetDSpan = button.querySelector('span:last-child');
+            if (targetDSpan) {
+              targetDSpan.classList.add('text-black', 'font-black');
+              targetDSpan.classList.remove('text-text-main');
+            }
+
+            animatePillAndCircleDrop(button, false);
+
+            const label = document.getElementById('calendar-selected-label');
+            if (label) {
+              const fullDateStr = button.getAttribute('data-full-date');
+              if (fullDateStr) label.textContent = fullDateStr;
+            }
+          }
+        });
       });
+    }
+
+    attachClickHandlers();
+
+    // Whole-Card Interactive Holding & Dragging Logic
+    let startX = 0;
+    let currentDragX = 0;
+    let isDragging = false;
+
+    function handleGestureStart(clientX: number) {
+      if (isSliding || !track) return;
+      startX = clientX;
+      currentDragX = 0;
+      isDragging = true;
+      track.style.transition = 'none';
+      card?.classList.add('scale-[0.985]', 'shadow-md');
+    }
+
+    function handleGestureMove(clientX: number) {
+      if (!isDragging || isSliding || !track) return;
+      currentDragX = clientX - startX;
+      track.style.transform = `calc(-33.3333% + ${currentDragX}px)`;
+    }
+
+    function handleGestureEnd() {
+      if (!isDragging || !track) return;
+      isDragging = false;
+      card?.classList.remove('scale-[0.985]', 'shadow-md');
+
+      const threshold = 50;
+      if (currentDragX < -threshold) {
+        slideToWeek(1);
+      } else if (currentDragX > threshold) {
+        slideToWeek(-1);
+      } else {
+        track.style.transition = 'transform 280ms cubic-bezier(0.16, 1, 0.3, 1)';
+        track.style.transform = 'translateX(-33.3333%)';
+
+        setTimeout(() => {
+          const activeBtn = getActiveButton();
+          if (activeBtn) animatePillAndCircleDrop(activeBtn, false);
+        }, 260);
+      }
+    }
+
+    // Touch Listeners on entire card
+    card.addEventListener('touchstart', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button[aria-label="Add appointment"]')) return;
+      if (e.touches.length === 1) handleGestureStart(e.touches[0].clientX);
+    }, { passive: true });
+
+    card.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1) handleGestureMove(e.touches[0].clientX);
+    }, { passive: true });
+
+    card.addEventListener('touchend', handleGestureEnd, { passive: true });
+
+    // Mouse Drag Listeners on entire card
+    card.addEventListener('mousedown', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button[aria-label="Add appointment"]')) return;
+      handleGestureStart(e.clientX);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) handleGestureMove(e.clientX);
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging) handleGestureEnd();
+    });
+
+    // Trackpad Horizontal Wheel
+    let wheelLock = false;
+    card.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaX) > 25 && !wheelLock && !isSliding) {
+        wheelLock = true;
+        if (e.deltaX > 0) slideToWeek(1);
+        else slideToWeek(-1);
+
+        setTimeout(() => { wheelLock = false; }, 400);
+      }
+    }, { passive: true });
+
+    // Initial positioning on page load
+    requestAnimationFrame(() => {
+      refreshTrackData();
+      const activeBtn = getActiveButton();
+      if (activeBtn) animatePillAndCircleDrop(activeBtn, true);
     });
 
     window.addEventListener('resize', () => {
-      const currentActive = items.find(el => el.getAttribute('data-active') === 'true');
-      if (currentActive) positionElements(currentActive, true);
+      const activeBtn = getActiveButton();
+      if (activeBtn) animatePillAndCircleDrop(activeBtn, true);
     });
   }
 

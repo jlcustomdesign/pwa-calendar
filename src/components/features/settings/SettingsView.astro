@@ -33,20 +33,24 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
   <!-- Sub-Vizualizări Dedicate (dacă există parametru section) -->
   {section && (
-    <!-- Header Sub-Secțiune Unificat cu Săgeată în Dreapta -->
-    <div class="w-full bg-surface-card py-3 px-6 rounded-[2rem] border border-border-subtle/50 shadow-sm flex items-center justify-between gap-4">
-      <h2 class="text-xl sm:text-2xl font-extrabold text-text-main">{currentSectionInfo?.title}</h2>
-      
-      <a
-        href="/dashboard/settings"
-        class="w-10 h-10 rounded-2xl bg-surface-base hover:bg-brand-secondary hover:text-white text-text-main flex items-center justify-center transition-all active:scale-90 shrink-0"
-        aria-label="Înapoi la Setări"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-        </svg>
-      </a>
-    </div>
+    <!-- Header Sub-Secțiune Unificat cu Săgeată în Dreapta (Întregul card este clicabil) -->
+    <a
+      href="/dashboard/settings"
+      class="block w-full bg-surface-card py-3 pl-6 pr-3 rounded-full border border-border-subtle/50 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group cursor-pointer"
+      aria-label="Înapoi la Setări"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <h2 class="text-xl sm:text-2xl font-extrabold text-text-main group-hover:text-brand-secondary transition-colors">{currentSectionInfo?.title}</h2>
+        
+        <div
+          class="w-10 h-10 rounded-full bg-surface-base text-text-main group-hover:bg-brand-secondary group-hover:text-white flex items-center justify-center transition-all shrink-0"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
+    </a>
   )}
 
   {section && (
