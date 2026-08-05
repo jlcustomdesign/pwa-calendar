@@ -9,7 +9,7 @@ const sectionTitles: Record<string, { title: string; subtitle: string }> = {
   profile: { title: "Profil personal", subtitle: "" },
   schedule: { title: "Program de lucru", subtitle: "" },
   break: { title: "Pauza de masă", subtitle: "" },
-  packages: { title: "Ședințe & pachete", subtitle: "" },
+  packages: { title: "Durata ședințelor", subtitle: "" },
   reminders: { title: "Reminder-e & notificări", subtitle: "" },
   categories: { title: "Categorii pacienți", subtitle: "" },
 };
@@ -65,7 +65,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 type="text"
                 id="display-name"
                 name="displayName"
-                value="Dr. Maria"
+                value="Roxana Vieru"
                 placeholder="Numele tău..."
                 class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
               />
@@ -91,7 +91,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 type="email"
                 id="email-address"
                 name="email"
-                value="maria.kineto@gmail.com"
+                value="roxana.vieru@gmail.com"
                 placeholder="email@domeniu.com"
                 class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
               />
@@ -104,7 +104,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 type="text"
                 id="username"
                 name="username"
-                value="@drmaria"
+                value="@roxanavieru"
                 placeholder="@nume"
                 class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
               />
@@ -117,41 +117,48 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
       <!-- 2. Formular Program de lucru -->
       {section === 'schedule' && (
-        <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-4">
-          <div class="space-y-4">
-            <!-- Time Pickers alăturate -->
-            <div class="grid grid-cols-2 gap-3">
-              <div class="space-y-1.5">
-                <label for="work-start" class="text-xs font-bold uppercase tracking-wider text-text-muted">Ora de început</label>
-                <input
-                  type="time"
-                  id="work-start"
-                  name="workStart"
-                  value="08:00"
-                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-semibold text-center focus:outline-none focus:ring-2 focus:ring-brand-primary/50 transition-all"
-                />
-              </div>
-              <div class="space-y-1.5">
-                <label for="work-end" class="text-xs font-bold uppercase tracking-wider text-text-muted">Ora de sfârșit</label>
-                <input
-                  type="time"
-                  id="work-end"
-                  name="workEnd"
-                  value="18:00"
-                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-semibold text-center focus:outline-none focus:ring-2 focus:ring-brand-primary/50 transition-all"
-                />
+        <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-6">
+          <div class="space-y-6">
+            
+            <!-- Zile lucrătoare Toggle Chips (Plasate deasupra la ore) -->
+            <div class="space-y-2.5">
+              <label class="text-lg sm:text-xl font-black text-text-main font-sans block text-left tracking-tight">Alege ziua</label>
+              <div id="workdays-container" class="grid grid-cols-5 gap-2 text-center">
+                <button type="button" data-day-chip data-active="true" data-index="0" title="Luni" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-secondary text-white shadow-md shadow-brand-secondary/30 scale-105">L</button>
+                <button type="button" data-day-chip data-active="false" data-index="1" title="Marți" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm hover:brightness-105">M</button>
+                <button type="button" data-day-chip data-active="false" data-index="2" title="Miercuri" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm hover:brightness-105">M</button>
+                <button type="button" data-day-chip data-active="false" data-index="3" title="Joi" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm hover:brightness-105">J</button>
+                <button type="button" data-day-chip data-active="false" data-index="4" title="Vineri" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm hover:brightness-105">V</button>
               </div>
             </div>
 
-            <!-- Zile lucrătoare Toggle Chips (Luni - Vineri) -->
-            <div class="space-y-2 pt-1">
-              <label class="text-xs font-bold uppercase tracking-wider text-text-muted">Zile lucrătoare</label>
-              <div id="workdays-container" class="grid grid-cols-5 gap-2 text-center">
-                <button type="button" data-day-chip data-active="true" data-index="0" title="Luni" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">L</button>
-                <button type="button" data-day-chip data-active="true" data-index="1" title="Marți" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">M</button>
-                <button type="button" data-day-chip data-active="true" data-index="2" title="Miercuri" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">M</button>
-                <button type="button" data-day-chip data-active="true" data-index="3" title="Joi" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">J</button>
-                <button type="button" data-day-chip data-active="true" data-index="4" title="Vineri" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">V</button>
+            <!-- Time Pickers alăturate (24H Fără AM/PM cu Selector Modal Custom) -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label for="work-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de început</label>
+                <button
+                  type="button"
+                  data-time-trigger
+                  data-target="work-start"
+                  data-label="Ora de început"
+                  class="w-full px-4 py-3.5 rounded-2xl bg-surface-base/80 hover:bg-surface-base border border-border-subtle/70 text-text-main font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <span id="display-work-start" class="tracking-wider">08:00</span>
+                </button>
+                <input type="hidden" id="work-start" name="workStart" value="08:00" />
+              </div>
+              <div class="space-y-2">
+                <label for="work-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de sfârșit</label>
+                <button
+                  type="button"
+                  data-time-trigger
+                  data-target="work-end"
+                  data-label="Ora de sfârșit"
+                  class="w-full px-4 py-3.5 rounded-2xl bg-surface-base/80 hover:bg-surface-base border border-border-subtle/70 text-text-main font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <span id="display-work-end" class="tracking-wider">19:00</span>
+                </button>
+                <input type="hidden" id="work-end" name="workEnd" value="19:00" />
               </div>
             </div>
 
@@ -161,32 +168,35 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
       <!-- 3. Formular Pauza de masă -->
       {section === 'break' && (
-        <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-4">
-          <div class="space-y-4">
-            <!-- Time Pickers alăturate -->
-            <div class="grid grid-cols-2 gap-3">
-              <div class="space-y-1.5">
-                <label for="break-start" class="text-xs font-bold uppercase tracking-wider text-text-muted">Început pauză</label>
-                <input
-                  type="time"
-                  id="break-start"
-                  name="breakStart"
-                  value="13:00"
-                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-semibold text-center focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 transition-all"
-                />
-              </div>
-              <div class="space-y-1.5">
-                <label for="break-end" class="text-xs font-bold uppercase tracking-wider text-text-muted">Sfârșit pauză</label>
-                <input
-                  type="time"
-                  id="break-end"
-                  name="breakEnd"
-                  value="14:00"
-                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-semibold text-center focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 transition-all"
-                />
-              </div>
+        <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm border border-border-subtle/50 space-y-4">
+          <!-- Time Pickers alăturate Pauză (Casete Roz Pal fără border pe Card Alb) -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <label for="break-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Început pauză</label>
+              <button
+                type="button"
+                data-time-trigger
+                data-target="break-start"
+                data-label="Început pauză"
+                class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <span id="display-break-start" class="tracking-wider">13:00</span>
+              </button>
+              <input type="hidden" id="break-start" name="breakStart" value="13:00" />
             </div>
-
+            <div class="space-y-2">
+              <label for="break-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Sfârșit pauză</label>
+              <button
+                type="button"
+                data-time-trigger
+                data-target="break-end"
+                data-label="Sfârșit pauză"
+                class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <span id="display-break-end" class="tracking-wider">14:00</span>
+              </button>
+              <input type="hidden" id="break-end" name="breakEnd" value="14:00" />
+            </div>
           </div>
         </section>
       )}
@@ -195,12 +205,9 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       {section === 'packages' && (
         <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-4">
           <div class="space-y-4">
-            <!-- Stepper: Durata ședinței (minute) -->
+            <!-- Stepper: Durata ședințelor -->
             <div class="flex items-center justify-between py-1">
-              <div>
-                <div class="text-sm font-semibold text-text-main">Durata ședinței (minute)</div>
-                <div class="text-xs text-text-muted">Timp alocat per sesiune</div>
-              </div>
+              <div class="text-base sm:text-lg font-bold text-text-main">Durata ședințelor</div>
               <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-border-subtle">
                 <button type="button" data-stepper-dec="sessionDuration" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
                   -
@@ -214,10 +221,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
             <!-- Stepper: Pauză între pacienți (minute) -->
             <div class="flex items-center justify-between py-1 border-t border-border-subtle/40 pt-3">
-              <div>
-                <div class="text-sm font-semibold text-text-main">Pauză între pacienți (minute)</div>
-                <div class="text-xs text-text-muted">Timp liber de tranziție</div>
-              </div>
+              <div class="text-base sm:text-lg font-bold text-text-main">Pauză între pacienți (minute)</div>
               <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-border-subtle">
                 <button type="button" data-stepper-dec="breakBetween" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
                   -
@@ -226,42 +230,6 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 <button type="button" data-stepper-inc="breakBetween" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
                   +
                 </button>
-              </div>
-            </div>
-
-            <!-- Stepper: Număr ședințe implicit per pachet -->
-            <div class="flex items-center justify-between py-1 border-t border-border-subtle/40 pt-3">
-              <div>
-                <div class="text-sm font-semibold text-text-main">Ședințe implicit per pachet</div>
-                <div class="text-xs text-text-muted">Număr de ședințe generat</div>
-              </div>
-              <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-border-subtle">
-                <button type="button" data-stepper-dec="defaultPackageSessions" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
-                  -
-                </button>
-                <input type="number" id="defaultPackageSessions" name="defaultPackageSessions" value="10" min="1" max="50" step="1" readonly class="w-12 text-center bg-transparent font-bold text-text-main text-base focus:outline-none" />
-                <button type="button" data-stepper-inc="defaultPackageSessions" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
-                  +
-                </button>
-              </div>
-            </div>
-
-            <!-- Preț implicit pachet cu sufix RON -->
-            <div class="space-y-1.5 border-t border-border-subtle/40 pt-3">
-              <label for="package-price" class="text-xs font-bold uppercase tracking-wider text-text-muted">Preț implicit pachet</label>
-              <div class="relative">
-                <input
-                  type="number"
-                  id="package-price"
-                  name="packagePrice"
-                  value="1200"
-                  min="0"
-                  step="50"
-                  class="w-full pl-4 pr-20 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-bold text-lg focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 transition-all"
-                />
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 rounded-xl bg-brand-secondary text-white font-extrabold text-xs tracking-wider shadow-sm">
-                  RON
-                </div>
               </div>
             </div>
           </div>
@@ -319,75 +287,35 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       {section === 'categories' && (
         <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-4">
           <div class="space-y-3">
-            <div id="categories-container" class="flex flex-wrap gap-2">
-              <!-- Roz Accent Chip -->
-              <div data-category-chip="Kinetoterapie" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-brand-secondary/10 border border-brand-secondary/30 text-brand-secondary font-bold text-xs transition-all shadow-sm">
-                <span>Kinetoterapie</span>
-                <button type="button" data-delete-category class="w-4 h-4 rounded-full bg-brand-secondary/20 hover:bg-brand-secondary/30 flex items-center justify-center text-brand-secondary font-bold transition-colors">
-                  &times;
-                </button>
-              </div>
-
-              <!-- Galben Accent Chip -->
-              <div data-category-chip="Recuperare Post-Operatorie" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-brand-primary/20 border border-brand-primary/40 text-text-main font-bold text-xs transition-all shadow-sm">
-                <span>Recuperare Post-Operatorie</span>
-                <button type="button" data-delete-category class="w-4 h-4 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center text-text-main font-bold transition-colors">
-                  &times;
-                </button>
-              </div>
-
-              <!-- Verde Accent Chip -->
-              <div data-category-chip="Masaj Terapeutic" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-brand-accent/15 border border-brand-accent/30 text-brand-accent font-bold text-xs transition-all shadow-sm">
-                <span>Masaj Terapeutic</span>
-                <button type="button" data-delete-category class="w-4 h-4 rounded-full bg-brand-accent/20 hover:bg-brand-accent/30 flex items-center justify-center text-brand-accent font-bold transition-colors">
-                  &times;
-                </button>
-              </div>
-
-              <!-- Soft Neutral Chip -->
-              <div data-category-chip="Pediatrie" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-surface-base border border-border-subtle text-text-main font-bold text-xs transition-all">
-                <span>Pediatrie</span>
-                <button type="button" data-delete-category class="w-4 h-4 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center text-text-main font-bold transition-colors">
-                  &times;
-                </button>
-              </div>
+            <div id="categories-container" class="flex flex-col gap-2.5 w-full">
+              <!-- Dynamically added custom category items (vertical bullet list) -->
             </div>
 
-            <!-- Input inline adăugare categorie -->
-            <div id="add-category-wrapper" class="pt-1">
-              <button
-                type="button"
-                id="btn-show-category-input"
-                class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-brand-secondary/10 hover:bg-brand-secondary/20 text-brand-secondary font-bold text-xs active:scale-95 transition-all"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                </svg>
-                <span>+ adaugă categorie</span>
-              </button>
-
-              <div id="inline-category-input-box" class="hidden items-center gap-2">
+            <!-- Casetă de introducere DIRECT vizibilă de la început -->
+            <div id="inline-category-input-box" class="flex items-center gap-2 w-full pt-1">
+              <div class="relative flex-1 min-w-0">
                 <input
                   type="text"
                   id="new-category-name"
                   placeholder="Nume categorie..."
-                  class="flex-1 px-4 py-2 rounded-2xl bg-surface-base border border-border-subtle text-text-main text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-secondary/40"
+                  class="w-full pl-4 pr-9 py-3.5 rounded-2xl bg-surface-base/80 border border-border-subtle/80 text-text-main font-bold text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all"
                 />
                 <button
                   type="button"
-                  id="btn-confirm-add-category"
-                  class="px-4 py-2 rounded-2xl bg-brand-secondary text-white font-bold text-xs shadow-sm active:scale-95 transition-all"
+                  id="btn-clear-category-input"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-base hover:bg-text-muted/20 text-text-muted font-bold text-xs flex items-center justify-center transition-colors cursor-pointer"
+                  title="Șterge textul"
                 >
-                  Adaugă
-                </button>
-                <button
-                  type="button"
-                  id="btn-cancel-add-category"
-                  class="px-3 py-2 rounded-2xl bg-surface-base text-text-muted font-bold text-xs hover:text-text-main active:scale-95 transition-all"
-                >
-                  Anulează
+                  &times;
                 </button>
               </div>
+              <button
+                type="button"
+                id="btn-confirm-add-category"
+                class="px-5 py-3.5 rounded-2xl bg-brand-secondary text-white font-extrabold text-sm hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-md shadow-brand-secondary/20 shrink-0"
+              >
+                Adaugă
+              </button>
             </div>
           </div>
         </section>
@@ -402,6 +330,48 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
         >
           Salvează
         </button>
+      </div>
+
+      <!-- Modal Custom de Selectare a Orei (24H Format, Fără AM/PM, Stil Aplicație) -->
+      <div id="time-picker-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-200">
+        <div id="time-picker-dialog" class="bg-surface-card rounded-[2.5rem] p-6 shadow-2xl border border-border-subtle/50 w-full max-w-xs space-y-5 transform scale-95 transition-all duration-200 relative">
+          
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between pb-2 border-b border-border-subtle/40">
+            <h3 id="modal-time-title" class="text-xl font-black text-text-main font-sans">Alege ora</h3>
+            <button type="button" id="btn-close-time-modal" class="w-8 h-8 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold flex items-center justify-center transition-colors">&times;</button>
+          </div>
+
+          <!-- 24H Time Preview Display (Culoare Negru Bold) -->
+          <div class="flex items-center justify-center gap-1.5 py-3 bg-surface-base/80 rounded-2xl border border-border-subtle/60 shadow-inner text-text-main font-black text-4xl font-sans tracking-tight">
+            <span id="modal-hour-display">08</span>
+            <span>:</span>
+            <span id="modal-minute-display">00</span>
+          </div>
+
+          <!-- Quick Hours Grid (08 to 19) -->
+          <div>
+            <div class="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-1" id="hours-grid">
+              <!-- Dynamically generated -->
+            </div>
+          </div>
+
+          <!-- Minutes Selector (00, 15, 30, 45) -->
+          <div class="space-y-1.5 pt-1">
+            <div class="text-xs font-extrabold text-text-muted font-sans uppercase tracking-wider">Minute</div>
+            <div class="grid grid-cols-4 gap-1.5" id="minutes-grid">
+              <!-- Dynamically generated -->
+            </div>
+          </div>
+
+          <!-- Confirm Button -->
+          <div class="pt-2">
+            <button type="button" id="btn-confirm-time" class="w-full py-3.5 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-95 transition-all text-center cursor-pointer">
+              Setează ora
+            </button>
+          </div>
+
+        </div>
       </div>
 
     </form>
@@ -426,21 +396,21 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       }, 3000);
     }
 
-    // 1. Toggle days chips
+    // 1. Selectare zi activă (Toate galbene, cea selectată la click devine roz)
     const dayChips = document.querySelectorAll<HTMLButtonElement>('[data-day-chip]');
     dayChips.forEach((chip) => {
       chip.addEventListener('click', () => {
-        const isActive = chip.getAttribute('data-active') === 'true';
-        const nextState = !isActive;
-        chip.setAttribute('data-active', nextState ? 'true' : 'false');
+        // Resetăm toate la starea implicită galbenă
+        dayChips.forEach((c) => {
+          c.setAttribute('data-active', 'false');
+          c.classList.remove('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
+          c.classList.add('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+        });
 
-        if (nextState) {
-          chip.classList.add('bg-brand-primary', 'text-black', 'shadow-sm');
-          chip.classList.remove('bg-surface-base/70', 'text-text-muted', 'opacity-70');
-        } else {
-          chip.classList.remove('bg-brand-primary', 'text-black', 'shadow-sm');
-          chip.classList.add('bg-surface-base/70', 'text-text-muted', 'opacity-70');
-        }
+        // Activăm ziua apăsată în roz intens
+        chip.setAttribute('data-active', 'true');
+        chip.classList.remove('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+        chip.classList.add('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
       });
     });
 
@@ -501,47 +471,53 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       }
     });
 
-    btnShowCategoryInput?.addEventListener('click', () => {
-      btnShowCategoryInput.classList.add('hidden');
-      inlineCategoryInputBox?.classList.remove('hidden');
-      inlineCategoryInputBox?.classList.add('flex');
-      if (newCategoryNameInput) {
-        newCategoryNameInput.value = '';
-        newCategoryNameInput.focus();
-      }
+    // Categorii Input Logic (Direct vizibil)
+    const btnClearInput = document.getElementById('btn-clear-category-input');
+    btnClearInput?.addEventListener('click', () => {
+      if (newCategoryNameInput) newCategoryNameInput.value = '';
     });
 
-    function hideInlineInput() {
-      inlineCategoryInputBox?.classList.remove('flex');
-      inlineCategoryInputBox?.classList.add('hidden');
-      btnShowCategoryInput?.classList.remove('hidden');
-    }
-
-    btnCancelAddCategory?.addEventListener('click', hideInlineInput);
+    newCategoryNameInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnConfirmAddCategory?.click();
+      }
+    });
 
     btnConfirmAddCategory?.addEventListener('click', () => {
       if (!newCategoryNameInput || !categoriesContainer) return;
       const catName = newCategoryNameInput.value.trim();
       if (!catName) return;
 
-      const chipDiv = document.createElement('div');
-      chipDiv.setAttribute('data-category-chip', catName);
-      chipDiv.className = 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-brand-secondary/10 border border-brand-secondary/30 text-brand-secondary font-bold text-xs transition-all shadow-sm';
+      const itemDiv = document.createElement('div');
+      itemDiv.setAttribute('data-category-chip', catName);
+      itemDiv.className = 'flex items-center justify-between p-3.5 px-4 rounded-2xl bg-surface-base/60 hover:bg-surface-base border border-border-subtle/60 transition-all animate-fadeIn w-full';
       
+      const leftBox = document.createElement('div');
+      leftBox.className = 'flex items-center gap-3 min-w-0';
+
+      const bullet = document.createElement('div');
+      bullet.className = 'w-2.5 h-2.5 rounded-full bg-brand-secondary shrink-0 shadow-sm shadow-brand-secondary/30';
+
       const span = document.createElement('span');
+      span.className = 'text-text-main font-extrabold text-base tracking-tight truncate';
       span.textContent = catName;
-      
+
+      leftBox.appendChild(bullet);
+      leftBox.appendChild(span);
+
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
       delBtn.setAttribute('data-delete-category', '');
-      delBtn.className = 'w-4 h-4 rounded-full bg-brand-secondary/20 hover:bg-brand-secondary/30 flex items-center justify-center text-brand-secondary font-bold transition-colors';
+      delBtn.className = 'w-7 h-7 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold text-xs flex items-center justify-center transition-all shrink-0 ml-2 cursor-pointer shadow-sm';
       delBtn.innerHTML = '&times;';
+      delBtn.addEventListener('click', () => itemDiv.remove());
 
-      chipDiv.appendChild(span);
-      chipDiv.appendChild(delBtn);
+      itemDiv.appendChild(leftBox);
+      itemDiv.appendChild(delBtn);
 
-      categoriesContainer.appendChild(chipDiv);
-      hideInlineInput();
+      categoriesContainer.appendChild(itemDiv);
+      newCategoryNameInput.value = '';
     });
 
     // 0. Profile Inputs Hydration
@@ -562,6 +538,119 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     if (inputUsername && localStorage.getItem('kineto_username')) {
       inputUsername.value = localStorage.getItem('kineto_username')!;
     }
+
+    // 3.5 Custom 24H Time Picker Modal Logic
+    const timeModal = document.getElementById('time-picker-modal');
+    const timeDialog = document.getElementById('time-picker-dialog');
+    const modalTitle = document.getElementById('modal-time-title');
+    const modalHourDisplay = document.getElementById('modal-hour-display');
+    const modalMinuteDisplay = document.getElementById('modal-minute-display');
+    const btnCloseModal = document.getElementById('btn-close-time-modal');
+    const btnConfirmTime = document.getElementById('btn-confirm-time');
+    const hoursGrid = document.getElementById('hours-grid');
+    const minutesGrid = document.getElementById('minutes-grid');
+
+    let activeTargetId: string | null = null;
+    let selectedHour = '08';
+    let selectedMinute = '00';
+
+    const hoursList = ['08','09','10','11','12','13','14','15','16','17','18','19'];
+    const minutesList = ['00','15','30','45'];
+
+    function renderHoursGrid() {
+      if (!hoursGrid) return;
+      hoursGrid.innerHTML = '';
+      hoursList.forEach((h) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isSel = h === selectedHour;
+        btn.className = `py-2 rounded-xl font-extrabold text-sm transition-all ${
+          isSel ? 'bg-brand-secondary text-white shadow-sm scale-105' : 'bg-surface-base hover:bg-brand-primary/30 text-text-main'
+        }`;
+        btn.textContent = h;
+        btn.addEventListener('click', () => {
+          selectedHour = h;
+          if (modalHourDisplay) modalHourDisplay.textContent = h;
+          renderHoursGrid();
+        });
+        hoursGrid.appendChild(btn);
+      });
+    }
+
+    function renderMinutesGrid() {
+      if (!minutesGrid) return;
+      minutesGrid.innerHTML = '';
+      minutesList.forEach((m) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isSel = m === selectedMinute;
+        btn.className = `py-2 rounded-xl font-extrabold text-sm transition-all ${
+          isSel ? 'bg-brand-secondary text-white shadow-sm scale-105' : 'bg-surface-base hover:bg-brand-primary/30 text-text-main'
+        }`;
+        btn.textContent = m;
+        btn.addEventListener('click', () => {
+          selectedMinute = m;
+          if (modalMinuteDisplay) modalMinuteDisplay.textContent = m;
+          renderMinutesGrid();
+        });
+        minutesGrid.appendChild(btn);
+      });
+    }
+
+    function openTimeModal(targetId: string, label: string) {
+      if (!timeModal || !timeDialog) return;
+      activeTargetId = targetId;
+      if (modalTitle) modalTitle.textContent = label;
+
+      const hiddenInput = document.getElementById(targetId) as HTMLInputElement | null;
+      const currentVal = hiddenInput?.value || '08:00';
+      const parts = currentVal.split(':');
+      selectedHour = parts[0] || '08';
+      selectedMinute = parts[1] || '00';
+
+      if (modalHourDisplay) modalHourDisplay.textContent = selectedHour;
+      if (modalMinuteDisplay) modalMinuteDisplay.textContent = selectedMinute;
+
+      renderHoursGrid();
+      renderMinutesGrid();
+
+      timeModal.classList.remove('opacity-0', 'pointer-events-none');
+      timeDialog.classList.remove('scale-95');
+      timeDialog.classList.add('scale-100');
+    }
+
+    function closeTimeModal() {
+      if (!timeModal || !timeDialog) return;
+      timeModal.classList.add('opacity-0', 'pointer-events-none');
+      timeDialog.classList.remove('scale-100');
+      timeDialog.classList.add('scale-95');
+    }
+
+    document.querySelectorAll('[data-time-trigger]').forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        const targetId = trigger.getAttribute('data-target');
+        const label = trigger.getAttribute('data-label') || 'Alege ora';
+        if (targetId) openTimeModal(targetId, label);
+      });
+    });
+
+    btnCloseModal?.addEventListener('click', closeTimeModal);
+    timeModal?.addEventListener('click', (e) => {
+      if (e.target === timeModal) closeTimeModal();
+    });
+
+    btnConfirmTime?.addEventListener('click', () => {
+      if (!activeTargetId) return;
+      const formatted = `${selectedHour}:${selectedMinute}`;
+      
+      const hiddenInput = document.getElementById(activeTargetId) as HTMLInputElement | null;
+      if (hiddenInput) hiddenInput.value = formatted;
+
+      const displaySpan = document.getElementById(`display-${activeTargetId}`);
+      if (displaySpan) displaySpan.textContent = formatted;
+
+      closeTimeModal();
+    });
 
     // 4. Form Submit
     const form = document.getElementById('settings-form');
