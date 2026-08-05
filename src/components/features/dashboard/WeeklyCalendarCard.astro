@@ -39,12 +39,9 @@ const daysNext = getWeekDaysData(now, 1);
 const activeDayObj = days.find(d => d.active) || days[0];
 ---
 
-<div
-  id="weekly-calendar-card"
-  class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none transition-transform duration-200 ease-out cursor-grab active:cursor-grabbing touch-pan-y"
->
+<div class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none">
   <!-- Greeting Header & Action -->
-  <div class="flex items-start justify-between mb-6 pointer-events-none">
+  <div class="flex items-start justify-between mb-6">
     <div>
       <div id="calendar-selected-label" class="text-xs font-bold uppercase tracking-widest text-text-muted/60 mb-1">
         {activeDayObj.fullDay}, {activeDayObj.month} {activeDayObj.date}
@@ -52,15 +49,15 @@ const activeDayObj = days.find(d => d.active) || days[0];
       <h2 class="text-3xl font-bold tracking-tight text-text-main">Hello, {name}</h2>
     </div>
     
-    <button aria-label="Add appointment" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm pointer-events-auto">
+    <button aria-label="Add appointment" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
       </svg>
     </button>
   </div>
 
-  <!-- Vertical Capsule Calendar Strip Container -->
-  <div id="calendar-strip" class="relative p-1 overflow-hidden rounded-[2rem]">
+  <!-- Vertical Capsule Calendar Strip Container with Continuous Marquee Drag -->
+  <div id="calendar-strip" class="relative p-1 touch-pan-y cursor-grab active:cursor-grabbing overflow-hidden rounded-[2rem]">
 
     <!-- 3-Week Continuous Sliding Track (Prev, Current, Next) -->
     <div id="calendar-track" class="flex w-[300%] relative z-20" style="transform: translateX(-33.3333%);">
@@ -74,7 +71,7 @@ const activeDayObj = days.find(d => d.active) || days[0];
             data-week-offset="-1"
             data-index={index}
             data-full-date={`${item.fullDay}, ${item.month} ${item.date}`}
-            class="relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] text-text-main opacity-70 hover:opacity-100 transition-colors duration-300 active:scale-90"
+            class="relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] text-text-main opacity-70 hover:opacity-100 transition-colors duration-300"
           >
             <span class="text-xs font-bold tracking-wider pointer-events-none z-20">{item.day}</span>
             <span class="w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20">{item.date}</span>
@@ -107,7 +104,7 @@ const activeDayObj = days.find(d => d.active) || days[0];
             data-active={item.active ? "true" : "false"}
             data-index={index}
             data-full-date={`${item.fullDay}, ${item.month} ${item.date}`}
-            class={`relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] transition-colors duration-300 active:scale-90 ${
+            class={`relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] transition-colors duration-300 ${
               item.active ? 'text-black font-bold' : 'text-text-main opacity-70 hover:opacity-100'
             }`}
           >
@@ -126,7 +123,7 @@ const activeDayObj = days.find(d => d.active) || days[0];
             data-week-offset="1"
             data-index={index}
             data-full-date={`${item.fullDay}, ${item.month} ${item.date}`}
-            class="relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] text-text-main opacity-70 hover:opacity-100 transition-colors duration-300 active:scale-90"
+            class="relative z-20 flex flex-col items-center justify-between py-3 px-1 h-20 rounded-[2rem] text-text-main opacity-70 hover:opacity-100 transition-colors duration-300"
           >
             <span class="text-xs font-bold tracking-wider pointer-events-none z-20">{item.day}</span>
             <span class="w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20">{item.date}</span>
@@ -140,12 +137,11 @@ const activeDayObj = days.find(d => d.active) || days[0];
 
 <script>
   function initCalendarAnimation() {
-    const card = document.getElementById('weekly-calendar-card');
     const strip = document.getElementById('calendar-strip');
     const track = document.getElementById('calendar-track');
     const pill = document.getElementById('calendar-active-pill');
     const circle = document.getElementById('calendar-active-circle');
-    if (!card || !strip || !track || !pill || !circle) return;
+    if (!strip || !track || !pill || !circle) return;
 
     let dropTimeout: number | undefined;
     let currentWeekOffset = 0;
@@ -188,7 +184,7 @@ const activeDayObj = days.find(d => d.active) || days[0];
       return btns[selectedDayIndex] || btns[0] || null;
     }
 
-    // Sequential Pill & Circle Drop Animation
+    // Sequential Pill & Circle Drop Animation (Pill First, Circle Second)
     function animatePillAndCircleDrop(target: HTMLButtonElement, isInitial: boolean = false) {
       if (!target || !pill || !circle) return;
       
@@ -217,7 +213,7 @@ const activeDayObj = days.find(d => d.active) || days[0];
         circle.style.transition = 'none';
         circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
       } else {
-        // Step 1: Position Pill & Circle above target off-screen (Fully Opaque!)
+        // Step 1: Position Pill & Circle off-screen above target
         pill.style.transition = 'none';
         pill.style.width = `${width}px`;
         pill.style.height = `${height}px`;
@@ -313,11 +309,21 @@ const activeDayObj = days.find(d => d.active) || days[0];
       }, 340);
     }
 
+    let hasDraggedFar = false;
+
     function attachClickHandlers() {
       const allButtons = Array.from(track?.querySelectorAll<HTMLButtonElement>('[data-calendar-item]') || []);
       allButtons.forEach(button => {
+        if (button.dataset.clickAttached === 'true') return;
+        button.dataset.clickAttached = 'true';
+
         button.addEventListener('click', (e) => {
-          e.stopPropagation();
+          if (hasDraggedFar) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+
           const secOffset = parseInt(button.getAttribute('data-week-offset') || '0', 10);
           const btnIdx = parseInt(button.getAttribute('data-index') || '0', 10);
 
@@ -348,6 +354,7 @@ const activeDayObj = days.find(d => d.active) || days[0];
               targetDSpan.classList.remove('text-text-main');
             }
 
+            // Sequential drop animation: Pill falls first, Circle falls second
             animatePillAndCircleDrop(button, false);
 
             const label = document.getElementById('calendar-selected-label');
@@ -362,86 +369,124 @@ const activeDayObj = days.find(d => d.active) || days[0];
 
     attachClickHandlers();
 
-    // Whole-Card Interactive Holding & Dragging Logic
+    // Static Marquee Reel Drag Logic
     let startX = 0;
     let currentDragX = 0;
     let isDragging = false;
+    let dragStartTime = 0;
 
     function handleGestureStart(clientX: number) {
       if (isSliding || !track) return;
       startX = clientX;
       currentDragX = 0;
+      dragStartTime = performance.now();
       isDragging = true;
+      hasDraggedFar = false;
       track.style.transition = 'none';
-      card?.classList.add('scale-[0.985]', 'shadow-md');
     }
+
+    let moveRAF: number | null = null;
 
     function handleGestureMove(clientX: number) {
       if (!isDragging || isSliding || !track) return;
       currentDragX = clientX - startX;
-      track.style.transform = `calc(-33.3333% + ${currentDragX}px)`;
+      if (Math.abs(currentDragX) > 8) {
+        hasDraggedFar = true;
+      }
+      
+      if (moveRAF) cancelAnimationFrame(moveRAF);
+      moveRAF = requestAnimationFrame(() => {
+        if (isDragging && track) {
+          // Instant 1-to-1 static marquee drag follow
+          track.style.transform = `calc(-33.3333% + ${currentDragX}px)`;
+        }
+      });
     }
 
     function handleGestureEnd() {
-      if (!isDragging || !track) return;
+      if (!isDragging || !track || !strip) return;
       isDragging = false;
-      card?.classList.remove('scale-[0.985]', 'shadow-md');
 
-      const threshold = 50;
-      if (currentDragX < -threshold) {
+      const containerWidth = strip.offsetWidth;
+      const dayWidth = containerWidth / 7;
+
+      // Calculate how many days user dragged (positive = dragged right, negative = dragged left)
+      const daysMoved = Math.round(currentDragX / dayWidth);
+
+      if (daysMoved <= -4) {
+        // Dragged 4+ days to the left -> slide to next week
         slideToWeek(1);
-      } else if (currentDragX > threshold) {
+      } else if (daysMoved >= 4) {
+        // Dragged 4+ days to the right -> slide to prev week
         slideToWeek(-1);
-      } else {
-        track.style.transition = 'transform 280ms cubic-bezier(0.16, 1, 0.3, 1)';
-        track.style.transform = 'translateX(-33.3333%)';
+      } else if (Math.abs(daysMoved) >= 1) {
+        // Dragged 1 to 3 days -> smooth marquee snap to the day column
+        const targetOffsetPx = daysMoved * dayWidth;
+        track.style.transition = 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)';
+        track.style.transform = `calc(-33.3333% + ${targetOffsetPx}px)`;
 
-        setTimeout(() => {
-          const activeBtn = getActiveButton();
-          if (activeBtn) animatePillAndCircleDrop(activeBtn, false);
-        }, 260);
+        // Update selected day to match the marquee position
+        let newIdx = selectedDayIndex - daysMoved;
+        if (newIdx < 0) newIdx = 0;
+        if (newIdx > 6) newIdx = 6;
+        
+        if (selectedDayIndex !== newIdx) {
+          selectedDayIndex = newIdx;
+          setTimeout(() => {
+            refreshTrackData();
+            const activeBtn = getActiveButton();
+            if (activeBtn) animatePillAndCircleDrop(activeBtn, false);
+          }, 280);
+        }
+      } else {
+        // Dragged less than half a day -> spring back cleanly
+        track.style.transition = 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)';
+        track.style.transform = 'translateX(-33.3333%)';
+        // Removed animatePillAndCircleDrop from here to fix double animation on click
       }
     }
 
-    // Touch Listeners on entire card
-    card.addEventListener('touchstart', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('button[aria-label="Add appointment"]')) return;
-      if (e.touches.length === 1) handleGestureStart(e.touches[0].clientX);
-    }, { passive: true });
+    // Attach gesture events safely without duplication using PointerEvents for robust tracking
+    if (strip.dataset.gesturesAttached !== 'true') {
+      strip.dataset.gesturesAttached = 'true';
 
-    card.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 1) handleGestureMove(e.touches[0].clientX);
-    }, { passive: true });
+      strip.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return; // Left click only
+        strip.setPointerCapture(e.pointerId);
+        handleGestureStart(e.clientX);
+      });
 
-    card.addEventListener('touchend', handleGestureEnd, { passive: true });
+      strip.addEventListener('pointermove', (e) => {
+        if (isDragging) {
+          handleGestureMove(e.clientX);
+        }
+      });
 
-    // Mouse Drag Listeners on entire card
-    card.addEventListener('mousedown', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('button[aria-label="Add appointment"]')) return;
-      handleGestureStart(e.clientX);
-    });
+      strip.addEventListener('pointerup', (e) => {
+        if (isDragging) {
+          strip.releasePointerCapture(e.pointerId);
+          handleGestureEnd();
+        }
+      });
 
-    window.addEventListener('mousemove', (e) => {
-      if (isDragging) handleGestureMove(e.clientX);
-    });
+      strip.addEventListener('pointercancel', (e) => {
+        if (isDragging) {
+          strip.releasePointerCapture(e.pointerId);
+          handleGestureEnd();
+        }
+      });
 
-    window.addEventListener('mouseup', () => {
-      if (isDragging) handleGestureEnd();
-    });
+      let wheelLock = false;
+      strip.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaX) > 25 && !wheelLock && !isSliding) {
+          wheelLock = true;
+          if (e.deltaX > 0) slideToWeek(1);
+          else slideToWeek(-1);
 
-    // Trackpad Horizontal Wheel
-    let wheelLock = false;
-    card.addEventListener('wheel', (e) => {
-      if (Math.abs(e.deltaX) > 25 && !wheelLock && !isSliding) {
-        wheelLock = true;
-        if (e.deltaX > 0) slideToWeek(1);
-        else slideToWeek(-1);
-
-        setTimeout(() => { wheelLock = false; }, 400);
-      }
-    }, { passive: true });
+          setTimeout(() => { wheelLock = false; }, 400);
+        }
+      }, { passive: true });
+    }
 
     // Initial positioning on page load
     requestAnimationFrame(() => {
@@ -458,4 +503,5 @@ const activeDayObj = days.find(d => d.active) || days[0];
 
   document.addEventListener('DOMContentLoaded', initCalendarAnimation);
   document.addEventListener('astro:page-load', initCalendarAnimation);
+  document.addEventListener('astro:after-swap', initCalendarAnimation);
 </script>
