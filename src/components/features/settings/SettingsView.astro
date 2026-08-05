@@ -219,9 +219,9 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
               </div>
             </div>
 
-            <!-- Stepper: Pauză între pacienți (minute) -->
+            <!-- Stepper: Pauză între pacienți -->
             <div class="flex items-center justify-between py-1 border-t border-border-subtle/40 pt-3">
-              <div class="text-base sm:text-lg font-bold text-text-main">Pauză între pacienți (minute)</div>
+              <div class="text-base sm:text-lg font-bold text-text-main">Pauză între pacienți</div>
               <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-border-subtle">
                 <button type="button" data-stepper-dec="breakBetween" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
                   -
@@ -393,6 +393,18 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
 <script>
   function initSubSectionLogic() {
+    // Oprire/blocare scroll pagină dacă este deschisă o sub-categorie
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('section')) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+
     // Toast Notification helper
     const toast = document.getElementById('settings-toast');
     const toastMessage = document.getElementById('toast-message');
