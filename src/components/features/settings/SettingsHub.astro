@@ -7,7 +7,7 @@
   <!-- 1. Card Profil Principal -->
   <a
     href="/dashboard/settings?section=profile"
-    class="block bg-surface-card rounded-[2.5rem] p-6 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
+    class="block bg-surface-card rounded-full py-3 pl-6 pr-3 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
   >
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3.5">
@@ -28,7 +28,7 @@
   <!-- 2. Program de lucru -->
   <a
     href="/dashboard/settings?section=schedule"
-    class="block bg-surface-card rounded-[2.5rem] p-6 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
+    class="block bg-surface-card rounded-full py-3 pl-6 pr-3 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
   >
     <div class="flex items-center justify-between">
       <div>
@@ -46,7 +46,7 @@
   <!-- 3. Pauza de masă -->
   <a
     href="/dashboard/settings?section=break"
-    class="block bg-surface-card rounded-[2.5rem] p-6 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
+    class="block bg-surface-card rounded-full py-3 pl-6 pr-3 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
   >
     <div class="flex items-center justify-between">
       <div>
@@ -64,7 +64,7 @@
   <!-- 4. Ședințe -->
   <a
     href="/dashboard/settings?section=packages"
-    class="block bg-surface-card rounded-[2.5rem] p-6 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
+    class="block bg-surface-card rounded-full py-3 pl-6 pr-3 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
   >
     <div class="flex items-center justify-between">
       <div>
@@ -82,7 +82,7 @@
   <!-- 5. Categorii pacienți -->
   <a
     href="/dashboard/settings?section=categories"
-    class="block bg-surface-card rounded-[2.5rem] p-6 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
+    class="block bg-surface-card rounded-full py-3 pl-6 pr-3 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
   >
     <div class="flex items-center justify-between">
       <div>
@@ -100,7 +100,7 @@
   <!-- 5. Reminder și mesaj -->
   <a
     href="/dashboard/settings?section=reminders"
-    class="block bg-surface-card rounded-[2.5rem] p-6 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
+    class="block bg-surface-card rounded-full py-3 pl-6 pr-3 shadow-sm hover:shadow-md active:scale-[0.98] transition-all group border border-border-subtle/50"
   >
     <div class="flex items-center justify-between">
       <div>
@@ -114,5 +114,19 @@
       </div>
     </div>
   </a>
+
+  <!-- 6. Deconectare (Logout) -->
+  <div class="pt-5 flex justify-center">
+    <button
+      type="button"
+      id="btn-logout"
+      class="inline-flex items-center gap-3 px-7 py-3.5 rounded-full text-rose-500/90 hover:text-rose-600 hover:bg-rose-500/10 font-extrabold text-lg sm:text-xl transition-all active:scale-95 cursor-pointer border border-rose-500/25"
+    >
+      <svg class="w-6 h-6 stroke-[2.3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+      <span>Deconectare</span>
+    </button>
+  </div>
 
 </div>
