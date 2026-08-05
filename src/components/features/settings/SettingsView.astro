@@ -1,7 +1,582 @@
 ---
-// Feature Component Placeholder for Settings View
+// SettingsView.astro - Suportă Hub-ul de Navigare (iOS Settings Model) și sub-vizualizările dedicate
+import SettingsHub from './SettingsHub.astro';
+
+const section = Astro.url.searchParams.get('section');
+
+// Sub-section labels mapping for clean headers
+const sectionTitles: Record<string, { title: string; subtitle: string }> = {
+  profile: { title: "Profil personal", subtitle: "" },
+  schedule: { title: "Program de lucru", subtitle: "" },
+  break: { title: "Pauza de masă", subtitle: "" },
+  packages: { title: "Ședințe & pachete", subtitle: "" },
+  reminders: { title: "Reminder-e & notificări", subtitle: "" },
+  categories: { title: "Categorii pacienți", subtitle: "" },
+};
+
+const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[section] : null;
 ---
 
-<div class="p-6 bg-surface-card rounded-xl border border-border-subtle">
-  <p class="text-sm text-text-muted">Application Settings & Push Notification Preferences Placeholder</p>
+<div class="space-y-6">
+  <!-- Toast Notification Feedback -->
+  <div id="settings-toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-4">
+    <div class="bg-surface-dark text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-sm font-semibold border border-white/10">
+      <svg class="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+      </svg>
+      <span id="toast-message">Modificările au fost salvate cu succes!</span>
+    </div>
+  </div>
+
+  <!-- 0. Meniul Principal (iOS Settings Hub Overview) -->
+  {!section && <SettingsHub />}
+
+  <!-- Sub-Vizualizări Dedicate (dacă există parametru section) -->
+  {section && (
+    <!-- Header Sub-Secțiune Unificat cu Săgeată în Dreapta -->
+    <div class="w-full bg-surface-card py-3 px-6 rounded-[2rem] border border-border-subtle/50 shadow-sm flex items-center justify-between gap-4">
+      <h2 class="text-xl sm:text-2xl font-extrabold text-text-main">{currentSectionInfo?.title}</h2>
+      
+      <a
+        href="/dashboard/settings"
+        class="w-10 h-10 rounded-2xl bg-surface-base hover:bg-brand-secondary hover:text-white text-text-main flex items-center justify-center transition-all active:scale-90 shrink-0"
+        aria-label="Înapoi la Setări"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+  )}
+
+  {section && (
+    <form id="settings-form" class="space-y-6" onsubmit="event.preventDefault();">
+
+      <!-- 1. Formular Profil Personal (Stil iOS Row List cu Padding Generos) -->
+      {section === 'profile' && (
+        <section class="space-y-6">
+          <!-- Card Unificat iOS cu Rânduri Orizontale & Padding Generos -->
+          <div class="bg-surface-card rounded-[2.5rem] p-4 sm:p-6 shadow-sm border border-border-subtle/50 divide-y divide-border-subtle/50">
+            
+            <!-- Row 1: Nume -->
+            <div class="flex items-center justify-between px-6 py-5 sm:py-6 gap-4">
+              <label for="display-name" class="text-sm sm:text-base font-bold text-text-muted shrink-0">Nume</label>
+              <input
+                type="text"
+                id="display-name"
+                name="displayName"
+                value="Dr. Maria"
+                placeholder="Numele tău..."
+                class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
+              />
+            </div>
+
+            <!-- Row 2: Telefon -->
+            <div class="flex items-center justify-between px-6 py-5 sm:py-6 gap-4">
+              <label for="phone-number" class="text-sm sm:text-base font-bold text-text-muted shrink-0">Telefon</label>
+              <input
+                type="tel"
+                id="phone-number"
+                name="phoneNumber"
+                value="+40 722 000 111"
+                placeholder="+40 7xx xxx xxx"
+                class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
+              />
+            </div>
+
+            <!-- Row 3: Email -->
+            <div class="flex items-center justify-between px-6 py-5 sm:py-6 gap-4">
+              <label for="email-address" class="text-sm sm:text-base font-bold text-text-muted shrink-0">Email</label>
+              <input
+                type="email"
+                id="email-address"
+                name="email"
+                value="maria.kineto@gmail.com"
+                placeholder="email@domeniu.com"
+                class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
+              />
+            </div>
+
+            <!-- Row 4: Utilizator -->
+            <div class="flex items-center justify-between px-6 py-5 sm:py-6 gap-4">
+              <label for="username" class="text-sm sm:text-base font-bold text-text-muted shrink-0">Utilizator</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value="@drmaria"
+                placeholder="@nume"
+                class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
+              />
+            </div>
+
+          </div>
+
+        </section>
+      )}
+
+      <!-- 2. Formular Program de lucru -->
+      {section === 'schedule' && (
+        <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-4">
+          <div class="space-y-4">
+            <!-- Time Pickers alăturate -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1.5">
+                <label for="work-start" class="text-xs font-bold uppercase tracking-wider text-text-muted">Ora de început</label>
+                <input
+                  type="time"
+                  id="work-start"
+                  name="workStart"
+                  value="08:00"
+                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-semibold text-center focus:outline-none focus:ring-2 focus:ring-brand-primary/50 transition-all"
+                />
+              </div>
+              <div class="space-y-1.5">
+                <label for="work-end" class="text-xs font-bold uppercase tracking-wider text-text-muted">Ora de sfârșit</label>
+                <input
+                  type="time"
+                  id="work-end"
+                  name="workEnd"
+                  value="18:00"
+                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-semibold text-center focus:outline-none focus:ring-2 focus:ring-brand-primary/50 transition-all"
+                />
+              </div>
+            </div>
+
+            <!-- Zile lucrătoare Toggle Chips (Luni - Vineri) -->
+            <div class="space-y-2 pt-1">
+              <label class="text-xs font-bold uppercase tracking-wider text-text-muted">Zile lucrătoare</label>
+              <div id="workdays-container" class="grid grid-cols-5 gap-2 text-center">
+                <button type="button" data-day-chip data-active="true" data-index="0" title="Luni" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">L</button>
+                <button type="button" data-day-chip data-active="true" data-index="1" title="Marți" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">M</button>
+                <button type="button" data-day-chip data-active="true" data-index="2" title="Miercuri" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">M</button>
+                <button type="button" data-day-chip data-active="true" data-index="3" title="Joi" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">J</button>
+                <button type="button" data-day-chip data-active="true" data-index="4" title="Vineri" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-primary text-black shadow-sm">V</button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      )}
+
+      <!-- 3. Formular Pauza de masă -->
+      {section === 'break' && (
+        <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-4">
+          <div class="space-y-4">
+            <!-- Time Pickers alăturate -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1.5">
+                <label for="break-start" class="text-xs font-bold uppercase tracking-wider text-text-muted">Început pauză</label>
+                <input
+                  type="time"
+                  id="break-start"
+                  name="breakStart"
+                  value="13:00"
+                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-semibold text-center focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 transition-all"
+                />
+              </div>
+              <div class="space-y-1.5">
+                <label for="break-end" class="text-xs font-bold uppercase tracking-wider text-text-muted">Sfârșit pauză</label>
+                <input
+                  type="time"
+                  id="break-end"
+                  name="breakEnd"
+                  value="14:00"
+                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-semibold text-center focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 transition-all"
+                />
+              </div>
+            </div>
+
+          </div>
+        </section>
+      )}
+
+      <!-- 4. Formular Ședințe & pachete -->
+      {section === 'packages' && (
+        <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-4">
+          <div class="space-y-4">
+            <!-- Stepper: Durata ședinței (minute) -->
+            <div class="flex items-center justify-between py-1">
+              <div>
+                <div class="text-sm font-semibold text-text-main">Durata ședinței (minute)</div>
+                <div class="text-xs text-text-muted">Timp alocat per sesiune</div>
+              </div>
+              <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-border-subtle">
+                <button type="button" data-stepper-dec="sessionDuration" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                  -
+                </button>
+                <input type="number" id="sessionDuration" name="sessionDuration" value="50" min="15" max="180" step="5" readonly class="w-12 text-center bg-transparent font-bold text-text-main text-base focus:outline-none" />
+                <button type="button" data-stepper-inc="sessionDuration" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                  +
+                </button>
+              </div>
+            </div>
+
+            <!-- Stepper: Pauză între pacienți (minute) -->
+            <div class="flex items-center justify-between py-1 border-t border-border-subtle/40 pt-3">
+              <div>
+                <div class="text-sm font-semibold text-text-main">Pauză între pacienți (minute)</div>
+                <div class="text-xs text-text-muted">Timp liber de tranziție</div>
+              </div>
+              <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-border-subtle">
+                <button type="button" data-stepper-dec="breakBetween" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                  -
+                </button>
+                <input type="number" id="breakBetween" name="breakBetween" value="10" min="0" max="60" step="5" readonly class="w-12 text-center bg-transparent font-bold text-text-main text-base focus:outline-none" />
+                <button type="button" data-stepper-inc="breakBetween" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                  +
+                </button>
+              </div>
+            </div>
+
+            <!-- Stepper: Număr ședințe implicit per pachet -->
+            <div class="flex items-center justify-between py-1 border-t border-border-subtle/40 pt-3">
+              <div>
+                <div class="text-sm font-semibold text-text-main">Ședințe implicit per pachet</div>
+                <div class="text-xs text-text-muted">Număr de ședințe generat</div>
+              </div>
+              <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-border-subtle">
+                <button type="button" data-stepper-dec="defaultPackageSessions" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                  -
+                </button>
+                <input type="number" id="defaultPackageSessions" name="defaultPackageSessions" value="10" min="1" max="50" step="1" readonly class="w-12 text-center bg-transparent font-bold text-text-main text-base focus:outline-none" />
+                <button type="button" data-stepper-inc="defaultPackageSessions" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                  +
+                </button>
+              </div>
+            </div>
+
+            <!-- Preț implicit pachet cu sufix RON -->
+            <div class="space-y-1.5 border-t border-border-subtle/40 pt-3">
+              <label for="package-price" class="text-xs font-bold uppercase tracking-wider text-text-muted">Preț implicit pachet</label>
+              <div class="relative">
+                <input
+                  type="number"
+                  id="package-price"
+                  name="packagePrice"
+                  value="1200"
+                  min="0"
+                  step="50"
+                  class="w-full pl-4 pr-20 py-3 rounded-2xl bg-surface-base/60 border border-border-subtle text-text-main font-bold text-lg focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 transition-all"
+                />
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 rounded-xl bg-brand-secondary text-white font-extrabold text-xs tracking-wider shadow-sm">
+                  RON
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <!-- 5. Formular Reminder-e & notificări (Vivid Pink Card Style) -->
+      {section === 'reminders' && (
+        <section class="bg-brand-secondary text-white rounded-[2.5rem] p-6 shadow-md shadow-brand-secondary/20 space-y-4 relative overflow-hidden">
+          <div class="absolute -right-4 -bottom-6 font-black text-[7rem] leading-none opacity-15 pointer-events-none tracking-tighter mix-blend-overlay select-none">
+            SMS
+          </div>
+
+          <div class="space-y-4 relative z-10">
+            <!-- Stepper: Prag reminder -->
+            <div class="flex items-center justify-between py-1">
+              <div>
+                <div class="text-sm font-bold text-white">Trimite reminder cu câte ședințe rămase</div>
+                <div class="text-xs text-white/70">Prag alertă pachet</div>
+              </div>
+              <div class="flex items-center gap-2 bg-black/20 p-1 rounded-2xl backdrop-blur-md border border-white/20">
+                <button type="button" data-stepper-dec="reminderThreshold" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold flex items-center justify-center active:scale-90 transition-all">
+                  -
+                </button>
+                <input type="number" id="reminderThreshold" name="reminderThreshold" value="2" min="1" max="10" step="1" readonly class="w-12 text-center bg-transparent font-extrabold text-white text-base focus:outline-none" />
+                <button type="button" data-stepper-inc="reminderThreshold" class="w-9 h-9 rounded-xl bg-white text-black font-extrabold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                  +
+                </button>
+              </div>
+            </div>
+
+            <!-- Textarea: Mesaj reminder (WhatsApp) -->
+            <div class="space-y-1.5 border-t border-white/20 pt-3">
+              <label for="whatsapp-template" class="text-xs font-bold uppercase tracking-wider text-white/90">Mesaj reminder (WhatsApp)</label>
+              <textarea
+                id="whatsapp-template"
+                name="whatsappTemplate"
+                rows="3"
+                class="w-full px-4 py-3 rounded-2xl bg-black/15 border border-white/20 text-white font-medium text-sm leading-relaxed placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all resize-none backdrop-blur-sm"
+              >Salut &#123;nume&#125;! Îți reamintim că mai ai &#123;ramase&#125; ședințe rămase din pachetul tău Kineto. Te așteptăm cu drag!</textarea>
+              
+              <!-- Helper Text -->
+              <p class="text-xs text-white/80 flex items-center gap-1.5 pt-1">
+                <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Poți folosi <code class="bg-white/20 px-1.5 py-0.5 rounded font-mono font-bold text-[11px] text-white">&#123;nume&#125;</code> și <code class="bg-white/20 px-1.5 py-0.5 rounded font-mono font-bold text-[11px] text-white">&#123;ramase&#125;</code> — se completează automat</span>
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <!-- 6. Formular Categorii pacienți -->
+      {section === 'categories' && (
+        <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-4">
+          <div class="space-y-3">
+            <div id="categories-container" class="flex flex-wrap gap-2">
+              <!-- Roz Accent Chip -->
+              <div data-category-chip="Kinetoterapie" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-brand-secondary/10 border border-brand-secondary/30 text-brand-secondary font-bold text-xs transition-all shadow-sm">
+                <span>Kinetoterapie</span>
+                <button type="button" data-delete-category class="w-4 h-4 rounded-full bg-brand-secondary/20 hover:bg-brand-secondary/30 flex items-center justify-center text-brand-secondary font-bold transition-colors">
+                  &times;
+                </button>
+              </div>
+
+              <!-- Galben Accent Chip -->
+              <div data-category-chip="Recuperare Post-Operatorie" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-brand-primary/20 border border-brand-primary/40 text-text-main font-bold text-xs transition-all shadow-sm">
+                <span>Recuperare Post-Operatorie</span>
+                <button type="button" data-delete-category class="w-4 h-4 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center text-text-main font-bold transition-colors">
+                  &times;
+                </button>
+              </div>
+
+              <!-- Verde Accent Chip -->
+              <div data-category-chip="Masaj Terapeutic" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-brand-accent/15 border border-brand-accent/30 text-brand-accent font-bold text-xs transition-all shadow-sm">
+                <span>Masaj Terapeutic</span>
+                <button type="button" data-delete-category class="w-4 h-4 rounded-full bg-brand-accent/20 hover:bg-brand-accent/30 flex items-center justify-center text-brand-accent font-bold transition-colors">
+                  &times;
+                </button>
+              </div>
+
+              <!-- Soft Neutral Chip -->
+              <div data-category-chip="Pediatrie" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-surface-base border border-border-subtle text-text-main font-bold text-xs transition-all">
+                <span>Pediatrie</span>
+                <button type="button" data-delete-category class="w-4 h-4 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center text-text-main font-bold transition-colors">
+                  &times;
+                </button>
+              </div>
+            </div>
+
+            <!-- Input inline adăugare categorie -->
+            <div id="add-category-wrapper" class="pt-1">
+              <button
+                type="button"
+                id="btn-show-category-input"
+                class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-brand-secondary/10 hover:bg-brand-secondary/20 text-brand-secondary font-bold text-xs active:scale-95 transition-all"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>+ adaugă categorie</span>
+              </button>
+
+              <div id="inline-category-input-box" class="hidden items-center gap-2">
+                <input
+                  type="text"
+                  id="new-category-name"
+                  placeholder="Nume categorie..."
+                  class="flex-1 px-4 py-2 rounded-2xl bg-surface-base border border-border-subtle text-text-main text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-secondary/40"
+                />
+                <button
+                  type="button"
+                  id="btn-confirm-add-category"
+                  class="px-4 py-2 rounded-2xl bg-brand-secondary text-white font-bold text-xs shadow-sm active:scale-95 transition-all"
+                >
+                  Adaugă
+                </button>
+                <button
+                  type="button"
+                  id="btn-cancel-add-category"
+                  class="px-3 py-2 rounded-2xl bg-surface-base text-text-muted font-bold text-xs hover:text-text-main active:scale-95 transition-all"
+                >
+                  Anulează
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <!-- Buton de Salvare Unic pe toată lățimea cardului de sus ("Salvează") -->
+      <div class="pt-3">
+        <button
+          type="submit"
+          id="btn-save-settings"
+          class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all text-center cursor-pointer"
+        >
+          Salvează
+        </button>
+      </div>
+
+    </form>
+  )}
 </div>
+
+<script>
+  function initSubSectionLogic() {
+    // Toast Notification helper
+    const toast = document.getElementById('settings-toast');
+    const toastMessage = document.getElementById('toast-message');
+
+    function showToast(msg: string) {
+      if (!toast || !toastMessage) return;
+      toastMessage.textContent = msg;
+      toast.classList.remove('opacity-0', '-translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-4');
+      }, 3000);
+    }
+
+    // 1. Toggle days chips
+    const dayChips = document.querySelectorAll<HTMLButtonElement>('[data-day-chip]');
+    dayChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const isActive = chip.getAttribute('data-active') === 'true';
+        const nextState = !isActive;
+        chip.setAttribute('data-active', nextState ? 'true' : 'false');
+
+        if (nextState) {
+          chip.classList.add('bg-brand-primary', 'text-black', 'shadow-sm');
+          chip.classList.remove('bg-surface-base/70', 'text-text-muted', 'opacity-70');
+        } else {
+          chip.classList.remove('bg-brand-primary', 'text-black', 'shadow-sm');
+          chip.classList.add('bg-surface-base/70', 'text-text-muted', 'opacity-70');
+        }
+      });
+    });
+
+    // 2. Stepper Controls
+    const decButtons = document.querySelectorAll<HTMLButtonElement>('[data-stepper-dec]');
+    const incButtons = document.querySelectorAll<HTMLButtonElement>('[data-stepper-inc]');
+
+    decButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-stepper-dec');
+        if (!targetId) return;
+        const input = document.getElementById(targetId) as HTMLInputElement | null;
+        if (!input) return;
+
+        const currentVal = parseInt(input.value || '0', 10);
+        const minVal = parseInt(input.getAttribute('min') || '0', 10);
+        const stepVal = parseInt(input.getAttribute('step') || '1', 10);
+
+        if (currentVal - stepVal >= minVal) {
+          input.value = (currentVal - stepVal).toString();
+        }
+      });
+    });
+
+    incButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-stepper-inc');
+        if (!targetId) return;
+        const input = document.getElementById(targetId) as HTMLInputElement | null;
+        if (!input) return;
+
+        const currentVal = parseInt(input.value || '0', 10);
+        const maxVal = parseInt(input.getAttribute('max') || '999', 10);
+        const stepVal = parseInt(input.getAttribute('step') || '1', 10);
+
+        if (currentVal + stepVal <= maxVal) {
+          input.value = (currentVal + stepVal).toString();
+        }
+      });
+    });
+
+    // 3. Dynamic Patient Category Manager
+    const categoriesContainer = document.getElementById('categories-container');
+    const btnShowCategoryInput = document.getElementById('btn-show-category-input');
+    const inlineCategoryInputBox = document.getElementById('inline-category-input-box');
+    const newCategoryNameInput = document.getElementById('new-category-name') as HTMLInputElement | null;
+    const btnConfirmAddCategory = document.getElementById('btn-confirm-add-category');
+    const btnCancelAddCategory = document.getElementById('btn-cancel-add-category');
+
+    categoriesContainer?.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const deleteBtn = target.closest('[data-delete-category]');
+      if (deleteBtn) {
+        const chip = deleteBtn.closest('[data-category-chip]');
+        if (chip) {
+          chip.remove();
+        }
+      }
+    });
+
+    btnShowCategoryInput?.addEventListener('click', () => {
+      btnShowCategoryInput.classList.add('hidden');
+      inlineCategoryInputBox?.classList.remove('hidden');
+      inlineCategoryInputBox?.classList.add('flex');
+      if (newCategoryNameInput) {
+        newCategoryNameInput.value = '';
+        newCategoryNameInput.focus();
+      }
+    });
+
+    function hideInlineInput() {
+      inlineCategoryInputBox?.classList.remove('flex');
+      inlineCategoryInputBox?.classList.add('hidden');
+      btnShowCategoryInput?.classList.remove('hidden');
+    }
+
+    btnCancelAddCategory?.addEventListener('click', hideInlineInput);
+
+    btnConfirmAddCategory?.addEventListener('click', () => {
+      if (!newCategoryNameInput || !categoriesContainer) return;
+      const catName = newCategoryNameInput.value.trim();
+      if (!catName) return;
+
+      const chipDiv = document.createElement('div');
+      chipDiv.setAttribute('data-category-chip', catName);
+      chipDiv.className = 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-brand-secondary/10 border border-brand-secondary/30 text-brand-secondary font-bold text-xs transition-all shadow-sm';
+      
+      const span = document.createElement('span');
+      span.textContent = catName;
+      
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.setAttribute('data-delete-category', '');
+      delBtn.className = 'w-4 h-4 rounded-full bg-brand-secondary/20 hover:bg-brand-secondary/30 flex items-center justify-center text-brand-secondary font-bold transition-colors';
+      delBtn.innerHTML = '&times;';
+
+      chipDiv.appendChild(span);
+      chipDiv.appendChild(delBtn);
+
+      categoriesContainer.appendChild(chipDiv);
+      hideInlineInput();
+    });
+
+    // 0. Profile Inputs Hydration
+    const inputName = document.getElementById('display-name') as HTMLInputElement | null;
+    const inputPhone = document.getElementById('phone-number') as HTMLInputElement | null;
+    const inputEmail = document.getElementById('email-address') as HTMLInputElement | null;
+    const inputUsername = document.getElementById('username') as HTMLInputElement | null;
+
+    if (inputName && localStorage.getItem('kineto_display_name')) {
+      inputName.value = localStorage.getItem('kineto_display_name')!;
+    }
+    if (inputPhone && localStorage.getItem('kineto_phone')) {
+      inputPhone.value = localStorage.getItem('kineto_phone')!;
+    }
+    if (inputEmail && localStorage.getItem('kineto_email')) {
+      inputEmail.value = localStorage.getItem('kineto_email')!;
+    }
+    if (inputUsername && localStorage.getItem('kineto_username')) {
+      inputUsername.value = localStorage.getItem('kineto_username')!;
+    }
+
+    // 4. Form Submit
+    const form = document.getElementById('settings-form');
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      if (inputName) localStorage.setItem('kineto_display_name', inputName.value);
+      if (inputPhone) localStorage.setItem('kineto_phone', inputPhone.value);
+      if (inputEmail) localStorage.setItem('kineto_email', inputEmail.value);
+      if (inputUsername) localStorage.setItem('kineto_username', inputUsername.value);
+
+      showToast('Profilul a fost salvat cu succes!');
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initSubSectionLogic);
+  document.addEventListener('astro:page-load', initSubSectionLogic);
+</script>

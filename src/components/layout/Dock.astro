@@ -54,7 +54,19 @@ const navItems = [
 </div>
 
 <script>
+  function updateDockVisibility() {
+    const dock = document.getElementById('persistent-dock');
+    if (!dock) return;
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.has('section')) {
+      dock.classList.add('hidden');
+    } else {
+      dock.classList.remove('hidden');
+    }
+  }
+
   function initDockAnimation() {
+    updateDockVisibility();
     const dockNav = document.getElementById('dock-nav');
     const activePill = document.getElementById('dock-active-pill');
     if (!dockNav || !activePill) return;
@@ -86,4 +98,5 @@ const navItems = [
 
   document.addEventListener('DOMContentLoaded', initDockAnimation);
   document.addEventListener('astro:page-load', initDockAnimation);
+  document.addEventListener('astro:after-swap', initDockAnimation);
 </script>

@@ -3,12 +3,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import SettingsView from '../../components/features/settings/SettingsView.astro';
 ---
 
-<DashboardLayout title="Settings">
-  <section class="space-y-6">
-    <header>
-      <h2 class="text-2xl font-bold text-text-main">App Settings</h2>
-      <p class="text-sm text-text-muted mt-1">Configure Web-Push notifications, practice profile, and defaults</p>
+<DashboardLayout title="Setări">
+  <div class="space-y-6 pb-24 relative min-h-screen">
+    
+    <!-- Deformed Liquid Blob SVG Bleeding From Top-Left Edge ("Blob Deformat Muscat") -->
+    <div class="absolute -top-24 -left-16 w-72 h-72 pointer-events-none opacity-35 text-brand-secondary z-0">
+      <svg viewBox="0 0 200 200" class="w-full h-full fill-current">
+        <path d="M38.1,-60.5C47.8,-53.4,53.2,-39.7,59.3,-26.4C65.4,-13.1,72.2,-0.2,71.1,12.5C70,25.2,61,37.7,50.1,47.9C39.2,58.1,26.4,66,11.8,70C-2.8,74,-19.2,74.1,-33.4,67.8C-47.6,61.5,-59.6,48.8,-66.9,34.1C-74.2,19.4,-76.8,2.7,-73.9,-12.8C-71,-28.3,-62.6,-42.6,-50.8,-50.3C-39,-58,-23.8,-59.1,-9.1,-58.5C5.6,-57.9,28.4,-67.6,38.1,-60.5Z" transform="translate(100 100)" />
+      </svg>
+    </div>
+
+    <!-- Header Setări (Mai Mare: text-5xl sm:text-6xl font-black) -->
+    <header class="px-2 relative z-10 pt-2">
+      <h1 class="text-5xl sm:text-6xl font-black tracking-tight text-text-main">Setări</h1>
     </header>
-    <SettingsView />
-  </section>
+
+    <div class="relative z-10">
+      <SettingsView />
+    </div>
+  </div>
 </DashboardLayout>
