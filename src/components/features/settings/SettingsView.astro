@@ -246,10 +246,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           <div class="space-y-4 relative z-10">
             <!-- Stepper: Prag reminder -->
             <div class="flex items-center justify-between py-1">
-              <div>
-                <div class="text-sm font-bold text-white">Trimite reminder cu câte ședințe rămase</div>
-                <div class="text-xs text-white/70">Prag alertă pachet</div>
-              </div>
+              <div class="text-base sm:text-lg font-extrabold text-white">Trimite reminder cu câte ședințe rămase</div>
               <div class="flex items-center gap-2 bg-black/20 p-1 rounded-2xl backdrop-blur-md border border-white/20">
                 <button type="button" data-stepper-dec="reminderThreshold" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold flex items-center justify-center active:scale-90 transition-all">
                   -
@@ -263,21 +260,13 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
             <!-- Textarea: Mesaj reminder (WhatsApp) -->
             <div class="space-y-1.5 border-t border-white/20 pt-3">
-              <label for="whatsapp-template" class="text-xs font-bold uppercase tracking-wider text-white/90">Mesaj reminder (WhatsApp)</label>
+              <label for="whatsapp-template" class="text-sm font-extrabold text-white block">Mesaj reminder (WhatsApp)</label>
               <textarea
                 id="whatsapp-template"
                 name="whatsappTemplate"
                 rows="3"
-                class="w-full px-4 py-3 rounded-2xl bg-black/15 border border-white/20 text-white font-medium text-sm leading-relaxed placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all resize-none backdrop-blur-sm"
+                class="w-full px-4 py-3 rounded-2xl bg-black/15 border border-white/20 text-white font-bold text-sm leading-relaxed placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all resize-none backdrop-blur-sm"
               >Salut &#123;nume&#125;! Îți reamintim că mai ai &#123;ramase&#125; ședințe rămase din pachetul tău Kineto. Te așteptăm cu drag!</textarea>
-              
-              <!-- Helper Text -->
-              <p class="text-xs text-white/80 flex items-center gap-1.5 pt-1">
-                <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Poți folosi <code class="bg-white/20 px-1.5 py-0.5 rounded font-mono font-bold text-[11px] text-white">&#123;nume&#125;</code> și <code class="bg-white/20 px-1.5 py-0.5 rounded font-mono font-bold text-[11px] text-white">&#123;ramase&#125;</code> — se completează automat</span>
-              </p>
             </div>
           </div>
         </section>
