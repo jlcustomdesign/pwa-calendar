@@ -9,8 +9,8 @@ const sectionTitles: Record<string, { title: string; subtitle: string }> = {
   profile: { title: "Profil personal", subtitle: "" },
   schedule: { title: "Program de lucru", subtitle: "" },
   break: { title: "Pauza de masă", subtitle: "" },
-  packages: { title: "Durata ședințelor", subtitle: "" },
-  reminders: { title: "Reminder-e & notificări", subtitle: "" },
+  packages: { title: "Ședințe", subtitle: "" },
+  reminders: { title: "Reminder și mesaj", subtitle: "" },
   categories: { title: "Categorii pacienți", subtitle: "" },
 };
 
@@ -232,44 +232,68 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 </button>
               </div>
             </div>
-          </div>
-        </section>
-      )}
 
-      <!-- 5. Formular Reminder-e & notificări (Vivid Pink Card Style) -->
-      {section === 'reminders' && (
-        <section class="bg-brand-secondary text-white rounded-[2.5rem] p-6 shadow-md shadow-brand-secondary/20 space-y-4 relative overflow-hidden">
-          <div class="absolute -right-4 -bottom-6 font-black text-[7rem] leading-none opacity-15 pointer-events-none tracking-tighter mix-blend-overlay select-none">
-            SMS
-          </div>
-
-          <div class="space-y-4 relative z-10">
-            <!-- Stepper: Prag reminder -->
-            <div class="flex items-center justify-between py-1">
-              <div class="text-base sm:text-lg font-extrabold text-white">Trimite reminder cu câte ședințe rămase</div>
-              <div class="flex items-center gap-2 bg-black/20 p-1 rounded-2xl backdrop-blur-md border border-white/20">
-                <button type="button" data-stepper-dec="reminderThreshold" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold flex items-center justify-center active:scale-90 transition-all">
+            <!-- Stepper: Preț ședință -->
+            <div class="flex items-center justify-between py-1 border-t border-border-subtle/40 pt-3">
+              <div class="text-base sm:text-lg font-bold text-text-main">Preț ședință</div>
+              <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-border-subtle">
+                <button type="button" data-stepper-dec="sessionPrice" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
                   -
                 </button>
-                <input type="number" id="reminderThreshold" name="reminderThreshold" value="2" min="1" max="10" step="1" readonly class="w-12 text-center bg-transparent font-extrabold text-white text-base focus:outline-none" />
-                <button type="button" data-stepper-inc="reminderThreshold" class="w-9 h-9 rounded-xl bg-white text-black font-extrabold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                <input type="number" id="sessionPrice" name="sessionPrice" value="150" min="0" max="2000" step="10" readonly class="w-14 text-center bg-transparent font-bold text-text-main text-base focus:outline-none" />
+                <button type="button" data-stepper-inc="sessionPrice" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
                   +
                 </button>
               </div>
             </div>
-
-            <!-- Textarea: Mesaj reminder (WhatsApp) -->
-            <div class="space-y-1.5 border-t border-white/20 pt-3">
-              <label for="whatsapp-template" class="text-sm font-extrabold text-white block">Mesaj reminder (WhatsApp)</label>
-              <textarea
-                id="whatsapp-template"
-                name="whatsappTemplate"
-                rows="3"
-                class="w-full px-4 py-3 rounded-2xl bg-black/15 border border-white/20 text-white font-bold text-sm leading-relaxed placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all resize-none backdrop-blur-sm"
-              >Salut &#123;nume&#125;! Îți reamintim că mai ai &#123;ramase&#125; ședințe rămase din pachetul tău Kineto. Te așteptăm cu drag!</textarea>
-            </div>
           </div>
         </section>
+      )}
+
+      <!-- 5. Formular Reminder și mesaj (Separat în 2 forme albe curate) -->
+      {section === 'reminders' && (
+        <div class="space-y-4">
+          <!-- Forma 1: Reminder ultima ședință (Card Alb cu Checkbox) -->
+          <section class="bg-surface-card text-text-main rounded-[2rem] p-6 shadow-sm border border-border-subtle/50 flex items-center justify-between">
+            <label for="reminder-last-session-checkbox" class="text-lg sm:text-xl font-bold text-text-main cursor-pointer select-none">
+              Reminder ultima ședință
+            </label>
+            <div class="relative flex items-center">
+              <input
+                type="checkbox"
+                id="reminder-last-session-checkbox"
+                name="reminderLastSession"
+                checked
+                class="w-7 h-7 rounded-xl bg-surface-base/80 border-2 border-border-subtle checked:bg-brand-secondary checked:border-brand-secondary text-brand-secondary focus:ring-0 focus:ring-offset-0 cursor-pointer transition-all accent-brand-secondary shadow-sm"
+              />
+            </div>
+          </section>
+
+          <!-- Forma 2: Mesaj reminder (Card Alb cu Textarea & Iconiță Copiază) -->
+          <section class="bg-surface-card text-text-main rounded-[2rem] p-6 shadow-sm border border-border-subtle/50 space-y-3">
+            <div class="flex items-center justify-between">
+              <label for="whatsapp-template" class="text-lg sm:text-xl font-bold text-text-main block">Mesaj reminder</label>
+              <div class="w-7 h-7 flex items-center justify-center shrink-0">
+                <button
+                  type="button"
+                  id="btn-copy-template"
+                  class="text-text-muted hover:text-brand-secondary active:scale-90 transition-all cursor-pointer p-0.5 rounded-lg hover:bg-surface-base"
+                  title="Copiază textul mesajului"
+                >
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <textarea
+              id="whatsapp-template"
+              name="whatsappTemplate"
+              rows="4"
+              class="w-full px-5 py-4 rounded-2xl bg-surface-base/80 border border-border-subtle text-text-main font-bold text-base sm:text-lg leading-relaxed placeholder-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all resize-none"
+            >Salut &#123;nume&#125;! Îți reamintim că mai ai &#123;ramase&#125; ședințe rămase din pachetul tău Kineto. Te așteptăm cu drag!</textarea>
+          </section>
+        </div>
       )}
 
       <!-- 6. Formular Categorii pacienți -->
@@ -527,6 +551,20 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     if (inputUsername && localStorage.getItem('kineto_username')) {
       inputUsername.value = localStorage.getItem('kineto_username')!;
     }
+
+    // 0.5 Copy Template Message Logic
+    const btnCopyTemplate = document.getElementById('btn-copy-template');
+    const whatsappTemplateInput = document.getElementById('whatsapp-template') as HTMLTextAreaElement | null;
+
+    btnCopyTemplate?.addEventListener('click', async () => {
+      if (!whatsappTemplateInput) return;
+      try {
+        await navigator.clipboard.writeText(whatsappTemplateInput.value);
+        showToast('Mesajul a fost copiat în clipboard!');
+      } catch (err) {
+        console.error('Eroare la copiere:', err);
+      }
+    });
 
     // 3.5 Custom 24H Time Picker Modal Logic
     const timeModal = document.getElementById('time-picker-modal');
