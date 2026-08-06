@@ -1,16 +1,105 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import AgendaView from '../../components/features/calendar/AgendaView.astro';
+import WeeklyCalendarCard from '../../components/features/dashboard/WeeklyCalendarCard.astro';
+import SessionCard from '../../components/features/dashboard/SessionCard.astro';
+import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.astro';
+import SessionWrapUpSheet from '../../components/features/agenda/SessionWrapUpSheet.astro';
+
+// Timeline definition
+const timelineStart = 8; // 08:00
+const timelineEnd = 18;  // 18:00
+const hours = Array.from({ length: timelineEnd - timelineStart + 1 }).map((_, i) => timelineStart + i);
+
+// Mock existing sessions mapped by hour for the active day
+const existingSessions = {
+  9: {
+    patientName: "Maria Popescu",
+    startTime: "09:00",
+    attendanceCount: 4,
+    totalSessions: 10,
+    location: "Ghimbav",
+    isPast: true,
+  },
+  14: {
+    patientName: "Andrei Ionescu",
+    startTime: "14:00",
+    attendanceCount: 1,
+    totalSessions: 10,
+    location: "Belaqua",
+    isPast: false,
+  }
+} as Record<number, any>;
+
 ---
 
-<DashboardLayout title="Agenda & Calendar">
-  <section class="space-y-6">
-    <header class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold text-text-main">Appointment Agenda</h2>
-        <p class="text-sm text-text-muted mt-1">Manage session times and automated patient push reminders</p>
+<DashboardLayout title="Calendar">
+  <div class="space-y-6 pb-24">
+    
+    <!-- Top Section: Expandable Weekly/Monthly Calendar -->
+    <WeeklyCalendarCard name="Dr. Maria" />
+    
+    <!-- Timeline View -->
+    <section class="mt-6">
+      <h3 class="text-xl font-extrabold text-black tracking-tight mb-4 px-2">Timeline</h3>
+      
+      <div class="flex flex-col gap-3">
+        {hours.map((hour) => {
+          const session = existingSessions[hour];
+          const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+          
+          return (
+            <div class="relative flex items-stretch gap-4 min-h-[4rem]">
+              
+              <!-- Time label -->
+              <div class="w-12 shrink-0 text-right text-text-muted font-bold pt-4 text-sm relative">
+                <span class="relative z-10 bg-surface-main pr-2">{timeStr}</span>
+                <div class="absolute right-0 top-6 left-full w-screen h-px bg-neutral-200 -z-10"></div>
+              </div>
+              
+              <!-- Slot content -->
+              <div class="flex-1 pb-2">
+                {session ? (
+                  // Existing Session (can trigger wrap-up on click if past, or just expand)
+                  <div class="w-full relative group">
+                    <SessionCard {...session} />
+                    {session.isPast && (
+                      <button 
+                        class="absolute right-4 top-4 bg-black text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md active:scale-95 transition-transform"
+                        onclick={`window.dispatchEvent(new CustomEvent('openWrapUp', { detail: { patientName: '${session.patientName}', nextDateStr: 'Next Week, ${timeStr}' } }))`}
+                      >
+                        Wrap Up
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  // Empty Slot
+                  <button 
+                    class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
+                    onclick={`window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${timeStr}' } }))`}
+                  >
+                    + Tap to add session
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
-    </header>
-    <AgendaView />
-  </section>
+    </section>
+  </div>
+
+  <!-- Global FAB for Manual Booking -->
+  <button 
+    class="fixed bottom-24 right-6 w-14 h-14 bg-black text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform z-40"
+    onclick="window.dispatchEvent(new CustomEvent('openAddSession'))"
+    aria-label="Add new session"
+  >
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+    </svg>
+  </button>
+
+  <!-- Bottom Sheets -->
+  <AddSessionSheet />
+  <SessionWrapUpSheet />
 </DashboardLayout>

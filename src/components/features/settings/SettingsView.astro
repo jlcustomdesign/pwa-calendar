@@ -139,9 +139,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
             <!-- Time Pickers alăturate (24H Fără AM/PM cu Selector Modal Custom) -->
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
-                <label for="work-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de început</label>
+                <label for="btn-work-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de început</label>
                 <button
                   type="button"
+                  id="btn-work-start"
                   data-time-trigger
                   data-target="work-start"
                   data-label="Ora de început"
@@ -152,9 +153,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 <input type="hidden" id="work-start" name="workStart" value="08:00" />
               </div>
               <div class="space-y-2">
-                <label for="work-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de sfârșit</label>
+                <label for="btn-work-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de sfârșit</label>
                 <button
                   type="button"
+                  id="btn-work-end"
                   data-time-trigger
                   data-target="work-end"
                   data-label="Ora de sfârșit"
@@ -176,9 +178,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           <!-- Time Pickers alăturate Pauză (Casete Roz Pal fără border pe Card Alb) -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
-              <label for="break-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Început pauză</label>
+              <label for="btn-break-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Început pauză</label>
               <button
                 type="button"
+                id="btn-break-start"
                 data-time-trigger
                 data-target="break-start"
                 data-label="Început pauză"
@@ -189,9 +192,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
               <input type="hidden" id="break-start" name="breakStart" value="13:00" />
             </div>
             <div class="space-y-2">
-              <label for="break-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Sfârșit pauză</label>
+              <label for="btn-break-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Sfârșit pauză</label>
               <button
                 type="button"
+                id="btn-break-end"
                 data-time-trigger
                 data-target="break-end"
                 data-label="Sfârșit pauză"
