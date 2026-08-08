@@ -1,7 +1,237 @@
 ---
-// Feature Component Placeholder for Reports View
+// ReportsView.astro — Statistici Utile & Pragmatice (Azi, Săptămânal, Lunar)
 ---
 
-<div class="p-6 bg-surface-card rounded-xl border border-border-subtle">
-  <p class="text-sm text-text-muted">Financial & Session Analytics Reports Placeholder</p>
+<div class="space-y-7">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 1. STATISTICI ZILNICE (AZI)                              -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section class="space-y-3">
+    <div class="flex items-baseline justify-between px-1">
+      <h2 class="text-xl sm:text-2xl font-black text-text-main">Azi</h2>
+      <span class="text-xl sm:text-2xl font-black text-text-main">Joi, 06 August</span>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3">
+      <!-- Card 1: Ședințe -->
+      <div class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
+        <div class="flex items-baseline gap-1">
+          <span class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">4</span>
+          <span class="text-xl font-bold text-text-muted opacity-40">/</span>
+          <span class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">6</span>
+        </div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Ședințe</div>
+      </div>
+
+      <!-- Card 2: Absent -->
+      <div class="bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
+        <div class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">1</div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Absent</div>
+      </div>
+
+      <!-- Card 3: Încasat azi -->
+      <div class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
+        <div class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">600</div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 2. STATISTICI SĂPTĂMÂNALE (cu Grafic Hașurat & Interactiv)-->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section class="space-y-3">
+    <div class="px-1">
+      <h2 class="text-xl sm:text-2xl font-black text-text-main">Săptămânal</h2>
+    </div>
+
+    <div class="space-y-3">
+
+      <!-- Card Grafic Hașurat (Smooth Curved Line Chart cu Punct Roz Interactiv pe Zile) -->
+      <div class="bg-surface-card rounded-[2.2rem] p-5 shadow-sm border border-border-subtle/70 space-y-4">
+        
+        <!-- Header Grafic -->
+        <div>
+          <div class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Evoluție săptămânală</div>
+          <div id="chart-active-value" class="text-2xl sm:text-3xl font-black text-text-main mt-0.5 transition-all">
+            2.400 <span class="text-sm font-sans font-black text-text-main">RON</span>
+          </div>
+        </div>
+
+        <!-- SVG Smooth Area Chart cu Hașură (Hatch Pattern) -->
+        <div class="relative w-full h-36">
+          <svg viewBox="0 0 350 120" class="w-full h-full overflow-visible" preserveAspectRatio="none">
+            <defs>
+              <!-- Hașură diagonală neagră/subtilă (Diagonal Hatch Pattern) -->
+              <pattern id="hatch-pattern" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="8" stroke="rgb(var(--color-text-main))" stroke-width="1.5" opacity="0.25" />
+              </pattern>
+
+              <!-- Soft Gradient de fond -->
+              <linearGradient id="soft-bg-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="rgb(var(--color-brand-primary))" stop-opacity="0.2" />
+                <stop offset="100%" stop-color="rgb(var(--color-surface-card))" stop-opacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            <!-- Fundal Gradient Soft sub curbă -->
+            <path
+              d="M 10,85 C 50,80 80,45 105,45 C 140,45 160,30 175,30 C 205,30 225,52 245,52 C 275,52 300,15 340,12 L 340,105 L 10,105 Z"
+              fill="url(#soft-bg-gradient)"
+            />
+
+            <!-- Zone Hașurată sub curbă -->
+            <path
+              d="M 10,85 C 50,80 80,45 105,45 C 140,45 160,30 175,30 C 205,30 225,52 245,52 C 275,52 300,15 340,12 L 340,105 L 10,105 Z"
+              fill="url(#hatch-pattern)"
+            />
+
+            <!-- Linia curbată neagră fluidă (Curved Stroke) -->
+            <path
+              d="M 10,85 C 50,80 80,45 105,45 C 140,45 160,30 175,30 C 205,30 225,52 245,52 C 275,52 300,15 340,12"
+              fill="none"
+              stroke="rgb(var(--color-text-main))"
+              stroke-width="3"
+              stroke-linecap="round"
+            />
+
+            <!-- Doar Punctul Roz Activ (Fără Linii Întrerupte) -->
+            <circle id="pink-dot-glow" cx="245" cy="52" r="7" fill="rgb(var(--color-brand-secondary))" opacity="0.3" class="transition-all duration-300" />
+            <circle id="pink-dot" cx="245" cy="52" r="5" fill="rgb(var(--color-brand-secondary))" stroke="#ffffff" stroke-width="2.5" class="transition-all duration-300 shadow-md" />
+          </svg>
+        </div>
+
+        <!-- Etichete axa X (Zilele de lucru: L M M J V — mult mai mari și mai îngroșate) -->
+        <div class="flex items-center justify-between px-2 text-xl sm:text-2xl font-black text-text-main">
+          <button type="button" data-day-idx="0" data-val="450 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">L</button>
+          <button type="button" data-day-idx="1" data-val="600 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">M</button>
+          <button type="button" data-day-idx="2" data-val="750 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">M</button>
+          <button type="button" data-day-idx="3" data-val="600 RON" class="day-btn text-brand-secondary font-black transition-colors cursor-pointer py-1 px-2">J</button>
+          <button type="button" data-day-idx="4" data-val="900 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">V</button>
+        </div>
+
+      </div>
+
+      <!-- Card 1: Timp activ vs. anulări -->
+      <div class="bg-surface-card rounded-[2.2rem] p-5 shadow-sm border border-border-subtle/70 space-y-3">
+        <!-- Bară de progres duală (sus de tot: galben timp activ, roz anulări) -->
+        <div class="w-full h-3.5 bg-surface-base rounded-full overflow-hidden flex items-center p-0.5 border border-border-subtle/40">
+          <div class="h-full bg-brand-primary rounded-full transition-all duration-1000" style="width: 85%"></div>
+          <div class="h-full bg-brand-secondary/80 rounded-full transition-all duration-1000 ml-0.5" style="width: 15%"></div>
+        </div>
+
+        <!-- Procent + "timp activ" în negru -->
+        <div>
+          <div class="text-2xl sm:text-3xl font-black text-text-main">
+            85% <span class="text-base sm:text-lg font-black text-text-main">timp activ</span>
+          </div>
+        </div>
+
+        <!-- Dedesubt de tot: 15% anulări în același stil negru -->
+        <div>
+          <div class="text-2xl sm:text-3xl font-black text-text-main">
+            15% <span class="text-base sm:text-lg font-black text-text-main">anulări</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 Carduri Separate pentru Pacienți Neachitați (Grid 2 coloane ca la Azi) -->
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Card 1: Număr Pacienți Neachitați -->
+        <a
+          href="/dashboard/patients"
+          class="block bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40 group active:scale-[0.98]"
+        >
+          <div class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">2</div>
+          <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Neachitați</div>
+        </a>
+
+        <!-- Card 2: Sumă Totală Restanță -->
+        <a
+          href="/dashboard/patients"
+          class="block bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40 group active:scale-[0.98]"
+        >
+          <div class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">300</div>
+          <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON neachitați</div>
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 3. STATISTICI LUNARE (Venit & Volum Ședințe)            -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section class="space-y-3">
+    <div class="px-1">
+      <h2 class="text-xl sm:text-2xl font-black text-text-main">Lunar</h2>
+    </div>
+
+    <!-- 2 Carduri Separate pentru Lunar (Grid 2 coloane ca la Azi & Restanțe) -->
+    <div class="grid grid-cols-2 gap-3">
+      <!-- Card 1: Venit Lunar -->
+      <div class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
+        <div class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">9.600</div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON</div>
+      </div>
+
+      <!-- Card 2: Ședințe Făcute Lunar -->
+      <div class="bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
+        <div class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">64</div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Ședințe făcute</div>
+      </div>
+    </div>
+  </section>
+
 </div>
+
+<!-- Script Interactiv pentru Deplasarea Punctului Roz la Apăsarea Fiecărei Zile -->
+<script>
+  function initInteractiveHatchChart() {
+    const dayBtns = document.querySelectorAll('.day-btn');
+    const dot = document.getElementById('pink-dot');
+    const dotGlow = document.getElementById('pink-dot-glow');
+    const valueDisplay = document.getElementById('chart-active-value');
+
+    if (!dot || !dotGlow || !valueDisplay || dayBtns.length === 0) return;
+
+    // Coordonatele exacte pe curbă pentru fiecare zi (L, M, Mi, J, V)
+    const dayCoords = [
+      { cx: 30,  cy: 82, val: '450 <span class="text-sm font-sans font-black text-text-main">RON</span>' }, // Luni
+      { cx: 105, cy: 45, val: '600 <span class="text-sm font-sans font-black text-text-main">RON</span>' }, // Marți
+      { cx: 175, cy: 30, val: '750 <span class="text-sm font-sans font-black text-text-main">RON</span>' }, // Miercuri
+      { cx: 245, cy: 52, val: '600 <span class="text-sm font-sans font-black text-text-main">RON</span>' }, // Joi (Default)
+      { cx: 330, cy: 15, val: '900 <span class="text-sm font-sans font-black text-text-main">RON</span>' }  // Vineri
+    ];
+
+    dayBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-day-idx') || '3', 10);
+        const coord = dayCoords[idx];
+
+        if (coord) {
+          // Mută punctul roz pe coordonata zilei
+          dot.setAttribute('cx', coord.cx.toString());
+          dot.setAttribute('cy', coord.cy.toString());
+          dotGlow.setAttribute('cx', coord.cx.toString());
+          dotGlow.setAttribute('cy', coord.cy.toString());
+
+          // Actualizează suma afișată sus
+          valueDisplay.innerHTML = coord.val;
+
+          // Actualizează stilul butonului activ
+          dayBtns.forEach(b => b.classList.remove('text-brand-secondary', 'font-black'));
+          dayBtns.forEach(b => b.classList.add('text-text-muted'));
+          btn.classList.remove('text-text-muted');
+          btn.classList.add('text-brand-secondary', 'font-black');
+        }
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initInteractiveHatchChart);
+  document.addEventListener('astro:page-load', initInteractiveHatchChart);
+</script>
