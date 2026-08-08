@@ -129,14 +129,14 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
 
         <!-- Paid Status Toggle -->
         <button 
-          class={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl transition-all text-sm font-bold ${
-            paymentStatus === 'Paid' ? 'bg-[#98E2C6]/30 text-emerald-800' : 
-            paymentStatus === 'Partially Paid' ? 'bg-yellow-500/20 text-yellow-800' : 
-            'bg-red-500/20 text-red-800'
+          class={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl transition-all text-sm font-bold whitespace-nowrap px-2 ${
+            paymentStatus === 'Paid' || paymentStatus === 'Paid fully' ? 'bg-white/40 text-black hover:bg-white/50' : 
+            paymentStatus === 'Unpaid' ? 'bg-black text-white hover:bg-black/80 shadow-sm' :
+            'bg-black/50 text-white hover:bg-black/60'
           }`}
           onclick={`event.stopPropagation(); if (window.handlePaymentToggle) window.handlePaymentToggle('${patientId}', '${paymentStatus}')`}
         >
-          <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {paymentStatus}

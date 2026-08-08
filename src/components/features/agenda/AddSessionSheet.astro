@@ -676,9 +676,25 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
     }
   }
 
+  let globalAddSessionSheetManager: AddSessionSheetManager | null = null;
+  
   // Initialize
-  document.addEventListener('DOMContentLoaded', () => {
-    new AddSessionSheetManager();
+  document.addEventListener('astro:page-load', () => {
+    if (!document.getElementById('add-session-sheet')) return;
+    
+    if (!globalAddSessionSheetManager) {
+      globalAddSessionSheetManager = new AddSessionSheetManager();
+    } else {
+      // Re-bind DOM elements if they changed
+      globalAddSessionSheetManager.sheet = document.getElementById('add-session-sheet');
+      globalAddSessionSheetManager.form = document.getElementById('add-session-form') as HTMLFormElement;
+      globalAddSessionSheetManager.timeInput = document.getElementById('selectedTime') as HTMLInputElement;
+      globalAddSessionSheetManager.dateInput = document.getElementById('selectedDate') as HTMLInputElement;
+      globalAddSessionSheetManager.createOverlay();
+      globalAddSessionSheetManager.populateDynamicContent();
+      globalAddSessionSheetManager.bindEvents();
+      globalAddSessionSheetManager.bindDateTimeSelectors();
+    }
   });
 </script>
 

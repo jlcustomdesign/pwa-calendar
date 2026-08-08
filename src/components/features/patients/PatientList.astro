@@ -58,26 +58,26 @@
     }
 
     initMockPatients() {
-      if (!localStorage.getItem('mock_patients_initialized_v3')) {
-        const mockPatients = [
+      if (!localStorage.getItem('mock_patients_initialized_v4')) {
+        const defaultPatients = [
           {
-            "id": "mock_1",
+            "id": "pat_1",
             "name": "Maria Popescu",
             "phone": "0741234567",
             "frequency": "2/week",
-            "plan": "subscription",
+            "plan": "Subscription",
             "cost": "1200",
-            "paymentStatus": "Paid",
+            "paymentStatus": "Paid fully",
             "location": "Belaqva",
             "driveLink": "https://docs.google.com/document",
             "totalSessions": 10
           },
           {
-            "id": "mock_2",
+            "id": "pat_2",
             "name": "Ionut Radu",
             "phone": "0722334455",
             "frequency": "3/week",
-            "plan": "subscription",
+            "plan": "Subscription",
             "cost": "1500",
             "paymentStatus": "Unpaid",
             "location": "Ghimbav",
@@ -85,50 +85,90 @@
             "totalSessions": 12
           },
           {
-            "id": "mock_3",
+            "id": "pat_3",
             "name": "Elena Ionescu",
             "phone": "0766778899",
             "frequency": "1/week",
-            "plan": "one-time",
+            "plan": "One-time",
             "cost": "150",
-            "paymentStatus": "Paid",
+            "paymentStatus": "Unpaid",
             "location": "Belaqva",
             "driveLink": "https://docs.google.com/document",
             "totalSessions": 1
           },
           {
-            "id": "mock_4",
+            "id": "pat_4",
             "name": "Alexandru Vasile",
             "phone": "",
             "frequency": "2/week",
-            "plan": "subscription",
+            "plan": "Subscription",
             "cost": "1200",
-            "paymentStatus": "Unpaid",
+            "paymentStatus": "Paid: 600",
             "location": "Ghimbav",
             "driveLink": "https://docs.google.com/document",
             "totalSessions": 10
           },
           {
-            "id": "mock_5",
+            "id": "pat_5",
             "name": "Andreea Stan",
             "phone": "0755443322",
             "frequency": "3/week",
-            "plan": "subscription",
+            "plan": "Subscription",
             "cost": "1600",
-            "paymentStatus": "Paid",
+            "paymentStatus": "Paid fully",
             "location": "Belaqva",
             "driveLink": "",
             "totalSessions": 12
           }
         ];
-        localStorage.setItem('kineto_patients', JSON.stringify(mockPatients));
-        localStorage.setItem('mock_patients_initialized_v3', 'true');
+        localStorage.setItem('kineto_patients', JSON.stringify(defaultPatients));
+        localStorage.setItem('mock_patients_initialized_v4', 'true');
       }
     }
 
     bindEvents() {
-      window.addEventListener('patientsUpdated', () => this.render());
+      // Prevent duplicate global listeners
+      if (!(window as any)._patientEventsBound) {
+        window.addEventListener('patientsUpdated', () => {
+          if (this.container && document.body.contains(this.container)) {
+            this.render();
+          } else {
+            // Re-find container if we navigated away and back
+            const c = document.getElementById('patient-list-container');
+            if (c) {
+              this.container = c;
+              this.render();
+            }
+          }
+        });
+        
+        // Global click listener for expanding/collapsing details
+        document.addEventListener('click', (e: any) => {
+          const toggleBtn = e.target.closest('[data-toggle-details]');
+          if (toggleBtn) {
+            const patientId = toggleBtn.getAttribute('data-toggle-details');
+            const detailsContent = document.getElementById(`details-${patientId}`);
+            const chevron = toggleBtn.querySelector('svg');
+            
+            if (detailsContent) {
+              const isHidden = detailsContent.classList.contains('hidden');
+              if (isHidden) {
+                detailsContent.classList.remove('hidden');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+              } else {
+                detailsContent.classList.add('hidden');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+              }
+            }
+          }
+        });
+        (window as any)._patientEventsBound = true;
+      }
       
+      this.bindLocalEvents();
+    }
+
+    bindLocalEvents() {
       const searchInput = document.getElementById('patient-search') as HTMLInputElement;
       if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -151,27 +191,6 @@
           this.currentFilter = target.getAttribute('data-filter') || 'all';
           this.render();
         });
-      });
-
-      // Global click listener for expanding/collapsing details
-      document.addEventListener('click', (e: any) => {
-        const toggleBtn = e.target.closest('[data-toggle-details]');
-        if (toggleBtn) {
-          const patientId = toggleBtn.getAttribute('data-toggle-details');
-          const detailsContent = document.getElementById(`details-${patientId}`);
-          const chevron = toggleBtn.querySelector('svg');
-          
-          if (detailsContent) {
-            const isHidden = detailsContent.classList.contains('hidden');
-            if (isHidden) {
-              detailsContent.classList.remove('hidden');
-              if (chevron) chevron.style.transform = 'rotate(180deg)';
-            } else {
-              detailsContent.classList.add('hidden');
-              if (chevron) chevron.style.transform = 'rotate(0deg)';
-            }
-          }
-        }
       });
     }
 
@@ -360,10 +379,10 @@
                 ${phoneHtml}
                 ${driveLinkHtml}
                 <button 
-                  class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl ${paymentClass} hover:opacity-80 active:scale-95 transition-all text-sm font-bold" 
+                  class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl ${paymentClass} hover:opacity-80 active:scale-95 transition-all text-sm font-bold whitespace-nowrap px-2" 
                   onclick="event.stopPropagation(); if (window.handlePaymentToggle) window.handlePaymentToggle('${patient.id}', '${patient.paymentStatus}')"
                 >
-                  <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   ${patient.paymentStatus || 'N/A'}
@@ -478,7 +497,16 @@
     }
   }
 
+  let globalPatientListManager: PatientListManager | null = null;
   document.addEventListener('astro:page-load', () => {
-    new PatientListManager();
+    if (!document.getElementById('patient-list-container')) return;
+    
+    if (!globalPatientListManager) {
+      globalPatientListManager = new PatientListManager();
+    } else {
+      globalPatientListManager.container = document.getElementById('patient-list-container');
+      globalPatientListManager.bindLocalEvents();
+      globalPatientListManager.render();
+    }
   });
 </script>
