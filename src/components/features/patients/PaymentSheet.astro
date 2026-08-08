@@ -1,0 +1,278 @@
+---
+---
+<div id="payment-sheet" class="fixed inset-0 z-50 pointer-events-none transition-opacity duration-300 opacity-0 hidden">
+  <div id="payment-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto transition-opacity duration-300"></div>
+  <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]">
+    <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8"></div>
+    
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h2 class="text-2xl font-bold tracking-tight">Payment Status</h2>
+        <p class="text-neutral-500 font-medium mt-1" id="payment-subtitle">Select payment completion</p>
+      </div>
+      <button type="button" class="w-10 h-10 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 active:scale-95 transition-all text-neutral-500" id="close-payment">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+
+    <!-- View 1: Initial Options -->
+    <div id="payment-options-view" class="space-y-4">
+      <button type="button" id="btn-partially-paid" class="w-full py-4 px-6 rounded-2xl bg-amber-100 text-amber-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
+        <span>Custom Pay</span>
+        <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
+
+      <button type="button" id="btn-fully-paid" class="w-full py-4 px-6 rounded-2xl bg-emerald-100 text-emerald-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
+        <span>Fully Paid (Plan)</span>
+        <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- View 2: Custom Amount Form -->
+    <div id="custom-amount-view" class="space-y-4 hidden">
+      <div class="relative">
+        <label for="custom-amount-input" class="block text-sm font-semibold text-neutral-700 mb-2" id="custom-amount-label">Enter new amount to add (RON)</label>
+        <div class="relative flex items-center">
+          <span class="absolute left-4 text-neutral-500 font-bold text-lg">RON</span>
+          <input 
+            type="number" 
+            id="custom-amount-input" 
+            class="w-full bg-neutral-100 border-none rounded-2xl py-4 pl-14 pr-4 text-lg font-bold text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:ring-black transition-all"
+            placeholder="0"
+          >
+        </div>
+      </div>
+      
+      <div class="flex gap-3 pt-2">
+        <button type="button" id="btn-cancel-custom" class="flex-1 py-4 px-6 rounded-2xl bg-neutral-100 text-neutral-700 font-bold text-lg active:scale-95 transition-transform">
+          Back
+        </button>
+        <button type="button" id="btn-confirm-custom" class="flex-[2] py-4 px-6 rounded-2xl bg-black text-white font-bold text-lg active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-lg shadow-black/20">
+          <span>Confirm Pay</span>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  class PaymentSheetManager {
+    private sheet: HTMLElement | null;
+    private backdrop: HTMLElement | null;
+    private content: HTMLElement | null;
+    
+    private optionsView: HTMLElement | null;
+    private customView: HTMLElement | null;
+    private customInput: HTMLInputElement | null;
+    private customLabel: HTMLElement | null;
+    private subtitleText: HTMLElement | null;
+    
+    private currentPatientId: string | null = null;
+    private previousAmount: number = 0;
+    private isOpen = false;
+
+    constructor() {
+      this.sheet = document.getElementById('payment-sheet');
+      this.backdrop = document.getElementById('payment-backdrop');
+      this.content = document.getElementById('payment-content');
+      
+      this.optionsView = document.getElementById('payment-options-view');
+      this.customView = document.getElementById('custom-amount-view');
+      this.customInput = document.getElementById('custom-amount-input') as HTMLInputElement;
+      this.customLabel = document.getElementById('custom-amount-label');
+      this.subtitleText = document.getElementById('payment-subtitle');
+      
+      this.bindEvents();
+    }
+
+    private bindEvents() {
+      // Open sheet event
+      window.addEventListener('openPaymentSheet', ((e: CustomEvent) => {
+        this.currentPatientId = e.detail.patientId;
+        this.resetView();
+        this.open();
+      }) as EventListener);
+
+      // Close handlers
+      document.getElementById('close-payment')?.addEventListener('click', () => this.close());
+      this.backdrop?.addEventListener('click', () => this.close());
+
+      // Initial Options Action handlers
+      document.getElementById('btn-partially-paid')?.addEventListener('click', () => {
+        this.showCustomView();
+      });
+      document.getElementById('btn-fully-paid')?.addEventListener('click', () => this.updateStatus('Paid'));
+
+      // Custom Form Handlers
+      document.getElementById('btn-cancel-custom')?.addEventListener('click', () => {
+        this.resetView();
+      });
+      document.getElementById('btn-confirm-custom')?.addEventListener('click', () => {
+        this.handleCustomConfirm();
+      });
+      
+      // Allow pressing Enter to confirm
+      this.customInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.handleCustomConfirm();
+        }
+      });
+    }
+    
+    private showCustomView() {
+      if (!this.currentPatientId || !this.optionsView || !this.customView) return;
+      
+      const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+      const patient = patients.find((p: any) => p.id === this.currentPatientId);
+      
+      this.previousAmount = 0;
+      if (patient && patient.paymentStatus && patient.paymentStatus.startsWith('Paid: ')) {
+        const match = patient.paymentStatus.match(/\d+/);
+        if (match) {
+          this.previousAmount = parseInt(match[0], 10);
+        }
+      }
+      
+      // Update UI text
+      if (this.customLabel) {
+        this.customLabel.textContent = this.previousAmount > 0 
+          ? `Already paid: ${this.previousAmount}. Enter new amount to add:` 
+          : 'Enter amount paid:';
+      }
+      if (this.subtitleText) {
+        this.subtitleText.textContent = 'Custom amount';
+      }
+      
+      // Swap views
+      this.optionsView.classList.add('hidden');
+      this.customView.classList.remove('hidden');
+      
+      // Focus input
+      if (this.customInput) {
+        this.customInput.value = '';
+        setTimeout(() => this.customInput?.focus(), 100);
+      }
+    }
+    
+    private handleCustomConfirm() {
+      if (!this.customInput || !this.currentPatientId) return;
+      
+      const amountStr = this.customInput.value;
+      if (amountStr !== null && amountStr.trim() !== '') {
+        const parsed = parseInt(amountStr, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+          const patient = patients.find((p: any) => p.id === this.currentPatientId);
+          
+          let newTotal = this.previousAmount + parsed;
+          const patientCost = patient && patient.cost ? Number(patient.cost) : 0;
+          
+          // Prevent paying more than the total cost of the plan
+          if (patientCost > 0 && newTotal > patientCost) {
+            newTotal = patientCost;
+          }
+          
+          if (patientCost > 0 && newTotal >= patientCost) {
+            this.updateStatus('Paid');
+          } else {
+            this.updateStatus(`Paid: ${newTotal}`);
+          }
+        }
+      }
+    }
+    
+    private resetView() {
+      if (this.optionsView && this.customView) {
+        this.customView.classList.add('hidden');
+        this.optionsView.classList.remove('hidden');
+      }
+      if (this.subtitleText) {
+        this.subtitleText.textContent = 'Select payment completion';
+      }
+      if (this.customInput) {
+        this.customInput.value = '';
+      }
+    }
+
+    private updateStatus(status: string) {
+      if (!this.currentPatientId) return;
+
+      const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+      const updatedPatients = patients.map((p: any) => {
+        if (p.id === this.currentPatientId) {
+          return { ...p, paymentStatus: status };
+        }
+        return p;
+      });
+
+      localStorage.setItem('kineto_patients', JSON.stringify(updatedPatients));
+      
+      // Dispatch event to refresh views
+      window.dispatchEvent(new CustomEvent('patientsUpdated'));
+      
+      this.close();
+    }
+
+    private open() {
+      if (!this.sheet || !this.content || !this.backdrop) return;
+      this.isOpen = true;
+      
+      this.sheet.classList.remove('hidden');
+      // Trigger reflow
+      void this.sheet.offsetWidth;
+      
+      this.sheet.classList.remove('opacity-0');
+      this.content.classList.remove('translate-y-full');
+    }
+
+    private close() {
+      if (!this.sheet || !this.content || !this.backdrop || !this.isOpen) return;
+      this.isOpen = false;
+      
+      this.sheet.classList.add('opacity-0');
+      this.content.classList.add('translate-y-full');
+      
+      // Remove focus to prevent keyboard from staying open on mobile
+      if (this.customInput && document.activeElement === this.customInput) {
+        this.customInput.blur();
+      }
+      
+      setTimeout(() => {
+        if (!this.isOpen && this.sheet) {
+          this.sheet.classList.add('hidden');
+          this.currentPatientId = null;
+          this.resetView(); // reset to default options when closed
+        }
+      }, 400);
+    }
+  }
+
+  let globalPaymentSheetManager: PaymentSheetManager | null = null;
+  
+  document.addEventListener('astro:page-load', () => {
+    if (!document.getElementById('payment-sheet')) return;
+    
+    if (!globalPaymentSheetManager) {
+      globalPaymentSheetManager = new PaymentSheetManager();
+    } else {
+      // Re-bind DOM elements if they changed
+      globalPaymentSheetManager['sheet'] = document.getElementById('payment-sheet');
+      globalPaymentSheetManager['backdrop'] = document.getElementById('payment-backdrop');
+      globalPaymentSheetManager['content'] = document.getElementById('payment-content');
+      globalPaymentSheetManager['optionsView'] = document.getElementById('payment-options-view');
+      globalPaymentSheetManager['customView'] = document.getElementById('custom-amount-view');
+      globalPaymentSheetManager['customInput'] = document.getElementById('custom-amount-input') as HTMLInputElement;
+      globalPaymentSheetManager['customLabel'] = document.getElementById('custom-amount-label');
+      globalPaymentSheetManager['subtitleText'] = document.getElementById('payment-subtitle');
+      globalPaymentSheetManager['bindEvents']();
+    }
+  });
+</script>

@@ -1,16 +1,290 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import AgendaView from '../../components/features/calendar/AgendaView.astro';
+import WeeklyCalendarCard from '../../components/features/dashboard/WeeklyCalendarCard.astro';
+import AddEventBanner from '../../components/features/dashboard/AddEventBanner.astro';
+import SessionCard from '../../components/features/dashboard/SessionCard.astro';
+import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.astro';
 ---
 
-<DashboardLayout title="Agenda & Calendar">
-  <section class="space-y-6">
-    <header class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold text-text-main">Appointment Agenda</h2>
-        <p class="text-sm text-text-muted mt-1">Manage session times and automated patient push reminders</p>
+<DashboardLayout title="Calendar">
+  <div class="space-y-6 pb-24">
+    
+    <!-- Top Section: Expandable Weekly/Monthly Calendar -->
+    <WeeklyCalendarCard name="Dr. Maria" />
+    
+    <!-- Add Session Banner -->
+    <AddEventBanner />
+    
+    <!-- Timeline View -->
+    <section class="mt-6">
+      <h3 class="text-xl font-extrabold text-black tracking-tight mb-4 px-2">Timeline</h3>
+      
+      <div id="timeline-slots-container" class="flex flex-col gap-3">
+        <!-- Rendered dynamically by JS -->
       </div>
-    </header>
-    <AgendaView />
-  </section>
+    </section>
+  </div>
+
+  <!-- Bottom Sheets -->
+  <AddSessionSheet />
+
+  <script>
+    import { getSettings } from '../../utils/settings';
+
+    function initDefaultSessions() {
+      const raw = localStorage.getItem('kineto_sessions');
+      let existing = raw ? JSON.parse(raw) : null;
+      
+      // Re-initialize if empty or if legacy items are missing IDs
+      if (!existing || !Array.isArray(existing) || existing.length === 0 || existing.some((s: any) => !s.id)) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const initial = [
+          {
+            id: "sess_1",
+            patientName: "Maria Popescu",
+            selectedDate: todayStr,
+            selectedTime: "09:00",
+            attendanceCount: 4,
+            totalSessions: 10,
+            location: "Ghimbav",
+            recurring: true,
+            reminder: true,
+          },
+          {
+            id: "sess_2",
+            patientName: "Elena Stan",
+            selectedDate: todayStr,
+            selectedTime: "11:30",
+            attendanceCount: 8,
+            totalSessions: 10,
+            location: "Ghimbav",
+            recurring: true,
+            reminder: false,
+          },
+          {
+            id: "sess_3",
+            patientName: "Andrei Ionescu",
+            selectedDate: todayStr,
+            selectedTime: "14:30",
+            attendanceCount: 1,
+            totalSessions: 10,
+            location: "Belaqua",
+            recurring: false,
+            reminder: true,
+          },
+          {
+            id: "sess_4",
+            patientName: "Ion Vasile",
+            selectedDate: todayStr,
+            selectedTime: "16:00",
+            attendanceCount: 6,
+            totalSessions: 12,
+            location: "Belaqua",
+            recurring: true,
+            reminder: true,
+          }
+        ];
+        localStorage.setItem('kineto_sessions', JSON.stringify(initial));
+      }
+    }
+
+    function createSessionCardHTML(session: any) {
+      const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+      const patient = patients.find((p: any) => p.id === session.patientId);
+      const paymentStatus = patient ? (patient.paymentStatus || 'Unpaid') : 'Unpaid';
+      
+      const locationStr = session.location || (patient ? patient.location : "Ghimbav") || "Ghimbav";
+      const isGhimbav = locationStr.toLowerCase() === "ghimbav";
+      const cardClasses = isGhimbav ? "bg-brand-secondary text-white" : "bg-brand-primary text-black";
+
+      let paymentClass = '';
+      if (paymentStatus === 'Unpaid') {
+        paymentClass = 'bg-black text-white hover:bg-black/80 shadow-sm';
+      } else if (paymentStatus === 'Paid fully') {
+        paymentClass = 'bg-white/40 text-black hover:bg-white/50';
+      } else {
+        paymentClass = 'bg-black/50 text-white hover:bg-black/60';
+      }
+      
+      const gradientColors = isGhimbav ? "from-white/30 to-white" : "from-black/30 to-black";
+      const progressPercentage = Math.min(100, Math.round(((session.attendanceCount || 1) / (session.totalSessions || 10)) * 100));
+
+      const timeStr = session.selectedTime || session.time || "08:00";
+      const patientNameStr = session.patientName || "Patient";
+      const timeParts = timeStr.split(':');
+      const hourNum = parseInt(timeParts[0] || "0", 10);
+      const minute = timeParts[1] || "00";
+      const endHourStr = (hourNum + 1).toString().padStart(2, '0');
+      const endTime = `${endHourStr}:${minute}`;
+
+      return `
+        <div class="w-full relative group" data-session-id="${session.id}">
+          <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden">
+            
+            <!-- Swipe Action Background -->
+            <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
+              <div class="flex items-center gap-3">
+                <button 
+                  type="button" 
+                  class="w-12 h-12 rounded-full bg-white shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-black/5" 
+                  onclick="window.editSession('${session.id}'); event.stopPropagation();"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                </button>
+                <button 
+                  type="button" 
+                  class="w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform" 
+                  onclick="window.deleteSession('${session.id}'); event.stopPropagation();"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Draggable Foreground -->
+            <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
+              
+              <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
+                <div class="flex items-center gap-4 w-full relative z-10">
+                  <div class="flex-1 min-w-0">
+                    <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-4 mt-5 relative z-10">
+                  <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
+                    <div class="h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
+                  </div>
+                  <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${session.attendanceCount || 1}/${session.totalSessions || 10}</div>
+                </div>
+              </div>
+
+              <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
+                <div class="overflow-hidden relative z-20">
+                  <div class="px-6 pt-4 pb-2 flex justify-between items-center">
+                    <div class="flex items-center gap-2 text-sm font-bold opacity-90 bg-black/5 px-4 py-2 rounded-xl backdrop-blur-sm">
+                      <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      ${timeStr} - ${endTime}
+                    </div>
+                    <div class="text-xs font-bold uppercase tracking-widest opacity-60 text-right">
+                      ${locationStr}
+                    </div>
+                  </div>
+
+                  <div class="px-6 pb-5 pt-3 flex gap-2">
+                    <a href="tel:+1234567890" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold" onclick="event.stopPropagation()">
+                      <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      Call
+                    </a>
+                    <a href="#" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold" onclick="event.stopPropagation()">
+                      <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                      </svg>
+                      Docs
+                    </a>
+                    <button 
+                      class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl ${paymentClass} hover:opacity-80 active:scale-95 transition-all text-sm font-bold" 
+                      onclick="event.stopPropagation(); if (window.handlePaymentToggle) window.handlePaymentToggle('${session.patientId}', '${paymentStatus}')"
+                    >
+                      <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      ${paymentStatus}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+          </session-card>
+        </div>
+      `;
+    }
+
+    function renderTimeline() {
+      const container = document.getElementById('timeline-slots-container');
+      if (!container) return;
+
+      initDefaultSessions();
+      const settings = getSettings();
+      const startHour = parseInt(settings.schedule.workStart.split(':')[0], 10) || 8;
+      const endHour = parseInt(settings.schedule.workEnd.split(':')[0], 10) || 18;
+
+      const timeSlots: string[] = [];
+      for (let h = startHour; h <= endHour; h++) {
+        timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
+      }
+
+      const storedSessions = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
+
+      container.innerHTML = timeSlots.map((slotTimeStr) => {
+        const slotHourStr = slotTimeStr.split(':')[0];
+
+        // Find session in this hour block (e.g. 08:15 matches hour 08)
+        const session = storedSessions.find((s: any) => {
+          const t = s.selectedTime || s.time || '';
+          return t.startsWith(`${slotHourStr}:`);
+        });
+
+        const displayTimeStr = session ? (session.selectedTime || session.time || slotTimeStr) : slotTimeStr;
+        const [hourStr, minStr] = displayTimeStr.split(':');
+
+        return `
+          <div class="relative flex items-stretch gap-4 min-h-[4.5rem]">
+            
+            <!-- Clock on 2 Rows -->
+            <div class="w-14 shrink-0 text-center flex flex-col items-center justify-center select-none relative pt-1">
+              <span class="text-2xl font-black text-black leading-none tracking-tight">${hourStr}</span>
+              <span class="text-xs font-bold text-text-muted tracking-wider uppercase mt-0.5">${minStr || '00'}</span>
+              <div class="absolute right-0 top-1/2 -translate-y-1/2 left-full w-screen h-px bg-neutral-200/80 -z-10"></div>
+            </div>
+            
+            <!-- Slot Content -->
+            <div class="flex-1 pb-2" data-slot-time="${slotTimeStr}">
+              ${session ? createSessionCardHTML(session) : `
+                <button 
+                  type="button"
+                  class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
+                  onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', showDateTime: false } }))"
+                >
+                  + Tap to add session
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Global session handlers
+    (window as any).editSession = function(id: string) {
+      const stored = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
+      const session = stored.find((s: any) => s.id === id);
+      if (session) {
+        window.dispatchEvent(new CustomEvent('openAddSession', { 
+          detail: { 
+            isEdit: true, 
+            session, 
+            showDateTime: true 
+          } 
+        }));
+      }
+    };
+
+    (window as any).deleteSession = function(id: string) {
+      let stored = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
+      stored = stored.filter((s: any) => s.id !== id);
+      localStorage.setItem('kineto_sessions', JSON.stringify(stored));
+      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+    };
+
+    // Listeners
+    window.addEventListener('sessionsUpdated', renderTimeline);
+    document.addEventListener('DOMContentLoaded', renderTimeline);
+    document.addEventListener('astro:page-load', renderTimeline);
+  </script>
 </DashboardLayout>

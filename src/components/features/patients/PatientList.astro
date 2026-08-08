@@ -1,7 +1,512 @@
 ---
-// Feature Component Placeholder for Patient List
+// Dynamic Patient List Component
 ---
 
-<div class="p-6 bg-surface-card rounded-xl border border-border-subtle">
-  <p class="text-sm text-text-muted">Patient Directory & Profiles Placeholder</p>
+<div class="mb-6 space-y-4">
+  <!-- Search Bar and Add Button -->
+  <div class="flex gap-3">
+    <div class="relative flex-1">
+      <input type="text" id="patient-search" placeholder="Search patients..." class="w-full bg-white rounded-full py-3 pl-12 pr-4 text-black focus:outline-none focus:ring-2 focus:ring-brand-primary border border-black/5 shadow-sm font-medium h-[52px]" />
+      <svg class="w-5 h-5 absolute left-4 top-[16px] text-black/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+    </div>
+    <button 
+      onclick="window.dispatchEvent(new CustomEvent('openAddPatient'))"
+      class="w-[52px] h-[52px] shrink-0 rounded-full bg-black text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+      </svg>
+    </button>
+  </div>
+  <!-- Filters -->
+  <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar" style="-ms-overflow-style: none; scrollbar-width: none;">
+    <button class="filter-btn active px-5 py-2 rounded-full bg-black text-white text-sm font-bold whitespace-nowrap active:scale-95 transition-transform" data-filter="all">All</button>
+    <button class="filter-btn px-5 py-2 rounded-full bg-white text-black text-sm font-bold whitespace-nowrap border border-black/5 shadow-sm active:scale-95 transition-transform" data-filter="ghimbav">Ghimbav</button>
+    <button class="filter-btn px-5 py-2 rounded-full bg-white text-black text-sm font-bold whitespace-nowrap border border-black/5 shadow-sm active:scale-95 transition-transform" data-filter="belaqva">Belaqva</button>
+    <button class="filter-btn px-5 py-2 rounded-full bg-white text-black text-sm font-bold whitespace-nowrap border border-black/5 shadow-sm active:scale-95 transition-transform" data-filter="unpaid">Unpaid</button>
+  </div>
 </div>
+
+<div id="patient-list-container" class="space-y-4 pb-32 overflow-x-hidden">
+  <!-- Populated by JS -->
+</div>
+
+<!-- Empty State Template -->
+<template id="patient-empty-state">
+  <div class="p-8 text-center bg-surface-card rounded-2xl border border-dashed border-black/10">
+    <div class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    </div>
+    <h3 class="font-bold text-lg text-black mb-1">No Patients Yet</h3>
+    <p class="text-sm text-text-muted">Add your first patient to get started.</p>
+  </div>
+</template>
+
+<script>
+  class PatientListManager {
+    container: HTMLElement | null;
+    currentSearchQuery: string = '';
+    currentFilter: string = 'all';
+
+    constructor() {
+      this.initMockPatients();
+      this.container = document.getElementById('patient-list-container');
+      this.bindEvents();
+      this.render();
+    }
+
+    initMockPatients() {
+      if (!localStorage.getItem('mock_patients_initialized_v4')) {
+        const defaultPatients = [
+          {
+            "id": "pat_1",
+            "name": "Maria Popescu",
+            "phone": "0741234567",
+            "frequency": "2/week",
+            "plan": "Subscription",
+            "cost": "1200",
+            "paymentStatus": "Paid fully",
+            "location": "Belaqva",
+            "driveLink": "https://docs.google.com/document",
+            "totalSessions": 10
+          },
+          {
+            "id": "pat_2",
+            "name": "Ionut Radu",
+            "phone": "0722334455",
+            "frequency": "3/week",
+            "plan": "Subscription",
+            "cost": "1500",
+            "paymentStatus": "Unpaid",
+            "location": "Ghimbav",
+            "driveLink": "",
+            "totalSessions": 12
+          },
+          {
+            "id": "pat_3",
+            "name": "Elena Ionescu",
+            "phone": "0766778899",
+            "frequency": "1/week",
+            "plan": "One-time",
+            "cost": "150",
+            "paymentStatus": "Unpaid",
+            "location": "Belaqva",
+            "driveLink": "https://docs.google.com/document",
+            "totalSessions": 1
+          },
+          {
+            "id": "pat_4",
+            "name": "Alexandru Vasile",
+            "phone": "",
+            "frequency": "2/week",
+            "plan": "Subscription",
+            "cost": "1200",
+            "paymentStatus": "Paid: 600",
+            "location": "Ghimbav",
+            "driveLink": "https://docs.google.com/document",
+            "totalSessions": 10
+          },
+          {
+            "id": "pat_5",
+            "name": "Andreea Stan",
+            "phone": "0755443322",
+            "frequency": "3/week",
+            "plan": "Subscription",
+            "cost": "1600",
+            "paymentStatus": "Paid fully",
+            "location": "Belaqva",
+            "driveLink": "",
+            "totalSessions": 12
+          }
+        ];
+        localStorage.setItem('kineto_patients', JSON.stringify(defaultPatients));
+        localStorage.setItem('mock_patients_initialized_v4', 'true');
+      }
+    }
+
+    bindEvents() {
+      // Prevent duplicate global listeners
+      if (!(window as any)._patientEventsBound) {
+        window.addEventListener('patientsUpdated', () => {
+          if (this.container && document.body.contains(this.container)) {
+            this.render();
+          } else {
+            // Re-find container if we navigated away and back
+            const c = document.getElementById('patient-list-container');
+            if (c) {
+              this.container = c;
+              this.render();
+            }
+          }
+        });
+        
+        // Global click listener for expanding/collapsing details
+        document.addEventListener('click', (e: any) => {
+          const toggleBtn = e.target.closest('[data-toggle-details]');
+          if (toggleBtn) {
+            const patientId = toggleBtn.getAttribute('data-toggle-details');
+            const detailsContent = document.getElementById(`details-${patientId}`);
+            const chevron = toggleBtn.querySelector('svg');
+            
+            if (detailsContent) {
+              const isHidden = detailsContent.classList.contains('hidden');
+              if (isHidden) {
+                detailsContent.classList.remove('hidden');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+              } else {
+                detailsContent.classList.add('hidden');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+              }
+            }
+          }
+        });
+        (window as any)._patientEventsBound = true;
+      }
+      
+      this.bindLocalEvents();
+    }
+
+    bindLocalEvents() {
+      const searchInput = document.getElementById('patient-search') as HTMLInputElement;
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          this.currentSearchQuery = (e.target as HTMLInputElement).value.toLowerCase();
+          this.render();
+        });
+      }
+
+      const filterBtns = document.querySelectorAll('.filter-btn');
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          filterBtns.forEach(b => {
+            b.classList.remove('bg-black', 'text-white');
+            b.classList.add('bg-white', 'text-black');
+          });
+          const target = e.currentTarget as HTMLElement;
+          target.classList.remove('bg-white', 'text-black');
+          target.classList.add('bg-black', 'text-white');
+          
+          this.currentFilter = target.getAttribute('data-filter') || 'all';
+          this.render();
+        });
+      });
+    }
+
+    deletePatient(id: string) {
+      let patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+      patients = patients.filter((p: any) => p.id !== id);
+      localStorage.setItem('kineto_patients', JSON.stringify(patients));
+      this.render();
+      window.dispatchEvent(new CustomEvent('patientsUpdated'));
+    }
+
+    editPatient(id: string) {
+      const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+      const patient = patients.find((p: any) => p.id === id);
+      if (patient) {
+        window.dispatchEvent(new CustomEvent('openAddPatient', {
+          detail: {
+            isEdit: true,
+            patient: patient
+          }
+        }));
+      }
+    }
+
+    bookSession(patientName: string) {
+      window.dispatchEvent(new CustomEvent('openAddSession', {
+        detail: {
+          patientName: patientName,
+          showDateTime: true
+        }
+      }));
+    }
+
+    render() {
+      if (!this.container) return;
+
+      const template = document.getElementById('patient-empty-state') as HTMLTemplateElement;
+      let patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+      const allSessions = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
+
+      // Apply Search
+      if (this.currentSearchQuery) {
+        patients = patients.filter((p: any) => p.name.toLowerCase().includes(this.currentSearchQuery));
+      }
+
+      // Apply Filters
+      if (this.currentFilter === 'ghimbav') {
+        patients = patients.filter((p: any) => p.location?.toLowerCase() === 'ghimbav');
+      } else if (this.currentFilter === 'belaqva') {
+        patients = patients.filter((p: any) => p.location?.toLowerCase() === 'belaqva' || p.location?.toLowerCase() === 'belaqua');
+      } else if (this.currentFilter === 'unpaid') {
+        patients = patients.filter((p: any) => p.paymentStatus === 'Unpaid');
+      }
+
+      if (patients.length === 0) {
+        const template = document.getElementById('patient-empty-state') as HTMLTemplateElement;
+        this.container.innerHTML = '';
+        this.container.appendChild(template.content.cloneNode(true));
+        return;
+      }
+
+      this.container.innerHTML = '';
+
+      patients.forEach((patient: any) => {
+        let isGhimbav = patient.location?.toLowerCase() === 'ghimbav';
+        let isBelaqva = patient.location?.toLowerCase() === 'belaqva' || patient.location?.toLowerCase() === 'belaqua';
+
+        let cardClasses = "bg-brand-primary text-black"; // default to Belaqva colors
+        let gradientColors = "from-black/30 to-black";
+        if (isGhimbav) {
+          cardClasses = "bg-brand-secondary text-white";
+          gradientColors = "from-white/30 to-white";
+        }
+        
+        let paymentClass = '';
+        if (patient.paymentStatus === 'Unpaid') {
+          paymentClass = 'bg-black text-white hover:bg-black/80 shadow-sm';
+        } else if (patient.paymentStatus === 'Paid fully' || patient.paymentStatus === 'Paid') {
+          paymentClass = 'bg-white/40 text-black hover:bg-white/50';
+        } else {
+          paymentClass = 'bg-black/50 text-white hover:bg-black/60';
+        }
+
+        const attendanceCount = allSessions.filter((s: any) => s.patientName === patient.name).length;
+        const totalSessions = patient.totalSessions || 10;
+        const progressPercentage = Math.min(100, Math.round((attendanceCount / totalSessions) * 100));
+
+        const cardWrapper = document.createElement('div');
+        cardWrapper.className = 'block relative rounded-[2.5rem] shadow-sm overflow-hidden mb-4';
+
+        // Action Background (Edit / Delete) - Using SessionCard style
+        const actionsBg = document.createElement('div');
+        actionsBg.className = 'absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0';
+        actionsBg.innerHTML = `
+          <div class="flex items-center gap-3">
+            <button class="edit-btn w-12 h-12 rounded-full bg-white shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-black/5" title="Edit Patient">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            </button>
+            <button class="delete-btn w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform" title="Delete Patient">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
+        `;
+
+        // The foreground card
+        const card = document.createElement('div');
+        card.className = `swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}`;
+        card.style.touchAction = 'pan-y'; // allow vertical scroll
+        
+        const driveLinkHtml = patient.driveLink ? `
+          <a href="${patient.driveLink}" target="_blank" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold" onclick="event.stopPropagation()">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+            </svg>
+            Docs
+          </a>
+        ` : `
+          <button class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/10 text-sm font-bold opacity-50 cursor-not-allowed" onclick="event.stopPropagation()">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+            </svg>
+            No Docs
+          </button>
+        `;
+
+        const phoneHtml = patient.phone ? `
+          <a href="tel:${patient.phone}" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold" onclick="event.stopPropagation()">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            Call
+          </a>
+        ` : `
+          <button class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/10 text-sm font-bold opacity-50 cursor-not-allowed" onclick="event.stopPropagation()">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            Call
+          </button>
+        `;
+
+        const planName = patient.plan === 'Subscription' ? 'Sub' : (patient.plan || 'No Plan');
+
+        card.innerHTML = `
+          <!-- Summary Section (Always visible) -->
+          <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
+            <div class="flex items-center gap-4 w-full relative z-10 justify-between">
+              <div class="flex-1 min-w-0">
+                <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patient.name}</h4>
+              </div>
+              <button 
+                type="button" 
+                class="book-btn shrink-0 flex items-center justify-center p-2 rounded-full bg-black/10 hover:bg-black/20 active:scale-95 transition-transform"
+                title="Book Session"
+                onclick="event.stopPropagation()"
+              >
+                <svg class="w-5 h-5 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </button>
+            </div>
+            
+            <!-- Progress (Restored to Summary) -->
+            <div class="flex items-center gap-4 mt-5 relative z-10">
+              <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
+                <div class="h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
+              </div>
+              <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${attendanceCount}/${totalSessions}</div>
+            </div>
+          </div>
+
+          <!-- Details Section (Hidden by default, expands on click) -->
+          <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
+            <div class="overflow-hidden relative z-20">
+              
+              <!-- Full Program Time Display -->
+              <div class="px-6 pt-4 pb-2 flex justify-between items-center">
+                <div class="flex items-center gap-2 text-sm font-bold opacity-90 bg-black/5 px-4 py-2 rounded-xl backdrop-blur-sm">
+                  ${patient.frequency || 'N/A'} • ${planName}
+                </div>
+                <div class="text-xs font-bold uppercase tracking-widest opacity-60 text-right">
+                  ${patient.location || 'Unknown'}
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="px-6 pb-5 pt-3 flex gap-2">
+                ${phoneHtml}
+                ${driveLinkHtml}
+                <button 
+                  class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl ${paymentClass} hover:opacity-80 active:scale-95 transition-all text-sm font-bold whitespace-nowrap px-2" 
+                  onclick="event.stopPropagation(); if (window.handlePaymentToggle) window.handlePaymentToggle('${patient.id}', '${patient.paymentStatus}')"
+                >
+                  <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  ${patient.paymentStatus || 'N/A'}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Event bindings
+        const bookBtn = card.querySelector('.book-btn');
+        bookBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.bookSession(patient.name);
+        });
+
+        const editBtn = actionsBg.querySelector('.edit-btn');
+        editBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.editPatient(patient.id);
+        });
+
+        const deleteBtn = actionsBg.querySelector('.delete-btn');
+        deleteBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (confirm(`Are you sure you want to delete ${patient.name}?`)) {
+            this.deletePatient(patient.id);
+          }
+        });
+
+        // Toggle Details
+        const summary = card.querySelector('.card-summary');
+        const details = card.querySelector('.card-details') as HTMLElement;
+        let isExpanded = false;
+        
+        summary?.addEventListener('click', (e) => {
+          if (cardWrapper.dataset.wasSwiping === 'true') {
+            cardWrapper.dataset.wasSwiping = 'false';
+            return;
+          }
+          isExpanded = !isExpanded;
+          if (details) {
+            details.style.gridTemplateRows = isExpanded ? '1fr' : '0fr';
+          }
+        });
+
+        // Swipe logic
+        let startX = 0;
+        let currentX = 0;
+        let isSwiping = false;
+        let isOpen = false;
+        const MAX_SWIPE = -140;
+        const SWIPE_THRESHOLD = -60;
+
+        card.addEventListener('touchstart', (e: any) => {
+          startX = e.touches[0].clientX;
+          currentX = startX;
+          isSwiping = true;
+          cardWrapper.dataset.wasSwiping = 'false';
+          card.style.transition = 'none';
+        }, { passive: true });
+
+        card.addEventListener('touchmove', (e: any) => {
+          if (!isSwiping) return;
+          currentX = e.touches[0].clientX;
+          const diffX = currentX - startX;
+          
+          if (Math.abs(diffX) > 10) {
+            cardWrapper.dataset.wasSwiping = 'true';
+          }
+
+          let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
+          if (targetX > 0) targetX = 0;
+          if (targetX < MAX_SWIPE - 20) targetX = MAX_SWIPE - 20;
+          
+          card.style.transform = `translateX(${targetX}px)`;
+        }, { passive: true });
+
+        const onEnd = () => {
+          if (!isSwiping) return;
+          isSwiping = false;
+          
+          const diffX = currentX - startX;
+          card.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+          if (Math.abs(diffX) < 10) {
+            // Was just a tap
+            card.style.transform = isOpen ? `translateX(${MAX_SWIPE}px)` : 'translateX(0px)';
+            return;
+          }
+
+          if (!isOpen && diffX < SWIPE_THRESHOLD) {
+            isOpen = true;
+            card.style.transform = `translateX(${MAX_SWIPE}px)`;
+          } else if (isOpen && diffX > -SWIPE_THRESHOLD) {
+            isOpen = false;
+            card.style.transform = 'translateX(0px)';
+          } else {
+            card.style.transform = isOpen ? `translateX(${MAX_SWIPE}px)` : 'translateX(0px)';
+          }
+        };
+
+        card.addEventListener('touchend', onEnd);
+        card.addEventListener('touchcancel', onEnd);
+
+        cardWrapper.appendChild(actionsBg);
+        cardWrapper.appendChild(card);
+        if (this.container) {
+          this.container.appendChild(cardWrapper);
+        }
+      });
+    }
+  }
+
+  let globalPatientListManager: PatientListManager | null = null;
+  document.addEventListener('astro:page-load', () => {
+    if (!document.getElementById('patient-list-container')) return;
+    
+    if (!globalPatientListManager) {
+      globalPatientListManager = new PatientListManager();
+    } else {
+      globalPatientListManager.container = document.getElementById('patient-list-container');
+      globalPatientListManager.bindLocalEvents();
+      globalPatientListManager.render();
+    }
+  });
+</script>

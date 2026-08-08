@@ -1,20 +1,24 @@
 ---
 interface Props {
+  patientId: string;
   patientName: string;
   startTime: string; // e.g. "07:00"
   attendanceCount: number;
   totalSessions?: number;
   location: 'Ghimbav' | 'Belaqua';
   isPast?: boolean;
+  paymentStatus?: string;
 }
 
 const { 
+  patientId,
   patientName, 
   startTime, 
   attendanceCount, 
   totalSessions = 10,
   location,
-  isPast = false
+  isPast = false,
+  paymentStatus = 'Unpaid'
 } = Astro.props;
 
 // Split startTime "07:00" into "07" and "00"
@@ -44,8 +48,22 @@ const progressPercentage = Math.min(100, Math.round((attendanceCount / totalSess
 const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
 ---
 
-<session-card class={`block relative rounded-[2.5rem] shadow-sm overflow-hidden ${cardClasses} ${isPast ? 'opacity-90' : ''}`}>
+<session-card class={`block relative rounded-[2.5rem] shadow-sm overflow-hidden ${isPast ? 'opacity-90' : ''}`}>
   
+  <!-- Swipe Action Background -->
+  <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
+    <div class="flex items-center gap-3">
+      <button class="w-12 h-12 rounded-full bg-white shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-black/5" onclick="window.editSession && window.editSession(this); event.stopPropagation();">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+      </button>
+      <button class="w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform" onclick="window.deleteSession && window.deleteSession(this); event.stopPropagation();">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Draggable Foreground -->
+  <div class={`swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}`}>
   <!-- Elegant Fine Hatching Overlay for Past Sessions -->
   {isPast && (
     <div 
@@ -55,27 +73,17 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
   )}
 
   <!-- Summary Section (Always visible) -->
-  <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[110px] p-6">
-    
-    <!-- Watermark Time Background -->
-    <div class="absolute left-3 top-0 bottom-0 font-black text-[3.8rem] leading-[0.8] opacity-30 pointer-events-none tracking-tighter mix-blend-overlay flex items-center justify-start z-0 w-20">
-      <div class="flex items-start">
-        {hour}
-        <span class="text-xl mt-1 ml-0.5">{minute}</span>
-      </div>
-    </div>
+  <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
 
     <!-- Summary Content (Patient Name) -->
     <div class="flex items-center gap-4 w-full relative z-10">
-      
-      <!-- Padded to clear the clock watermark without overlapping -->
-      <div class="flex-1 min-w-0 pl-24">
+      <div class="flex-1 min-w-0">
         <h4 class="text-xl font-bold tracking-tight leading-none truncate">{patientName}</h4>
       </div>
     </div>
 
     <!-- Progress (Restored to Summary) -->
-    <div class="flex items-center gap-4 mt-5 relative z-10 pl-24">
+    <div class="flex items-center gap-4 mt-5 relative z-10">
       <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
         <div class={`h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out`} style={`width: ${progressPercentage}%;`}></div>
       </div>
@@ -120,39 +128,129 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
         </a>
 
         <!-- Paid Status Toggle -->
-        <button class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold" onclick="event.stopPropagation()">
-          <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button 
+          class={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl transition-all text-sm font-bold whitespace-nowrap px-2 ${
+            paymentStatus === 'Paid' || paymentStatus === 'Paid fully' ? 'bg-white/40 text-black hover:bg-white/50' : 
+            paymentStatus === 'Unpaid' ? 'bg-black text-white hover:bg-black/80 shadow-sm' :
+            'bg-black/50 text-white hover:bg-black/60'
+          }`}
+          onclick={`event.stopPropagation(); if (window.handlePaymentToggle) window.handlePaymentToggle('${patientId}', '${paymentStatus}')`}
+        >
+          <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Paid
+          {paymentStatus}
         </button>
       </div>
     </div>
+  </div>
   </div>
 </session-card>
 
 <script>
   class SessionCard extends HTMLElement {
-    constructor() {
-      super();
-      
+    private _initialized = false;
+
+    connectedCallback() {
+      if (this._initialized) return;
+      this._initialized = true;
+
       const summary = this.querySelector('.card-summary');
       const details = this.querySelector('.card-details') as HTMLElement;
       const icon = this.querySelector('.expand-icon') as HTMLElement | null;
       
       let isExpanded = false;
 
-      summary?.addEventListener('click', () => {
+      summary?.addEventListener('click', (e) => {
+        // Don't expand if user was dragging
+        if (this.dataset.wasSwiping === 'true') {
+          this.dataset.wasSwiping = 'false';
+          return;
+        }
         isExpanded = !isExpanded;
         
         if (isExpanded) {
-          details.style.gridTemplateRows = '1fr';
+          if (details) details.style.gridTemplateRows = '1fr';
           if (icon) icon.style.transform = 'rotate(180deg)';
         } else {
-          details.style.gridTemplateRows = '0fr';
+          if (details) details.style.gridTemplateRows = '0fr';
           if (icon) icon.style.transform = 'rotate(0deg)';
         }
       });
+
+      // Swipe to reveal logic (Touch + Mouse Pointer)
+      const surface = this.querySelector('.swipe-surface') as HTMLElement;
+      if (surface) {
+        let startX = 0;
+        let currentX = 0;
+        let isSwiping = false;
+        let isOpen = false;
+        const SWIPE_THRESHOLD = -60;
+        const MAX_SWIPE = -140;
+
+        const onStart = (clientX: number) => {
+          startX = clientX;
+          currentX = startX;
+          isSwiping = true;
+          this.dataset.wasSwiping = 'false';
+          surface.style.transition = 'none';
+        };
+
+        const onMove = (clientX: number) => {
+          if (!isSwiping) return;
+          currentX = clientX;
+          const diffX = currentX - startX;
+          
+          if (Math.abs(diffX) > 10) {
+            this.dataset.wasSwiping = 'true';
+          }
+
+          let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
+          if (targetX > 0) targetX = 0;
+          if (targetX < MAX_SWIPE - 20) targetX = MAX_SWIPE - 20;
+          
+          surface.style.transform = `translateX(${targetX}px)`;
+        };
+
+        const onEnd = () => {
+          if (!isSwiping) return;
+          isSwiping = false;
+          surface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          
+          const diffX = currentX - startX;
+          
+          if (!isOpen && diffX < SWIPE_THRESHOLD) {
+            isOpen = true;
+            surface.style.transform = `translateX(${MAX_SWIPE}px)`;
+          } else if (isOpen && diffX > -SWIPE_THRESHOLD) {
+            isOpen = false;
+            surface.style.transform = 'translateX(0px)';
+          } else {
+            surface.style.transform = isOpen ? `translateX(${MAX_SWIPE}px)` : 'translateX(0px)';
+          }
+        };
+
+        // Touch events
+        surface.addEventListener('touchstart', (e: TouchEvent) => onStart(e.touches[0].clientX), { passive: true });
+        surface.addEventListener('touchmove', (e: TouchEvent) => onMove(e.touches[0].clientX), { passive: true });
+        surface.addEventListener('touchend', onEnd);
+
+        // Mouse drag events for desktop preview
+        let isMouseDown = false;
+        surface.addEventListener('mousedown', (e: MouseEvent) => {
+          isMouseDown = true;
+          onStart(e.clientX);
+        });
+        window.addEventListener('mousemove', (e: MouseEvent) => {
+          if (isMouseDown) onMove(e.clientX);
+        });
+        window.addEventListener('mouseup', () => {
+          if (isMouseDown) {
+            isMouseDown = false;
+            onEnd();
+          }
+        });
+      }
     }
   }
 

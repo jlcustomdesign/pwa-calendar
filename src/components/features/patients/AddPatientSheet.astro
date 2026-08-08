@@ -1,0 +1,440 @@
+---
+// Patient Onboarding Bottom Sheet
+---
+
+<div 
+  id="add-patient-sheet" 
+  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2rem] p-4 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden"
+>
+  <!-- Swipe handle -->
+  <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
+
+  <div class="flex-1 overflow-y-auto no-scrollbar pb-24">
+    <h3 id="patient-sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-6">New Patient</h3>
+
+    <form id="add-patient-form" class="space-y-6">
+      <input type="hidden" name="patientId" id="editPatientId" value="" />
+      
+      <!-- General Details -->
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-text-muted mb-2">Full Name</label>
+          <input 
+            type="text" 
+            name="name" 
+            id="patientName" 
+            required
+            placeholder="e.g. Alexandru Popa" 
+            class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold text-text-muted mb-2">Phone Number</label>
+          <input 
+            type="tel" 
+            name="phone" 
+            id="patientPhone" 
+            placeholder="e.g. 0740 123 456" 
+            class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
+          />
+        </div>
+      </div>
+
+      <!-- Plan & Location -->
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Plan (Chips) -->
+        <div>
+          <label class="block text-sm font-bold text-text-muted mb-2">Plan</label>
+          <input type="hidden" name="plan" id="patientPlan" value="Subscription" />
+          <div class="flex flex-col gap-2">
+            <button type="button" data-plan="Subscription" class="px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Subscription</button>
+            <button type="button" data-plan="One Time" class="px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">One Time</button>
+          </div>
+        </div>
+
+        <!-- Location (Chips) -->
+        <div>
+          <label class="block text-sm font-bold text-text-muted mb-2">Location</label>
+          <input type="hidden" name="location" id="patientLocation" value="Belaqva" />
+          <div class="flex flex-col gap-2">
+            <button type="button" data-location="Belaqva" class="px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Belaqva</button>
+            <button type="button" data-location="Ghimbav" class="px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Ghimbav</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cost & Frequency -->
+      <div class="grid gap-4">
+        <div>
+          <label class="block text-sm font-bold text-text-muted mb-2">Cost (RON)</label>
+          <input 
+            type="number" 
+            name="cost" 
+            id="patientCost" 
+            placeholder="e.g. 150" 
+            class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-text-muted mb-2">Frequency</label>
+          <div class="flex flex-col gap-3">
+            <div class="flex flex-wrap gap-2">
+              <button type="button" data-frequency="1 time/week" class="px-3 py-2 rounded-xl text-xs font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">1 / week</button>
+              <button type="button" data-frequency="2 times/week" class="px-3 py-2 rounded-xl text-xs font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">2 / week</button>
+              <button type="button" data-frequency="3 times/week" class="px-3 py-2 rounded-xl text-xs font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">3 / week</button>
+              <button type="button" data-frequency="Occasional" class="px-3 py-2 rounded-xl text-xs font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Occasional</button>
+            </div>
+            <input 
+              type="text" 
+              name="frequency" 
+              id="patientFrequency" 
+              placeholder="Or type custom (e.g. 4/week)" 
+              value="1 time/week"
+              class="w-full px-4 py-2.5 rounded-xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Sessions -->
+      <div>
+        <label class="block text-sm font-bold text-text-muted mb-2">Total Sessions Included</label>
+        <input 
+          type="number" 
+          name="totalSessions" 
+          id="patientTotalSessions" 
+          placeholder="e.g. 10" 
+          class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
+        />
+      </div>
+
+      <!-- Payment Status -->
+      <div>
+        <label class="block text-sm font-bold text-text-muted mb-2">Payment Status</label>
+        <input type="hidden" name="paymentStatus" id="patientPaymentStatus" value="Unpaid" />
+        <div class="flex flex-wrap gap-2">
+          <button type="button" data-payment="Unpaid" class="px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Unpaid</button>
+          <button type="button" data-payment="Paid" class="px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Paid</button>
+        </div>
+      </div>
+
+      <!-- Drive Link -->
+      <div>
+        <label class="block text-sm font-bold text-text-muted mb-2">Drive Link (Optional)</label>
+        <div class="relative">
+          <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+          <input 
+            type="url" 
+            name="driveLink" 
+            id="patientDriveLink" 
+            placeholder="https://drive.google.com/..." 
+            class="w-full pl-11 pr-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black text-sm"
+          />
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-8 flex gap-3">
+    <button type="button" id="save-patient-btn" class="flex-1 py-4 rounded-2xl bg-black/5 text-black font-bold text-sm active:scale-95 transition-transform border border-black/10">
+      Save Patient
+    </button>
+    <button type="button" id="save-and-book-btn" class="flex-[2] py-4 rounded-2xl bg-black text-white font-bold text-sm active:scale-95 transition-transform shadow-lg">
+      Save & Book Session
+    </button>
+  </div>
+</div>
+
+<script>
+  class AddPatientSheetManager {
+    sheet: HTMLElement | null;
+    form: HTMLFormElement | null;
+    overlay: HTMLElement | null = null;
+    startY: number = 0;
+    currentY: number = 0;
+
+    constructor() {
+      this.sheet = document.getElementById('add-patient-sheet');
+      this.form = document.getElementById('add-patient-form') as HTMLFormElement;
+      
+      this.createOverlay();
+      this.bindEvents();
+    }
+
+    createOverlay() {
+      this.overlay = document.createElement('div');
+      this.overlay.className = 'fixed inset-0 bg-black/40 z-[90] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm';
+      document.body.appendChild(this.overlay);
+      this.overlay.addEventListener('click', () => this.close());
+    }
+
+    bindEvents() {
+      if (!this.sheet) return;
+
+      const handle = this.sheet.querySelector('.cursor-grab');
+      handle?.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+      handle?.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+      handle?.addEventListener('touchend', () => this.handleTouchEnd());
+
+      window.addEventListener('openAddPatient', (e: any) => {
+        const detail = e.detail || {};
+        const isEdit = !!detail.isEdit;
+        const patient = detail.patient;
+
+        const titleEl = document.getElementById('patient-sheet-title');
+        const idInput = document.getElementById('editPatientId') as HTMLInputElement;
+
+        if (idInput) {
+          idInput.value = isEdit && patient ? patient.id : '';
+        }
+
+        if (titleEl) {
+          titleEl.textContent = isEdit ? 'Edit Patient' : 'New Patient';
+        }
+
+        if (isEdit && patient && this.form) {
+          (this.form.querySelector('[name="name"]') as HTMLInputElement).value = patient.name || '';
+          (this.form.querySelector('[name="phone"]') as HTMLInputElement).value = patient.phone || '';
+          (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = patient.plan || 'Subscription';
+          (this.form.querySelector('[name="location"]') as HTMLInputElement).value = patient.location || 'Belaqva';
+          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = patient.cost || '';
+          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = patient.totalSessions || '';
+          (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = patient.frequency || '1 time/week';
+          (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = patient.paymentStatus || 'Unpaid';
+          (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.driveLink || '';
+          this.updatePlanChips(patient.plan || 'Subscription');
+          this.updateLocationChips(patient.location || 'Belaqva');
+          this.updateFrequencyChips(patient.frequency || '1 time/week');
+          this.updatePaymentChips(patient.paymentStatus || 'Unpaid');
+        } else if (this.form) {
+          this.form.reset();
+          this.updatePlanChips('Subscription');
+          this.updateLocationChips('Belaqva');
+          this.updateFrequencyChips('1 time/week');
+          this.updatePaymentChips('Unpaid');
+        }
+
+        this.open();
+      });
+
+      // Bind Plan Chips
+      const planChips = document.querySelectorAll<HTMLButtonElement>('[data-plan]');
+      planChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const planVal = chip.dataset.plan || 'Subscription';
+          if (this.form) {
+            (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = planVal;
+          }
+          this.updatePlanChips(planVal);
+        });
+      });
+
+      // Bind Location Chips
+      const locationChips = document.querySelectorAll<HTMLButtonElement>('[data-location]');
+      locationChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const locVal = chip.dataset.location || 'Belaqva';
+          if (this.form) {
+            (this.form.querySelector('[name="location"]') as HTMLInputElement).value = locVal;
+          }
+          this.updateLocationChips(locVal);
+        });
+      });
+
+      // Bind Frequency Chips
+      const freqChips = document.querySelectorAll<HTMLButtonElement>('[data-frequency]');
+      freqChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const freqVal = chip.dataset.frequency || '1 time/week';
+          if (this.form) {
+            (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = freqVal;
+          }
+          this.updateFrequencyChips(freqVal);
+        });
+      });
+
+      const freqInput = this.form?.querySelector('[name="frequency"]') as HTMLInputElement;
+      if (freqInput) {
+        freqInput.addEventListener('input', (e) => {
+          this.updateFrequencyChips((e.target as HTMLInputElement).value);
+        });
+      }
+
+      // Bind Payment Chips
+      const paymentChips = document.querySelectorAll<HTMLButtonElement>('[data-payment]');
+      paymentChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const paymentVal = chip.dataset.payment || 'Unpaid';
+          if (this.form) {
+            (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = paymentVal;
+          }
+          this.updatePaymentChips(paymentVal);
+        });
+      });
+
+      const saveBtn = document.getElementById('save-patient-btn');
+      const saveAndBookBtn = document.getElementById('save-and-book-btn');
+
+      saveBtn?.addEventListener('click', () => this.savePatient(false));
+      saveAndBookBtn?.addEventListener('click', () => this.savePatient(true));
+    }
+
+    updatePlanChips(selectedPlan: string) {
+      const planChips = document.querySelectorAll<HTMLButtonElement>('[data-plan]');
+      planChips.forEach(chip => {
+        if (chip.dataset.plan === selectedPlan) {
+          chip.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
+          chip.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        } else {
+          chip.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
+          chip.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        }
+      });
+    }
+
+    updateLocationChips(selectedLoc: string) {
+      const locationChips = document.querySelectorAll<HTMLButtonElement>('[data-location]');
+      locationChips.forEach(chip => {
+        if (chip.dataset.location === selectedLoc) {
+          chip.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
+          chip.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        } else {
+          chip.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
+          chip.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        }
+      });
+    }
+
+    updateFrequencyChips(selectedFreq: string) {
+      const freqChips = document.querySelectorAll<HTMLButtonElement>('[data-frequency]');
+      freqChips.forEach(chip => {
+        if (chip.dataset.frequency === selectedFreq) {
+          chip.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
+          chip.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        } else {
+          chip.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
+          chip.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        }
+      });
+    }
+
+    updatePaymentChips(selectedPayment: string) {
+      const paymentChips = document.querySelectorAll<HTMLButtonElement>('[data-payment]');
+      paymentChips.forEach(chip => {
+        if (chip.dataset.payment === selectedPayment) {
+          chip.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
+          chip.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        } else {
+          chip.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
+          chip.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        }
+      });
+    }
+
+    savePatient(bookSession: boolean) {
+      if (!this.form) return;
+      if (!this.form.checkValidity()) {
+        this.form.reportValidity();
+        return;
+      }
+
+      const formData = new FormData(this.form);
+      const patientId = formData.get('patientId') as string;
+      
+      const patientData = {
+        id: patientId || 'pat_' + Date.now(),
+        name: formData.get('name') as string,
+        phone: formData.get('phone') as string,
+        plan: formData.get('plan') as string,
+        location: formData.get('location') as string,
+        cost: formData.get('cost') ? Number(formData.get('cost')) : 0,
+        totalSessions: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
+        frequency: formData.get('frequency') as string,
+        paymentStatus: formData.get('paymentStatus') as string,
+        driveLink: formData.get('driveLink') as string,
+      };
+
+      let patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+
+      if (patientId) {
+        patients = patients.map((p: any) => p.id === patientId ? patientData : p);
+      } else {
+        patients.push(patientData);
+      }
+
+      localStorage.setItem('kineto_patients', JSON.stringify(patients));
+      window.dispatchEvent(new CustomEvent('patientsUpdated'));
+      
+      this.close();
+
+      if (bookSession) {
+        // slight delay to let sheet close animation finish
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('openAddSession', {
+            detail: {
+              patientName: patientData.name,
+              showDateTime: true
+            }
+          }));
+        }, 300);
+      }
+    }
+
+    open() {
+      if (!this.sheet || !this.overlay) return;
+      this.sheet.classList.remove('translate-y-full');
+      this.overlay.classList.remove('opacity-0', 'pointer-events-none');
+      document.body.style.overflow = 'hidden';
+    }
+
+    close() {
+      if (!this.sheet || !this.overlay) return;
+      this.sheet.style.transform = '';
+      this.sheet.classList.add('translate-y-full');
+      this.overlay.classList.add('opacity-0', 'pointer-events-none');
+      document.body.style.overflow = '';
+      setTimeout(() => this.form?.reset(), 500);
+    }
+
+    handleTouchStart(e: TouchEvent) {
+      this.startY = e.touches[0].clientY;
+      if (this.sheet) this.sheet.style.transition = 'none';
+    }
+
+    handleTouchMove(e: TouchEvent) {
+      this.currentY = e.touches[0].clientY;
+      const deltaY = this.currentY - this.startY;
+      if (deltaY > 0 && this.sheet) {
+        if (e.cancelable) e.preventDefault();
+        this.sheet.style.transform = `translateY(${deltaY}px)`;
+      }
+    }
+
+    handleTouchEnd() {
+      if (!this.sheet) return;
+      const deltaY = this.currentY - this.startY;
+      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+      
+      if (deltaY > 150) {
+        this.close();
+      } else {
+        this.sheet.style.transform = 'translateY(0)';
+      }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    new AddPatientSheetManager();
+  });
+</script>
+
+<style>
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>

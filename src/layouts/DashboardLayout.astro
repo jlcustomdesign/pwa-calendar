@@ -1,5 +1,6 @@
 ---
 import Dock from '../components/layout/Dock.astro';
+import PaymentSheet from '../components/features/patients/PaymentSheet.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
@@ -39,5 +40,164 @@ const { title, hideDock = false } = Astro.props;
       <!-- Persistent Floating Icon Dock -->
       {!hideDock && <Dock transition:persist />}
     </div>
+
+    <!-- Global Session Card Interactive Controller (Expand & Swipe-to-Edit/Delete) -->
+    <script>
+      function setupSessionCardController() {
+        let activeSurface: HTMLElement | null = null;
+        let startX = 0;
+        let currentX = 0;
+        let isSwiping = false;
+        let isOpen = false;
+        let wasSwiping = false;
+        const SWIPE_THRESHOLD = -50;
+        const MAX_SWIPE = -140;
+
+        function handleSwipeStart(surface: HTMLElement, clientX: number) {
+          activeSurface = surface;
+          startX = clientX;
+          currentX = startX;
+          isSwiping = true;
+          wasSwiping = false;
+          isOpen = surface.style.transform.includes(`${MAX_SWIPE}px`);
+          surface.style.transition = 'none';
+        }
+
+        function handleSwipeMove(clientX: number) {
+          if (!isSwiping || !activeSurface) return;
+          currentX = clientX;
+          const diffX = currentX - startX;
+
+          if (Math.abs(diffX) > 8) {
+            wasSwiping = true;
+          }
+
+          let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
+          if (targetX > 0) targetX = 0;
+          if (targetX < MAX_SWIPE - 20) targetX = MAX_SWIPE - 20;
+
+          activeSurface.style.transform = `translateX(${targetX}px)`;
+        }
+
+        function handleSwipeEnd() {
+          if (!isSwiping || !activeSurface) return;
+          isSwiping = false;
+          activeSurface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+          const diffX = currentX - startX;
+
+          if (!isOpen && diffX < SWIPE_THRESHOLD) {
+            isOpen = true;
+            activeSurface.style.transform = `translateX(${MAX_SWIPE}px)`;
+          } else if (isOpen && diffX > -SWIPE_THRESHOLD) {
+            isOpen = false;
+            activeSurface.style.transform = 'translateX(0px)';
+          } else {
+            activeSurface.style.transform = isOpen ? `translateX(${MAX_SWIPE}px)` : 'translateX(0px)';
+          }
+
+          setTimeout(() => {
+            wasSwiping = false;
+          }, 100);
+
+          activeSurface = null;
+        }
+
+        // Details expand toggle
+        document.addEventListener('click', (e) => {
+          if (wasSwiping) return;
+          const target = e.target as HTMLElement;
+          const summary = target.closest('.card-summary');
+          if (!summary) return;
+
+          // Don't toggle if clicking buttons
+          if (target.closest('button') || target.closest('a')) return;
+
+          const card = summary.closest('session-card') || summary.closest('.group');
+          if (!card) return;
+
+          const details = card.querySelector('.card-details') as HTMLElement;
+          const icon = card.querySelector('.expand-icon') as HTMLElement | null;
+
+          if (details) {
+            const isCurrentlyExpanded = details.style.gridTemplateRows === '1fr';
+            details.style.gridTemplateRows = isCurrentlyExpanded ? '0fr' : '1fr';
+            if (icon) icon.style.transform = isCurrentlyExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+          }
+        });
+
+        // Touch events
+        document.addEventListener('touchstart', (e: TouchEvent) => {
+          const target = e.target as HTMLElement;
+          const surface = target.closest('.swipe-surface') as HTMLElement;
+          if (surface && !target.closest('button') && !target.closest('a')) {
+            handleSwipeStart(surface, e.touches[0].clientX);
+          }
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e: TouchEvent) => {
+          if (isSwiping) {
+            handleSwipeMove(e.touches[0].clientX);
+          }
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => {
+          handleSwipeEnd();
+        });
+
+        // Mouse drag events for Desktop mouse interaction
+        let isMouseDown = false;
+        document.addEventListener('mousedown', (e: MouseEvent) => {
+          const target = e.target as HTMLElement;
+          const surface = target.closest('.swipe-surface') as HTMLElement;
+          if (surface && !target.closest('button') && !target.closest('a')) {
+            isMouseDown = true;
+            handleSwipeStart(surface, e.clientX);
+          }
+        });
+
+        document.addEventListener('mousemove', (e: MouseEvent) => {
+          if (isMouseDown && isSwiping) {
+            handleSwipeMove(e.clientX);
+          }
+        });
+
+        document.addEventListener('mouseup', () => {
+          if (isMouseDown) {
+            isMouseDown = false;
+            handleSwipeEnd();
+          }
+        });
+      }
+
+      // Initialize on load and page swaps
+      if (typeof window !== 'undefined') {
+        if (!(window as any)._sessionCardControllerInitialized) {
+          (window as any)._sessionCardControllerInitialized = true;
+          setupSessionCardController();
+        }
+        
+        // Expose global payment handler
+        (window as any).handlePaymentToggle = (patientId: string, currentStatus: string) => {
+          if (currentStatus === 'Unpaid' || currentStatus.startsWith('Paid: ')) {
+            window.dispatchEvent(new CustomEvent('openPaymentSheet', {
+              detail: { patientId, currentStatus }
+            }));
+          } else {
+            // Directly toggle back to Unpaid
+            const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+            const updatedPatients = patients.map((p: any) => {
+              if (p.id === patientId) {
+                return { ...p, paymentStatus: 'Unpaid' };
+              }
+              return p;
+            });
+            localStorage.setItem('kineto_patients', JSON.stringify(updatedPatients));
+            window.dispatchEvent(new CustomEvent('patientsUpdated'));
+          }
+        };
+      }
+    </script>
+    <PaymentSheet />
   </body>
 </html>

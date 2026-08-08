@@ -140,9 +140,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
             <!-- Time Pickers alăturate (24H Fără AM/PM cu Selector Modal Custom) -->
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
-                <label for="work-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de început</label>
+                <label for="btn-work-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de început</label>
                 <button
                   type="button"
+                  id="btn-work-start"
                   data-time-trigger
                   data-target="work-start"
                   data-label="Ora de început"
@@ -153,9 +154,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 <input type="hidden" id="work-start" name="workStart" value="08:00" />
               </div>
               <div class="space-y-2">
-                <label for="work-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de sfârșit</label>
+                <label for="btn-work-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de sfârșit</label>
                 <button
                   type="button"
+                  id="btn-work-end"
                   data-time-trigger
                   data-target="work-end"
                   data-label="Ora de sfârșit"
@@ -177,9 +179,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           <!-- Time Pickers alăturate Pauză (Casete Roz Pal fără border pe Card Alb) -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
-              <label for="break-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Început pauză</label>
+              <label for="btn-break-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Început pauză</label>
               <button
                 type="button"
+                id="btn-break-start"
                 data-time-trigger
                 data-target="break-start"
                 data-label="Început pauză"
@@ -190,9 +193,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
               <input type="hidden" id="break-start" name="breakStart" value="13:00" />
             </div>
             <div class="space-y-2">
-              <label for="break-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Sfârșit pauză</label>
+              <label for="btn-break-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Sfârșit pauză</label>
               <button
                 type="button"
+                id="btn-break-end"
                 data-time-trigger
                 data-target="break-end"
                 data-label="Sfârșit pauză"
@@ -436,6 +440,8 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 </div>
 
 <script>
+  import { getSettings, saveSettings, type AppSettings } from '../../../utils/settings';
+
   function initSubSectionLogic() {
     // Oprire/blocare scroll pagină dacă este deschisă o sub-categorie
     const params = new URLSearchParams(window.location.search);
@@ -448,6 +454,9 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       document.body.style.overflow = '';
       document.body.style.touchAction = '';
     }
+
+    // Load Settings
+    const settings = getSettings();
 
     // Toast Notification helper
     const toast = document.getElementById('settings-toast');
@@ -493,25 +502,152 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       showToast('Datele au fost restaurate cu succes!');
     });
 
-    // 1. Selectare zi activă (Toate galbene, cea selectată la click devine roz)
-    const dayChips = document.querySelectorAll<HTMLButtonElement>('[data-day-chip]');
-    dayChips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        // Resetăm toate la starea implicită galbenă
-        dayChips.forEach((c) => {
-          c.setAttribute('data-active', 'false');
-          c.classList.remove('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
-          c.classList.add('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
-        });
+    // --- HYDRATE AND SETUP ---
 
-        // Activăm ziua apăsată în roz intens
-        chip.setAttribute('data-active', 'true');
-        chip.classList.remove('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+    // 1. Profile
+    const inputName = document.getElementById('display-name') as HTMLInputElement | null;
+    const inputPhone = document.getElementById('phone-number') as HTMLInputElement | null;
+    const inputEmail = document.getElementById('email-address') as HTMLInputElement | null;
+    const inputUsername = document.getElementById('username') as HTMLInputElement | null;
+
+    if (inputName) inputName.value = settings.profile.displayName;
+    if (inputPhone) inputPhone.value = settings.profile.phoneNumber;
+    if (inputEmail) inputEmail.value = settings.profile.email;
+    if (inputUsername) inputUsername.value = settings.profile.username;
+
+    // 2. Schedule
+    const inputWorkStart = document.getElementById('work-start') as HTMLInputElement | null;
+    const inputWorkEnd = document.getElementById('work-end') as HTMLInputElement | null;
+    const displayWorkStart = document.getElementById('display-work-start');
+    const displayWorkEnd = document.getElementById('display-work-end');
+
+    if (inputWorkStart) inputWorkStart.value = settings.schedule.workStart;
+    if (inputWorkEnd) inputWorkEnd.value = settings.schedule.workEnd;
+    if (displayWorkStart) displayWorkStart.textContent = settings.schedule.workStart;
+    if (displayWorkEnd) displayWorkEnd.textContent = settings.schedule.workEnd;
+
+    const dayChips = document.querySelectorAll<HTMLButtonElement>('[data-day-chip]');
+    dayChips.forEach((chip, index) => {
+      const isActive = settings.schedule.workDays[index];
+      chip.setAttribute('data-active', isActive ? 'true' : 'false');
+      if (isActive) {
         chip.classList.add('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
+        chip.classList.remove('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+      } else {
+        chip.classList.remove('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
+        chip.classList.add('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+      }
+
+      chip.addEventListener('click', () => {
+        const currentlyActive = chip.getAttribute('data-active') === 'true';
+        const newState = !currentlyActive;
+        chip.setAttribute('data-active', newState ? 'true' : 'false');
+        
+        if (newState) {
+          chip.classList.add('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
+          chip.classList.remove('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+        } else {
+          chip.classList.remove('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
+          chip.classList.add('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+        }
       });
     });
 
-    // 2. Stepper Controls
+    // 3. Break
+    const inputBreakStart = document.getElementById('break-start') as HTMLInputElement | null;
+    const inputBreakEnd = document.getElementById('break-end') as HTMLInputElement | null;
+    const displayBreakStart = document.getElementById('display-break-start');
+    const displayBreakEnd = document.getElementById('display-break-end');
+
+    if (inputBreakStart) inputBreakStart.value = settings.breakTime.breakStart;
+    if (inputBreakEnd) inputBreakEnd.value = settings.breakTime.breakEnd;
+    if (displayBreakStart) displayBreakStart.textContent = settings.breakTime.breakStart;
+    if (displayBreakEnd) displayBreakEnd.textContent = settings.breakTime.breakEnd;
+
+    // 4. Packages
+    const inputDuration = document.getElementById('sessionDuration') as HTMLInputElement | null;
+    const inputBreakBetween = document.getElementById('breakBetween') as HTMLInputElement | null;
+    const inputPrice = document.getElementById('sessionPrice') as HTMLInputElement | null;
+
+    if (inputDuration) inputDuration.value = settings.packages.sessionDuration.toString();
+    if (inputBreakBetween) inputBreakBetween.value = settings.packages.breakBetween.toString();
+    if (inputPrice) inputPrice.value = settings.packages.sessionPrice.toString();
+
+    // 5. Reminders
+    const cbLastSession = document.getElementById('reminder-last-session-checkbox') as HTMLInputElement | null;
+    const txtTemplate = document.getElementById('whatsapp-template') as HTMLTextAreaElement | null;
+    if (cbLastSession) cbLastSession.checked = settings.reminders.reminderLastSession;
+    if (txtTemplate) txtTemplate.value = settings.reminders.whatsappTemplate;
+
+    // 6. Categories
+    const categoriesContainer = document.getElementById('categories-container');
+    const btnConfirmAddCategory = document.getElementById('btn-confirm-add-category');
+    const newCategoryNameInput = document.getElementById('new-category-name') as HTMLInputElement | null;
+
+    function renderCategory(catName: string) {
+      if (!categoriesContainer) return;
+      const itemDiv = document.createElement('div');
+      itemDiv.setAttribute('data-category-chip', catName);
+      itemDiv.className = 'flex items-center justify-between p-3.5 px-4 rounded-2xl bg-surface-base/60 hover:bg-surface-base border border-border-subtle/60 transition-all animate-fadeIn w-full';
+      
+      const leftBox = document.createElement('div');
+      leftBox.className = 'flex items-center gap-3 min-w-0';
+
+      const bullet = document.createElement('div');
+      bullet.className = 'w-2.5 h-2.5 rounded-full bg-brand-secondary shrink-0 shadow-sm shadow-brand-secondary/30';
+
+      const span = document.createElement('span');
+      span.className = 'text-text-main font-extrabold text-base tracking-tight truncate';
+      span.textContent = catName;
+
+      leftBox.appendChild(bullet);
+      leftBox.appendChild(span);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.setAttribute('data-delete-category', '');
+      delBtn.className = 'w-7 h-7 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold text-xs flex items-center justify-center transition-all shrink-0 ml-2 cursor-pointer shadow-sm';
+      delBtn.innerHTML = '&times;';
+      delBtn.addEventListener('click', () => itemDiv.remove());
+
+      itemDiv.appendChild(leftBox);
+      itemDiv.appendChild(delBtn);
+
+      categoriesContainer.appendChild(itemDiv);
+    }
+
+    if (categoriesContainer) {
+      categoriesContainer.innerHTML = '';
+      settings.categories.forEach(renderCategory);
+    }
+
+    btnConfirmAddCategory?.addEventListener('click', () => {
+      if (!newCategoryNameInput || !categoriesContainer) return;
+      const catName = newCategoryNameInput.value.trim();
+      if (!catName) return;
+      
+      // Prevent duplicates visually
+      if (document.querySelector(`[data-category-chip="${catName}"]`)) return;
+
+      renderCategory(catName);
+      newCategoryNameInput.value = '';
+    });
+
+    const btnClearInput = document.getElementById('btn-clear-category-input');
+    btnClearInput?.addEventListener('click', () => {
+      if (newCategoryNameInput) newCategoryNameInput.value = '';
+    });
+
+    newCategoryNameInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnConfirmAddCategory?.click();
+      }
+    });
+
+    // --- LOGIC ---
+    
+    // Stepper Controls
     const decButtons = document.querySelectorAll<HTMLButtonElement>('[data-stepper-dec]');
     const incButtons = document.querySelectorAll<HTMLButtonElement>('[data-stepper-inc]');
 
@@ -549,108 +685,19 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       });
     });
 
-    // 3. Dynamic Patient Category Manager
-    const categoriesContainer = document.getElementById('categories-container');
-    const btnShowCategoryInput = document.getElementById('btn-show-category-input');
-    const inlineCategoryInputBox = document.getElementById('inline-category-input-box');
-    const newCategoryNameInput = document.getElementById('new-category-name') as HTMLInputElement | null;
-    const btnConfirmAddCategory = document.getElementById('btn-confirm-add-category');
-    const btnCancelAddCategory = document.getElementById('btn-cancel-add-category');
-
-    categoriesContainer?.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      const deleteBtn = target.closest('[data-delete-category]');
-      if (deleteBtn) {
-        const chip = deleteBtn.closest('[data-category-chip]');
-        if (chip) {
-          chip.remove();
-        }
-      }
-    });
-
-    // Categorii Input Logic (Direct vizibil)
-    const btnClearInput = document.getElementById('btn-clear-category-input');
-    btnClearInput?.addEventListener('click', () => {
-      if (newCategoryNameInput) newCategoryNameInput.value = '';
-    });
-
-    newCategoryNameInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        btnConfirmAddCategory?.click();
-      }
-    });
-
-    btnConfirmAddCategory?.addEventListener('click', () => {
-      if (!newCategoryNameInput || !categoriesContainer) return;
-      const catName = newCategoryNameInput.value.trim();
-      if (!catName) return;
-
-      const itemDiv = document.createElement('div');
-      itemDiv.setAttribute('data-category-chip', catName);
-      itemDiv.className = 'flex items-center justify-between p-3.5 px-4 rounded-2xl bg-surface-base/60 hover:bg-surface-base border border-border-subtle/60 transition-all animate-fadeIn w-full';
-      
-      const leftBox = document.createElement('div');
-      leftBox.className = 'flex items-center gap-3 min-w-0';
-
-      const bullet = document.createElement('div');
-      bullet.className = 'w-2.5 h-2.5 rounded-full bg-brand-secondary shrink-0 shadow-sm shadow-brand-secondary/30';
-
-      const span = document.createElement('span');
-      span.className = 'text-text-main font-extrabold text-base tracking-tight truncate';
-      span.textContent = catName;
-
-      leftBox.appendChild(bullet);
-      leftBox.appendChild(span);
-
-      const delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.setAttribute('data-delete-category', '');
-      delBtn.className = 'w-7 h-7 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold text-xs flex items-center justify-center transition-all shrink-0 ml-2 cursor-pointer shadow-sm';
-      delBtn.innerHTML = '&times;';
-      delBtn.addEventListener('click', () => itemDiv.remove());
-
-      itemDiv.appendChild(leftBox);
-      itemDiv.appendChild(delBtn);
-
-      categoriesContainer.appendChild(itemDiv);
-      newCategoryNameInput.value = '';
-    });
-
-    // 0. Profile Inputs Hydration
-    const inputName = document.getElementById('display-name') as HTMLInputElement | null;
-    const inputPhone = document.getElementById('phone-number') as HTMLInputElement | null;
-    const inputEmail = document.getElementById('email-address') as HTMLInputElement | null;
-    const inputUsername = document.getElementById('username') as HTMLInputElement | null;
-
-    if (inputName && localStorage.getItem('kineto_display_name')) {
-      inputName.value = localStorage.getItem('kineto_display_name')!;
-    }
-    if (inputPhone && localStorage.getItem('kineto_phone')) {
-      inputPhone.value = localStorage.getItem('kineto_phone')!;
-    }
-    if (inputEmail && localStorage.getItem('kineto_email')) {
-      inputEmail.value = localStorage.getItem('kineto_email')!;
-    }
-    if (inputUsername && localStorage.getItem('kineto_username')) {
-      inputUsername.value = localStorage.getItem('kineto_username')!;
-    }
-
-    // 0.5 Copy Template Message Logic
+    // Copy Template Message Logic
     const btnCopyTemplate = document.getElementById('btn-copy-template');
-    const whatsappTemplateInput = document.getElementById('whatsapp-template') as HTMLTextAreaElement | null;
-
     btnCopyTemplate?.addEventListener('click', async () => {
-      if (!whatsappTemplateInput) return;
+      if (!txtTemplate) return;
       try {
-        await navigator.clipboard.writeText(whatsappTemplateInput.value);
+        await navigator.clipboard.writeText(txtTemplate.value);
         showToast('Mesajul a fost copiat în clipboard!');
       } catch (err) {
         console.error('Eroare la copiere:', err);
       }
     });
 
-    // 3.5 Custom 24H Time Picker Modal Logic
+    // Custom 24H Time Picker Modal Logic
     const timeModal = document.getElementById('time-picker-modal');
     const timeDialog = document.getElementById('time-picker-dialog');
     const modalTitle = document.getElementById('modal-time-title');
@@ -665,7 +712,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     let selectedHour = '08';
     let selectedMinute = '00';
 
-    const hoursList = ['08','09','10','11','12','13','14','15','16','17','18','19'];
+    const hoursList = ['07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22'];
     const minutesList = ['00','15','30','45'];
 
     function renderHoursGrid() {
@@ -763,17 +810,53 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       closeTimeModal();
     });
 
-    // 4. Form Submit
+    // Form Submit
     const form = document.getElementById('settings-form');
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      if (inputName) localStorage.setItem('kineto_display_name', inputName.value);
-      if (inputPhone) localStorage.setItem('kineto_phone', inputPhone.value);
-      if (inputEmail) localStorage.setItem('kineto_email', inputEmail.value);
-      if (inputUsername) localStorage.setItem('kineto_username', inputUsername.value);
+      const newSettings: Partial<AppSettings> = {};
 
-      showToast('Profilul a fost salvat cu succes!');
+      if (params.get('section') === 'profile') {
+        newSettings.profile = {
+          displayName: inputName?.value || '',
+          phoneNumber: inputPhone?.value || '',
+          email: inputEmail?.value || '',
+          username: inputUsername?.value || ''
+        };
+      } else if (params.get('section') === 'schedule') {
+        const days = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-day-chip]'))
+          .map(chip => chip.getAttribute('data-active') === 'true');
+        
+        newSettings.schedule = {
+          workDays: days.length > 0 ? days : settings.schedule.workDays,
+          workStart: inputWorkStart?.value || settings.schedule.workStart,
+          workEnd: inputWorkEnd?.value || settings.schedule.workEnd
+        };
+      } else if (params.get('section') === 'break') {
+        newSettings.breakTime = {
+          breakStart: inputBreakStart?.value || settings.breakTime.breakStart,
+          breakEnd: inputBreakEnd?.value || settings.breakTime.breakEnd
+        };
+      } else if (params.get('section') === 'packages') {
+        newSettings.packages = {
+          sessionDuration: parseInt(inputDuration?.value || '50', 10),
+          breakBetween: parseInt(inputBreakBetween?.value || '10', 10),
+          sessionPrice: parseInt(inputPrice?.value || '150', 10)
+        };
+      } else if (params.get('section') === 'reminders') {
+        newSettings.reminders = {
+          reminderLastSession: cbLastSession?.checked ?? true,
+          whatsappTemplate: txtTemplate?.value || ''
+        };
+      } else if (params.get('section') === 'categories') {
+        const catEls = document.querySelectorAll('[data-category-chip]');
+        const currentCats = Array.from(catEls).map(el => el.getAttribute('data-category-chip') || '');
+        newSettings.categories = currentCats;
+      }
+
+      saveSettings(newSettings);
+      showToast('Setările au fost salvate cu succes!');
     });
   }
 
