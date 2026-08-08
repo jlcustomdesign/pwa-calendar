@@ -30,76 +30,91 @@ import DailyProgress from './DailyProgress.astro';
 </div>
 
 <script>
-  function initDefaultSessions() {
-    const raw = localStorage.getItem('kineto_sessions');
-    let existing = raw ? JSON.parse(raw) : null;
-    
-    if (!existing || !Array.isArray(existing) || existing.length === 0 || existing.some((s: any) => !s.id)) {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const initial = [
-        {
-          id: "sess_1",
-          patientName: "Maria Popescu",
-          selectedDate: todayStr,
-          selectedTime: "09:00",
-          attendanceCount: 4,
-          totalSessions: 10,
-          location: "Ghimbav",
-          recurring: true,
-          reminder: true,
-        },
-        {
-          id: "sess_2",
-          patientName: "Elena Stan",
-          selectedDate: todayStr,
-          selectedTime: "11:30",
-          attendanceCount: 8,
-          totalSessions: 10,
-          location: "Ghimbav",
-          recurring: true,
-          reminder: false,
-        },
-        {
-          id: "sess_3",
-          patientName: "Andrei Ionescu",
-          selectedDate: todayStr,
-          selectedTime: "14:30",
-          attendanceCount: 1,
-          totalSessions: 10,
-          location: "Belaqua",
-          recurring: false,
-          reminder: true,
-        },
-        {
-          id: "sess_4",
-          patientName: "Ion Vasile",
-          selectedDate: todayStr,
-          selectedTime: "16:00",
-          attendanceCount: 6,
-          totalSessions: 12,
-          location: "Belaqua",
-          recurring: true,
-          reminder: true,
-        }
-      ];
-      localStorage.setItem('kineto_sessions', JSON.stringify(initial));
+    function initDefaultSessions() {
+      const raw = localStorage.getItem('kineto_sessions');
+      let existing = raw ? JSON.parse(raw) : null;
+      
+      const isOldMockData = existing && Array.isArray(existing) && existing.length <= 4 && existing.some((s: any) => s.id === 'sess_1');
+      
+      if (!existing || !Array.isArray(existing) || existing.length === 0 || existing.some((s: any) => !s.id) || isOldMockData) {
+        // Generate dates for the upcoming week (Monday to Friday)
+        const d = new Date();
+        const offset = d.getDay() === 0 ? 1 : (8 - d.getDay()) % 7 || 7;
+        const nextMonday = new Date(d);
+        nextMonday.setDate(d.getDate() + offset);
+        
+        const getDayStr = (addDays: number) => {
+          const date = new Date(nextMonday);
+          date.setDate(nextMonday.getDate() + addDays);
+          return date.toISOString().split('T')[0];
+        };
+
+        const monStr = getDayStr(0);
+        const tueStr = getDayStr(1);
+        const wedStr = getDayStr(2);
+        const thuStr = getDayStr(3);
+        const friStr = getDayStr(4);
+        
+        const initial = [
+          // MONDAY
+          { id: "sess_m1", patientName: "Maria Popescu", selectedDate: monStr, selectedTime: "09:00", attendanceCount: 4, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
+          { id: "sess_m2", patientName: "Elena Stan", selectedDate: monStr, selectedTime: "11:30", attendanceCount: 8, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: false },
+          { id: "sess_m3", patientName: "Andrei Ionescu", selectedDate: monStr, selectedTime: "14:30", attendanceCount: 1, totalSessions: 10, location: "Belaqua", recurring: false, reminder: true },
+          { id: "sess_m4", patientName: "Ion Vasile", selectedDate: monStr, selectedTime: "16:00", attendanceCount: 6, totalSessions: 12, location: "Belaqua", recurring: true, reminder: true },
+          
+          // TUESDAY
+          { id: "sess_t1", patientName: "George Mihai", selectedDate: tueStr, selectedTime: "08:00", attendanceCount: 2, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
+          { id: "sess_t2", patientName: "Sofia Radu", selectedDate: tueStr, selectedTime: "10:00", attendanceCount: 5, totalSessions: 10, location: "Belaqua", recurring: true, reminder: true },
+          { id: "sess_t3", patientName: "Alexandru Constantin", selectedDate: tueStr, selectedTime: "15:00", attendanceCount: 9, totalSessions: 10, location: "Ghimbav", recurring: false, reminder: true },
+          { id: "sess_t4", patientName: "Maria Popescu", selectedDate: tueStr, selectedTime: "17:30", attendanceCount: 5, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: false },
+
+          // WEDNESDAY
+          { id: "sess_w1", patientName: "Elena Stan", selectedDate: wedStr, selectedTime: "09:00", attendanceCount: 9, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
+          { id: "sess_w2", patientName: "Victor Manea", selectedDate: wedStr, selectedTime: "12:00", attendanceCount: 3, totalSessions: 10, location: "Belaqua", recurring: true, reminder: true },
+          { id: "sess_w3", patientName: "Andrei Ionescu", selectedDate: wedStr, selectedTime: "14:30", attendanceCount: 2, totalSessions: 10, location: "Belaqua", recurring: false, reminder: true },
+          
+          // THURSDAY
+          { id: "sess_th1", patientName: "Ion Vasile", selectedDate: thuStr, selectedTime: "10:30", attendanceCount: 7, totalSessions: 12, location: "Belaqua", recurring: true, reminder: true },
+          { id: "sess_th2", patientName: "Sofia Radu", selectedDate: thuStr, selectedTime: "14:00", attendanceCount: 6, totalSessions: 10, location: "Belaqua", recurring: true, reminder: true },
+          { id: "sess_th3", patientName: "George Mihai", selectedDate: thuStr, selectedTime: "16:00", attendanceCount: 3, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: false },
+
+          // FRIDAY
+          { id: "sess_f1", patientName: "Maria Popescu", selectedDate: friStr, selectedTime: "08:30", attendanceCount: 6, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
+          { id: "sess_f2", patientName: "Alexandru Constantin", selectedDate: friStr, selectedTime: "11:00", attendanceCount: 10, totalSessions: 10, location: "Ghimbav", recurring: false, reminder: true },
+          { id: "sess_f3", patientName: "Victor Manea", selectedDate: friStr, selectedTime: "13:30", attendanceCount: 4, totalSessions: 10, location: "Belaqua", recurring: true, reminder: false },
+          { id: "sess_f4", patientName: "Elena Stan", selectedDate: friStr, selectedTime: "15:30", attendanceCount: 10, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
+        ];
+        localStorage.setItem('kineto_sessions', JSON.stringify(initial));
+      }
     }
-  }
 
   function renderAgendaBlock() {
     const list = document.getElementById('agenda-sessions-list');
     if (!list) return;
 
     initDefaultSessions();
-    const stored = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
+    const allSessions = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
     const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
     const todayStr = new Date().toISOString().split('T')[0];
     const nowStr = new Date().toTimeString().slice(0, 5);
 
+    // Filter sessions to only those scheduled for today
+    const todaySessions = allSessions.filter((s: any) => {
+      const sDate = s.selectedDate || s.time?.split('T')[0] || todayStr;
+      if (sDate === todayStr) return true;
+      
+      if (s.recurring) {
+        const sessionDateObj = new Date(sDate);
+        const todayObj = new Date(todayStr);
+        return sessionDateObj.getDay() === todayObj.getDay();
+      }
+      
+      return false;
+    });
+    
     // Calculate today's progress dynamically
-    const todaySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === todayStr);
     const totalToday = todaySessions.length;
-    const completedToday = todaySessions.filter((s: any) => (s.selectedTime || s.time || "00:00") <= nowStr).length;
+    const completedToday = todaySessions.filter((s: any) => (s.selectedTime || s.time || "00:00") < nowStr).length;
     const todayProgressPct = totalToday > 0 ? Math.min(100, Math.round((completedToday / totalToday) * 100)) : 0;
 
     const progressText = document.getElementById('daily-progress-text');
@@ -107,12 +122,12 @@ import DailyProgress from './DailyProgress.astro';
     if (progressText) progressText.textContent = `${completedToday} of ${totalToday} sessions`;
     if (progressBar) progressBar.style.width = `${todayProgressPct}%`;
 
-    if (stored.length === 0) {
+    if (todaySessions.length === 0) {
       list.innerHTML = `<p class="text-sm font-bold text-text-muted text-center py-4">No sessions scheduled for today.</p>`;
       return;
     }
 
-    list.innerHTML = stored.map((session: any) => {
+    list.innerHTML = todaySessions.map((session: any) => {
       const patient = patients.find((p: any) => p.id === session.patientId);
       const locationStr = session.location || (patient ? patient.location : "Ghimbav") || "Ghimbav";
       const isGhimbav = locationStr.toLowerCase() === "ghimbav";
@@ -128,6 +143,7 @@ import DailyProgress from './DailyProgress.astro';
       const endHourStr = (hourNum + 1).toString().padStart(2, '0');
       const endTime = `${endHourStr}:${minute}`;
 
+      // Since we filtered by today, we just check if the time has passed today
       const isPast = timeStr < nowStr;
       
       const paymentStatus = patient ? (patient.paymentStatus || 'Unpaid') : 'Unpaid';
@@ -142,7 +158,7 @@ import DailyProgress from './DailyProgress.astro';
       }
 
       return `
-        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden ${isPast ? 'opacity-90' : ''}">
+        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden">
           <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
             <div class="flex items-center gap-3">
               <button 
@@ -163,18 +179,18 @@ import DailyProgress from './DailyProgress.astro';
           </div>
 
           <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
-            ${isPast ? `
-              <div 
-                class="absolute inset-0 z-10 pointer-events-none bg-black/5"
-                style="background-image: repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(0,0,0,0.1) 8px, rgba(0,0,0,0.1) 10px);"
-              ></div>
-            ` : ''}
 
             <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
-              <div class="flex items-center gap-4 w-full relative z-10">
+              <div class="flex items-center justify-between w-full relative z-10">
                 <div class="flex-1 min-w-0">
-                  <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
+                  <h4 class="text-xl font-bold tracking-tight leading-none truncate pr-2">${patientNameStr}</h4>
                 </div>
+                ${isPast ? `
+                  <div class="shrink-0 bg-black/10 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 border border-black/5">
+                    <svg class="w-3 h-3 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    <span class="text-[10px] font-black uppercase tracking-widest opacity-80">Done</span>
+                  </div>
+                ` : ''}
               </div>
 
               <div class="flex items-center gap-4 mt-5 relative z-10">
