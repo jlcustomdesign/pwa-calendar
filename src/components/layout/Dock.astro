@@ -22,7 +22,7 @@ const navItems = [
 <div id="persistent-dock" transition:persist class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-5 sm:px-8 pointer-events-none">
   <nav
     id="dock-nav"
-    class="w-full rounded-[2.5rem] px-2 py-2 backdrop-blur-2xl bg-white/40 dark:bg-black/40 shadow-2xl flex items-center justify-between pointer-events-auto relative overflow-hidden"
+    class="w-full rounded-[2.5rem] px-2 py-2 backdrop-blur-2xl bg-white/60 border border-black/10 dark:bg-black/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-between pointer-events-auto relative overflow-hidden"
   >
   <!-- Absolute Sliding Pill Background -->
   <div
@@ -32,8 +32,12 @@ const navItems = [
   ></div>
 
   {navItems.map((item, index) => {
-
     const isActive = currentPath === item.path || (item.path !== '/dashboard' && currentPath.startsWith(item.path));
+    const isHome = item.id === 'home';
+    
+    // Make Home always thicker, and other icons thicker only when active
+    const strokeWidth = (isHome || isActive) ? '2.5' : '1.75';
+    const iconHtml = item.icon.replace('stroke-width="2"', `stroke-width="${strokeWidth}"`);
     
     return (
       <a
@@ -43,10 +47,10 @@ const navItems = [
         data-index={index}
         aria-label={item.id}
         class={`relative z-10 flex items-center justify-center w-14 h-12 rounded-full transition-colors active:scale-90 ${
-          isActive ? 'text-black' : 'text-black/50 hover:text-black'
+          isActive ? 'text-black' : 'text-black/60 hover:text-black'
         }`}
       >
-        <Fragment set:html={item.icon} />
+        <Fragment set:html={iconHtml} />
       </a>
     );
   })}
