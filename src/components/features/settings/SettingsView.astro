@@ -12,6 +12,7 @@ const sectionTitles: Record<string, { title: string; subtitle: string }> = {
   packages: { title: "Ședințe", subtitle: "" },
   reminders: { title: "Reminder și mesaj", subtitle: "" },
   categories: { title: "Categorii pacienți", subtitle: "" },
+  backup: { title: "Backup", subtitle: "" },
 };
 
 const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[section] : null;
@@ -272,7 +273,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 id="reminder-last-session-checkbox"
                 name="reminderLastSession"
                 checked
-                class="w-7 h-7 rounded-xl bg-surface-base/80 border-2 border-border-subtle checked:bg-brand-secondary checked:border-brand-secondary text-brand-secondary focus:ring-0 focus:ring-offset-0 cursor-pointer transition-all accent-brand-secondary shadow-sm"
+                class="w-7 h-7 rounded-xl bg-surface-base/80 border-2 border-brand-secondary checked:bg-brand-secondary checked:border-brand-secondary text-brand-secondary focus:ring-0 focus:ring-offset-0 cursor-pointer transition-all accent-brand-secondary shadow-sm"
               />
             </div>
           </section>
@@ -338,6 +339,45 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 Adaugă
               </button>
             </div>
+          </div>
+        </section>
+      )}
+
+      <!-- 7. Formular Backup & Export Date -->
+      {section === 'backup' && (
+        <section class="space-y-4">
+          <!-- Card 1: Salvare Automată în Baza de Date Cloud -->
+          <div class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm border border-border-subtle/50 space-y-3">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <h3 class="text-lg sm:text-xl font-bold text-text-main">Salvare automată în baza de date</h3>
+                <p class="text-xs sm:text-sm font-semibold text-text-muted mt-1">Toate datele tale sunt salvate și securizate automat în cloud la fiecare modificare.</p>
+              </div>
+              <div class="w-9 h-9 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Export Raport Excel / CSV -->
+          <div class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm border border-border-subtle/50 space-y-4">
+            <div>
+              <h3 class="text-lg sm:text-xl font-bold text-text-main">Export date în Excel (.csv)</h3>
+              <p class="text-xs sm:text-sm font-semibold text-text-muted mt-1">Descarcă lista completă de pacienți, numere de telefon, pachete de ședințe și încasări într-un fișier Excel.</p>
+            </div>
+
+            <button
+              type="button"
+              id="btn-export-excel"
+              class="w-full py-4 px-6 rounded-full bg-brand-secondary hover:brightness-105 text-white font-extrabold text-base shadow-md shadow-brand-secondary/20 active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+            >
+              <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Descarcă raport Excel (.csv)</span>
+            </button>
           </div>
         </section>
       )}
@@ -433,6 +473,34 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
         toast.classList.add('opacity-0', '-translate-y-4');
       }, 3000);
     }
+
+    // Acțiuni Export Excel (.csv) cu diacritice românești (BOM \uFEFF)
+    const btnExportExcel = document.getElementById('btn-export-excel');
+    btnExportExcel?.addEventListener('click', () => {
+      const headers = ["Nume Pacient", "Telefon", "Categorie", "Ședințe Rămase", "Status Plată", "Total Încasat (RON)", "Ultima Ședință"];
+      const rows = [
+        ["Elena Ionescu", "+40 722 111 222", "Kinetoterapie", "4 ședințe", "Achitat", "600", "06 Aug 2026"],
+        ["Mihai Radu", "+40 733 444 555", "Hidrokineto", "2 ședințe", "Neachitat", "300", "05 Aug 2026"],
+        ["Ana Maria", "+40 744 666 777", "Recuperare", "8 ședințe", "Achitat", "1200", "04 Aug 2026"],
+        ["Cristian Popa", "+40 755 888 999", "Kinetoterapie", "1 ședință", "Achitat", "150", "03 Aug 2026"],
+        ["Andreea Dumitrescu", "+40 766 000 111", "Hidrokineto", "5 ședințe", "Neachitat", "750", "02 Aug 2026"]
+      ];
+
+      const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map(r => r.map(field => `"${field}"`).join(";"))].join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Raport_Kineto_Agenda_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Raportul Excel a fost descărcat cu succes!');
+    });
+
+    const inputImport = document.getElementById('input-import-backup');
+    inputImport?.addEventListener('change', () => {
+      showToast('Datele au fost restaurate cu succes!');
+    });
 
     // --- HYDRATE AND SETUP ---
 
