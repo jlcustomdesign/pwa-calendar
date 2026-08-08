@@ -47,7 +47,7 @@ const navItems = [
         data-index={index}
         aria-label={item.id}
         class={`relative z-10 flex items-center justify-center w-14 h-12 rounded-full transition-colors active:scale-90 ${
-          isActive ? 'text-black' : 'text-black/60 hover:text-black'
+          isActive ? 'text-black' : 'text-brand-primary hover:opacity-80'
         }`}
       >
         <Fragment set:html={iconHtml} />
@@ -81,8 +81,27 @@ const navItems = [
 
     items.forEach((item) => {
       const href = item.getAttribute('href') || '';
-      if (currentPath === href || (href !== '/dashboard' && currentPath.startsWith(href))) {
+      const isHome = item.getAttribute('aria-label') === 'home';
+      const isActive = currentPath === href || (href !== '/dashboard' && currentPath.startsWith(href));
+      
+      if (isActive) {
         activeItem = item as HTMLElement;
+      }
+      
+      // Update styling dynamically due to transition:persist
+      if (isActive) {
+        item.classList.remove('text-brand-primary', 'hover:opacity-80');
+        item.classList.add('text-black');
+      } else {
+        item.classList.remove('text-black');
+        item.classList.add('text-brand-primary', 'hover:opacity-80');
+      }
+      
+      // Update SVG stroke-width dynamically
+      const svg = item.querySelector('svg');
+      if (svg) {
+        const strokeWidth = (isHome || isActive) ? '2.5' : '1.75';
+        svg.setAttribute('stroke-width', strokeWidth);
       }
     });
 

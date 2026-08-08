@@ -15,14 +15,6 @@ import DailyProgress from './DailyProgress.astro';
     </div>
   </div>
 
-  <!-- Agenda Header -->
-  <div class="flex items-baseline justify-between mb-6 mt-4">
-    <div class="flex items-baseline gap-3">
-      <h3 class="text-3xl font-bold tracking-tight text-text-main">Today</h3>
-      <span class="text-lg font-medium text-text-muted/60">Schedule</span>
-    </div>
-  </div>
-
   <!-- Daily Sessions List -->
   <div id="agenda-sessions-list" class="flex flex-col gap-4 pb-2">
     <!-- Populated by JS -->
@@ -100,17 +92,6 @@ import DailyProgress from './DailyProgress.astro';
     const todayStr = new Date().toISOString().split('T')[0];
     const targetDateStr = currentAgendaDate;
     const nowStr = new Date().toTimeString().slice(0, 5);
-
-    const titleEl = document.querySelector('h3.text-3xl.font-bold.tracking-tight.text-text-main');
-    if (titleEl) {
-      if (targetDateStr === todayStr) {
-        titleEl.textContent = 'Today';
-      } else {
-        const dateObj = new Date(targetDateStr);
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        titleEl.textContent = days[dateObj.getDay()];
-      }
-    }
 
     // Filter sessions to only those scheduled for the target date
     const todaySessions = allSessions.filter((s: any) => {

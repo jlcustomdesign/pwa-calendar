@@ -14,7 +14,8 @@ const startMonthOffset = -12;
 
 const todayMonday = new Date(now);
 const currentDay = todayMonday.getDay();
-const offsetToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+// If it's Saturday (6) or Sunday (0), jump forward to the upcoming Monday
+const offsetToMonday = currentDay === 0 ? 1 : (currentDay === 6 ? 2 : 1 - currentDay);
 todayMonday.setDate(todayMonday.getDate() + offsetToMonday);
 todayMonday.setHours(0,0,0,0);
 
@@ -171,6 +172,7 @@ if (currentMonthData) {
                 data-index={index}
                 data-month={item.monthNum}
                 data-year={item.year}
+                data-date={item.date}
                 data-is-current-month={item.isCurrentMonth ? "true" : "false"}
                 data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
                 class={`relative z-20 flex flex-col items-center justify-between pt-2.5 pb-1.5 w-11 mx-auto h-[4.5rem] rounded-full transition-colors duration-300 ${
@@ -367,6 +369,15 @@ if (currentMonthData) {
       updateSelectedLabel(button);
 
       animatePillAndCircleDrop(button, !animate, false, previousTarget);
+
+      // Dispatch event for timeline filtering
+      const y = button.getAttribute("data-year");
+      const m = button.getAttribute("data-month");
+      const d = button.getAttribute("data-date");
+      if (y && m && d) {
+        const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
+        window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
+      }
     }
 
     expandBtn.addEventListener("click", () => {
@@ -426,7 +437,17 @@ if (currentMonthData) {
 
     requestAnimationFrame(() => {
       const activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
-      if (activeBtn) animatePillAndCircleDrop(activeBtn, true);
+      if (activeBtn) {
+        animatePillAndCircleDrop(activeBtn, true);
+        // Trigger initial selection event
+        const y = activeBtn.getAttribute("data-year");
+        const m = activeBtn.getAttribute("data-month");
+        const d = activeBtn.getAttribute("data-date");
+        if (y && m && d) {
+          const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
+          window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
+        }
+      }
     });
 
     window.addEventListener("resize", () => {
