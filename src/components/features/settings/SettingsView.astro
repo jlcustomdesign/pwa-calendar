@@ -487,26 +487,6 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       URL.revokeObjectURL(url);
       showToast('Raportul Excel a fost descărcat cu succes!');
     });
-      const backupData = {
-        app: "Kineto Agenda PWA",
-        version: "1.0.0",
-        exportedAt: new Date().toISOString(),
-        settings: {
-          sessionDuration: 50,
-          breakBetween: 10,
-          sessionPrice: 150,
-          schedule: "Luni - Vineri, 08:00 - 19:00"
-        }
-      };
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `kineto_backup_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Backup descărcat cu succes!');
-    });
 
     const inputImport = document.getElementById('input-import-backup');
     inputImport?.addEventListener('change', () => {
