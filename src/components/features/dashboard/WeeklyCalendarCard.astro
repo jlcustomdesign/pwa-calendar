@@ -116,7 +116,7 @@ if (currentMonthData) {
   <div class="flex items-start justify-between mb-6 relative z-10">
     <div>
       <div id="calendar-selected-label" class="text-xs font-bold uppercase tracking-widest text-text-muted/60 mb-1 transition-opacity duration-300">
-        {activeDayObj?.fullDay}, {activeDayObj?.shortMonthName} {activeDayObj?.date}
+        {activeDayObj ? `${activeDayObj.fullDay}, ${activeDayObj.shortMonthName} ${activeDayObj.date}` : 'Today'}
       </div>
       <h2 id="calendar-header-title" class="text-3xl font-extrabold text-black tracking-tight flex items-baseline gap-3">
         <span>Today</span>
@@ -275,7 +275,7 @@ if (currentMonthData) {
           isGoingUp = target.getBoundingClientRect().top < previousTarget.getBoundingClientRect().top;
         }
         
-        const offset = isGoingUp ? 60 : -60;
+        const offset = isGoingUp ? 100 : -100;
 
         pill.style.transform = `translate(${targetL}px, ${targetT + offset}px) scale(1)`;
 
@@ -284,18 +284,20 @@ if (currentMonthData) {
         circle.style.transform = `translate(${cLeft}px, ${cTop + offset}px) scale(1)`;
 
         void pill.offsetWidth;
+        void circle.offsetWidth;
 
-        pill.style.transition = "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)";
+        pill.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)";
         pill.style.opacity = "1";
         pill.style.transform = `translate(${targetL}px, ${targetT}px) scale(1)`;
 
+        // Pill finishes moving in 400ms. Wait 400ms to show the white circle.
         dropTimeout = window.setTimeout(() => {
-          circle.style.transition = "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)";
+          circle.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out";
           circle.style.opacity = "1";
           circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
-        }, 150);
+        }, 300);
       } else {
-        pill.style.transition = "transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1), width 400ms, height 400ms";
+        pill.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), width 400ms, height 400ms";
         pill.style.width = `${targetW}px`;
         pill.style.height = `${targetH}px`;
         pill.style.borderRadius = targetBR;
@@ -303,15 +305,15 @@ if (currentMonthData) {
 
         circle.style.transition = "none";
         circle.style.opacity = "0";
-        circle.style.transform = `translate(${cLeft}px, ${cTop - 60}px) scale(1)`;
+        circle.style.transform = `translate(${cLeft}px, ${cTop - 100}px) scale(1)`;
 
         void circle.offsetWidth;
 
         dropTimeout = window.setTimeout(() => {
-          circle.style.transition = "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)";
+          circle.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out";
           circle.style.opacity = "1";
           circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
-        }, 400);
+        }, 300);
       }
     }
 

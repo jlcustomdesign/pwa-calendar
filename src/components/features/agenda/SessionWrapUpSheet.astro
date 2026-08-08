@@ -3,7 +3,7 @@
 
 <div 
   id="session-wrapup-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-main rounded-t-[2rem] p-6 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col"
+  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2rem] p-6 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col"
 >
   <!-- Swipe handle -->
   <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -57,7 +57,7 @@
   class SessionWrapUpManager {
     sheet: HTMLElement | null;
     form: HTMLFormElement | null;
-    overlay: HTMLElement | null;
+    overlay: HTMLElement | null = null;
     patientLabel: HTMLElement | null;
     dateLabel: HTMLElement | null;
     startY: number;
