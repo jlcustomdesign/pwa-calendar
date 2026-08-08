@@ -88,6 +88,8 @@ import DailyProgress from './DailyProgress.astro';
       }
     }
 
+  let currentAgendaDate = new Date().toISOString().split('T')[0];
+
   function renderAgendaBlock() {
     const list = document.getElementById('agenda-sessions-list');
     if (!list) return;
@@ -96,25 +98,55 @@ import DailyProgress from './DailyProgress.astro';
     const allSessions = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
     const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
     const todayStr = new Date().toISOString().split('T')[0];
+    const targetDateStr = currentAgendaDate;
     const nowStr = new Date().toTimeString().slice(0, 5);
 
-    // Filter sessions to only those scheduled for today
+    const titleEl = document.querySelector('h3.text-3xl.font-bold.tracking-tight.text-text-main');
+    if (titleEl) {
+      if (targetDateStr === todayStr) {
+        titleEl.textContent = 'Today';
+      } else {
+        const dateObj = new Date(targetDateStr);
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        titleEl.textContent = days[dateObj.getDay()];
+      }
+    }
+
+    // Filter sessions to only those scheduled for the target date
     const todaySessions = allSessions.filter((s: any) => {
       const sDate = s.selectedDate || s.time?.split('T')[0] || todayStr;
-      if (sDate === todayStr) return true;
+      if (sDate === targetDateStr) return true;
       
       if (s.recurring) {
         const sessionDateObj = new Date(sDate);
-        const todayObj = new Date(todayStr);
-        return sessionDateObj.getDay() === todayObj.getDay();
+        const targetObj = new Date(targetDateStr);
+        // Only consider it recurring on this day if the session was created ON or BEFORE the target date
+        // (Assuming you don't want recurring sessions showing up before they were created, but for simplicity here we just check day of week)
+        return sessionDateObj.getDay() === targetObj.getDay();
       }
       
       return false;
     });
     
-    // Calculate today's progress dynamically
+    // Sort chronologically
+    todaySessions.sort((a: any, b: any) => {
+      const timeA = a.selectedTime || a.time || "00:00";
+      const timeB = b.selectedTime || b.time || "00:00";
+      return timeA.localeCompare(timeB);
+    });
+    
+    // Calculate progress dynamically based on time and date
     const totalToday = todaySessions.length;
-    const completedToday = todaySessions.filter((s: any) => (s.selectedTime || s.time || "00:00") < nowStr).length;
+    let completedToday = 0;
+    
+    if (targetDateStr < todayStr) {
+      completedToday = totalToday; // All done in the past
+    } else if (targetDateStr > todayStr) {
+      completedToday = 0; // None done in the future
+    } else {
+      completedToday = todaySessions.filter((s: any) => (s.selectedTime || s.time || "00:00") < nowStr).length;
+    }
+
     const todayProgressPct = totalToday > 0 ? Math.min(100, Math.round((completedToday / totalToday) * 100)) : 0;
 
     const progressText = document.getElementById('daily-progress-text');
@@ -138,15 +170,10 @@ import DailyProgress from './DailyProgress.astro';
       const timeStr = session.selectedTime || session.time || "08:00";
       const patientNameStr = session.patientName || "Patient";
       const timeParts = timeStr.split(':');
-      const hourNum = parseInt(timeParts[0] || "0", 10);
-      const minute = timeParts[1] || "00";
-      const endHourStr = (hourNum + 1).toString().padStart(2, '0');
-      const endTime = `${endHourStr}:${minute}`;
-
-      // Since we filtered by today, we just check if the time has passed today
-      const isPast = timeStr < nowStr;
+      const endTime = new Date(new Date().setHours(parseInt(timeParts[0]) + 1, parseInt(timeParts[1]))).toTimeString().slice(0, 5);
       
-      const paymentStatus = patient ? (patient.paymentStatus || 'Unpaid') : 'Unpaid';
+      const isPast = targetDateStr < todayStr || (targetDateStr === todayStr && timeStr < nowStr);
+      const paymentStatus = session.paymentStatus || (patient ? patient.paymentStatus : "Unpaid");
 
       let paymentClass = '';
       if (paymentStatus === 'Unpaid') {
@@ -249,4 +276,11 @@ import DailyProgress from './DailyProgress.astro';
   document.addEventListener('DOMContentLoaded', renderAgendaBlock);
   document.addEventListener('astro:page-load', renderAgendaBlock);
   window.addEventListener('sessionsUpdated', renderAgendaBlock);
+  
+  window.addEventListener('calendarDateSelected', (e: any) => {
+    if (e.detail && e.detail.date) {
+      currentAgendaDate = e.detail.date;
+      renderAgendaBlock();
+    }
+  });
 </script>

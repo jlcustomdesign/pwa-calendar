@@ -163,8 +163,12 @@
     }
 
     createOverlay() {
+      // Remove any existing overlay to prevent duplicates on SPA navigation
+      const existingOverlays = document.querySelectorAll('.patient-sheet-overlay');
+      existingOverlays.forEach(o => o.remove());
+
       this.overlay = document.createElement('div');
-      this.overlay.className = 'fixed inset-0 bg-black/40 z-[90] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm';
+      this.overlay.className = 'fixed inset-0 bg-black/40 z-[90] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm patient-sheet-overlay';
       document.body.appendChild(this.overlay);
       this.overlay.addEventListener('click', () => this.close());
     }
@@ -177,47 +181,9 @@
       handle?.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
       handle?.addEventListener('touchend', () => this.handleTouchEnd());
 
-      window.addEventListener('openAddPatient', (e: any) => {
-        const detail = e.detail || {};
-        const isEdit = !!detail.isEdit;
-        const patient = detail.patient;
-
-        const titleEl = document.getElementById('patient-sheet-title');
-        const idInput = document.getElementById('editPatientId') as HTMLInputElement;
-
-        if (idInput) {
-          idInput.value = isEdit && patient ? patient.id : '';
-        }
-
-        if (titleEl) {
-          titleEl.textContent = isEdit ? 'Edit Patient' : 'New Patient';
-        }
-
-        if (isEdit && patient && this.form) {
-          (this.form.querySelector('[name="name"]') as HTMLInputElement).value = patient.name || '';
-          (this.form.querySelector('[name="phone"]') as HTMLInputElement).value = patient.phone || '';
-          (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = patient.plan || 'Subscription';
-          (this.form.querySelector('[name="location"]') as HTMLInputElement).value = patient.location || 'Belaqva';
-          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = patient.cost || '';
-          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = patient.totalSessions || '';
-          (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = patient.frequency || '1 time/week';
-          (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = patient.paymentStatus || 'Unpaid';
-          (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.driveLink || '';
-          this.updatePlanChips(patient.plan || 'Subscription');
-          this.updateLocationChips(patient.location || 'Belaqva');
-          this.updateFrequencyChips(patient.frequency || '1 time/week');
-          this.updatePaymentChips(patient.paymentStatus || 'Unpaid');
-        } else if (this.form) {
-          this.form.reset();
-          this.updatePlanChips('Subscription');
-          this.updateLocationChips('Belaqva');
-          this.updateFrequencyChips('1 time/week');
-          this.updatePaymentChips('Unpaid');
-        }
-
-        this.open();
-      });
-
+      // We will move the window listener outside of bindEvents to avoid duplicates.
+      // It is now handled in the init function.
+      
       // Bind Plan Chips
       const planChips = document.querySelectorAll<HTMLButtonElement>('[data-plan]');
       planChips.forEach(chip => {
@@ -381,6 +347,47 @@
       }
     }
 
+    handleOpenEvent(e: any) {
+        const detail = e.detail || {};
+        const isEdit = !!detail.isEdit;
+        const patient = detail.patient;
+
+        const titleEl = document.getElementById('patient-sheet-title');
+        const idInput = document.getElementById('editPatientId') as HTMLInputElement;
+
+        if (idInput) {
+          idInput.value = isEdit && patient ? patient.id : '';
+        }
+
+        if (titleEl) {
+          titleEl.textContent = isEdit ? 'Edit Patient' : 'New Patient';
+        }
+
+        if (isEdit && patient && this.form) {
+          (this.form.querySelector('[name="name"]') as HTMLInputElement).value = patient.name || '';
+          (this.form.querySelector('[name="phone"]') as HTMLInputElement).value = patient.phone || '';
+          (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = patient.plan || 'Subscription';
+          (this.form.querySelector('[name="location"]') as HTMLInputElement).value = patient.location || 'Belaqva';
+          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = patient.cost || '';
+          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = patient.totalSessions || '';
+          (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = patient.frequency || '1 time/week';
+          (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = patient.paymentStatus || 'Unpaid';
+          (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.driveLink || '';
+          this.updatePlanChips(patient.plan || 'Subscription');
+          this.updateLocationChips(patient.location || 'Belaqva');
+          this.updateFrequencyChips(patient.frequency || '1 time/week');
+          this.updatePaymentChips(patient.paymentStatus || 'Unpaid');
+        } else if (this.form) {
+          this.form.reset();
+          this.updatePlanChips('Subscription');
+          this.updateLocationChips('Belaqva');
+          this.updateFrequencyChips('1 time/week');
+          this.updatePaymentChips('Unpaid');
+        }
+
+        this.open();
+    }
+
     open() {
       if (!this.sheet || !this.overlay) return;
       this.sheet.classList.remove('translate-y-full');
@@ -424,9 +431,23 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    new AddPatientSheetManager();
-  });
+  function initPatientSheet() {
+    // Only bind the window event listener once globally
+    if (!(window as any)._patientSheetListenerBound) {
+      window.addEventListener('openAddPatient', (e: any) => {
+        if ((window as any).currentPatientSheetManager) {
+          (window as any).currentPatientSheetManager.handleOpenEvent(e);
+        }
+      });
+      (window as any)._patientSheetListenerBound = true;
+    }
+    
+    // Always instantiate a new manager on page load so it binds to the new DOM elements
+    (window as any).currentPatientSheetManager = new AddPatientSheetManager();
+  }
+
+  document.addEventListener('DOMContentLoaded', initPatientSheet);
+  document.addEventListener('astro:page-load', initPatientSheet);
 </script>
 
 <style>
