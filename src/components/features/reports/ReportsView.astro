@@ -10,7 +10,7 @@
   <section class="space-y-3">
     <div class="flex items-baseline justify-between px-1">
       <h2 class="text-xl sm:text-2xl font-black text-text-main">Azi</h2>
-      <span class="text-xl sm:text-2xl font-black text-text-main">Joi, 06 August</span>
+      <span id="today-date-display" class="text-xl sm:text-2xl font-black text-text-main">--</span>
     </div>
 
     <div class="grid grid-cols-3 gap-3">
@@ -56,7 +56,7 @@
         <div>
           <div class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Evoluție săptămânală</div>
           <div id="chart-active-value" class="text-2xl sm:text-3xl font-black text-text-main mt-0.5 transition-all">
-            2.400 <span class="text-sm font-sans font-black text-text-main">RON</span>
+            0 <span class="text-sm font-sans font-black text-text-main">RON</span>
           </div>
         </div>
 
@@ -108,11 +108,11 @@
 
         <!-- Etichete axa X (Zilele de lucru: L M M J V — mult mai mari și mai îngroșate) -->
         <div class="flex items-center justify-between px-2 text-xl sm:text-2xl font-black text-text-main">
-          <button type="button" data-day-idx="0" data-val="450 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">L</button>
-          <button type="button" data-day-idx="1" data-val="600 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">M</button>
-          <button type="button" data-day-idx="2" data-val="750 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">M</button>
-          <button type="button" data-day-idx="3" data-val="600 RON" class="day-btn text-brand-secondary font-black transition-colors cursor-pointer py-1 px-2">J</button>
-          <button type="button" data-day-idx="4" data-val="900 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">V</button>
+          <button type="button" data-day-idx="0" data-val="0 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">L</button>
+          <button type="button" data-day-idx="1" data-val="0 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">M</button>
+          <button type="button" data-day-idx="2" data-val="0 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">M</button>
+          <button type="button" data-day-idx="3" data-val="0 RON" class="day-btn text-brand-secondary font-black transition-colors cursor-pointer py-1 px-2">J</button>
+          <button type="button" data-day-idx="4" data-val="0 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">V</button>
         </div>
 
       </div>
@@ -201,6 +201,18 @@
       const month = await getMonthStats();
       const unpaid = await getUnpaidPatients();
 
+      // Update Date Display
+      const todayDateDisplay = document.getElementById('today-date-display');
+      if (todayDateDisplay) {
+        const d = new Date();
+        const dayName = d.toLocaleDateString('ro-RO', { weekday: 'long' });
+        const dayNameCap = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+        const dayNum = d.getDate().toString().padStart(2, '0');
+        const monthName = d.toLocaleDateString('ro-RO', { month: 'long' });
+        const monthNameCap = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+        todayDateDisplay.textContent = `${dayNameCap}, ${dayNum} ${monthNameCap}`;
+      }
+
       // Update Today
       const todayDone = document.getElementById('today-done');
       const todayTotal = document.getElementById('today-total');
@@ -255,8 +267,8 @@
 
     if (!dot || !dotGlow || !valueDisplay || dayBtns.length === 0) return;
 
-    // Default mock data if real data is missing or empty
-    let chartDays = [450, 600, 750, 600, 900]; 
+    // FĂRĂ DATE DIN BURTĂ: Dacă nu există date sau totul e 0, afișăm 0 RON
+    let chartDays = [0, 0, 0, 0, 0]; 
     if (byDay && startStr) {
       const start = new Date(startStr);
       chartDays = [];
@@ -268,7 +280,7 @@
       }
     }
 
-    const maxVal = Math.max(...chartDays, 100); // At least 100 to avoid div by zero and extreme curves
+    const maxVal = Math.max(...chartDays, 100);
     const minY = 105;
     const maxY = 15;
     const xCoords = [15, 95, 175, 255, 335];
@@ -307,9 +319,7 @@
     const currentDayIdx = Math.min(Math.max(new Date().getDay() - 1, 0), 4);
     let activeBtnIdx = currentDayIdx;
 
-    // Reset old listeners by cloning buttons if needed, or simply overwrite behavior
     dayBtns.forEach((btn, idx) => {
-      // Update data attribute for initial render if needed, but not strictly necessary since val is passed
       const clone = btn.cloneNode(true);
       btn.parentNode?.replaceChild(clone, btn);
       
@@ -340,11 +350,9 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    initInteractiveHatchChart(undefined, undefined);
     initReportsView();
   });
   document.addEventListener('astro:page-load', () => {
-    initInteractiveHatchChart(undefined, undefined);
     initReportsView();
   });
 </script>

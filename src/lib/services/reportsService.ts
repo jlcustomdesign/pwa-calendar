@@ -11,7 +11,7 @@ export async function getTodayStats(date?: string) {
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('status')
+    .select('status, pacient_id, pacienti(cost)')
     .eq('data', today);
 
   if (programariError) throw new Error('Eroare la citirea programărilor zilnice: ' + programariError.message);
@@ -21,12 +21,19 @@ export async function getTodayStats(date?: string) {
     .select('suma')
     .eq('data_platii', today);
     
-  if (platiError) throw new Error('Eroare la citirea plăților zilnice: ' + platiError.message);
+  if (platiError) console.warn('Notă: tabela plati poate fi goală:', platiError.message);
 
   const sedinte_total   = programariData?.length ?? 0;
   const finalizate      = programariData?.filter(p => p.status === 'finalizat').length ?? 0;
   const absente         = programariData?.filter(p => p.status === 'absent').length ?? 0;
-  const venit_azi       = platiData?.reduce((sum, p) => sum + (p.suma || 0), 0) ?? 0;
+
+  // Calculăm venitul din plăți dedicate + din ședințele finalizate achitate
+  let venit_azi = (platiData || []).reduce((sum, p) => sum + (p.suma || 0), 0);
+  if (venit_azi === 0 && programariData) {
+    venit_azi = programariData
+      .filter(p => p.status === 'finalizat')
+      .reduce((sum, p: any) => sum + (p.pacienti?.cost || 0), 0);
+  }
 
   return { sedinte_total, finalizate, absente, venit_azi, data: today };
 }
@@ -46,45 +53,52 @@ export async function getWeekStats() {
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('data, status')
+    .select('data, status, pacienti(cost)')
     .gte('data', startStr)
     .lte('data', endStr);
 
   if (programariError) throw new Error('Eroare la citirea programărilor săptămânale: ' + programariError.message);
 
-  const { data: platiData, error: platiError } = await supabase
+  const { data: platiData } = await supabase
     .from('plati')
     .select('data_platii, suma')
     .gte('data_platii', startStr)
     .lte('data_platii', endStr);
 
-  if (platiError) throw new Error('Eroare la citirea plăților săptămânale: ' + platiError.message);
-
   // Grupare pe zi (L M M J V)
   const byDay: Record<string, { finalizate: number; absente: number; venit: number }> = {};
   
-  // Inițializare structură zile din programări
-  programariData?.forEach(p => {
+  // Inițializăm zilele din săptămână (Luni -> Vineri) cu 0
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    byDay[dateStr] = { finalizate: 0, absente: 0, venit: 0 };
+  }
+
+  // Adăugare date din programări
+  programariData?.forEach((p: any) => {
     if (!byDay[p.data]) byDay[p.data] = { finalizate: 0, absente: 0, venit: 0 };
-    if (p.status === 'finalizat') byDay[p.data].finalizate++;
+    if (p.status === 'finalizat') {
+      byDay[p.data].finalizate++;
+      byDay[p.data].venit += (p.pacienti?.cost || 0);
+    }
     if (p.status === 'absent') byDay[p.data].absente++;
   });
   
-  // Adăugare venit din plăți
+  // Adăugare venit suplimentar din plăți directe dacă există
   platiData?.forEach(p => {
-    // If the payment is on a day with no appointments, we should initialize it.
-    // However, the graph might only display days Mon-Fri.
-    // Assuming data_platii is correctly formatted as YYYY-MM-DD
-    if (!byDay[p.data_platii]) byDay[p.data_platii] = { finalizate: 0, absente: 0, venit: 0 };
-    byDay[p.data_platii].venit += p.suma || 0;
+    if (byDay[p.data_platii]) {
+      byDay[p.data_platii].venit += (p.suma || 0);
+    }
   });
 
-  const total     = programariData?.length ?? 0;
+  const total      = programariData?.length ?? 0;
   const finalizate = programariData?.filter(p => p.status === 'finalizat').length ?? 0;
-  const absente   = programariData?.filter(p => p.status === 'absent').length ?? 0;
-  const venit     = platiData?.reduce((sum, p) => sum + (p.suma || 0), 0) ?? 0;
+  const absente    = programariData?.filter(p => p.status === 'absent').length ?? 0;
+  const venit      = Object.values(byDay).reduce((sum, d) => sum + d.venit, 0);
 
-  const prezenta = total > 0 ? Math.round((finalizate / total) * 100) : 0;
+  const prezenta   = total > 0 ? Math.round((finalizate / total) * 100) : 0;
 
   return { total, finalizate, absente, venit, prezenta, byDay, startStr, endStr };
 }
