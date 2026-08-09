@@ -47,17 +47,30 @@ import DailyProgress from './DailyProgress.astro';
     let stored: any[] = [];
     try {
       const appts = await getAppointmentsByDate(currentAgendaDate);
-      stored = appts.map((a: any) => ({
-        id: a.id,
-        patientId: a.pacient_id,
-        patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
-        selectedTime: a.ora,
-        selectedDate: a.data,
-        location: a.pacienti?.locatie || 'Belaqva',
-        attendanceCount: a.pacienti?.sedinte_folosite ?? 0,
-        totalSessions: a.pacienti?.sedinte_total || 10,
-        paymentStatus: a.pacienti?.achitat ? 'Achitat integral' : 'Neachitat'
-      }));
+      stored = appts.map((a: any) => {
+        const sumaIncasata = Number(a.pacienti?.suma_incasata || 0);
+        const costTotal = Number(a.pacienti?.cost || 0);
+        let pStatus = 'Neachitat';
+        if (a.pacienti?.status_plata) {
+          pStatus = a.pacienti.status_plata;
+        } else if (a.pacienti?.achitat || (costTotal > 0 && sumaIncasata >= costTotal)) {
+          pStatus = 'Achitat integral';
+        } else if (sumaIncasata > 0) {
+          pStatus = 'Achitat parțial';
+        }
+
+        return {
+          id: a.id,
+          patientId: a.pacient_id,
+          patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
+          selectedTime: a.ora,
+          selectedDate: a.data,
+          location: a.pacienti?.locatie || 'Belaqva',
+          attendanceCount: a.pacienti?.sedinte_folosite ?? 0,
+          totalSessions: a.pacienti?.sedinte_total || 10,
+          paymentStatus: pStatus
+        };
+      });
     } catch (e) {
       console.error('Eroare citire agenda din DB:', e);
     }
@@ -105,6 +118,8 @@ import DailyProgress from './DailyProgress.astro';
       let paymentClass = '';
       if (paymentStatus === 'Neachitat') {
         paymentClass = 'bg-black text-white hover:bg-black/80 shadow-sm';
+      } else if (paymentStatus === 'Achitat parțial') {
+        paymentClass = 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm font-black';
       } else if (paymentStatus === 'Achitat integral') {
         paymentClass = 'bg-white/40 text-black hover:bg-white/50';
       } else {

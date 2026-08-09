@@ -242,7 +242,17 @@
         let isGhimbav = locatie.toLowerCase() === 'ghimbav';
         let isBelaqva = locatie.toLowerCase() === 'belaqva' || locatie.toLowerCase() === 'belaqua';
 
-        const paymentStatus = patient.achitat ? 'Achitat integral' : 'Neachitat';
+        const sumaIncasata = Number(patient.suma_incasata || 0);
+        const costTotal = Number(patient.cost || 0);
+        let paymentStatus = 'Neachitat';
+
+        if (patient.status_plata) {
+          paymentStatus = patient.status_plata;
+        } else if (patient.achitat || (costTotal > 0 && sumaIncasata >= costTotal)) {
+          paymentStatus = 'Achitat integral';
+        } else if (sumaIncasata > 0) {
+          paymentStatus = 'Achitat parțial';
+        }
 
         let cardClasses = "bg-brand-primary text-black"; // default to Belaqva colors
         let gradientColors = "from-black/30 to-black";
@@ -254,6 +264,8 @@
         let paymentClass = '';
         if (paymentStatus === 'Neachitat') {
           paymentClass = 'bg-black text-white hover:bg-black/80 shadow-sm';
+        } else if (paymentStatus === 'Achitat parțial') {
+          paymentClass = 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm font-black';
         } else if (paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat') {
           paymentClass = 'bg-white/40 text-black hover:bg-white/50';
         } else {
