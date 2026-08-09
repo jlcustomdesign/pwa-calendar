@@ -12,7 +12,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   if (dayOfWeek !== 0 && dayOfWeek !== 6) {
     upcomingDates.push({
       value: d.toISOString().split('T')[0],
-      displayDay: upcomingDates.length === 0 && dayCounter === 0 ? 'Today' : d.toLocaleDateString('default', { weekday: 'short' }),
+      displayDay: upcomingDates.length === 0 && dayCounter === 0 ? 'Azi' : d.toLocaleDateString('ro-RO', { weekday: 'short' }),
       displayDate: d.getDate()
     });
   }
@@ -28,20 +28,20 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
   <div class="flex-1 overflow-y-auto no-scrollbar">
-    <h3 id="sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-6">New Session</h3>
+    <h3 id="sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-6">Programare nouă</h3>
 
     <form id="add-session-form" class="space-y-6">
       <input type="hidden" name="sessionId" id="sessionId" value="" />
       
       <!-- Custom Patient Picker -->
       <div class="space-y-3">
-        <label class="text-sm font-bold text-text-muted">Select Patient</label>
+        <label class="text-sm font-bold text-text-muted">Alege Pacientul</label>
         
         <!-- Select Patient Button -->
         <button type="button" id="show-patients-btn" class="w-full flex items-center justify-between px-6 py-4 rounded-[1.5rem] bg-black/5 font-bold text-lg text-black hover:bg-black/10 active:scale-95 transition-all border border-dashed border-black/20">
           <span class="flex items-center gap-2">
             <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            <span id="selected-patient-name">Select Patient</span>
+            <span id="selected-patient-name">Alege Pacientul</span>
           </span>
         </button>
 
@@ -64,8 +64,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         <!-- Date Selector -->
         <div class="space-y-3 relative">
           <div class="flex justify-between items-center">
-            <label class="text-sm font-bold text-text-muted">Date</label>
-            <span id="display-selected-date" class="text-sm font-bold text-black">Today</span>
+            <label class="text-sm font-bold text-text-muted">Dată</label>
+            <span id="display-selected-date" class="text-sm font-bold text-black">Azi</span>
           </div>
           <input type="hidden" name="selectedDate" id="selectedDate" value={todayStr} />
           
@@ -74,7 +74,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
               <button 
                 type="button" 
                 data-date-btn={d.value}
-                data-display-date={d.displayDay === 'Today' ? 'Today' : `${d.displayDay}, ${d.displayDate}`}
+                data-display-date={d.displayDay === 'Azi' ? 'Azi' : `${d.displayDay}, ${d.displayDate}`}
                 class={`shrink-0 snap-start flex flex-col items-center justify-center w-[4.5rem] h-[4.5rem] rounded-[1.5rem] border-2 transition-all duration-300 ${i === 0 ? 'border-brand-primary bg-brand-primary/10 text-black' : 'border-transparent bg-black/5 text-text-muted hover:bg-black/10'}`}
               >
                 <span class="text-[0.65rem] font-bold uppercase tracking-wider">{d.displayDay}</span>
@@ -87,7 +87,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
               class="shrink-0 snap-start flex flex-col items-center justify-center w-[4.5rem] h-[4.5rem] rounded-[1.5rem] border-2 border-transparent bg-black/5 text-text-muted transition-all duration-300"
             >
               <svg class="w-6 h-6 mb-1 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-              <span class="text-[0.65rem] font-bold uppercase tracking-wider">Other</span>
+              <span class="text-[0.65rem] font-bold uppercase tracking-wider">Altele</span>
             </button>
           </div>
           <input type="date" id="native-date-picker" class="sr-only" />
@@ -97,7 +97,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         <!-- Time Selector -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
-            <label class="text-sm font-bold text-text-muted">Time</label>
+            <label class="text-sm font-bold text-text-muted">Oră</label>
             <span id="display-selected-time" class="text-sm font-bold text-black">08:00</span>
           </div>
           <input type="hidden" name="selectedTime" id="selectedTime" value="08:00" />
@@ -117,7 +117,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
                 <svg class="w-4 h-4 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Set Exact / Custom Time</span>
+                <span>Setează Ora Exactă</span>
               </div>
               <div class="flex items-center gap-2">
                 <span id="custom-time-badge-preview" class="text-xs font-bold text-black bg-white px-3 py-1 rounded-full shadow-xs border border-black/5">
@@ -134,7 +134,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
               <div class="overflow-hidden pt-3">
                 <div class="bg-black/5 p-4 rounded-[2rem] border border-black/10 flex flex-col gap-3">
                   <div class="flex items-center justify-between px-1">
-                    <span class="text-xs font-extrabold uppercase tracking-widest text-text-muted">Exact Time Slider</span>
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-text-muted">Alege ora exactă</span>
                     <span id="slider-time-display" class="text-xl font-black tracking-tight text-black bg-white px-4 py-1 rounded-xl shadow-xs border border-black/5">
                       08:00
                     </span>
@@ -182,7 +182,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            Recurring
+            Recurentă
           </div>
         </label>
         <label class="flex-1 cursor-pointer group">
@@ -191,7 +191,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            Reminder
+            Notificare
           </div>
         </label>
       </div>
@@ -226,7 +226,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
   <!-- Weekday labels -->
   <div class="grid grid-cols-7 mb-2">
-    {['M','T','W','T','F','S','S'].map(d => (
+    {['L','M','M','J','V','S','D'].map(d => (
       <div class="text-center text-xs font-bold text-text-muted uppercase tracking-wider py-2">{d}</div>
     ))}
   </div>
@@ -238,7 +238,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
   <div class="pt-4 mt-auto">
     <button type="button" id="date-picker-close" class="w-full py-3.5 rounded-2xl bg-black/5 text-black font-bold text-sm active:scale-95 transition-transform">
-      Cancel
+      Anulează
     </button>
   </div>
 </div>
@@ -331,7 +331,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         const patients = Array.from(new Map(rawPatients.map(p => [p.id, p])).values());
 
         if (patients.length === 0) {
-          patientList.innerHTML = '<div class="p-4 text-center text-sm font-bold text-text-muted bg-black/5 rounded-2xl">No patients found. Please add a patient first.</div>';
+          patientList.innerHTML = '<div class="p-4 text-center text-sm font-bold text-text-muted bg-black/5 rounded-2xl">Nu s-au găsit pacienți. Te rugăm să adaugi un pacient mai întâi.</div>';
           return;
         }
 
@@ -370,7 +370,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           radio.addEventListener('change', (e: any) => {
             if (e.target.checked) {
               if (selectedPatientNameSpan) {
-                selectedPatientNameSpan.textContent = e.target.getAttribute('data-patient-name') || 'Patient';
+                selectedPatientNameSpan.textContent = e.target.getAttribute('data-patient-name') || 'Pacient';
               }
               
               if (showPatientsBtn) {
@@ -511,7 +511,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
              otherDateBtn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
              
              const parsed = new Date(selectedVal + 'T00:00:00');
-             const displayStr = `${parsed.toLocaleDateString('default', { weekday: 'short' })}, ${parsed.getDate()}`;
+             const displayStr = `${parsed.toLocaleDateString('ro-RO', { weekday: 'short' })}, ${parsed.getDate()}`;
              
              if (this.dateInput) this.dateInput.value = selectedVal;
              if (displayDate) displayDate.textContent = displayStr;
@@ -573,7 +573,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
         // Use a midnight time to avoid timezone shifts parsing the YYYY-MM-DD string
         const parsed = new Date(dateStr + 'T00:00:00');
-        const weekday = parsed.toLocaleDateString('default', { weekday: 'short' });
+        const weekday = parsed.toLocaleDateString('ro-RO', { weekday: 'short' });
         const displayStr = `${weekday}, ${parsed.getDate()}`;
 
         if (displayDate) displayDate.textContent = displayStr;
@@ -675,7 +675,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
       const year = this.currentPickerDate.getFullYear();
       const month = this.currentPickerDate.getMonth();
-      const monthName = this.currentPickerDate.toLocaleDateString('default', { month: 'long' });
+      const monthName = this.currentPickerDate.toLocaleDateString('ro-RO', { month: 'long' });
       monthYear.textContent = `${monthName} ${year}`;
 
       const firstDayOfMonth = new Date(year, month, 1).getDay();
@@ -748,10 +748,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           }
 
           if (isEdit) {
-            if (titleEl) titleEl.textContent = 'Edit Session';
-            if (submitBtnEl) submitBtnEl.textContent = 'Save Changes';
+            if (titleEl) titleEl.textContent = 'Editează Programarea';
+            if (submitBtnEl) submitBtnEl.textContent = 'Salvează Modificările';
           } else {
-            if (titleEl) titleEl.textContent = 'New Session';
+            if (titleEl) titleEl.textContent = 'Programare Nouă';
             if (submitBtnEl) submitBtnEl.textContent = 'Salvează programarea';
           }
 
@@ -799,7 +799,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             settingsContainer.classList.remove('flex');
           }
           if (selectedPatientNameSpan) {
-            selectedPatientNameSpan.textContent = "Select Patient";
+            selectedPatientNameSpan.textContent = "Alege Pacientul";
           }
         }
 

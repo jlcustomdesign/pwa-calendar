@@ -78,18 +78,21 @@
 
             <!-- Fundal Gradient Soft sub curbă -->
             <path
+              id="chart-path-gradient"
               d="M 10,85 C 50,80 80,45 105,45 C 140,45 160,30 175,30 C 205,30 225,52 245,52 C 275,52 300,15 340,12 L 340,105 L 10,105 Z"
               fill="url(#soft-bg-gradient)"
             />
 
             <!-- Zone Hașurată sub curbă -->
             <path
+              id="chart-path-hatch"
               d="M 10,85 C 50,80 80,45 105,45 C 140,45 160,30 175,30 C 205,30 225,52 245,52 C 275,52 300,15 340,12 L 340,105 L 10,105 Z"
               fill="url(#hatch-pattern)"
             />
 
             <!-- Linia curbată neagră fluidă (Curved Stroke) -->
             <path
+              id="chart-path-stroke"
               d="M 10,85 C 50,80 80,45 105,45 C 140,45 160,30 175,30 C 205,30 225,52 245,52 C 275,52 300,15 340,12"
               fill="none"
               stroke="rgb(var(--color-text-main))"
@@ -232,55 +235,116 @@
       if (weekProgressBar) weekProgressBar.style.width = `${week.prezenta}%`;
       if (weekCancelBar) weekCancelBar.style.width = `${100 - week.prezenta}%`;
 
+      // Update Chart with Real Data
+      initInteractiveHatchChart(week.byDay, week.startStr);
+
     } catch (e) {
       console.error('Eroare încărcare rapoarte Supabase:', e);
     }
   }
 
-  function initInteractiveHatchChart() {
+  function initInteractiveHatchChart(byDay?: Record<string, any>, startStr?: string) {
     const dayBtns = document.querySelectorAll('.day-btn');
     const dot = document.getElementById('pink-dot');
     const dotGlow = document.getElementById('pink-dot-glow');
     const valueDisplay = document.getElementById('chart-active-value');
 
+    const pathGradient = document.getElementById('chart-path-gradient');
+    const pathHatch = document.getElementById('chart-path-hatch');
+    const pathStroke = document.getElementById('chart-path-stroke');
+
     if (!dot || !dotGlow || !valueDisplay || dayBtns.length === 0) return;
 
-    const dayCoords = [
-      { cx: 30,  cy: 82, val: '450 <span class="text-sm font-sans font-black text-text-main">RON</span>' },
-      { cx: 105, cy: 45, val: '600 <span class="text-sm font-sans font-black text-text-main">RON</span>' },
-      { cx: 175, cy: 30, val: '750 <span class="text-sm font-sans font-black text-text-main">RON</span>' },
-      { cx: 245, cy: 52, val: '600 <span class="text-sm font-sans font-black text-text-main">RON</span>' },
-      { cx: 330, cy: 15, val: '900 <span class="text-sm font-sans font-black text-text-main">RON</span>' }
-    ];
+    // Default mock data if real data is missing or empty
+    let chartDays = [450, 600, 750, 600, 900]; 
+    if (byDay && startStr) {
+      const start = new Date(startStr);
+      chartDays = [];
+      for(let i=0; i<5; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        chartDays.push(byDay[dateStr]?.venit || 0);
+      }
+    }
 
-    dayBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.getAttribute('data-day-idx') || '3', 10);
+    const maxVal = Math.max(...chartDays, 100); // At least 100 to avoid div by zero and extreme curves
+    const minY = 105;
+    const maxY = 15;
+    const xCoords = [15, 95, 175, 255, 335];
+
+    const points = chartDays.map((val, i) => {
+      const y = minY - (val / maxVal) * (minY - maxY);
+      return { x: xCoords[i], y, val };
+    });
+
+    // Generate Smooth SVG Path (Bezier Curves)
+    let strokePath = `M ${points[0].x},${points[0].y}`;
+    for(let i=0; i<points.length - 1; i++) {
+      const p1 = points[i];
+      const p2 = points[i+1];
+      const cx1 = p1.x + (p2.x - p1.x) / 2;
+      const cy1 = p1.y;
+      const cx2 = p1.x + (p2.x - p1.x) / 2;
+      const cy2 = p2.y;
+      strokePath += ` C ${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}`;
+    }
+    const fillPath = strokePath + ` L ${points[4].x},115 L ${points[0].x},115 Z`;
+
+    // Apply paths to SVG elements
+    if (pathStroke) pathStroke.setAttribute('d', strokePath);
+    if (pathGradient) pathGradient.setAttribute('d', fillPath);
+    if (pathHatch) pathHatch.setAttribute('d', fillPath);
+
+    // Prepare day coordinates for click interaction
+    const dayCoords = points.map(p => ({
+      cx: p.x,
+      cy: p.y,
+      val: `${p.val} <span class="text-sm font-sans font-black text-text-main">RON</span>`
+    }));
+
+    // Initially select current day if weekday, else fallback to latest day
+    const currentDayIdx = Math.min(Math.max(new Date().getDay() - 1, 0), 4);
+    let activeBtnIdx = currentDayIdx;
+
+    // Reset old listeners by cloning buttons if needed, or simply overwrite behavior
+    dayBtns.forEach((btn, idx) => {
+      // Update data attribute for initial render if needed, but not strictly necessary since val is passed
+      const clone = btn.cloneNode(true);
+      btn.parentNode?.replaceChild(clone, btn);
+      
+      clone.addEventListener('click', () => {
         const coord = dayCoords[idx];
-
         if (coord) {
           dot.setAttribute('cx', coord.cx.toString());
           dot.setAttribute('cy', coord.cy.toString());
           dotGlow.setAttribute('cx', coord.cx.toString());
           dotGlow.setAttribute('cy', coord.cy.toString());
-
           valueDisplay.innerHTML = coord.val;
 
-          dayBtns.forEach(b => b.classList.remove('text-brand-secondary', 'font-black'));
-          dayBtns.forEach(b => b.classList.add('text-text-muted'));
-          btn.classList.remove('text-text-muted');
-          btn.classList.add('text-brand-secondary', 'font-black');
+          document.querySelectorAll('.day-btn').forEach(b => {
+            b.classList.remove('text-brand-secondary', 'font-black');
+            b.classList.add('text-text-muted');
+          });
+          (clone as Element).classList.remove('text-text-muted');
+          (clone as Element).classList.add('text-brand-secondary', 'font-black');
         }
       });
     });
+
+    // Trigger initial selection
+    const newDayBtns = document.querySelectorAll('.day-btn');
+    if (newDayBtns[activeBtnIdx]) {
+      newDayBtns[activeBtnIdx].dispatchEvent(new Event('click'));
+    }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    initInteractiveHatchChart();
+    initInteractiveHatchChart(undefined, undefined);
     initReportsView();
   });
   document.addEventListener('astro:page-load', () => {
-    initInteractiveHatchChart();
+    initInteractiveHatchChart(undefined, undefined);
     initReportsView();
   });
 </script>

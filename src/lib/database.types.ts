@@ -77,7 +77,7 @@ export interface Database {
           sedinte_folosite: number;
           sedinte_ramase:   number;  // GENERATED — doar citire
           achitat:          boolean;
-          status_abonament: 'activ' | 'ultima_sedinta' | 'terminat';
+          status_abonament: 'activ' | 'ultima_sedinta' | 'terminat' | 'inactiv';
           notite:           string | null;
           drive_link:       string | null;
           created_at:       string;
@@ -94,10 +94,13 @@ export interface Database {
           cost?:            number;
           sedinte_total?:   number;
           sedinte_folosite?: number;
+          sedinte_ramase?:  number;
           achitat?:         boolean;
-          status_abonament?: 'activ' | 'ultima_sedinta' | 'terminat';
+          status_abonament?: 'activ' | 'ultima_sedinta' | 'terminat' | 'inactiv';
           notite?:          string | null;
           drive_link?:      string | null;
+          created_at?:      string;
+          updated_at?:      string;
         };
         Update: Partial<Database['public']['Tables']['pacienti']['Insert']>;
       };
@@ -124,6 +127,7 @@ export interface Database {
           status?:    'programat' | 'confirmat' | 'finalizat' | 'anulat' | 'absent';
           note?:      string | null;
           motiv?:     string | null;
+          created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['programari']['Insert']>;
       };
@@ -148,6 +152,7 @@ export interface Database {
           tip?:             'info' | 'abonament' | 'plata' | 'reminder';
           data_declansare?: string;
           citita?:          boolean;
+          created_at?:      string;
         };
         Update: Partial<Database['public']['Tables']['notificari']['Insert']>;
       };
@@ -169,6 +174,27 @@ export interface Database {
         };
         Insert: never;  // scris doar de cron — nu se inserează din frontend
         Update: never;
+      };
+
+      // ── plati ─────────────────────────────────────────────────
+      plati: {
+        Row: {
+          id:          string;
+          pacient_id:  string;
+          suma:        number;
+          data_platii: string;
+          metoda:      string | null;
+          created_at:  string;
+        };
+        Insert: {
+          id?:         string;
+          pacient_id:  string;
+          suma:        number;
+          data_platii?: string;
+          metoda?:     string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['plati']['Insert']>;
       };
 
     };
@@ -206,3 +232,5 @@ export type ProgramareInsert = Database['public']['Tables']['programari']['Inser
 export type Notificare       = Database['public']['Tables']['notificari']['Row'];
 export type IstericSaptamanal = Database['public']['Tables']['istoric_saptamanal']['Row'];
 export type PacientView      = Database['public']['Views']['pacienti_view']['Row'];
+export type Plata            = Database['public']['Tables']['plati']['Row'];
+export type PlataInsert      = Database['public']['Tables']['plati']['Insert'];

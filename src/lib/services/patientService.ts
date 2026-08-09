@@ -172,6 +172,46 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
   if (error) throw new Error('Eroare la actualizarea plății: ' + error.message);
 }
 
+// ── Adăugare plată custom (PaymentSheet) ──────────────────────
+export async function addPayment(id: string, amount: number, markAchitat: boolean) {
+  // 1. Inserăm plata în tabelul plati dacă acesta există
+  const { error: platiError } = await (supabase as any)
+    .from('plati')
+    .insert({
+      pacient_id: id,
+      suma: amount
+    });
+    
+  if (platiError && !platiError.message?.includes('Could not find the table')) {
+    throw new Error('Eroare la adăugarea plății: ' + platiError.message);
+  }
+
+  // 2. Dacă s-a cerut marcarea ca achitat sau dacă suma e adăugată, actualizăm pacientul
+  if (markAchitat) {
+    const { error: updateError } = await (supabase as any)
+      .from('pacienti')
+      .update({ achitat: true })
+      .eq('id', id);
+      
+    if (updateError) throw new Error('Eroare la actualizarea statusului: ' + updateError.message);
+  }
+}
+
+// ── Obținere plăți pacient ────────────────────────────────────
+export async function getPatientPayments(id: string): Promise<number> {
+  try {
+    const { data, error } = await (supabase as any)
+      .from('plati')
+      .select('suma')
+      .eq('pacient_id', id);
+      
+    if (error) return 0;
+    return data ? data.reduce((total: number, plata: any) => total + (plata.suma || 0), 0) : 0;
+  } catch {
+    return 0;
+  }
+}
+
 // ── Ștergere pacient ──────────────────────────────────────────
 export async function deletePatient(id: string) {
   const { error } = await supabase

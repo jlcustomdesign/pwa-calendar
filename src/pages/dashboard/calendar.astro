@@ -184,7 +184,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
           patientPhone: a.pacienti?.telefon || '',
           selectedTime: a.ora,
           selectedDate: a.data,
-          location: a.locatie,
+          location: a.pacienti?.locatie || 'Belaqva',
           attendanceCount: a.pacienti?.sedinte_folosite || 1,
           totalSessions: a.pacienti?.sedinte_total || 10,
           paymentStatus: a.pacienti?.achitat ? 'Paid fully' : 'Unpaid',

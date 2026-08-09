@@ -6,8 +6,8 @@ interface Props {
 const { name = "Dr. Maria" } = Astro.props;
 
 const now = new Date();
-const weekDayLabels = ["M", "T", "W", "T", "F"];
-const fullDayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const weekDayLabels = ["L", "M", "M", "J", "V"];
+const fullDayNames = ["Luni", "Marți", "Miercuri", "Joi", "Vineri"];
 
 const totalMonths = 24;
 const startMonthOffset = -12;
@@ -24,8 +24,8 @@ const allMonths = Array.from({ length: totalMonths }).map((_, monthIndex) => {
   const targetDate = new Date(now.getFullYear(), now.getMonth() + mOffset, 1);
   const year = targetDate.getFullYear();
   const monthNum = targetDate.getMonth();
-  const monthName = targetDate.toLocaleString('default', { month: 'long' });
-  const shortMonthName = targetDate.toLocaleString('default', { month: 'short' });
+  const monthName = targetDate.toLocaleString('ro-RO', { month: 'long' });
+  const shortMonthName = targetDate.toLocaleString('ro-RO', { month: 'short' });
   
   const isCurrentMonth = mOffset === 0;
 
@@ -52,7 +52,7 @@ const allMonths = Array.from({ length: totalMonths }).map((_, monthIndex) => {
           
           weekDays.push({
               date: dayDate.getDate(),
-              shortMonthName: dayDate.toLocaleString('default', { month: 'short' }),
+              shortMonthName: dayDate.toLocaleString('ro-RO', { month: 'short' }),
               monthNum: dayDate.getMonth(),
               year: dayDate.getFullYear(),
               fullDay: fullDayNames[d],
@@ -121,15 +121,15 @@ if (currentMonthData) {
   <div class="flex items-start justify-between mb-6 relative z-10">
     <div>
       <div id="calendar-selected-label" class="text-xs font-bold uppercase tracking-widest text-text-muted/60 mb-1 transition-opacity duration-300">
-        {activeDayObj ? `${activeDayObj.fullDay}, ${activeDayObj.shortMonthName} ${activeDayObj.date}` : 'Today'}
+        {activeDayObj ? `${activeDayObj.fullDay}, ${activeDayObj.shortMonthName} ${activeDayObj.date}` : 'Azi'}
       </div>
       <h2 id="calendar-header-title" class="text-3xl font-extrabold text-black tracking-tight flex items-baseline gap-3">
-        <span>Today</span>
+        <span>Azi</span>
         <span id="calendar-month-year" class="text-lg font-bold text-text-muted/50">{currentMonthData?.monthName} {currentMonthData?.year}</span>
       </h2>
     </div>
     
-    <button id="calendar-expand-btn" aria-label="Toggle month view" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm z-30">
+    <button id="calendar-expand-btn" aria-label="Comută vizualizarea lunii" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm z-30">
       <svg class="w-5 h-5 transition-transform duration-500 ease-in-out" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
       </svg>

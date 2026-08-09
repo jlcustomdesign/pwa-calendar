@@ -7,22 +7,22 @@
     
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h2 class="text-2xl font-bold tracking-tight">Payment Status</h2>
-        <p class="text-neutral-500 font-medium mt-1" id="payment-subtitle">Select payment completion</p>
+        <h2 class="text-2xl font-bold tracking-tight">Status Plată</h2>
+        <p class="text-neutral-500 font-medium mt-1" id="payment-subtitle">Selectează modalitatea de plată</p>
       </div>
     </div>
 
     <!-- View 1: Initial Options -->
     <div id="payment-options-view" class="space-y-4">
       <button type="button" id="btn-partially-paid" class="w-full py-4 px-6 rounded-2xl bg-amber-100 text-amber-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
-        <span>Custom Pay</span>
+        <span>Plată Parțială</span>
         <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </button>
 
       <button type="button" id="btn-fully-paid" class="w-full py-4 px-6 rounded-2xl bg-emerald-100 text-emerald-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
-        <span>Fully Paid (Plan)</span>
+        <span>Achitat Integral</span>
         <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -32,7 +32,7 @@
     <!-- View 2: Custom Amount Form -->
     <div id="custom-amount-view" class="space-y-4 hidden">
       <div class="relative">
-        <label for="custom-amount-input" class="block text-sm font-semibold text-neutral-700 mb-2" id="custom-amount-label">Enter new amount to add (RON)</label>
+        <label for="custom-amount-input" class="block text-sm font-semibold text-neutral-700 mb-2" id="custom-amount-label">Introdu suma nouă (RON)</label>
         <div class="relative flex items-center">
           <span class="absolute left-4 text-neutral-500 font-bold text-lg">RON</span>
           <input 
@@ -46,10 +46,10 @@
       
       <div class="flex gap-3 pt-2">
         <button type="button" id="btn-cancel-custom" class="flex-1 py-4 px-6 rounded-2xl bg-neutral-100 text-neutral-700 font-bold text-lg active:scale-95 transition-transform">
-          Back
+          Înapoi
         </button>
         <button type="button" id="btn-confirm-custom" class="flex-[2] py-4 px-6 rounded-2xl bg-black text-white font-bold text-lg active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-lg shadow-black/20">
-          <span>Confirm Pay</span>
+          <span>Confirmă Plata</span>
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
@@ -60,7 +60,7 @@
 </div>
 
 <script>
-  import { getPatient, setPaymentStatus } from '../../../lib/services/patientService';
+  import { getPatient, setPaymentStatus, addPayment, getPatientPayments } from '../../../lib/services/patientService';
 
   class PaymentSheetManager {
     private sheet: HTMLElement | null;
@@ -117,7 +117,7 @@
       document.getElementById('btn-partially-paid')?.addEventListener('click', () => {
         this.showCustomView();
       });
-      document.getElementById('btn-fully-paid')?.addEventListener('click', () => this.updateStatus('Paid'));
+      document.getElementById('btn-fully-paid')?.addEventListener('click', () => this.handleFullyPaid());
 
       // Custom Form Handlers
       document.getElementById('btn-cancel-custom')?.addEventListener('click', () => {
@@ -150,10 +150,10 @@
 
       // Update UI text
       if (this.customLabel) {
-        this.customLabel.textContent = 'Enter amount paid:';
+        this.customLabel.textContent = 'Introdu suma achitată:';
       }
       if (this.subtitleText) {
-        this.subtitleText.textContent = 'Custom amount';
+        this.subtitleText.textContent = 'Suma parțială';
       }
 
       // Swap views
@@ -167,16 +167,41 @@
       }
     }
     
-    private handleCustomConfirm() {
+    private async handleCustomConfirm() {
       if (!this.customInput || !this.currentPatientId) return;
 
       const amountStr = this.customInput.value;
       if (amountStr !== null && amountStr.trim() !== '') {
         const parsed = parseInt(amountStr, 10);
         if (!isNaN(parsed) && parsed > 0) {
-          // DB only stores a boolean paid flag; treat any positive amount as paid
-          this.updateStatus('Paid');
+          try {
+            await addPayment(this.currentPatientId, parsed, false);
+            window.dispatchEvent(new CustomEvent('patientsUpdated'));
+            this.close();
+          } catch (err: any) {
+            alert('Eroare la adăugarea plății: ' + (err.message || err));
+          }
         }
+      }
+    }
+    
+    private async handleFullyPaid() {
+      if (!this.currentPatientId) return;
+      try {
+        const patient = await getPatient(this.currentPatientId);
+        const cost = patient.cost || 0;
+        const totalPaid = await getPatientPayments(this.currentPatientId);
+        const remaining = cost - totalPaid;
+        
+        if (remaining > 0) {
+           await addPayment(this.currentPatientId, remaining, true);
+        } else {
+           await setPaymentStatus(this.currentPatientId, true);
+        }
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        this.close();
+      } catch (err: any) {
+        alert('Eroare la actualizarea plății: ' + (err.message || err));
       }
     }
     
@@ -186,25 +211,11 @@
         this.optionsView.classList.remove('hidden');
       }
       if (this.subtitleText) {
-        this.subtitleText.textContent = 'Select payment completion';
+        this.subtitleText.textContent = 'Selectează modalitatea de plată';
       }
       if (this.customInput) {
         this.customInput.value = '';
       }
-    }
-
-    private updateStatus(status: string) {
-      if (!this.currentPatientId) return;
-
-      const markPaid = status === 'Paid' || status === 'Paid fully';
-      setPaymentStatus(this.currentPatientId, markPaid)
-        .then(() => {
-          window.dispatchEvent(new CustomEvent('patientsUpdated'));
-          this.close();
-        })
-        .catch((err: any) => {
-          alert('Eroare la actualizarea plății: ' + (err.message || err));
-        });
     }
 
     private handleTouchStart(e: TouchEvent) {

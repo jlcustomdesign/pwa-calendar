@@ -9,23 +9,24 @@ import type { IstericSaptamanal } from '../database.types';
 export async function getTodayStats(date?: string) {
   const today = date ?? new Date().toISOString().split('T')[0];
 
-  const { data, error } = await supabase
+  const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select(`
-      status,
-      pacienti ( cost )
-    `)
+    .select('status')
     .eq('data', today);
 
-  if (error) throw new Error('Eroare la citirea statisticilor zilnice: ' + error.message);
+  if (programariError) throw new Error('Eroare la citirea programărilor zilnice: ' + programariError.message);
 
-  const sedinte_total   = data?.length ?? 0;
-  const finalizate      = data?.filter(p => p.status === 'finalizat').length ?? 0;
-  const absente         = data?.filter(p => p.status === 'absent').length ?? 0;
-  const venit_azi       = data
-    ?.filter(p => p.status === 'finalizat')
-    // @ts-ignore — join Supabase
-    .reduce((sum, p) => sum + (p.pacienti?.cost ?? 0), 0) ?? 0;
+  const { data: platiData, error: platiError } = await supabase
+    .from('plati')
+    .select('suma')
+    .eq('data_platii', today);
+    
+  if (platiError) throw new Error('Eroare la citirea plăților zilnice: ' + platiError.message);
+
+  const sedinte_total   = programariData?.length ?? 0;
+  const finalizate      = programariData?.filter(p => p.status === 'finalizat').length ?? 0;
+  const absente         = programariData?.filter(p => p.status === 'absent').length ?? 0;
+  const venit_azi       = platiData?.reduce((sum, p) => sum + (p.suma || 0), 0) ?? 0;
 
   return { sedinte_total, finalizate, absente, venit_azi, data: today };
 }
@@ -43,36 +44,45 @@ export async function getWeekStats() {
   const startStr = monday.toISOString().split('T')[0];
   const endStr   = friday.toISOString().split('T')[0];
 
-  const { data, error } = await supabase
+  const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select(`
-      data, status,
-      pacienti ( cost )
-    `)
+    .select('data, status')
     .gte('data', startStr)
     .lte('data', endStr);
 
-  if (error) throw new Error('Eroare la citirea statisticilor săptămânale: ' + error.message);
+  if (programariError) throw new Error('Eroare la citirea programărilor săptămânale: ' + programariError.message);
+
+  const { data: platiData, error: platiError } = await supabase
+    .from('plati')
+    .select('data_platii, suma')
+    .gte('data_platii', startStr)
+    .lte('data_platii', endStr);
+
+  if (platiError) throw new Error('Eroare la citirea plăților săptămânale: ' + platiError.message);
 
   // Grupare pe zi (L M M J V)
   const byDay: Record<string, { finalizate: number; absente: number; venit: number }> = {};
-  data?.forEach(p => {
+  
+  // Inițializare structură zile din programări
+  programariData?.forEach(p => {
     if (!byDay[p.data]) byDay[p.data] = { finalizate: 0, absente: 0, venit: 0 };
-    if (p.status === 'finalizat') {
-      byDay[p.data].finalizate++;
-      // @ts-ignore
-      byDay[p.data].venit += p.pacienti?.cost ?? 0;
-    }
+    if (p.status === 'finalizat') byDay[p.data].finalizate++;
     if (p.status === 'absent') byDay[p.data].absente++;
   });
+  
+  // Adăugare venit din plăți
+  platiData?.forEach(p => {
+    // If the payment is on a day with no appointments, we should initialize it.
+    // However, the graph might only display days Mon-Fri.
+    // Assuming data_platii is correctly formatted as YYYY-MM-DD
+    if (!byDay[p.data_platii]) byDay[p.data_platii] = { finalizate: 0, absente: 0, venit: 0 };
+    byDay[p.data_platii].venit += p.suma || 0;
+  });
 
-  const total     = data?.length ?? 0;
-  const finalizate = data?.filter(p => p.status === 'finalizat').length ?? 0;
-  const absente   = data?.filter(p => p.status === 'absent').length ?? 0;
-  const venit     = data
-    ?.filter(p => p.status === 'finalizat')
-    // @ts-ignore
-    .reduce((sum, p) => sum + (p.pacienti?.cost ?? 0), 0) ?? 0;
+  const total     = programariData?.length ?? 0;
+  const finalizate = programariData?.filter(p => p.status === 'finalizat').length ?? 0;
+  const absente   = programariData?.filter(p => p.status === 'absent').length ?? 0;
+  const venit     = platiData?.reduce((sum, p) => sum + (p.suma || 0), 0) ?? 0;
 
   const prezenta = total > 0 ? Math.round((finalizate / total) * 100) : 0;
 
@@ -85,22 +95,24 @@ export async function getMonthStats() {
   const startStr  = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
   const endStr    = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-  const { data, error } = await supabase
+  const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select(`
-      status,
-      pacienti ( cost )
-    `)
+    .select('status')
     .gte('data', startStr)
     .lte('data', endStr);
 
-  if (error) throw new Error('Eroare la citirea statisticilor lunare: ' + error.message);
+  if (programariError) throw new Error('Eroare la citirea programărilor lunare: ' + programariError.message);
 
-  const finalizate = data?.filter(p => p.status === 'finalizat').length ?? 0;
-  const venit      = data
-    ?.filter(p => p.status === 'finalizat')
-    // @ts-ignore
-    .reduce((sum, p) => sum + (p.pacienti?.cost ?? 0), 0) ?? 0;
+  const { data: platiData, error: platiError } = await supabase
+    .from('plati')
+    .select('suma')
+    .gte('data_platii', startStr)
+    .lte('data_platii', endStr);
+
+  if (platiError) throw new Error('Eroare la citirea plăților lunare: ' + platiError.message);
+
+  const finalizate = programariData?.filter(p => p.status === 'finalizat').length ?? 0;
+  const venit      = platiData?.reduce((sum, p) => sum + (p.suma || 0), 0) ?? 0;
 
   return { finalizate, venit };
 }

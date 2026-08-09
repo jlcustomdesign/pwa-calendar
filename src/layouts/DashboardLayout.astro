@@ -182,7 +182,7 @@ const { title, hideDock = false } = Astro.props;
         
         // Expose global payment handler
         (window as any).handlePaymentToggle = (patientId: string, currentStatus: string) => {
-          if (currentStatus === 'Unpaid' || currentStatus.startsWith('Paid: ')) {
+          if (currentStatus !== 'Achitat integral' && currentStatus !== 'Achitat' && currentStatus !== 'Paid' && currentStatus !== 'Paid fully') {
             window.dispatchEvent(new CustomEvent('openPaymentSheet', {
               detail: { patientId, currentStatus }
             }));

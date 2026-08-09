@@ -11,11 +11,11 @@ const icons = {
 };
 
 const navItems = [
-  { id: 'calendar', path: '/dashboard/calendar', icon: icons.calendar },
-  { id: 'layers', path: '/dashboard/patients', icon: icons.layers },
-  { id: 'home', path: '/dashboard', icon: icons.home },
-  { id: 'reports', path: '/dashboard/reports', icon: icons.reports },
-  { id: 'profile', path: '/dashboard/settings', icon: icons.profile },
+  { id: 'calendar', path: '/dashboard/calendar', icon: icons.calendar, label: 'Calendar' },
+  { id: 'layers', path: '/dashboard/patients', icon: icons.layers, label: 'Pacienți' },
+  { id: 'home', path: '/dashboard', icon: icons.home, label: 'Acasă' },
+  { id: 'reports', path: '/dashboard/reports', icon: icons.reports, label: 'Rapoarte' },
+  { id: 'profile', path: '/dashboard/settings', icon: icons.profile, label: 'Setări' },
 ];
 ---
 
@@ -45,7 +45,8 @@ const navItems = [
         data-dock-item
         data-active={isActive ? "true" : "false"}
         data-index={index}
-        aria-label={item.id}
+        data-id={item.id}
+        aria-label={item.label}
         class={`relative z-10 flex items-center justify-center w-14 h-12 rounded-full transition-colors active:scale-90 ${
           isActive ? 'text-black' : 'text-brand-primary hover:opacity-80'
         }`}
@@ -81,7 +82,7 @@ const navItems = [
 
     items.forEach((item) => {
       const href = item.getAttribute('href') || '';
-      const isHome = item.getAttribute('aria-label') === 'home';
+      const isHome = item.getAttribute('data-id') === 'home';
       const isActive = currentPath === href || (href !== '/dashboard' && currentPath.startsWith(href));
       
       if (isActive) {

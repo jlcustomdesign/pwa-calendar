@@ -7,21 +7,14 @@ import DailyProgress from './DailyProgress.astro';
   
   <div id="daily-progress-container" class="space-y-2 mb-6 px-2">
     <div class="flex items-center justify-between text-sm font-medium">
-      <span class="text-text-main font-semibold">Daily Progress</span>
-      <span id="daily-progress-text" class="text-text-muted">0 of 0 sessions</span>
+      <span class="text-text-main font-semibold">Progres Zilnic</span>
+      <span id="daily-progress-text" class="text-text-muted">0 din 0 ședințe</span>
     </div>
     <div class="h-3 w-full bg-black/5 rounded-full overflow-hidden">
       <div id="daily-progress-bar" class="h-full bg-brand-primary rounded-full transition-all duration-500" style="width: 0%"></div>
     </div>
   </div>
 
-  <!-- Agenda Header -->
-  <div class="flex items-baseline justify-between mb-6 mt-4">
-    <div class="flex items-baseline gap-3">
-      <h3 id="agenda-date-title" class="text-3xl font-bold tracking-tight text-text-main">Today</h3>
-      <span class="text-lg font-medium text-text-muted/60">Schedule</span>
-    </div>
-  </div>
 
   <!-- Daily Sessions List -->
   <div id="agenda-sessions-list" class="flex flex-col gap-4 pb-2">
@@ -44,21 +37,12 @@ import DailyProgress from './DailyProgress.astro';
     }
   });
 
-  function formatAgendaTitle(dateStr: string) {
-    if (dateStr === todayStr) return 'Today';
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('default', { weekday: 'long' });
-  }
 
   async function renderAgendaBlock() {
     const list = document.getElementById('agenda-sessions-list');
     if (!list) return;
 
     const nowStr = new Date().toTimeString().slice(0, 5);
-
-    const titleEl = document.getElementById('agenda-date-title');
-    if (titleEl) titleEl.textContent = formatAgendaTitle(currentAgendaDate);
-
     let stored: any[] = [];
     try {
       const appts = await getAppointmentsByDate(currentAgendaDate);
@@ -68,10 +52,10 @@ import DailyProgress from './DailyProgress.astro';
         patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
         selectedTime: a.ora,
         selectedDate: a.data,
-        location: a.locatie,
+        location: a.pacienti?.locatie || 'Belaqva',
         attendanceCount: a.pacienti?.sedinte_folosite || 1,
         totalSessions: a.pacienti?.sedinte_total || 10,
-        paymentStatus: a.pacienti?.achitat ? 'Paid fully' : 'Unpaid'
+        paymentStatus: a.pacienti?.achitat ? 'Achitat integral' : 'Neachitat'
       }));
     } catch (e) {
       console.error('Eroare citire agenda din DB:', e);
@@ -80,17 +64,21 @@ import DailyProgress from './DailyProgress.astro';
     // Calculate selected day's progress dynamically
     const daySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === currentAgendaDate);
     const totalToday = daySessions.length;
-    const completedToday = daySessions.filter((s: any) => (s.selectedTime || s.time || "00:00") <= nowStr).length;
+    const completedToday = daySessions.filter((s: any) => {
+      if (currentAgendaDate < todayStr) return true;
+      if (currentAgendaDate > todayStr) return false;
+      return (s.selectedTime || s.time || "00:00") <= nowStr;
+    }).length;
     const todayProgressPct = totalToday > 0 ? Math.min(100, Math.round((completedToday / totalToday) * 100)) : 0;
 
     const progressText = document.getElementById('daily-progress-text');
     const progressBar = document.getElementById('daily-progress-bar');
-    if (progressText) progressText.textContent = `${completedToday} of ${totalToday} sessions`;
+    if (progressText) progressText.textContent = `${completedToday} din ${totalToday} ședințe`;
     if (progressBar) progressBar.style.width = `${todayProgressPct}%`;
 
     if (stored.length === 0) {
-      const emptyDay = currentAgendaDate === todayStr ? 'today' : 'this day';
-      list.innerHTML = `<p class="text-sm font-bold text-text-muted text-center py-4">No sessions scheduled for ${emptyDay}.</p>`;
+      const emptyDay = currentAgendaDate === todayStr ? 'azi' : 'această zi';
+      list.innerHTML = `<p class="text-sm font-bold text-text-muted text-center py-4">Nicio ședință programată pentru ${emptyDay}.</p>`;
       return;
     }
 
@@ -110,12 +98,12 @@ import DailyProgress from './DailyProgress.astro';
       const endTime = `${endHourStr}:${minute}`;
 
       const isPast = currentAgendaDate < todayStr || (currentAgendaDate === todayStr && timeStr < nowStr);
-      const paymentStatus = session.paymentStatus || 'Unpaid';
+      const paymentStatus = session.paymentStatus || 'Neachitat';
 
       let paymentClass = '';
-      if (paymentStatus === 'Unpaid') {
+      if (paymentStatus === 'Neachitat') {
         paymentClass = 'bg-black text-white hover:bg-black/80 shadow-sm';
-      } else if (paymentStatus === 'Paid fully') {
+      } else if (paymentStatus === 'Achitat integral') {
         paymentClass = 'bg-white/40 text-black hover:bg-white/50';
       } else {
         paymentClass = 'bg-black/50 text-white hover:bg-black/60';
@@ -150,14 +138,23 @@ import DailyProgress from './DailyProgress.astro';
               ></div>
             ` : ''}
 
-            <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
-              <div class="flex items-center gap-4 w-full relative z-10">
+            <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[110px] p-6">
+              
+              <!-- Watermark Time Background -->
+              <div class="absolute left-3 top-0 bottom-0 font-black text-[3.8rem] leading-[0.8] opacity-30 pointer-events-none tracking-tighter mix-blend-overlay flex items-center justify-start z-0 w-20">
+                <div class="flex items-start">
+                  ${hourNum.toString().padStart(2, '0')}
+                  <span class="text-xl mt-1 ml-0.5">${minute}</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-4 w-full relative z-10 pl-24">
                 <div class="flex-1 min-w-0">
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
                 </div>
               </div>
 
-              <div class="flex items-center gap-4 mt-5 relative z-10">
+              <div class="flex items-center gap-4 mt-5 relative z-10 pl-24">
                 <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
                   <div class="h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
                 </div>
@@ -184,13 +181,13 @@ import DailyProgress from './DailyProgress.astro';
                     <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
-                    Call
+                    Sună
                   </a>
                   <a href="#" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold" onclick="event.stopPropagation()">
                     <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                     </svg>
-                    Docs
+                    Dosar
                   </a>
                   <button 
                     class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl ${paymentClass} hover:opacity-80 active:scale-95 transition-all text-sm font-bold" 
