@@ -60,6 +60,8 @@
 </div>
 
 <script>
+  import { getPatient, setPaymentStatus } from '../../../lib/services/patientService';
+
   class PaymentSheetManager {
     private sheet: HTMLElement | null;
     private backdrop: HTMLElement | null;
@@ -73,6 +75,7 @@
     
     private currentPatientId: string | null = null;
     private previousAmount: number = 0;
+    private patientCost: number = 0;
     private isOpen = false;
     private startY = 0;
     private currentY = 0;
@@ -133,34 +136,30 @@
       });
     }
     
-    private showCustomView() {
+    private async showCustomView() {
       if (!this.currentPatientId || !this.optionsView || !this.customView) return;
-      
-      const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
-      const patient = patients.find((p: any) => p.id === this.currentPatientId);
-      
-      this.previousAmount = 0;
-      if (patient && patient.paymentStatus && patient.paymentStatus.startsWith('Paid: ')) {
-        const match = patient.paymentStatus.match(/\d+/);
-        if (match) {
-          this.previousAmount = parseInt(match[0], 10);
-        }
+
+      try {
+        const patient = await getPatient(this.currentPatientId);
+        this.patientCost = patient.cost || 0;
+      } catch (e) {
+        this.patientCost = 0;
       }
-      
+
+      this.previousAmount = 0;
+
       // Update UI text
       if (this.customLabel) {
-        this.customLabel.textContent = this.previousAmount > 0 
-          ? `Already paid: ${this.previousAmount}. Enter new amount to add:` 
-          : 'Enter amount paid:';
+        this.customLabel.textContent = 'Enter amount paid:';
       }
       if (this.subtitleText) {
         this.subtitleText.textContent = 'Custom amount';
       }
-      
+
       // Swap views
       this.optionsView.classList.add('hidden');
       this.customView.classList.remove('hidden');
-      
+
       // Focus input
       if (this.customInput) {
         this.customInput.value = '';
@@ -170,27 +169,13 @@
     
     private handleCustomConfirm() {
       if (!this.customInput || !this.currentPatientId) return;
-      
+
       const amountStr = this.customInput.value;
       if (amountStr !== null && amountStr.trim() !== '') {
         const parsed = parseInt(amountStr, 10);
         if (!isNaN(parsed) && parsed > 0) {
-          const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
-          const patient = patients.find((p: any) => p.id === this.currentPatientId);
-          
-          let newTotal = this.previousAmount + parsed;
-          const patientCost = patient && patient.cost ? Number(patient.cost) : 0;
-          
-          // Prevent paying more than the total cost of the plan
-          if (patientCost > 0 && newTotal > patientCost) {
-            newTotal = patientCost;
-          }
-          
-          if (patientCost > 0 && newTotal >= patientCost) {
-            this.updateStatus('Paid');
-          } else {
-            this.updateStatus(`Paid: ${newTotal}`);
-          }
+          // DB only stores a boolean paid flag; treat any positive amount as paid
+          this.updateStatus('Paid');
         }
       }
     }
@@ -211,20 +196,15 @@
     private updateStatus(status: string) {
       if (!this.currentPatientId) return;
 
-      const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
-      const updatedPatients = patients.map((p: any) => {
-        if (p.id === this.currentPatientId) {
-          return { ...p, paymentStatus: status };
-        }
-        return p;
-      });
-
-      localStorage.setItem('kineto_patients', JSON.stringify(updatedPatients));
-      
-      // Dispatch event to refresh views
-      window.dispatchEvent(new CustomEvent('patientsUpdated'));
-      
-      this.close();
+      const markPaid = status === 'Paid' || status === 'Paid fully';
+      setPaymentStatus(this.currentPatientId, markPaid)
+        .then(() => {
+          window.dispatchEvent(new CustomEvent('patientsUpdated'));
+          this.close();
+        })
+        .catch((err: any) => {
+          alert('Eroare la actualizarea plății: ' + (err.message || err));
+        });
     }
 
     private handleTouchStart(e: TouchEvent) {

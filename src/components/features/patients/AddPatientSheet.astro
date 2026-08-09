@@ -311,10 +311,15 @@
         return;
       }
 
+      const saveBtn = document.getElementById('save-patient-btn') as HTMLButtonElement | null;
+      const saveAndBookBtn = document.getElementById('save-and-book-btn') as HTMLButtonElement | null;
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Se salvează…'; }
+      if (saveAndBookBtn) { saveAndBookBtn.disabled = true; saveAndBookBtn.textContent = 'Se salvează…'; }
+
       const formData = new FormData(this.form);
       const patientId = formData.get('patientId') as string;
       const patientName = formData.get('name') as string;
-      
+
       const payload = {
         name: patientName,
         telefon: (formData.get('phone') as string) || '',
@@ -354,6 +359,9 @@
         } else {
           alert('Eroare la salvarea pacientului: ' + msg);
         }
+      } finally {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Patient'; }
+        if (saveAndBookBtn) { saveAndBookBtn.disabled = false; saveAndBookBtn.textContent = 'Save & Book Session'; }
       }
     }
 
@@ -374,19 +382,20 @@
         }
 
         if (isEdit && patient && this.form) {
+          const editPaymentStatus = patient.achitat ? 'Paid' : 'Unpaid';
           (this.form.querySelector('[name="name"]') as HTMLInputElement).value = patient.name || '';
-          (this.form.querySelector('[name="phone"]') as HTMLInputElement).value = patient.phone || '';
+          (this.form.querySelector('[name="phone"]') as HTMLInputElement).value = patient.telefon || '';
           (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = patient.plan || 'Subscription';
-          (this.form.querySelector('[name="location"]') as HTMLInputElement).value = patient.location || 'Belaqva';
-          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = patient.cost || '';
-          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = patient.totalSessions || '';
-          (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = patient.frequency || '1 time/week';
-          (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = patient.paymentStatus || 'Unpaid';
-          (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.driveLink || '';
+          (this.form.querySelector('[name="location"]') as HTMLInputElement).value = patient.locatie || 'Belaqva';
+          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = patient.cost != null ? String(patient.cost) : '';
+          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = patient.sedinte_total != null ? String(patient.sedinte_total) : '';
+          (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = patient.frecventa || '1 time/week';
+          (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = editPaymentStatus;
+          (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.drive_link || '';
           this.updatePlanChips(patient.plan || 'Subscription');
-          this.updateLocationChips(patient.location || 'Belaqva');
-          this.updateFrequencyChips(patient.frequency || '1 time/week');
-          this.updatePaymentChips(patient.paymentStatus || 'Unpaid');
+          this.updateLocationChips(patient.locatie || 'Belaqva');
+          this.updateFrequencyChips(patient.frecventa || '1 time/week');
+          this.updatePaymentChips(editPaymentStatus);
         } else if (this.form) {
           this.form.reset();
           this.updatePlanChips('Subscription');
@@ -478,7 +487,6 @@
     (window as any).currentPatientSheetManager = new AddPatientSheetManager();
   }
 
-  document.addEventListener('DOMContentLoaded', initPatientSheet);
   document.addEventListener('astro:page-load', initPatientSheet);
 </script>
 

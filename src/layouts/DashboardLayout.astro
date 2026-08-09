@@ -43,6 +43,9 @@ const { title, hideDock = false } = Astro.props;
 
     <!-- Global Session Card Interactive Controller (Expand & Swipe-to-Edit/Delete) -->
     <script>
+      import { setPaymentStatus } from '../lib/services/patientService';
+      import { getAppointment, deleteAppointment } from '../lib/services/appointmentService';
+
       function setupSessionCardController() {
         let activeSurface: HTMLElement | null = null;
         let startX = 0;
@@ -184,16 +187,52 @@ const { title, hideDock = false } = Astro.props;
               detail: { patientId, currentStatus }
             }));
           } else {
-            // Directly toggle back to Unpaid
-            const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
-            const updatedPatients = patients.map((p: any) => {
-              if (p.id === patientId) {
-                return { ...p, paymentStatus: 'Unpaid' };
+            // Toggle back to Unpaid in Supabase
+            setPaymentStatus(patientId, false)
+              .then(() => window.dispatchEvent(new CustomEvent('patientsUpdated')))
+              .catch((err: any) => alert('Eroare la actualizarea plății: ' + (err.message || err)));
+          }
+        };
+
+        // Expose global session edit/delete handlers
+        function resolveSessionId(input: string | HTMLElement): string | null {
+          if (typeof input === 'string') return input;
+          const card = input.closest('session-card') as HTMLElement | null;
+          return card?.dataset.sessionId || null;
+        }
+
+        (window as any).editSession = async (input: string | HTMLElement) => {
+          const sessionId = resolveSessionId(input);
+          if (!sessionId) return;
+          try {
+            const appointment = await getAppointment(sessionId);
+            window.dispatchEvent(new CustomEvent('openAddSession', {
+              detail: {
+                isEdit: true,
+                session: {
+                  id: appointment.id,
+                  selectedDate: appointment.data,
+                  selectedTime: appointment.ora,
+                  patientName: appointment.pacienti
+                    ? `${appointment.pacienti.prenume} ${appointment.pacienti.nume}`
+                    : undefined,
+                }
               }
-              return p;
-            });
-            localStorage.setItem('kineto_patients', JSON.stringify(updatedPatients));
-            window.dispatchEvent(new CustomEvent('patientsUpdated'));
+            }));
+          } catch (err: any) {
+            alert('Eroare la încărcarea programării: ' + (err.message || err));
+          }
+        };
+
+        (window as any).deleteSession = async (input: string | HTMLElement) => {
+          const sessionId = resolveSessionId(input);
+          if (!sessionId) return;
+          if (!confirm('Sigur vrei să ștergi această programare?')) return;
+          try {
+            await deleteAppointment(sessionId);
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+          } catch (err: any) {
+            alert('Eroare la ștergerea programării: ' + (err.message || err));
           }
         };
       }

@@ -18,7 +18,7 @@ import DailyProgress from './DailyProgress.astro';
   <!-- Agenda Header -->
   <div class="flex items-baseline justify-between mb-6 mt-4">
     <div class="flex items-baseline gap-3">
-      <h3 class="text-3xl font-bold tracking-tight text-text-main">Today</h3>
+      <h3 id="agenda-date-title" class="text-3xl font-bold tracking-tight text-text-main">Today</h3>
       <span class="text-lg font-medium text-text-muted/60">Schedule</span>
     </div>
   </div>
@@ -32,16 +32,36 @@ import DailyProgress from './DailyProgress.astro';
 <script>
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  let currentAgendaDate = todayStr;
+
+  window.addEventListener('calendarDateSelected', (e: any) => {
+    const date = e.detail?.date;
+    if (date) {
+      currentAgendaDate = date;
+      (window as any).currentCalendarDate = date;
+      renderAgendaBlock();
+    }
+  });
+
+  function formatAgendaTitle(dateStr: string) {
+    if (dateStr === todayStr) return 'Today';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('default', { weekday: 'long' });
+  }
+
   async function renderAgendaBlock() {
     const list = document.getElementById('agenda-sessions-list');
     if (!list) return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
     const nowStr = new Date().toTimeString().slice(0, 5);
+
+    const titleEl = document.getElementById('agenda-date-title');
+    if (titleEl) titleEl.textContent = formatAgendaTitle(currentAgendaDate);
 
     let stored: any[] = [];
     try {
-      const appts = await getAppointmentsByDate(todayStr);
+      const appts = await getAppointmentsByDate(currentAgendaDate);
       stored = appts.map((a: any) => ({
         id: a.id,
         patientId: a.pacient_id,
@@ -57,10 +77,10 @@ import DailyProgress from './DailyProgress.astro';
       console.error('Eroare citire agenda din DB:', e);
     }
 
-    // Calculate today's progress dynamically
-    const todaySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === todayStr);
-    const totalToday = todaySessions.length;
-    const completedToday = todaySessions.filter((s: any) => (s.selectedTime || s.time || "00:00") <= nowStr).length;
+    // Calculate selected day's progress dynamically
+    const daySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === currentAgendaDate);
+    const totalToday = daySessions.length;
+    const completedToday = daySessions.filter((s: any) => (s.selectedTime || s.time || "00:00") <= nowStr).length;
     const todayProgressPct = totalToday > 0 ? Math.min(100, Math.round((completedToday / totalToday) * 100)) : 0;
 
     const progressText = document.getElementById('daily-progress-text');
@@ -69,7 +89,8 @@ import DailyProgress from './DailyProgress.astro';
     if (progressBar) progressBar.style.width = `${todayProgressPct}%`;
 
     if (stored.length === 0) {
-      list.innerHTML = `<p class="text-sm font-bold text-text-muted text-center py-4">No sessions scheduled for today.</p>`;
+      const emptyDay = currentAgendaDate === todayStr ? 'today' : 'this day';
+      list.innerHTML = `<p class="text-sm font-bold text-text-muted text-center py-4">No sessions scheduled for ${emptyDay}.</p>`;
       return;
     }
 
@@ -88,7 +109,7 @@ import DailyProgress from './DailyProgress.astro';
       const endHourStr = (hourNum + 1).toString().padStart(2, '0');
       const endTime = `${endHourStr}:${minute}`;
 
-      const isPast = timeStr < nowStr;
+      const isPast = currentAgendaDate < todayStr || (currentAgendaDate === todayStr && timeStr < nowStr);
       const paymentStatus = session.paymentStatus || 'Unpaid';
 
       let paymentClass = '';

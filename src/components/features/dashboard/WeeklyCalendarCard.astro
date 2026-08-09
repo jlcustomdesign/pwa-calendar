@@ -380,6 +380,7 @@ if (currentMonthData) {
       const d = button.getAttribute("data-date");
       if (y && m && d) {
         const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
+        localStorage.setItem('selectedCalendarDate', dateStr);
         window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
       }
     }
@@ -440,7 +441,24 @@ if (currentMonthData) {
     });
 
     requestAnimationFrame(() => {
-      const activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
+      const savedDate = localStorage.getItem('selectedCalendarDate');
+      let activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
+
+      if (savedDate) {
+        const targetBtn = allButtons.find((b) => {
+          const y = b.getAttribute("data-year");
+          const m = b.getAttribute("data-month");
+          const d = b.getAttribute("data-date");
+          if (!y || !m || !d) return false;
+          const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
+          return dateStr === savedDate;
+        });
+        if (targetBtn) {
+          selectDay(targetBtn, false);
+          activeBtn = targetBtn;
+        }
+      }
+
       if (activeBtn) {
         animatePillAndCircleDrop(activeBtn, true);
         // Trigger initial selection event

@@ -5,6 +5,46 @@
 import { supabase } from '../supabase';
 import type { Programare, ProgramareInsert } from '../database.types';
 
+// ── Citire programare unică (editare) ─────────────────────────
+export async function getAppointment(id: string): Promise<Programare & { pacienti: { prenume: string; nume: string } }> {
+  const { data, error } = await supabase
+    .from('programari')
+    .select(`
+      *,
+      pacienti ( prenume, nume )
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) throw new Error('Eroare la citirea programării: ' + error.message);
+  return data as any;
+}
+
+// ── Ștergere programare ───────────────────────────────────────
+export async function deleteAppointment(id: string) {
+  const { error } = await supabase
+    .from('programari')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw new Error('Eroare la ștergerea programării: ' + error.message);
+}
+
+// ── Actualizare programare existentă ──────────────────────────
+export async function updateAppointment(id: string, updates: {
+  pacient_id?: string;
+  data?: string;
+  ora?: string;
+  locatie?: 'Belaqva' | 'Ghimbav';
+}) {
+  const { error } = await supabase
+    .from('programari')
+    .update(updates)
+    .eq('id', id);
+
+  if (error) throw new Error('Eroare la actualizarea programării: ' + error.message);
+}
+
 // ── Programări pentru o zi specifică (calendar zilnic) ────────
 export async function getAppointmentsByDate(date: string): Promise<Programare[]> {
   const { data, error } = await supabase
