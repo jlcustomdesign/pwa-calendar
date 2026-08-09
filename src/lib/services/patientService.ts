@@ -176,7 +176,7 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
 export async function addPayment(id: string, amount: number, markAchitat: boolean) {
   // 1. Salvare plată direct în Supabase
   try {
-    const { error } = await supabase.from('plati').insert({
+    const { error } = await (supabase as any).from('plati').insert({
       pacient_id: id,
       suma: amount,
       data_platii: new Date().toISOString().split('T')[0]
@@ -193,16 +193,16 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
 
   // 3. Dacă s-a atins costul total sau s-a cerut marcarea ca achitat, actualizăm statusul în Supabase
   if (markAchitat || (cost > 0 && totalPaid >= cost)) {
-    await supabase.from('pacienti').update({ achitat: true }).eq('id', id);
+    await (supabase as any).from('pacienti').update({ achitat: true }).eq('id', id);
   } else {
-    await supabase.from('pacienti').update({ achitat: false }).eq('id', id);
+    await (supabase as any).from('pacienti').update({ achitat: false }).eq('id', id);
   }
 }
 
 // ── Obținere plăți pacient din Supabase ────────────────────────
 export async function getPatientPayments(id: string): Promise<number> {
   try {
-    const { data, error } = await supabase.from('plati').select('suma').eq('pacient_id', id);
+    const { data, error } = await (supabase as any).from('plati').select('suma').eq('pacient_id', id);
     if (!error && data) {
       return data.reduce((total: number, plata: any) => total + (plata.suma || 0), 0);
     }
