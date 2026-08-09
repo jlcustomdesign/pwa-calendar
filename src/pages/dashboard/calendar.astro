@@ -4,10 +4,17 @@ import WeeklyCalendarCard from '../../components/features/dashboard/WeeklyCalend
 import AddEventBanner from '../../components/features/dashboard/AddEventBanner.astro';
 import SessionCard from '../../components/features/dashboard/SessionCard.astro';
 import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.astro';
+import BlobBackground from '../../components/ui/BlobBackground.astro';
 ---
 
 <DashboardLayout title="Calendar">
-  <div class="space-y-6 pb-24">
+  <div class="relative min-h-screen overflow-hidden">
+    <BlobBackground positions={[
+      { top: '-5rem', right: '-4rem' },
+      { top: '55%', left: '-4rem' },
+      { bottom: '-2rem', left: '-3.5rem' }
+    ]} />
+    <div class="relative z-10 space-y-6 pb-24">
     
     <!-- Top Section: Expandable Weekly/Monthly Calendar -->
     <WeeklyCalendarCard name="Dr. Maria" />
@@ -23,6 +30,7 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
         <!-- Rendered dynamically by JS -->
       </div>
     </section>
+  </div>
   </div>
 
   <!-- Bottom Sheets -->
@@ -199,7 +207,6 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
             <div class="w-14 shrink-0 text-center flex flex-col items-center justify-center select-none relative pt-1">
               <span class="text-2xl font-black text-black leading-none tracking-tight">${hourStr}</span>
               <span class="text-xs font-bold text-text-muted tracking-wider uppercase mt-0.5">${minStr || '00'}</span>
-              <div class="absolute right-0 top-1/2 -translate-y-1/2 left-full w-screen h-px bg-neutral-200/80 -z-10"></div>
             </div>
             
             <div class="flex-1 pb-2" data-slot-time="${slotTimeStr}">

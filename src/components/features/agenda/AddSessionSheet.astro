@@ -66,17 +66,16 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
                 <span class="text-xl font-extrabold">{d.displayDate}</span>
               </button>
             ))}
-            <div class="relative shrink-0 snap-start">
-              <input type="date" id="native-date-picker" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50" />
-              <button 
-                type="button" 
-                id="other-date-btn"
-                class="flex flex-col items-center justify-center w-[4.5rem] h-[4.5rem] rounded-[1.5rem] border-2 border-transparent bg-black/5 text-text-muted transition-all duration-300 pointer-events-none"
-              >
-                <svg class="w-6 h-6 mb-1 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                <span class="text-[0.65rem] font-bold uppercase tracking-wider">Other</span>
-              </button>
-            </div>
+            <button 
+              type="button" 
+              id="other-date-btn"
+              class="shrink-0 snap-start flex flex-col items-center justify-center w-[4.5rem] h-[4.5rem] rounded-[1.5rem] border-2 border-transparent bg-black/5 text-text-muted transition-all duration-300"
+            >
+              <svg class="w-6 h-6 mb-1 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              <span class="text-[0.65rem] font-bold uppercase tracking-wider">Other</span>
+            </button>
+          </div>
+          <input type="date" id="native-date-picker" class="sr-only" />
           </div>
         </div>
 
@@ -186,7 +185,7 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
 
   <div class="pt-6 mt-auto">
     <button type="submit" id="submit-btn" form="add-session-form" class="w-full py-4 rounded-2xl bg-black text-white font-bold text-lg active:scale-95 transition-transform shadow-lg">
-      Book Session
+      Adaugă pacient
     </button>
   </div>
 </div>
@@ -205,6 +204,9 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
     overlay: HTMLElement | null = null;
     startY: number;
     currentY: number;
+    startX: number = 0;
+    dragEngaged: boolean = false;
+    scrollAtTop: boolean = true;
     settings: any;
     currentHour: number = 8;
     currentMin: number = 0;
@@ -433,7 +435,7 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
              otherDateBtn.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
              otherDateBtn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
              
-             const parsed = new Date(selectedVal);
+             const parsed = new Date(selectedVal + 'T00:00:00');
              const displayStr = `${parsed.toLocaleDateString('default', { weekday: 'short' })}, ${parsed.getDate()}`;
              
              if (this.dateInput) this.dateInput.value = selectedVal;
@@ -441,6 +443,20 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
              
              otherDateBtn.querySelector('span')!.textContent = parsed.getDate().toString();
              otherDateBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+         });
+
+         // The date input is now a sr-only native input; clicking the visible
+         // "Other" button opens the system date picker programmatically
+         otherDateBtn.addEventListener('click', () => {
+           try {
+             if ('showPicker' in nativeDatePicker) {
+               (nativeDatePicker as any).showPicker();
+             } else {
+               nativeDatePicker.click();
+             }
+           } catch (err) {
+             nativeDatePicker.click();
+           }
          });
       }
 
@@ -463,6 +479,48 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
       });
     }
     
+    selectDate(dateStr: string) {
+      if (!dateStr || !this.dateInput) return;
+
+      this.dateInput.value = dateStr;
+      const displayDate = document.getElementById('display-selected-date');
+      const dateBtns = document.querySelectorAll<HTMLButtonElement>('[data-date-btn]');
+      const otherDateBtn = document.getElementById('other-date-btn');
+      const nativeDatePicker = document.getElementById('native-date-picker') as HTMLInputElement;
+      let matched = false;
+
+      dateBtns.forEach(btn => {
+        btn.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        btn.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
+
+        if (btn.dataset.dateBtn === dateStr) {
+          matched = true;
+          btn.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+          btn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
+          if (displayDate) displayDate.textContent = btn.dataset.displayDate || dateStr;
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      });
+
+      if (!matched && otherDateBtn) {
+        otherDateBtn.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        otherDateBtn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
+
+        // Use a midnight time to avoid timezone shifts parsing the YYYY-MM-DD string
+        const parsed = new Date(dateStr + 'T00:00:00');
+        const weekday = parsed.toLocaleDateString('default', { weekday: 'short' });
+        const displayStr = `${weekday}, ${parsed.getDate()}`;
+
+        if (displayDate) displayDate.textContent = displayStr;
+
+        const span = otherDateBtn.querySelector('span');
+        if (span) span.textContent = parsed.getDate().toString();
+        if (nativeDatePicker) nativeDatePicker.value = dateStr;
+
+        otherDateBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+
     selectTime(timeStr: string) {
        const [h, m] = timeStr.split(':').map(n => parseInt(n, 10));
        const totalM = ((isNaN(h) ? 8 : h) * 60) + (isNaN(m) ? 0 : m);
@@ -483,10 +541,11 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
     bindEvents() {
       if (!this.sheet) return;
 
-      const handle = this.sheet.querySelector('.cursor-grab');
-      handle?.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
-      handle?.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
-      handle?.addEventListener('touchend', () => this.handleTouchEnd());
+      // Swipe-down to dismiss from anywhere on the sheet — only engages on a
+      // clearly vertical downward swipe while the form is scrolled to the top
+      this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+      this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+      this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
 
       // Listen for custom event to open sheet
       window.addEventListener('openAddSession', (e: any) => {
@@ -514,7 +573,7 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
           if (submitBtnEl) submitBtnEl.textContent = 'Save Changes';
         } else {
           if (titleEl) titleEl.textContent = 'New Session';
-          if (submitBtnEl) submitBtnEl.textContent = 'Book Session';
+          if (submitBtnEl) submitBtnEl.textContent = 'Adaugă pacient';
         }
 
         // Control Date & Time selectors visibility
@@ -527,8 +586,8 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
         if (timeStr) {
           this.selectTime(timeStr);
         }
-        if (dateStr && this.dateInput) {
-          this.dateInput.value = dateStr;
+        if (dateStr) {
+          this.selectDate(dateStr);
         }
 
         // Reset patient selector state
@@ -629,12 +688,30 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
 
     handleTouchStart(e: TouchEvent) {
       this.startY = e.touches[0].clientY;
-      if (this.sheet) this.sheet.style.transition = 'none';
+      this.currentY = this.startY;
+      this.startX = e.touches[0].clientX;
+      this.dragEngaged = false;
+      // Only allow sheet drag when the scrollable form is at the top,
+      // otherwise the gesture should scroll the form instead
+      const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
+      this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
     }
 
     handleTouchMove(e: TouchEvent) {
-      this.currentY = e.touches[0].clientY;
-      const deltaY = this.currentY - this.startY;
+      const y = e.touches[0].clientY;
+      const deltaY = y - this.startY;
+      const deltaX = e.touches[0].clientX - this.startX;
+
+      if (!this.dragEngaged) {
+        if (this.scrollAtTop && deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
+          this.dragEngaged = true;
+          if (this.sheet) this.sheet.style.transition = 'none';
+        } else {
+          return;
+        }
+      }
+
+      this.currentY = y;
       if (deltaY > 0 && this.sheet) {
         if (e.cancelable) {
           e.preventDefault();
@@ -644,9 +721,13 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
     }
 
     handleTouchEnd() {
-      if (!this.sheet) return;
+      if (!this.sheet || !this.dragEngaged) {
+        this.dragEngaged = false;
+        return;
+      }
+      this.dragEngaged = false;
       const deltaY = this.currentY - this.startY;
-      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
       
       if (deltaY > 150) {
         this.close();

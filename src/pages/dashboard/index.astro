@@ -1,10 +1,18 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import DashboardOverview from '../../components/features/dashboard/DashboardOverview.astro';
+import BlobBackground from '../../components/ui/BlobBackground.astro';
 ---
 
 <DashboardLayout title="Overview">
-  <section class="space-y-6">
-    <DashboardOverview />
-  </section>
+  <div class="relative min-h-screen overflow-hidden">
+    <BlobBackground positions={[
+      { top: '-5rem', left: '-4rem' },
+      { top: '55%', right: '-3.5rem' },
+      { bottom: '-2rem', right: '-3rem' }
+    ]} />
+    <section class="relative z-10 space-y-6">
+      <DashboardOverview />
+    </section>
+  </div>
 </DashboardLayout>
