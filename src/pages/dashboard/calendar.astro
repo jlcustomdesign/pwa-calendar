@@ -185,9 +185,9 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
           selectedTime: a.ora,
           selectedDate: a.data,
           location: a.pacienti?.locatie || 'Belaqva',
-          attendanceCount: a.pacienti?.sedinte_folosite || 1,
+          attendanceCount: a.pacienti?.sedinte_folosite ?? 0,
           totalSessions: a.pacienti?.sedinte_total || 10,
-          paymentStatus: a.pacienti?.achitat ? 'Paid fully' : 'Unpaid',
+          paymentStatus: a.pacienti?.achitat ? 'Achitat integral' : 'Neachitat',
         }));
       } catch (e) {
         console.error('Eroare citire programari din DB:', e);
