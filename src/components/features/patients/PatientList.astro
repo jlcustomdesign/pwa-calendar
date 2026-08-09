@@ -87,77 +87,15 @@
 
     constructor() {
       this.container = document.getElementById('patient-list-container');
+      this.clearOldLocalStorage();
       this.bindEvents();
       this.render();
     }
 
-    initMockPatients() {
-      if (!localStorage.getItem('mock_patients_initialized_v4')) {
-        const defaultPatients = [
-          {
-            "id": "pat_1",
-            "name": "Maria Popescu",
-            "phone": "0741234567",
-            "frequency": "2/week",
-            "plan": "Subscription",
-            "cost": "1200",
-            "paymentStatus": "Paid fully",
-            "location": "Belaqva",
-            "driveLink": "https://docs.google.com/document",
-            "totalSessions": 10
-          },
-          {
-            "id": "pat_2",
-            "name": "Ionut Radu",
-            "phone": "0722334455",
-            "frequency": "3/week",
-            "plan": "Subscription",
-            "cost": "1500",
-            "paymentStatus": "Unpaid",
-            "location": "Ghimbav",
-            "driveLink": "",
-            "totalSessions": 12
-          },
-          {
-            "id": "pat_3",
-            "name": "Elena Ionescu",
-            "phone": "0766778899",
-            "frequency": "1/week",
-            "plan": "One-time",
-            "cost": "150",
-            "paymentStatus": "Unpaid",
-            "location": "Belaqva",
-            "driveLink": "https://docs.google.com/document",
-            "totalSessions": 1
-          },
-          {
-            "id": "pat_4",
-            "name": "Alexandru Vasile",
-            "phone": "",
-            "frequency": "2/week",
-            "plan": "Subscription",
-            "cost": "1200",
-            "paymentStatus": "Paid: 600",
-            "location": "Ghimbav",
-            "driveLink": "https://docs.google.com/document",
-            "totalSessions": 10
-          },
-          {
-            "id": "pat_5",
-            "name": "Andreea Stan",
-            "phone": "0755443322",
-            "frequency": "3/week",
-            "plan": "Subscription",
-            "cost": "1600",
-            "paymentStatus": "Paid fully",
-            "location": "Belaqva",
-            "driveLink": "",
-            "totalSessions": 12
-          }
-        ];
-        localStorage.setItem('kineto_patients', JSON.stringify(defaultPatients));
-        localStorage.setItem('mock_patients_initialized_v4', 'true');
-      }
+    clearOldLocalStorage() {
+      // Curățare definitivă mock-uri vechi din localStorage
+      localStorage.removeItem('kineto_patients');
+      localStorage.removeItem('mock_patients_initialized_v4');
     }
 
     bindEvents() {
