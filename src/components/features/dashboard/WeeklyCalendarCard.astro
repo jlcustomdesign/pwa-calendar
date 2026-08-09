@@ -120,12 +120,18 @@ if (currentMonthData) {
   <!-- Header -->
   <div class="flex items-start justify-between mb-6 relative z-10">
     <div>
-      <div id="calendar-selected-label" class="text-xs font-bold uppercase tracking-widest text-text-muted/60 mb-1 transition-opacity duration-300">
-        {activeDayObj ? `${activeDayObj.fullDay}, ${activeDayObj.shortMonthName} ${activeDayObj.date}` : 'Azi'}
+      <div id="calendar-selected-label" class="flex items-center gap-2 mb-1">
+        <span class="text-xs font-bold uppercase tracking-widest text-text-muted/60 transition-opacity duration-300">
+          {activeDayObj ? `${activeDayObj.fullDay}, ${activeDayObj.shortMonthName} ${activeDayObj.date}` : 'Azi'}
+        </span>
       </div>
-      <h2 id="calendar-header-title" class="text-3xl font-extrabold text-black tracking-tight flex items-baseline gap-3">
-        <span>Azi</span>
+      <h2 class="text-3xl font-extrabold text-black tracking-tight flex items-baseline gap-3">
+        <span id="calendar-header-title">Azi</span>
         <span id="calendar-month-year" class="text-lg font-bold text-text-muted/50">{currentMonthData?.monthName} {currentMonthData?.year}</span>
+        <div class="ml-auto flex items-center text-lg font-bold text-brand-primary">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span id="live-clock" class="tabular-nums">--:--</span>
+        </div>
       </h2>
     </div>
     
@@ -214,6 +220,18 @@ if (currentMonthData) {
     if (currentMonthSection) {
       strip.scrollLeft = currentMonthSection.offsetLeft - 24;
     }
+
+    // Live clock logic
+    const clockEl = document.getElementById("live-clock");
+    function updateClock() {
+      if (!clockEl) return;
+      const d = new Date();
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      clockEl.textContent = `${h}:${m}`;
+    }
+    updateClock();
+    setInterval(updateClock, 10000); // update every 10s is enough for minutes
 
     function animatePillAndCircleDrop(target: HTMLButtonElement, isInitial = false, isMorphing = false, previousTarget: HTMLButtonElement | null = null) {
       if (!target || !pill || !circle) return;

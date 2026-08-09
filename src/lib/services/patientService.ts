@@ -19,21 +19,21 @@ export async function getPatients(filter?: {
 
   try {
     // Preluăm toate programările recente
-    const { data: recentAppts } = await supabase
+    const { data: recentAppts } = await (supabase as any)
       .from('programari')
       .select('pacient_id, data')
       .gte('data', iso30DaysAgo);
 
-    const activePatientIds = new Set((recentAppts || []).map(a => a.pacient_id));
+    const activePatientIds = new Set((recentAppts || []).map((a: any) => a.pacient_id));
 
     // Preluăm pacienții existenți
-    const { data: allPatients } = await supabase.from('pacienti').select('id, created_at, status_abonament');
+    const { data: allPatients } = await (supabase as any).from('pacienti').select('id, created_at, status_abonament');
     if (allPatients) {
-      for (const p of allPatients) {
+      for (const p of allPatients as any[]) {
         const isRecentCreated = new Date(p.created_at) >= date30DaysAgo;
         // Dacă nu are ședințe în ultimele 30 zile și nu a fost creat în ultimele 30 zile -> inactivați
         if (!activePatientIds.has(p.id) && !isRecentCreated && p.status_abonament !== 'inactiv') {
-          await supabase.from('pacienti').update({ status_abonament: 'inactiv' }).eq('id', p.id);
+          await (supabase as any).from('pacienti').update({ status_abonament: 'inactiv' }).eq('id', p.id);
         }
       }
     }
@@ -121,7 +121,7 @@ export async function addPatient(input: {
     notite:        input.notite ?? null,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('pacienti')
     .insert(payload)
     .select('id')
@@ -154,7 +154,7 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
     delete updates.name;
   }
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('pacienti')
     .update(updates)
     .eq('id', id);
@@ -164,7 +164,7 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
 
 // ── Marcare achitat / neachitat (PaymentSheet) ────────────────
 export async function setPaymentStatus(id: string, achitat: boolean) {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('pacienti')
     .update({ achitat })
     .eq('id', id);
@@ -175,14 +175,15 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
 // ── Adăugare plată custom (PaymentSheet) ──────────────────────
 export async function addPayment(id: string, amount: number, markAchitat: boolean) {
   // 1. Salvare plată direct în Supabase
-  const { error } = await supabase.from('plati').insert({
-    pacient_id: id,
-    suma: amount,
-    data_platii: new Date().toISOString().split('T')[0]
-  });
-
-  if (error) {
-    console.error('Eroare salvare plată Supabase:', error.message);
+  try {
+    const { error } = await supabase.from('plati').insert({
+      pacient_id: id,
+      suma: amount,
+      data_platii: new Date().toISOString().split('T')[0]
+    });
+    if (error) console.warn('Supabase plati warning:', error.message);
+  } catch (err) {
+    console.warn('Network or schema warning for Supabase plati:', err);
   }
 
   // 2. Obținem suma totală achitată și costul pacientului din Supabase
@@ -193,6 +194,8 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
   // 3. Dacă s-a atins costul total sau s-a cerut marcarea ca achitat, actualizăm statusul în Supabase
   if (markAchitat || (cost > 0 && totalPaid >= cost)) {
     await supabase.from('pacienti').update({ achitat: true }).eq('id', id);
+  } else {
+    await supabase.from('pacienti').update({ achitat: false }).eq('id', id);
   }
 }
 

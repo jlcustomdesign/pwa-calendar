@@ -54,25 +54,25 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
     });
 
     function createSessionCardHTML(session: any) {
-      const paymentStatus = session.paymentStatus || 'Unpaid';
+      const paymentStatus = session.paymentStatus || 'Neachitat';
       const locationStr = session.location || 'Ghimbav';
       const isGhimbav = locationStr.toLowerCase() === "ghimbav";
       const cardClasses = isGhimbav ? "bg-brand-secondary text-white" : "bg-brand-primary text-black";
 
       let paymentClass = '';
-      if (paymentStatus === 'Unpaid') {
+      if (paymentStatus === 'Neachitat') {
         paymentClass = 'bg-black text-white hover:bg-black/80 shadow-sm';
-      } else if (paymentStatus === 'Paid fully') {
+      } else if (paymentStatus === 'Achitat integral') {
         paymentClass = 'bg-white/40 text-black hover:bg-white/50';
       } else {
         paymentClass = 'bg-black/50 text-white hover:bg-black/60';
       }
       
       const gradientColors = isGhimbav ? "from-white/30 to-white" : "from-black/30 to-black";
-      const progressPercentage = Math.min(100, Math.round(((session.attendanceCount || 1) / (session.totalSessions || 10)) * 100));
+      const progressPercentage = Math.min(100, Math.round(((session.attendanceCount ?? 0) / (session.totalSessions || 10)) * 100));
 
       const timeStr = session.selectedTime || session.time || "08:00";
-      const patientNameStr = session.patientName || "Patient";
+      const patientNameStr = session.patientName || "Pacient";
       const timeParts = timeStr.split(':');
       const hourNum = parseInt(timeParts[0] || "0", 10);
       const minute = timeParts[1] || "00";
@@ -117,7 +117,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                   <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
                     <div class="h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
                   </div>
-                  <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${session.attendanceCount || 1}/${session.totalSessions || 10}</div>
+                  <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${session.attendanceCount ?? 0}/${session.totalSessions || 10}</div>
                 </div>
               </div>
 
@@ -140,17 +140,17 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                       <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
-                      Call
+                      Sună
                     </a>
                     <a href="#" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold" onclick="event.stopPropagation()">
                       <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                       </svg>
-                      Docs
+                      Dosar
                     </a>
                     <button 
                       class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl ${paymentClass} hover:opacity-80 active:scale-95 transition-all text-sm font-bold" 
-                      onclick="event.stopPropagation(); if (window.handlePaymentToggle) window.handlePaymentToggle('${session.patientId}', '${paymentStatus}')"
+                      onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${session.patientId}' } }))"
                     >
                       <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -236,6 +236,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
     }
 
     window.addEventListener('sessionsUpdated', renderTimeline);
+    window.addEventListener('patientsUpdated', renderTimeline);
     document.addEventListener('DOMContentLoaded', renderTimeline);
     document.addEventListener('astro:page-load', renderTimeline);
   </script>
