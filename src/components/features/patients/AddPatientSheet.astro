@@ -147,12 +147,17 @@
 </div>
 
 <script>
+  import { addPatient, updatePatient } from '../../../lib/services/patientService';
+
   class AddPatientSheetManager {
     sheet: HTMLElement | null;
     form: HTMLFormElement | null;
     overlay: HTMLElement | null = null;
     startY: number = 0;
     currentY: number = 0;
+    startX: number = 0;
+    dragEngaged: boolean = false;
+    scrollAtTop: boolean = true;
 
     constructor() {
       this.sheet = document.getElementById('add-patient-sheet');
@@ -176,10 +181,11 @@
     bindEvents() {
       if (!this.sheet) return;
 
-      const handle = this.sheet.querySelector('.cursor-grab');
-      handle?.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
-      handle?.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
-      handle?.addEventListener('touchend', () => this.handleTouchEnd());
+      // Swipe-down to dismiss from anywhere on the sheet — only engages on a
+      // clearly vertical downward swipe while the form is scrolled to the top
+      this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+      this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+      this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
 
       // We will move the window listener outside of bindEvents to avoid duplicates.
       // It is now handled in the init function.
@@ -298,7 +304,7 @@
       });
     }
 
-    savePatient(bookSession: boolean) {
+    async savePatient(bookSession: boolean) {
       if (!this.form) return;
       if (!this.form.checkValidity()) {
         this.form.reportValidity();
@@ -307,43 +313,42 @@
 
       const formData = new FormData(this.form);
       const patientId = formData.get('patientId') as string;
+      const patientName = formData.get('name') as string;
       
-      const patientData = {
-        id: patientId || 'pat_' + Date.now(),
-        name: formData.get('name') as string,
-        phone: formData.get('phone') as string,
-        plan: formData.get('plan') as string,
-        location: formData.get('location') as string,
+      const payload = {
+        name: patientName,
+        telefon: (formData.get('phone') as string) || '',
+        plan: (formData.get('plan') as any) || 'Subscription',
+        locatie: (formData.get('location') as any) || 'Belaqva',
         cost: formData.get('cost') ? Number(formData.get('cost')) : 0,
-        totalSessions: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
-        frequency: formData.get('frequency') as string,
-        paymentStatus: formData.get('paymentStatus') as string,
-        driveLink: formData.get('driveLink') as string,
+        sedinte_total: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
+        frecventa: (formData.get('frequency') as string) || '1/week',
+        achitat: formData.get('paymentStatus') === 'Paid fully' || formData.get('paymentStatus') === 'Paid',
+        drive_link: (formData.get('driveLink') as string) || '',
       };
 
-      let patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+      try {
+        if (patientId) {
+          await updatePatient(patientId, payload);
+        } else {
+          await addPatient(payload);
+        }
 
-      if (patientId) {
-        patients = patients.map((p: any) => p.id === patientId ? patientData : p);
-      } else {
-        patients.push(patientData);
-      }
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        this.close();
 
-      localStorage.setItem('kineto_patients', JSON.stringify(patients));
-      window.dispatchEvent(new CustomEvent('patientsUpdated'));
-      
-      this.close();
-
-      if (bookSession) {
-        // slight delay to let sheet close animation finish
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('openAddSession', {
-            detail: {
-              patientName: patientData.name,
-              showDateTime: true
-            }
-          }));
-        }, 300);
+        if (bookSession) {
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('openAddSession', {
+              detail: {
+                patientName: patientName,
+                showDateTime: true
+              }
+            }));
+          }, 300);
+        }
+      } catch (err: any) {
+        alert('Eroare la salvarea pacientului: ' + (err.message || err));
       }
     }
 
@@ -406,12 +411,30 @@
 
     handleTouchStart(e: TouchEvent) {
       this.startY = e.touches[0].clientY;
-      if (this.sheet) this.sheet.style.transition = 'none';
+      this.currentY = this.startY;
+      this.startX = e.touches[0].clientX;
+      this.dragEngaged = false;
+      // Only allow sheet drag when the scrollable form is at the top,
+      // otherwise the gesture should scroll the form instead
+      const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
+      this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
     }
 
     handleTouchMove(e: TouchEvent) {
-      this.currentY = e.touches[0].clientY;
-      const deltaY = this.currentY - this.startY;
+      const y = e.touches[0].clientY;
+      const deltaY = y - this.startY;
+      const deltaX = e.touches[0].clientX - this.startX;
+
+      if (!this.dragEngaged) {
+        if (this.scrollAtTop && deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
+          this.dragEngaged = true;
+          if (this.sheet) this.sheet.style.transition = 'none';
+        } else {
+          return;
+        }
+      }
+
+      this.currentY = y;
       if (deltaY > 0 && this.sheet) {
         if (e.cancelable) e.preventDefault();
         this.sheet.style.transform = `translateY(${deltaY}px)`;
@@ -419,9 +442,13 @@
     }
 
     handleTouchEnd() {
-      if (!this.sheet) return;
+      if (!this.sheet || !this.dragEngaged) {
+        this.dragEngaged = false;
+        return;
+      }
+      this.dragEngaged = false;
       const deltaY = this.currentY - this.startY;
-      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
       
       if (deltaY > 150) {
         this.close();

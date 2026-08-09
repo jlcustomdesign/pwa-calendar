@@ -4,10 +4,17 @@ import WeeklyCalendarCard from '../../components/features/dashboard/WeeklyCalend
 import AddEventBanner from '../../components/features/dashboard/AddEventBanner.astro';
 import SessionCard from '../../components/features/dashboard/SessionCard.astro';
 import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.astro';
+import BlobBackground from '../../components/ui/BlobBackground.astro';
 ---
 
 <DashboardLayout title="Calendar">
-  <div class="space-y-6 pb-24">
+  <div class="relative min-h-screen overflow-hidden">
+    <BlobBackground positions={[
+      { top: '-5rem', right: '-4rem' },
+      { top: '55%', left: '-4rem' },
+      { bottom: '-2rem', left: '-3.5rem' }
+    ]} />
+    <div class="relative z-10 space-y-6 pb-24">
     
     <!-- Top Section: Expandable Weekly/Monthly Calendar -->
     <WeeklyCalendarCard name="Dr. Maria" />
@@ -24,76 +31,15 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
       </div>
     </section>
   </div>
+  </div>
 
   <!-- Bottom Sheets -->
   <AddSessionSheet />
 
   <script>
-    declare global {
-      interface Window {
-        currentCalendarDate: string;
-      }
-    }
+    import { getAppointmentsByDate } from '../../lib/services/appointmentService';
+    import { getSettings } from '../../lib/services/settingsService';
 
-    import { getSettings } from '../../utils/settings';
-
-    function initDefaultSessions() {
-      const raw = localStorage.getItem('kineto_sessions');
-      let existing = raw ? JSON.parse(raw) : null;
-      
-      const isOldMockData = existing && Array.isArray(existing) && existing.length <= 4 && existing.some((s: any) => s.id === 'sess_1');
-      
-      if (!existing || !Array.isArray(existing) || existing.length === 0 || existing.some((s: any) => !s.id) || isOldMockData) {
-        // Generate dates for the upcoming week (Monday to Friday)
-        const d = new Date();
-        const offset = d.getDay() === 0 ? 1 : (8 - d.getDay()) % 7 || 7;
-        const nextMonday = new Date(d);
-        nextMonday.setDate(d.getDate() + offset);
-        
-        const getDayStr = (addDays: number) => {
-          const date = new Date(nextMonday);
-          date.setDate(nextMonday.getDate() + addDays);
-          return date.toISOString().split('T')[0];
-        };
-
-        const monStr = getDayStr(0);
-        const tueStr = getDayStr(1);
-        const wedStr = getDayStr(2);
-        const thuStr = getDayStr(3);
-        const friStr = getDayStr(4);
-        
-        const initial = [
-          // MONDAY
-          { id: "sess_m1", patientName: "Maria Popescu", selectedDate: monStr, selectedTime: "09:00", attendanceCount: 4, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
-          { id: "sess_m2", patientName: "Elena Stan", selectedDate: monStr, selectedTime: "11:30", attendanceCount: 8, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: false },
-          { id: "sess_m3", patientName: "Andrei Ionescu", selectedDate: monStr, selectedTime: "14:30", attendanceCount: 1, totalSessions: 10, location: "Belaqua", recurring: false, reminder: true },
-          { id: "sess_m4", patientName: "Ion Vasile", selectedDate: monStr, selectedTime: "16:00", attendanceCount: 6, totalSessions: 12, location: "Belaqua", recurring: true, reminder: true },
-          
-          // TUESDAY
-          { id: "sess_t1", patientName: "George Mihai", selectedDate: tueStr, selectedTime: "08:00", attendanceCount: 2, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
-          { id: "sess_t2", patientName: "Sofia Radu", selectedDate: tueStr, selectedTime: "10:00", attendanceCount: 5, totalSessions: 10, location: "Belaqua", recurring: true, reminder: true },
-          { id: "sess_t3", patientName: "Alexandru Constantin", selectedDate: tueStr, selectedTime: "15:00", attendanceCount: 9, totalSessions: 10, location: "Ghimbav", recurring: false, reminder: true },
-          { id: "sess_t4", patientName: "Maria Popescu", selectedDate: tueStr, selectedTime: "17:30", attendanceCount: 5, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: false },
-
-          // WEDNESDAY
-          { id: "sess_w1", patientName: "Elena Stan", selectedDate: wedStr, selectedTime: "09:00", attendanceCount: 9, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
-          { id: "sess_w2", patientName: "Victor Manea", selectedDate: wedStr, selectedTime: "12:00", attendanceCount: 3, totalSessions: 10, location: "Belaqua", recurring: true, reminder: true },
-          { id: "sess_w3", patientName: "Andrei Ionescu", selectedDate: wedStr, selectedTime: "14:30", attendanceCount: 2, totalSessions: 10, location: "Belaqua", recurring: false, reminder: true },
-          
-          // THURSDAY
-          { id: "sess_th1", patientName: "Ion Vasile", selectedDate: thuStr, selectedTime: "10:30", attendanceCount: 7, totalSessions: 12, location: "Belaqua", recurring: true, reminder: true },
-          { id: "sess_th2", patientName: "Sofia Radu", selectedDate: thuStr, selectedTime: "14:00", attendanceCount: 6, totalSessions: 10, location: "Belaqua", recurring: true, reminder: true },
-          { id: "sess_th3", patientName: "George Mihai", selectedDate: thuStr, selectedTime: "16:00", attendanceCount: 3, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: false },
-
-          // FRIDAY
-          { id: "sess_f1", patientName: "Maria Popescu", selectedDate: friStr, selectedTime: "08:30", attendanceCount: 6, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
-          { id: "sess_f2", patientName: "Alexandru Constantin", selectedDate: friStr, selectedTime: "11:00", attendanceCount: 10, totalSessions: 10, location: "Ghimbav", recurring: false, reminder: true },
-          { id: "sess_f3", patientName: "Victor Manea", selectedDate: friStr, selectedTime: "13:30", attendanceCount: 4, totalSessions: 10, location: "Belaqua", recurring: true, reminder: false },
-          { id: "sess_f4", patientName: "Elena Stan", selectedDate: friStr, selectedTime: "15:30", attendanceCount: 10, totalSessions: 10, location: "Ghimbav", recurring: true, reminder: true },
-        ];
-        localStorage.setItem('kineto_sessions', JSON.stringify(initial));
-      }
-    }
 
     function createSessionCardHTML(session: any) {
       const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
@@ -123,16 +69,6 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
       const minute = timeParts[1] || "00";
       const endHourStr = (hourNum + 1).toString().padStart(2, '0');
       const endTime = `${endHourStr}:${minute}`;
-      
-      const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const nowStr = now.toTimeString().slice(0, 5);
-      
-      // Use the calendar's currently viewed date to determine if this specific instance is in the past
-      const effectiveDate = window.currentCalendarDate || todayStr;
-      
-      // Session is past if the viewed date is before today, OR if it's today and the time has passed
-      const isPast = effectiveDate < todayStr || (effectiveDate === todayStr && timeStr < nowStr);
 
       return `
         <div class="w-full relative group" data-session-id="${session.id}">
@@ -162,16 +98,10 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
             <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
               
               <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
-                <div class="flex items-center justify-between w-full relative z-10">
+                <div class="flex items-center gap-4 w-full relative z-10">
                   <div class="flex-1 min-w-0">
-                    <h4 class="text-xl font-bold tracking-tight leading-none truncate pr-2">${patientNameStr}</h4>
+                    <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
                   </div>
-                  ${isPast ? `
-                    <div class="shrink-0 bg-black/10 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 border border-black/5">
-                      <svg class="w-3 h-3 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                      <span class="text-[10px] font-black uppercase tracking-widest opacity-80">Done</span>
-                    </div>
-                  ` : ''}
                 </div>
 
                 <div class="flex items-center gap-4 mt-5 relative z-10">
@@ -228,66 +158,65 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
       `;
     }
 
-    function renderTimeline() {
+    async function renderTimeline() {
       const container = document.getElementById('timeline-slots-container');
       if (!container) return;
 
-      initDefaultSessions();
-      const settings = getSettings();
-      const startHour = parseInt(settings.schedule.workStart.split(':')[0], 10) || 8;
-      const endHour = parseInt(settings.schedule.workEnd.split(':')[0], 10) || 18;
+      let settings: any = {};
+      let storedSessions: any[] = [];
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      try {
+        settings = await getSettings();
+        const appts = await getAppointmentsByDate(todayStr);
+        storedSessions = appts.map((a: any) => ({
+          id: a.id,
+          patientId: a.pacient_id,
+          patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
+          selectedTime: a.ora,
+          selectedDate: a.data,
+          location: a.locatie,
+          attendanceCount: a.pacienti?.sedinte_folosite || 1,
+          totalSessions: a.pacienti?.sedinte_total || 10,
+        }));
+      } catch (e) {
+        console.error('Eroare citire programari din DB:', e);
+      }
+
+      const startHour = parseInt((settings.work_start || '08:00').split(':')[0], 10) || 8;
+      const endHour = parseInt((settings.work_end || '19:00').split(':')[0], 10) || 19;
 
       const timeSlots: string[] = [];
       for (let h = startHour; h <= endHour; h++) {
         timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
       }
 
-      const storedSessions = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
-
       container.innerHTML = timeSlots.map((slotTimeStr) => {
         const slotHourStr = slotTimeStr.split(':')[0];
 
-        // Find session in this hour block FOR THE CURRENTLY SELECTED DATE
         const session = storedSessions.find((s: any) => {
-          const t = s.selectedTime || s.time || '';
-          let d = s.selectedDate || new Date().toISOString().split('T')[0];
-          
-          if (!t.startsWith(`${slotHourStr}:`)) return false;
-          
-          if (d === window.currentCalendarDate) return true;
-          
-          // If it's a recurring session, match the day of the week
-          if (s.recurring) {
-            const sd = new Date(d);
-            const cd = new Date(window.currentCalendarDate);
-            return sd.getDay() === cd.getDay();
-          }
-          
-          return false;
+          const t = s.selectedTime || '';
+          return t.startsWith(`${slotHourStr}:`);
         });
 
-        const displayTimeStr = session ? (session.selectedTime || session.time || slotTimeStr) : slotTimeStr;
+        const displayTimeStr = session ? session.selectedTime : slotTimeStr;
         const [hourStr, minStr] = displayTimeStr.split(':');
 
         return `
           <div class="relative flex items-stretch gap-4 min-h-[4.5rem]">
-            
-            <!-- Clock on 2 Rows -->
             <div class="w-14 shrink-0 text-center flex flex-col items-center justify-center select-none relative pt-1">
               <span class="text-2xl font-black text-black leading-none tracking-tight">${hourStr}</span>
               <span class="text-xs font-bold text-text-muted tracking-wider uppercase mt-0.5">${minStr || '00'}</span>
-              <div class="absolute right-0 top-1/2 -translate-y-1/2 left-full w-screen h-px bg-neutral-200/80 -z-10"></div>
             </div>
             
-            <!-- Slot Content -->
             <div class="flex-1 pb-2" data-slot-time="${slotTimeStr}">
               ${session ? createSessionCardHTML(session) : `
                 <button 
                   type="button"
                   class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
-                  onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', date: window.currentCalendarDate, showDateTime: false } }))"
+                  onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', showDateTime: false } }))"
                 >
-                  + Tap to add session
+                  + Adaugă ședință
                 </button>
               `}
             </div>
@@ -296,42 +225,8 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
       }).join('');
     }
 
-    // Global session handlers
-    (window as any).editSession = function(id: string) {
-      const stored = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
-      const session = stored.find((s: any) => s.id === id);
-      if (session) {
-        window.dispatchEvent(new CustomEvent('openAddSession', { 
-          detail: { 
-            isEdit: true, 
-            session, 
-            showDateTime: true 
-          } 
-        }));
-      }
-    };
-
-    (window as any).deleteSession = function(id: string) {
-      let stored = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
-      stored = stored.filter((s: any) => s.id !== id);
-      localStorage.setItem('kineto_sessions', JSON.stringify(stored));
-      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-    };
-
-    // Listeners
-    window.addEventListener('calendarDateSelected', (e: any) => {
-      window.currentCalendarDate = e.detail.date;
-      renderTimeline();
-    });
-    
     window.addEventListener('sessionsUpdated', renderTimeline);
-    document.addEventListener('DOMContentLoaded', () => {
-      if (!window.currentCalendarDate) window.currentCalendarDate = new Date().toISOString().split('T')[0];
-      renderTimeline();
-    });
-    document.addEventListener('astro:page-load', () => {
-      if (!window.currentCalendarDate) window.currentCalendarDate = new Date().toISOString().split('T')[0];
-      renderTimeline();
-    });
+    document.addEventListener('DOMContentLoaded', renderTimeline);
+    document.addEventListener('astro:page-load', renderTimeline);
   </script>
 </DashboardLayout>

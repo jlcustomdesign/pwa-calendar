@@ -62,6 +62,9 @@
     dateLabel: HTMLElement | null;
     startY: number;
     currentY: number;
+    startX: number = 0;
+    dragEngaged: boolean = false;
+    scrollAtTop: boolean = true;
 
     constructor() {
       this.sheet = document.getElementById('session-wrapup-sheet');
@@ -86,10 +89,11 @@
     bindEvents() {
       if (!this.sheet) return;
 
-      const handle = this.sheet.querySelector('.cursor-grab');
-      handle?.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
-      handle?.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
-      handle?.addEventListener('touchend', () => this.handleTouchEnd());
+      // Swipe-down to dismiss from anywhere on the sheet — only engages on a
+      // clearly vertical downward swipe while the form is scrolled to the top
+      this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+      this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+      this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
 
       // Open event
       window.addEventListener('openWrapUp', (e: any) => {
@@ -128,22 +132,44 @@
 
     handleTouchStart(e: TouchEvent) {
       this.startY = e.touches[0].clientY;
-      if (this.sheet) this.sheet.style.transition = 'none';
+      this.currentY = this.startY;
+      this.startX = e.touches[0].clientX;
+      this.dragEngaged = false;
+      // Only allow sheet drag when the scrollable form is at the top,
+      // otherwise the gesture should scroll the form instead
+      const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
+      this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
     }
 
     handleTouchMove(e: TouchEvent) {
-      this.currentY = e.touches[0].clientY;
-      const deltaY = this.currentY - this.startY;
+      const y = e.touches[0].clientY;
+      const deltaY = y - this.startY;
+      const deltaX = e.touches[0].clientX - this.startX;
+
+      if (!this.dragEngaged) {
+        if (this.scrollAtTop && deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
+          this.dragEngaged = true;
+          if (this.sheet) this.sheet.style.transition = 'none';
+        } else {
+          return;
+        }
+      }
+
+      this.currentY = y;
       if (deltaY > 0 && this.sheet) {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         this.sheet.style.transform = `translateY(${deltaY}px)`;
       }
     }
 
     handleTouchEnd() {
-      if (!this.sheet) return;
+      if (!this.sheet || !this.dragEngaged) {
+        this.dragEngaged = false;
+        return;
+      }
+      this.dragEngaged = false;
       const deltaY = this.currentY - this.startY;
-      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
       
       if (deltaY > 150) {
         this.close();

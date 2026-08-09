@@ -1,18 +1,15 @@
 ---
 ---
-<div id="payment-sheet" class="fixed inset-0 z-50 pointer-events-none transition-opacity duration-300 opacity-0 hidden">
-  <div id="payment-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto transition-opacity duration-300"></div>
-  <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]">
-    <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8"></div>
+<div id="payment-sheet" class="fixed inset-0 z-50 pointer-events-none hidden">
+  <div id="payment-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto transition-opacity duration-500 opacity-0"></div>
+  <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]">
+    <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8 cursor-grab active:cursor-grabbing" id="payment-drag-handle"></div>
     
     <div class="flex items-center justify-between mb-8">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">Payment Status</h2>
         <p class="text-neutral-500 font-medium mt-1" id="payment-subtitle">Select payment completion</p>
       </div>
-      <button type="button" class="w-10 h-10 flex items-center justify-center rounded-full bg-black/5 hover:bg-black/10 active:scale-95 transition-all text-neutral-500" id="close-payment">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
     </div>
 
     <!-- View 1: Initial Options -->
@@ -77,6 +74,10 @@
     private currentPatientId: string | null = null;
     private previousAmount: number = 0;
     private isOpen = false;
+    private startY = 0;
+    private currentY = 0;
+    private startX = 0;
+    private dragEngaged = false;
 
     constructor() {
       this.sheet = document.getElementById('payment-sheet');
@@ -101,8 +102,13 @@
       }) as EventListener);
 
       // Close handlers
-      document.getElementById('close-payment')?.addEventListener('click', () => this.close());
       this.backdrop?.addEventListener('click', () => this.close());
+
+      // Swipe-down to dismiss — works from anywhere on the sheet,
+      // as long as the gesture is a clearly vertical downward swipe
+      this.content?.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+      this.content?.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+      this.content?.addEventListener('touchend', () => this.handleTouchEnd());
 
       // Initial Options Action handlers
       document.getElementById('btn-partially-paid')?.addEventListener('click', () => {
@@ -221,6 +227,51 @@
       this.close();
     }
 
+    private handleTouchStart(e: TouchEvent) {
+      this.startY = e.touches[0].clientY;
+      this.currentY = this.startY;
+      this.startX = e.touches[0].clientX;
+      this.dragEngaged = false;
+    }
+
+    private handleTouchMove(e: TouchEvent) {
+      const y = e.touches[0].clientY;
+      const deltaY = y - this.startY;
+      const deltaX = e.touches[0].clientX - this.startX;
+
+      if (!this.dragEngaged) {
+        // Engage only on a clearly vertical, downward swipe — taps and
+        // horizontal gestures pass through untouched
+        if (deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
+          this.dragEngaged = true;
+          if (this.content) this.content.style.transition = 'none';
+        } else {
+          return;
+        }
+      }
+
+      this.currentY = y;
+      if (deltaY > 0 && this.content) {
+        if (e.cancelable) e.preventDefault();
+        this.content.style.transform = `translateY(${deltaY}px)`;
+      }
+    }
+
+    private handleTouchEnd() {
+      if (!this.content || !this.dragEngaged) {
+        this.dragEngaged = false;
+        return;
+      }
+      this.dragEngaged = false;
+      const deltaY = this.currentY - this.startY;
+      this.content.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+      if (deltaY > 150) {
+        this.close();
+      } else {
+        this.content.style.transform = 'translateY(0)';
+      }
+    }
+
     private open() {
       if (!this.sheet || !this.content || !this.backdrop) return;
       this.isOpen = true;
@@ -229,7 +280,9 @@
       // Trigger reflow
       void this.sheet.offsetWidth;
       
-      this.sheet.classList.remove('opacity-0');
+      // Fade the backdrop element itself (same pattern as the other sheets) —
+      // fading a parent wrapper would disable the backdrop-blur mid-animation
+      this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
     }
 
@@ -237,7 +290,11 @@
       if (!this.sheet || !this.content || !this.backdrop || !this.isOpen) return;
       this.isOpen = false;
       
-      this.sheet.classList.add('opacity-0');
+      // Clear any inline drag styles so the class-based transition takes over
+      this.content.style.transition = '';
+      this.content.style.transform = '';
+      
+      this.backdrop.classList.add('opacity-0');
       this.content.classList.add('translate-y-full');
       
       // Remove focus to prevent keyboard from staying open on mobile
@@ -251,7 +308,7 @@
           this.currentPatientId = null;
           this.resetView(); // reset to default options when closed
         }
-      }, 400);
+      }, 500);
     }
   }
 

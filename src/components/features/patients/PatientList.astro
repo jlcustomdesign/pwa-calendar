@@ -4,20 +4,53 @@
 
 <div class="mb-6 space-y-4">
   <!-- Search Bar and Add Button -->
-  <div class="flex gap-3">
-    <div class="relative flex-1">
+  <div class="flex gap-3" id="patient-search-row">
+    <div class="relative flex-1 min-w-0">
       <input type="text" id="patient-search" placeholder="Search patients..." class="w-full bg-white rounded-full py-3 pl-12 pr-4 text-black focus:outline-none focus:ring-2 focus:ring-brand-primary border border-black/5 shadow-sm font-medium h-[52px]" />
       <svg class="w-5 h-5 absolute left-4 top-[16px] text-black/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
     </div>
     <button 
+      id="add-patient-btn"
       onclick="window.dispatchEvent(new CustomEvent('openAddPatient'))"
-      class="w-[52px] h-[52px] shrink-0 rounded-full bg-black text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+      class="h-[52px] shrink-0 rounded-full bg-black text-white flex items-center justify-center shadow-lg active:scale-95"
     >
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
       </svg>
+      <span class="add-label font-bold text-sm">Adaugă</span>
     </button>
   </div>
+
+  <style>
+    /* Pill <-> circle morph for the Adaugă button while searching */
+    #add-patient-btn {
+      width: auto;
+      padding: 0 20px;
+      transition: width 0.6s cubic-bezier(0.32, 0.72, 0, 1),
+                  padding 0.6s cubic-bezier(0.32, 0.72, 0, 1),
+                  transform 0.15s ease;
+    }
+    #add-patient-btn .add-label {
+      display: inline-block;
+      max-width: 90px;
+      opacity: 1;
+      margin-left: 8px;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: max-width 0.55s cubic-bezier(0.32, 0.72, 0, 1),
+                  opacity 0.3s ease,
+                  margin-left 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    #patient-search-row.search-active #add-patient-btn {
+      width: 52px !important; /* !important overrides the inline measured width so it can transition */
+      padding: 0;
+    }
+    #patient-search-row.search-active #add-patient-btn .add-label {
+      max-width: 0;
+      opacity: 0;
+      margin-left: 0;
+    }
+  </style>
   <!-- Filters -->
   <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar" style="-ms-overflow-style: none; scrollbar-width: none;">
     <button class="filter-btn active px-5 py-2 rounded-full bg-black text-white text-sm font-bold whitespace-nowrap active:scale-95 transition-transform" data-filter="all">All</button>
@@ -45,13 +78,14 @@
 </template>
 
 <script>
+  import { getPatients, deletePatient as deletePatientDB } from '../../../lib/services/patientService';
+
   class PatientListManager {
     container: HTMLElement | null;
     currentSearchQuery: string = '';
     currentFilter: string = 'all';
 
     constructor() {
-      this.initMockPatients();
       this.container = document.getElementById('patient-list-container');
       this.bindEvents();
       this.render();
@@ -129,16 +163,11 @@
     bindEvents() {
       // Prevent duplicate global listeners
       if (!(window as any)._patientEventsBound) {
-        window.addEventListener('patientsUpdated', () => {
-          if (this.container && document.body.contains(this.container)) {
-            this.render();
-          } else {
-            // Re-find container if we navigated away and back
-            const c = document.getElementById('patient-list-container');
-            if (c) {
-              this.container = c;
-              this.render();
-            }
+        window.addEventListener('patientsUpdated', async () => {
+          const c = document.getElementById('patient-list-container');
+          if (c) {
+            this.container = c;
+            await this.render();
           }
         });
         
@@ -175,6 +204,30 @@
           this.currentSearchQuery = (e.target as HTMLInputElement).value.toLowerCase();
           this.render();
         });
+
+        // Morph the Adaugă pill into a circle while the search is active
+        const searchRow = document.getElementById('patient-search-row');
+        const addBtn = document.getElementById('add-patient-btn') as HTMLElement | null;
+        let addBtnResetTimer: number | undefined;
+        searchInput.addEventListener('focus', () => {
+          if (!searchRow || !addBtn) return;
+          clearTimeout(addBtnResetTimer);
+          // Pin the current width first — CSS can't transition from width:auto,
+          // so measure it, force a reflow, then let the class animate to 52px
+          addBtn.style.width = `${addBtn.offsetWidth}px`;
+          void addBtn.offsetWidth;
+          searchRow.classList.add('search-active');
+        });
+        searchInput.addEventListener('blur', () => {
+          if (!searchRow || !addBtn) return;
+          if (!searchInput.value.trim()) {
+            searchRow.classList.remove('search-active');
+            // Restore natural pill width once the morph-back transition finished
+            addBtnResetTimer = window.setTimeout(() => {
+              addBtn.style.width = '';
+            }, 650);
+          }
+        });
       }
 
       const filterBtns = document.querySelectorAll('.filter-btn');
@@ -194,12 +247,14 @@
       });
     }
 
-    deletePatient(id: string) {
-      let patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
-      patients = patients.filter((p: any) => p.id !== id);
-      localStorage.setItem('kineto_patients', JSON.stringify(patients));
-      this.render();
-      window.dispatchEvent(new CustomEvent('patientsUpdated'));
+    async deletePatient(id: string) {
+      try {
+        await deletePatientDB(id);
+        this.render();
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+      } catch (err: any) {
+        alert('Eroare la ștergerea pacientului: ' + err.message);
+      }
     }
 
     editPatient(id: string) {
@@ -224,31 +279,24 @@
       }));
     }
 
-    render() {
+    async render() {
       if (!this.container) return;
 
-      const template = document.getElementById('patient-empty-state') as HTMLTemplateElement;
-      let patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
-      const allSessions = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
-
-      // Apply Search
-      if (this.currentSearchQuery) {
-        patients = patients.filter((p: any) => p.name.toLowerCase().includes(this.currentSearchQuery));
-      }
-
-      // Apply Filters
-      if (this.currentFilter === 'ghimbav') {
-        patients = patients.filter((p: any) => p.location?.toLowerCase() === 'ghimbav');
-      } else if (this.currentFilter === 'belaqva') {
-        patients = patients.filter((p: any) => p.location?.toLowerCase() === 'belaqva' || p.location?.toLowerCase() === 'belaqua');
-      } else if (this.currentFilter === 'unpaid') {
-        patients = patients.filter((p: any) => p.paymentStatus === 'Unpaid');
+      let patients: any[] = [];
+      try {
+        patients = await getPatients({
+          locatie: this.currentFilter === 'ghimbav' ? 'Ghimbav' : (this.currentFilter === 'belaqva' ? 'Belaqva' : undefined),
+          achitat: this.currentFilter === 'unpaid' ? false : undefined,
+          search: this.currentSearchQuery || undefined
+        });
+      } catch (e) {
+        console.error('Eroare citire pacienti:', e);
       }
 
       if (patients.length === 0) {
         const template = document.getElementById('patient-empty-state') as HTMLTemplateElement;
         this.container.innerHTML = '';
-        this.container.appendChild(template.content.cloneNode(true));
+        if (template) this.container.appendChild(template.content.cloneNode(true));
         return;
       }
 
@@ -274,8 +322,8 @@
           paymentClass = 'bg-black/50 text-white hover:bg-black/60';
         }
 
-        const attendanceCount = allSessions.filter((s: any) => s.patientName === patient.name).length;
-        const totalSessions = patient.totalSessions || 10;
+        const attendanceCount = patient.sedinte_folosite || 0;
+        const totalSessions = patient.sedinte_total || 10;
         const progressPercentage = Math.min(100, Math.round((attendanceCount / totalSessions) * 100));
 
         const cardWrapper = document.createElement('div');
@@ -466,7 +514,7 @@
           isSwiping = false;
           
           const diffX = currentX - startX;
-          card.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          card.style.transition = 'transform 300ms cubic-bezier(0.32, 0.72, 0, 1)';
 
           if (Math.abs(diffX) < 10) {
             // Was just a tap
