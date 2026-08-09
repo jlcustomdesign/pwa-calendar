@@ -194,6 +194,9 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
 <script>
   import { getSettings } from '../../../utils/settings';
 
+  import { getPatients } from '../../../lib/services/patientService';
+  import { createAppointment } from '../../../lib/services/appointmentService';
+
   class AddSessionSheetManager {
     sheet: HTMLElement | null;
     form: HTMLFormElement | null;
@@ -247,12 +250,17 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
       this.populatePatients();
     }
 
-    populatePatients() {
+    async populatePatients() {
       const patientList = document.getElementById('patient-list');
       if (patientList) {
         patientList.innerHTML = '';
         
-        let patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+        let patients: any[] = [];
+        try {
+          patients = await getPatients();
+        } catch (e) {
+          console.error(e);
+        }
         
         if (patients.length === 0) {
           patientList.innerHTML = '<div class="p-4 text-center text-sm font-bold text-text-muted bg-black/5 rounded-2xl">No patients found. Please add a patient first.</div>';
@@ -261,6 +269,7 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
 
         patients.forEach((patient: any, index: number) => {
           const catName = patient.name;
+          const patientId = patient.id;
           const colorClass = index % 2 === 0 
               ? 'bg-brand-primary text-black' 
               : 'bg-brand-secondary text-white';
@@ -269,7 +278,7 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
           label.className = 'relative cursor-pointer w-full';
           
           label.innerHTML = `
-            <input type="radio" name="patientId" value="${catName}" data-color-class="${colorClass}" class="peer sr-only" required />
+            <input type="radio" name="patientId" value="${patientId}" data-patient-name="${catName}" data-color-class="${colorClass}" class="peer sr-only" required />
             <div class="px-6 py-4 rounded-[1.5rem] font-bold text-lg transition-opacity flex items-center justify-between ${colorClass}">
               <span>${catName}</span>
               <div class="w-6 h-6 rounded-full border-2 border-current opacity-0 peer-checked:opacity-100 flex items-center justify-center transition-opacity">
@@ -290,7 +299,7 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
           radio.addEventListener('change', (e: any) => {
             if (e.target.checked) {
               if (selectedPatientNameSpan) {
-                selectedPatientNameSpan.textContent = e.target.value;
+                selectedPatientNameSpan.textContent = e.target.getAttribute('data-patient-name') || 'Patient';
               }
               
               if (showPatientsBtn) {
@@ -564,57 +573,28 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
         this.open();
       });
 
-      this.form?.addEventListener('submit', (e) => {
+      this.form?.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         if (!this.form) return;
         
         const formData = new FormData(this.form);
-        const sessionId = (document.getElementById('sessionId') as HTMLInputElement)?.value;
-        const patientName = formData.get('patientId') as string;
+        const patientId = formData.get('patientId') as string;
         const selectedTime = (formData.get('selectedTime') as string) || this.timeInput?.value || '08:00';
         const selectedDate = (formData.get('selectedDate') as string) || this.dateInput?.value || new Date().toISOString().split('T')[0];
-        const recurring = formData.get('recurring') === 'on';
-        const reminder = formData.get('reminder') === 'on';
 
-        let saved = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
-        
-        if (sessionId) {
-          // Update existing session
-          saved = saved.map((s: any) => {
-            if (s.id === sessionId) {
-              return {
-                ...s,
-                patientName,
-                selectedTime,
-                selectedDate,
-                recurring,
-                reminder
-              };
-            }
-            return s;
+        try {
+          await createAppointment({
+            pacient_id: patientId,
+            data: selectedDate,
+            ora: selectedTime,
           });
-        } else {
-          // Add new session
-          const newSession = {
-            id: 'sess_' + Date.now(),
-            patientName,
-            selectedTime,
-            selectedDate,
-            recurring,
-            reminder,
-            location: Math.random() > 0.5 ? 'Ghimbav' : 'Belaqua',
-            attendanceCount: 1,
-            totalSessions: 10
-          };
-          saved.push(newSession);
+
+          window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+          this.close();
+        } catch (err: any) {
+          alert('Eroare la crearea programării: ' + (err.message || err));
         }
-
-        localStorage.setItem('kineto_sessions', JSON.stringify(saved));
-
-        // Dispatch updated event
-        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-        this.close();
       });
 
       // Handle showing patient list

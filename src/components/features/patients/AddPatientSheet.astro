@@ -147,6 +147,8 @@
 </div>
 
 <script>
+  import { addPatient, updatePatient } from '../../../lib/services/patientService';
+
   class AddPatientSheetManager {
     sheet: HTMLElement | null;
     form: HTMLFormElement | null;
@@ -298,7 +300,7 @@
       });
     }
 
-    savePatient(bookSession: boolean) {
+    async savePatient(bookSession: boolean) {
       if (!this.form) return;
       if (!this.form.checkValidity()) {
         this.form.reportValidity();
@@ -307,43 +309,42 @@
 
       const formData = new FormData(this.form);
       const patientId = formData.get('patientId') as string;
+      const patientName = formData.get('name') as string;
       
-      const patientData = {
-        id: patientId || 'pat_' + Date.now(),
-        name: formData.get('name') as string,
-        phone: formData.get('phone') as string,
-        plan: formData.get('plan') as string,
-        location: formData.get('location') as string,
+      const payload = {
+        name: patientName,
+        telefon: (formData.get('phone') as string) || '',
+        plan: (formData.get('plan') as any) || 'Subscription',
+        locatie: (formData.get('location') as any) || 'Belaqva',
         cost: formData.get('cost') ? Number(formData.get('cost')) : 0,
-        totalSessions: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
-        frequency: formData.get('frequency') as string,
-        paymentStatus: formData.get('paymentStatus') as string,
-        driveLink: formData.get('driveLink') as string,
+        sedinte_total: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
+        frecventa: (formData.get('frequency') as string) || '1/week',
+        achitat: formData.get('paymentStatus') === 'Paid fully' || formData.get('paymentStatus') === 'Paid',
+        drive_link: (formData.get('driveLink') as string) || '',
       };
 
-      let patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
+      try {
+        if (patientId) {
+          await updatePatient(patientId, payload);
+        } else {
+          await addPatient(payload);
+        }
 
-      if (patientId) {
-        patients = patients.map((p: any) => p.id === patientId ? patientData : p);
-      } else {
-        patients.push(patientData);
-      }
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        this.close();
 
-      localStorage.setItem('kineto_patients', JSON.stringify(patients));
-      window.dispatchEvent(new CustomEvent('patientsUpdated'));
-      
-      this.close();
-
-      if (bookSession) {
-        // slight delay to let sheet close animation finish
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('openAddSession', {
-            detail: {
-              patientName: patientData.name,
-              showDateTime: true
-            }
-          }));
-        }, 300);
+        if (bookSession) {
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('openAddSession', {
+              detail: {
+                patientName: patientName,
+                showDateTime: true
+              }
+            }));
+          }, 300);
+        }
+      } catch (err: any) {
+        alert('Eroare la salvarea pacientului: ' + (err.message || err));
       }
     }
 

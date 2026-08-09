@@ -17,22 +17,22 @@
       <!-- Card 1: Ședințe -->
       <div class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
         <div class="flex items-baseline gap-1">
-          <span class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">4</span>
+          <span id="today-done" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">0</span>
           <span class="text-xl font-bold text-text-muted opacity-40">/</span>
-          <span class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">6</span>
+          <span id="today-total" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">0</span>
         </div>
         <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Ședințe</div>
       </div>
 
       <!-- Card 2: Absent -->
       <div class="bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
-        <div class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">1</div>
+        <div id="today-absent" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">0</div>
         <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Absent</div>
       </div>
 
       <!-- Card 3: Încasat azi -->
       <div class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
-        <div class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">600</div>
+        <div id="today-income" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">0</div>
         <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON</div>
       </div>
     </div>
@@ -116,35 +116,35 @@
 
       <!-- Card 1: Timp activ vs. anulări -->
       <div class="bg-surface-card rounded-[2.2rem] p-5 shadow-sm border border-border-subtle/70 space-y-3">
-        <!-- Bară de progres duală (sus de tot: galben timp activ, roz anulări) -->
+        <!-- Bară de progres duală -->
         <div class="w-full h-3.5 bg-surface-base rounded-full overflow-hidden flex items-center p-0.5 border border-border-subtle/40">
-          <div class="h-full bg-brand-primary rounded-full transition-all duration-1000" style="width: 85%"></div>
-          <div class="h-full bg-brand-secondary/80 rounded-full transition-all duration-1000 ml-0.5" style="width: 15%"></div>
+          <div id="week-progress-bar" class="h-full bg-brand-primary rounded-full transition-all duration-1000" style="width: 100%"></div>
+          <div id="week-cancel-bar" class="h-full bg-brand-secondary/80 rounded-full transition-all duration-1000 ml-0.5" style="width: 0%"></div>
         </div>
 
         <!-- Procent + "timp activ" în negru -->
         <div>
           <div class="text-2xl sm:text-3xl font-black text-text-main">
-            85% <span class="text-base sm:text-lg font-black text-text-main">timp activ</span>
+            <span id="week-active-time">100%</span> <span class="text-base sm:text-lg font-black text-text-main">timp activ</span>
           </div>
         </div>
 
-        <!-- Dedesubt de tot: 15% anulări în același stil negru -->
+        <!-- Dedesubt: anulări -->
         <div>
           <div class="text-2xl sm:text-3xl font-black text-text-main">
-            15% <span class="text-base sm:text-lg font-black text-text-main">anulări</span>
+            <span id="week-cancel-time">0%</span> <span class="text-base sm:text-lg font-black text-text-main">anulări</span>
           </div>
         </div>
       </div>
 
-      <!-- 2 Carduri Separate pentru Pacienți Neachitați (Grid 2 coloane ca la Azi) -->
+      <!-- 2 Carduri Separate pentru Pacienți Neachitați -->
       <div class="grid grid-cols-2 gap-3">
         <!-- Card 1: Număr Pacienți Neachitați -->
         <a
           href="/dashboard/patients"
           class="block bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40 group active:scale-[0.98]"
         >
-          <div class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">2</div>
+          <div id="unpaid-count" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">0</div>
           <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Neachitați</div>
         </a>
 
@@ -153,7 +153,7 @@
           href="/dashboard/patients"
           class="block bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40 group active:scale-[0.98]"
         >
-          <div class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">300</div>
+          <div id="unpaid-total" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">0</div>
           <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON neachitați</div>
         </a>
       </div>
@@ -170,17 +170,17 @@
       <h2 class="text-xl sm:text-2xl font-black text-text-main">Lunar</h2>
     </div>
 
-    <!-- 2 Carduri Separate pentru Lunar (Grid 2 coloane ca la Azi & Restanțe) -->
+    <!-- 2 Carduri Separate pentru Lunar -->
     <div class="grid grid-cols-2 gap-3">
       <!-- Card 1: Venit Lunar -->
       <div class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
-        <div class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">9.600</div>
+        <div id="month-income" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">0</div>
         <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON</div>
       </div>
 
       <!-- Card 2: Ședințe Făcute Lunar -->
       <div class="bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
-        <div class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">64</div>
+        <div id="month-sessions" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">0</div>
         <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Ședințe făcute</div>
       </div>
     </div>
@@ -188,8 +188,55 @@
 
 </div>
 
-<!-- Script Interactiv pentru Deplasarea Punctului Roz la Apăsarea Fiecărei Zile -->
 <script>
+  import { getTodayStats, getWeekStats, getMonthStats, getUnpaidPatients } from '../../../lib/services/reportsService';
+
+  async function initReportsView() {
+    try {
+      const today = await getTodayStats();
+      const week = await getWeekStats();
+      const month = await getMonthStats();
+      const unpaid = await getUnpaidPatients();
+
+      // Update Today
+      const todayDone = document.getElementById('today-done');
+      const todayTotal = document.getElementById('today-total');
+      const todayAbsent = document.getElementById('today-absent');
+      const todayIncome = document.getElementById('today-income');
+
+      if (todayDone) todayDone.textContent = today.finalizate.toString();
+      if (todayTotal) todayTotal.textContent = today.sedinte_total.toString();
+      if (todayAbsent) todayAbsent.textContent = today.absente.toString();
+      if (todayIncome) todayIncome.textContent = today.venit_azi.toString();
+
+      // Update Unpaid
+      const unpaidCount = document.getElementById('unpaid-count');
+      const unpaidTotal = document.getElementById('unpaid-total');
+      if (unpaidCount) unpaidCount.textContent = unpaid.count.toString();
+      if (unpaidTotal) unpaidTotal.textContent = unpaid.totalRON.toString();
+
+      // Update Month
+      const monthIncome = document.getElementById('month-income');
+      const monthSessions = document.getElementById('month-sessions');
+      if (monthIncome) monthIncome.textContent = month.venit.toString();
+      if (monthSessions) monthSessions.textContent = month.finalizate.toString();
+
+      // Update Week Time active
+      const weekActiveTime = document.getElementById('week-active-time');
+      const weekCancelTime = document.getElementById('week-cancel-time');
+      const weekProgressBar = document.getElementById('week-progress-bar');
+      const weekCancelBar = document.getElementById('week-cancel-bar');
+
+      if (weekActiveTime) weekActiveTime.textContent = `${week.prezenta}%`;
+      if (weekCancelTime) weekCancelTime.textContent = `${100 - week.prezenta}%`;
+      if (weekProgressBar) weekProgressBar.style.width = `${week.prezenta}%`;
+      if (weekCancelBar) weekCancelBar.style.width = `${100 - week.prezenta}%`;
+
+    } catch (e) {
+      console.error('Eroare încărcare rapoarte Supabase:', e);
+    }
+  }
+
   function initInteractiveHatchChart() {
     const dayBtns = document.querySelectorAll('.day-btn');
     const dot = document.getElementById('pink-dot');
@@ -198,13 +245,12 @@
 
     if (!dot || !dotGlow || !valueDisplay || dayBtns.length === 0) return;
 
-    // Coordonatele exacte pe curbă pentru fiecare zi (L, M, Mi, J, V)
     const dayCoords = [
-      { cx: 30,  cy: 82, val: '450 <span class="text-sm font-sans font-black text-text-main">RON</span>' }, // Luni
-      { cx: 105, cy: 45, val: '600 <span class="text-sm font-sans font-black text-text-main">RON</span>' }, // Marți
-      { cx: 175, cy: 30, val: '750 <span class="text-sm font-sans font-black text-text-main">RON</span>' }, // Miercuri
-      { cx: 245, cy: 52, val: '600 <span class="text-sm font-sans font-black text-text-main">RON</span>' }, // Joi (Default)
-      { cx: 330, cy: 15, val: '900 <span class="text-sm font-sans font-black text-text-main">RON</span>' }  // Vineri
+      { cx: 30,  cy: 82, val: '450 <span class="text-sm font-sans font-black text-text-main">RON</span>' },
+      { cx: 105, cy: 45, val: '600 <span class="text-sm font-sans font-black text-text-main">RON</span>' },
+      { cx: 175, cy: 30, val: '750 <span class="text-sm font-sans font-black text-text-main">RON</span>' },
+      { cx: 245, cy: 52, val: '600 <span class="text-sm font-sans font-black text-text-main">RON</span>' },
+      { cx: 330, cy: 15, val: '900 <span class="text-sm font-sans font-black text-text-main">RON</span>' }
     ];
 
     dayBtns.forEach((btn) => {
@@ -213,16 +259,13 @@
         const coord = dayCoords[idx];
 
         if (coord) {
-          // Mută punctul roz pe coordonata zilei
           dot.setAttribute('cx', coord.cx.toString());
           dot.setAttribute('cy', coord.cy.toString());
           dotGlow.setAttribute('cx', coord.cx.toString());
           dotGlow.setAttribute('cy', coord.cy.toString());
 
-          // Actualizează suma afișată sus
           valueDisplay.innerHTML = coord.val;
 
-          // Actualizează stilul butonului activ
           dayBtns.forEach(b => b.classList.remove('text-brand-secondary', 'font-black'));
           dayBtns.forEach(b => b.classList.add('text-text-muted'));
           btn.classList.remove('text-text-muted');
@@ -232,6 +275,12 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', initInteractiveHatchChart);
-  document.addEventListener('astro:page-load', initInteractiveHatchChart);
+  document.addEventListener('DOMContentLoaded', () => {
+    initInteractiveHatchChart();
+    initReportsView();
+  });
+  document.addEventListener('astro:page-load', () => {
+    initInteractiveHatchChart();
+    initReportsView();
+  });
 </script>
