@@ -12,8 +12,29 @@ export async function getSettings(): Promise<Settings> {
     .select('*')
     .single();
 
-  if (error) throw new Error('Eroare la citirea setărilor: ' + error.message);
-  return data;
+  if (error || !data) {
+    return {
+      id: 'default',
+      work_start: '08:00',
+      work_end: '18:00',
+      zile_lucratoare: [1, 2, 3, 4, 5],
+      lunch_start: '13:00',
+      lunch_end: '14:00',
+      session_duration: 50,
+      break_buffer: 10,
+      default_price: 150,
+      whatsapp_template: 'Salut {nume}! Îți reamintim că mai ai {ramase} ședințe rămase. Te așteptăm cu drag!',
+      categories: ['Kinetoterapie', 'Masaj', 'Recuperare'],
+      reminder_threshold: 2,
+      updated_at: new Date().toISOString()
+    } as Settings;
+  }
+
+  return {
+    ...data,
+    work_start: data.work_start || '08:00',
+    work_end: data.work_end || '18:00',
+  };
 }
 
 // ── Salvare settings (UPDATE pe singurul rând existent) ────────

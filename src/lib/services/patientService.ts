@@ -5,12 +5,42 @@
 import { supabase } from '../supabase';
 import type { PacientInsert, PacientUpdate, PacientView } from '../database.types';
 
-// ── Listare pacienți (cu filtru opțional) ─────────────────────
+// ── Listare pacienți (cu filtru opțional și verificare inactivitate 30 zile) ─────────────────────
 export async function getPatients(filter?: {
   locatie?: 'Belaqva' | 'Ghimbav';
   achitat?: boolean;
   search?: string;
+  inactivi?: boolean;
 }): Promise<PacientView[]> {
+  // 1. Verificăm și marcăm pacienții neprogramați de peste 30 de zile ca inactivi
+  const date30DaysAgo = new Date();
+  date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
+  const iso30DaysAgo = date30DaysAgo.toISOString().split('T')[0];
+
+  try {
+    // Preluăm toate programările recente
+    const { data: recentAppts } = await supabase
+      .from('programari')
+      .select('pacient_id, data')
+      .gte('data', iso30DaysAgo);
+
+    const activePatientIds = new Set((recentAppts || []).map(a => a.pacient_id));
+
+    // Preluăm pacienții existenți
+    const { data: allPatients } = await supabase.from('pacienti').select('id, created_at, status_abonament');
+    if (allPatients) {
+      for (const p of allPatients) {
+        const isRecentCreated = new Date(p.created_at) >= date30DaysAgo;
+        // Dacă nu are ședințe în ultimele 30 zile și nu a fost creat în ultimele 30 zile -> inactivați
+        if (!activePatientIds.has(p.id) && !isRecentCreated && p.status_abonament !== 'inactiv') {
+          await supabase.from('pacienti').update({ status_abonament: 'inactiv' }).eq('id', p.id);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Eroare verificare inactivitate pacienti:', e);
+  }
+
   let query = supabase
     .from('pacienti_view')
     .select('*')
@@ -21,6 +51,13 @@ export async function getPatients(filter?: {
   if (filter?.search) {
     // Caută în prenume sau nume (case-insensitive)
     query = query.ilike('name', `%${filter.search}%`);
+  }
+
+  // Filtrăm după starea de activitate dacă e specificat (implicit exclude inactivii)
+  if (filter?.inactivi === true) {
+    query = query.eq('status_abonament', 'inactiv');
+  } else if (filter?.inactivi === false) {
+    query = query.neq('status_abonament', 'inactiv');
   }
 
   const { data, error } = await query;
@@ -55,9 +92,20 @@ export async function addPatient(input: {
   drive_link?:   string;
   notite?:       string;
 }): Promise<string> { // returnează ID-ul pacientului creat
-  const parts   = input.name.trim().split(/\s+/);
+  const nameTrimmed = input.name.trim();
+  const parts   = nameTrimmed.split(/\s+/);
   const prenume = parts[0] ?? '';
   const nume    = parts.slice(1).join(' ') || prenume; // fallback dacă e un singur cuvânt
+
+  // Verificare nume duplicat
+  const { data: existing } = await supabase
+    .from('pacienti_view')
+    .select('id, name')
+    .ilike('name', nameTrimmed);
+
+  if (existing && existing.length > 0) {
+    throw new Error(`Există deja un pacient cu numele "${nameTrimmed}". Te rugăm să adaugi o deosebire (ex. o inițială sau locația) pentru a salva corect!`);
+  }
 
   const payload: PacientInsert = {
     prenume,
@@ -87,8 +135,21 @@ export async function addPatient(input: {
 export async function updatePatient(id: string, updates: PacientUpdate & { name?: string }) {
   // Dacă se trimite `name`, îl splitim în prenume + nume
   if (updates.name) {
-    const parts       = updates.name.trim().split(/\s+/);
-    updates.prenume   = parts[0];
+    const nameTrimmed = updates.name.trim();
+    
+    // Check duplicate name on edit (excluding current patient id)
+    const { data: existing } = await supabase
+      .from('pacienti_view')
+      .select('id, name')
+      .ilike('name', nameTrimmed)
+      .neq('id', id);
+
+    if (existing && existing.length > 0) {
+      throw new Error(`Există deja un alt pacient cu numele "${nameTrimmed}". Te rugăm să adaugi o deosebire pentru a-l distinge!`);
+    }
+
+    const parts       = nameTrimmed.split(/\s+/);
+    updates.prenume   = parts[0] ?? '';
     updates.nume      = parts.slice(1).join(' ') || parts[0];
     delete updates.name;
   }
@@ -121,26 +182,65 @@ export async function deletePatient(id: string) {
   if (error) throw new Error('Eroare la ștergerea pacientului: ' + error.message);
 }
 
-// ── Export CSV — pacienți + date financiare ───────────────────
+// ── Export CSV complet — pacienți + agendă programări ─────────────
 export async function exportPatientsCSV(): Promise<string> {
+  // 1. Preluăm pacienții reali din Supabase
   const patients = await getPatients();
+  
+  // 2. Preluăm toate programările reale din Supabase
+  const { data: programari } = await supabase
+    .from('programari')
+    .select(`
+      data, ora, locatie, status, note, motiv,
+      pacienti ( prenume, nume, telefon )
+    `)
+    .order('data', { ascending: false })
+    .order('ora', { ascending: true });
 
-  const headers = ['Nume', 'Telefon', 'Locatie', 'Plan', 'Frecventa',
-                   'Cost (RON)', 'Sedinte Total', 'Sedinte Ramase', 'Achitat', 'Status'];
-  const rows = patients.map(p => [
-    p.name,
-    p.telefon,
-    p.locatie,
-    p.plan,
-    p.frecventa,
-    p.cost.toString(),
-    p.sedinte_total.toString(),
-    p.sedinte_ramase.toString(),
-    p.achitat ? 'Da' : 'Nu',
-    p.status_abonament,
-  ]);
+  const rows: string[][] = [];
 
-  return '\uFEFF' + [headers, ...rows]
-    .map(row => row.map(f => `"${f}"`).join(';'))
+  // Secțiunea 1: PACIENȚI
+  rows.push(['=== LISTA PACIENȚI ===']);
+  rows.push(['Nume Complet', 'Telefon', 'Locatie', 'Plan', 'Frecventa', 'Cost (RON)', 'Sedinte Total', 'Sedinte Folosite', 'Sedinte Ramase', 'Achitat', 'Status Abonament']);
+  
+  patients.forEach(p => {
+    rows.push([
+      p.name,
+      p.telefon || '-',
+      p.locatie || '-',
+      p.plan || '-',
+      p.frecventa || '-',
+      (p.cost || 0).toString(),
+      (p.sedinte_total || 0).toString(),
+      (p.sedinte_folosite || 0).toString(),
+      (p.sedinte_ramase || 0).toString(),
+      p.achitat ? 'Da' : 'Nu',
+      p.status_abonament || '-'
+    ]);
+  });
+
+  rows.push([]); // Rând gol de separare
+
+  // Secțiunea 2: AGENDA PROGRAMĂRI
+  rows.push(['=== AGENDA ȘEDINȚE / PROGRAMĂRI ===']);
+  rows.push(['Data', 'Ora', 'Pacient', 'Telefon', 'Locatie', 'Status Ședință', 'Note / Observații', 'Motiv Anulare/Absență']);
+
+  (programari || []).forEach((pr: any) => {
+    const pacientName = pr.pacienti ? `${pr.pacienti.prenume} ${pr.pacienti.nume}` : 'Pacient Necunoscut';
+    const telefon = pr.pacienti?.telefon || '-';
+    rows.push([
+      pr.data,
+      pr.ora,
+      pacientName,
+      telefon,
+      pr.locatie || '-',
+      pr.status || '-',
+      pr.note || '-',
+      pr.motiv || '-'
+    ]);
+  });
+
+  return '\uFEFF' + rows
+    .map(row => row.map(f => `"${(f || '').replace(/"/g, '""')}"`).join(';'))
     .join('\n');
 }

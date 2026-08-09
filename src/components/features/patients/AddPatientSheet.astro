@@ -348,7 +348,12 @@
           }, 300);
         }
       } catch (err: any) {
-        alert('Eroare la salvarea pacientului: ' + (err.message || err));
+        const msg = err.message || err.toString();
+        if (msg.includes('Există deja')) {
+          alert(`⚠️ Atenție!\n\n${msg}`);
+        } else {
+          alert('Eroare la salvarea pacientului: ' + msg);
+        }
       }
     }
 

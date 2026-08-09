@@ -424,6 +424,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
 <script>
   import { getSettings as getSettingsDB, saveSettings as saveSettingsDB, getProfile, saveProfile } from '../../../lib/services/settingsService';
+  import { exportPatientsCSV } from '../../../lib/services/patientService';
 
   async function initSubSectionLogic() {
     // Oprire/blocare scroll pagină dacă este deschisă o sub-categorie
@@ -800,6 +801,27 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       if (displaySpan) displaySpan.textContent = formatted;
 
       closeTimeModal();
+    });
+
+    // Export Excel / CSV
+    document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
+      try {
+        const csvContent = await exportPatientsCSV();
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const todayStr = new Date().toISOString().split('T')[0];
+        a.href = url;
+        a.download = `Raport_Kineto_Calendar_${todayStr}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Raportul Excel a fost descărcat cu succes!');
+      } catch (err: any) {
+        showToast('Eroare la export: ' + (err?.message || 'necunoscută'));
+        console.error(err);
+      }
     });
 
     // Form Submit

@@ -73,14 +73,18 @@ const allMonths = Array.from({ length: totalMonths }).map((_, monthIndex) => {
       currentMonday.setDate(currentMonday.getDate() + 7);
   }
   
+  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+
   if (isCurrentMonth) {
       let foundActive = false;
-      weeks.forEach(w => w.days.forEach(d => {
-          if (d.isToday) {
-              d.active = true;
-              foundActive = true;
-          }
-      }));
+      if (!isWeekend) {
+        weeks.forEach(w => w.days.forEach(d => {
+            if (d.isToday) {
+                d.active = true;
+                foundActive = true;
+            }
+        }));
+      }
       if (!foundActive) {
           weeks.forEach(w => {
               if (w.isCurrentWeek) {

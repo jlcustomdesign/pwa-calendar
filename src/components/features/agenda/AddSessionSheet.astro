@@ -1,16 +1,23 @@
 ---
 const todayStr = new Date().toISOString().split('T')[0];
 
-// Generating upcoming dates
-const upcomingDates = Array.from({length: 14}).map((_, i) => {
+// Generating upcoming work dates (Monday to Friday only)
+const upcomingDates: Array<{ value: string; displayDay: string; displayDate: number }> = [];
+let dayCounter = 0;
+while (upcomingDates.length < 14 && dayCounter < 30) {
   const d = new Date();
-  d.setDate(d.getDate() + i);
-  return {
-    value: d.toISOString().split('T')[0],
-    displayDay: i === 0 ? 'Today' : d.toLocaleDateString('default', { weekday: 'short' }),
-    displayDate: d.getDate()
-  };
-});
+  d.setDate(d.getDate() + dayCounter);
+  const dayOfWeek = d.getDay();
+  // Include only working days: Monday (1) through Friday (5)
+  if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+    upcomingDates.push({
+      value: d.toISOString().split('T')[0],
+      displayDay: upcomingDates.length === 0 && dayCounter === 0 ? 'Today' : d.toLocaleDateString('default', { weekday: 'short' }),
+      displayDate: d.getDate()
+    });
+  }
+  dayCounter++;
+}
 ---
 
 <div 
@@ -37,6 +44,14 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
             <span id="selected-patient-name">Select Patient</span>
           </span>
         </button>
+
+        <!-- Search Patient Input (Visible when patient picker opens) -->
+        <input 
+          type="text" 
+          id="search-patient-input" 
+          placeholder="Caută pacient..." 
+          class="hidden w-full px-4 py-3 rounded-2xl bg-black/5 border border-black/10 text-sm font-bold text-black focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 placeholder:text-text-muted mb-2 transition-all"
+        />
 
         <div id="patient-list" class="hidden flex-col gap-3 pb-2 overflow-y-auto max-h-[40vh] no-scrollbar">
           <!-- Populated by JS -->
@@ -227,17 +242,19 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
     }
 
     populateDynamicContent() {
-      // Populate time slots
+      // Populate time slots with default fallback 08:00 - 18:00
       const timeContainer = document.getElementById('time-slots-container');
       if (timeContainer) {
         timeContainer.innerHTML = '';
-        const startHour = parseInt(this.settings.schedule.workStart.split(':')[0], 10);
-        const endHour = parseInt(this.settings.schedule.workEnd.split(':')[0], 10);
+        const workStartStr = this.settings?.work_start || this.settings?.schedule?.workStart || '08:00';
+        const workEndStr   = this.settings?.work_end   || this.settings?.schedule?.workEnd   || '18:00';
+
+        const startHour = parseInt(workStartStr.split(':')[0], 10) || 8;
+        const endHour   = parseInt(workEndStr.split(':')[0], 10)   || 18;
         
         let i = 0;
         for (let h = startHour; h <= endHour; h++) {
           ['00'].forEach(m => {
-            
             const timeStr = `${h.toString().padStart(2, '0')}:${m}`;
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -257,24 +274,30 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
       if (patientList) {
         patientList.innerHTML = '';
         
-        let patients: any[] = [];
+        let rawPatients: any[] = [];
         try {
-          patients = await getPatients();
+          rawPatients = await getPatients();
         } catch (e) {
           console.error(e);
         }
         
+        // Asigură că fiecare pacient apare o SINGURĂ dată (deduplicare după ID)
+        const patients = Array.from(new Map(rawPatients.map(p => [p.id, p])).values());
+
         if (patients.length === 0) {
           patientList.innerHTML = '<div class="p-4 text-center text-sm font-bold text-text-muted bg-black/5 rounded-2xl">No patients found. Please add a patient first.</div>';
           return;
         }
 
-        patients.forEach((patient: any, index: number) => {
+        patients.forEach((patient: any) => {
           const catName = patient.name;
           const patientId = patient.id;
-          const colorClass = index % 2 === 0 
-              ? 'bg-brand-primary text-black' 
-              : 'bg-brand-secondary text-white';
+          const isGhimbav = (patient.locatie || '').toLowerCase() === 'ghimbav';
+          
+          // Roz pt Ghimbav, Galben pt Belaqva
+          const colorClass = isGhimbav 
+              ? 'bg-brand-secondary text-white' 
+              : 'bg-brand-primary text-black';
           
           const label = document.createElement('label');
           label.className = 'relative cursor-pointer w-full';
@@ -309,6 +332,9 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
                 showPatientsBtn.className = `w-full flex items-center justify-between px-6 py-4 rounded-[1.5rem] font-bold text-lg hover:brightness-95 active:scale-95 transition-all ${colorClass}`;
                 showPatientsBtn.classList.remove('hidden');
               }
+
+              const searchInput = document.getElementById('search-patient-input');
+              if (searchInput) searchInput.classList.add('hidden');
 
               patientList?.classList.add('hidden');
               patientList?.classList.remove('flex');
@@ -547,17 +573,18 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
       this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
       this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
 
-      // Listen for custom event to open sheet
-      window.addEventListener('openAddSession', (e: any) => {
-        this.populatePatients(); // Ensure patient list is up to date
+      if (!(window as any)._addSessionEventsBound) {
+        (window as any)._addSessionEventsBound = true;
+        window.addEventListener('openAddSession', (e: any) => {
+          this.populatePatients(); // Ensure patient list is up to date
 
-        const detail = e.detail || {};
-        const isEdit = !!detail.isEdit;
-        const session = detail.session;
-        const showDateTime = !!detail.showDateTime || isEdit;
-        const timeStr = detail.time || session?.selectedTime || '08:00';
-        const dateStr = detail.date || session?.selectedDate;
-        const patientName = detail.patientName || session?.patientName;
+          const detail = e.detail || {};
+          const isEdit = !!detail.isEdit;
+          const session = detail.session;
+          const showDateTime = !!detail.showDateTime || isEdit;
+          const timeStr = detail.time || session?.selectedTime || '08:00';
+          const dateStr = detail.date || session?.selectedDate;
+          const patientName = detail.patientName || session?.patientName;
 
         const titleEl = document.getElementById('sheet-title');
         const submitBtnEl = document.getElementById('submit-btn');
@@ -631,6 +658,7 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
 
         this.open();
       });
+      }
 
       this.form?.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -656,16 +684,35 @@ const upcomingDates = Array.from({length: 14}).map((_, i) => {
         }
       });
 
-      // Handle showing patient list
+      // Handle showing patient list and search input
       const showPatientsBtn = document.getElementById('show-patients-btn');
       const patientList = document.getElementById('patient-list');
+      const searchPatientInput = document.getElementById('search-patient-input') as HTMLInputElement | null;
+
       showPatientsBtn?.addEventListener('click', () => {
         showPatientsBtn.classList.add('hidden');
+        if (searchPatientInput) {
+          searchPatientInput.classList.remove('hidden');
+          searchPatientInput.value = '';
+          searchPatientInput.focus();
+        }
         patientList?.classList.remove('hidden');
         patientList?.classList.add('flex');
       });
 
-      // Patient selection logic moved to populatePatients
+      searchPatientInput?.addEventListener('input', (e: any) => {
+        const query = e.target.value.toLowerCase().trim();
+        const labels = patientList?.querySelectorAll('label');
+        labels?.forEach((label) => {
+          const radio = label.querySelector('input[type="radio"]') as HTMLInputElement | null;
+          const patientName = (radio?.getAttribute('data-patient-name') || '').toLowerCase();
+          if (!query || patientName.includes(query)) {
+            label.classList.remove('hidden');
+          } else {
+            label.classList.add('hidden');
+          }
+        });
+      });
     }
 
     open() {

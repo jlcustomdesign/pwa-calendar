@@ -184,7 +184,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       }
 
       const startHour = parseInt((settings.work_start || '08:00').split(':')[0], 10) || 8;
-      const endHour = parseInt((settings.work_end || '19:00').split(':')[0], 10) || 19;
+      const endHour = parseInt((settings.work_end || '18:00').split(':')[0], 10) || 18;
 
       const timeSlots: string[] = [];
       for (let h = startHour; h <= endHour; h++) {
