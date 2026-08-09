@@ -1,7 +1,7 @@
--- Script Migrare Supabase pentru Plăți Parțiale și Statistici
--- Execută acest script în Supabase SQL Editor: https://supabase.com/dashboard/project/dlklegayibhgnrxnqapm/sql/new
+-- Script Migrare Supabase Garantat (fără erori de conflict pe VIEW)
+-- Execută în: https://supabase.com/dashboard/project/dlklegayibhgnrxnqapm/sql/new
 
--- 1. Creează tabela de plăți (plăți parțiale + statistici)
+-- 1. Creează tabela de plăți
 CREATE TABLE IF NOT EXISTS public.plati (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pacient_id UUID NOT NULL REFERENCES public.pacienti(id) ON DELETE CASCADE,
@@ -10,13 +10,16 @@ CREATE TABLE IF NOT EXISTS public.plati (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Activează permisiunile RLS
+-- 2. Permisiuni RLS
 ALTER TABLE public.plati ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow all access to plati" ON public.plati;
 CREATE POLICY "Allow all access to plati" ON public.plati FOR ALL USING (true) WITH CHECK (true);
 
--- 3. Actualizează vizualizarea pacienți pentru calculul automat al veniturilor
-CREATE OR REPLACE VIEW public.pacienti_view AS
+-- 3. Șterge vizualizarea existentă cu CASCADE pentru a preveni erori de tipul "cannot change name/order of view column"
+DROP VIEW IF EXISTS public.pacienti_view CASCADE;
+
+-- 4. Re-creează vizualizarea pacienți cu câmpul suma_incasata
+CREATE VIEW public.pacienti_view AS
 SELECT 
     p.*,
     (p.prenume || ' ' || p.nume) AS name,
