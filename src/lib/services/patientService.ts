@@ -174,42 +174,63 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
 
 // ── Adăugare plată custom (PaymentSheet) ──────────────────────
 export async function addPayment(id: string, amount: number, markAchitat: boolean) {
-  // 1. Inserăm plata în tabelul plati dacă acesta există
-  const { error: platiError } = await (supabase as any)
-    .from('plati')
-    .insert({
+  // 1. Persistăm local întotdeauna ca fallback instant
+  if (typeof window !== 'undefined') {
+    const key = `kineto_plati_${id}`;
+    try {
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      existing.push({ amount, date: new Date().toISOString() });
+      localStorage.setItem(key, JSON.stringify(existing));
+    } catch (e) {
+      console.warn('Eroare salvare plată local:', e);
+    }
+  }
+
+  // 2. Încercăm salvarea în Supabase plati fără a opri fluxul dacă tabelul lipsește
+  try {
+    await (supabase as any).from('plati').insert({
       pacient_id: id,
       suma: amount
     });
-    
-  if (platiError && !platiError.message?.includes('Could not find the table')) {
-    throw new Error('Eroare la adăugarea plății: ' + platiError.message);
+  } catch (err) {
+    console.warn('Tabelul plati nu este creat în Supabase încă, s-a folosit fallback local:', err);
   }
 
-  // 2. Dacă s-a cerut marcarea ca achitat sau dacă suma e adăugată, actualizăm pacientul
-  if (markAchitat) {
-    const { error: updateError } = await (supabase as any)
-      .from('pacienti')
-      .update({ achitat: true })
-      .eq('id', id);
-      
-    if (updateError) throw new Error('Eroare la actualizarea statusului: ' + updateError.message);
+  // 3. Obținem suma totală achitată și costul pacientului
+  const totalPaid = await getPatientPayments(id);
+  const patient = await getPatient(id);
+  const cost = patient?.cost || 0;
+
+  // 4. Dacă s-a atins costul total sau s-a cerut marcarea ca achitat, actualizăm statusul
+  if (markAchitat || (cost > 0 && totalPaid >= cost)) {
+    await (supabase as any).from('pacienti').update({ achitat: true }).eq('id', id);
   }
 }
 
 // ── Obținere plăți pacient ────────────────────────────────────
 export async function getPatientPayments(id: string): Promise<number> {
-  try {
-    const { data, error } = await (supabase as any)
-      .from('plati')
-      .select('suma')
-      .eq('pacient_id', id);
-      
-    if (error) return 0;
-    return data ? data.reduce((total: number, plata: any) => total + (plata.suma || 0), 0) : 0;
-  } catch {
-    return 0;
+  let localTotal = 0;
+  if (typeof window !== 'undefined') {
+    try {
+      const key = `kineto_plati_${id}`;
+      const items = JSON.parse(localStorage.getItem(key) || '[]');
+      localTotal = items.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0);
+    } catch (e) {
+      localTotal = 0;
+    }
   }
+
+  let dbTotal = 0;
+  try {
+    const { data, error } = await (supabase as any).from('plati').select('suma').eq('pacient_id', id);
+    if (!error && data) {
+      dbTotal = data.reduce((total: number, plata: any) => total + (plata.suma || 0), 0);
+    }
+  } catch {
+    dbTotal = 0;
+  }
+
+  return Math.max(localTotal, dbTotal);
 }
 
 // ── Ștergere pacient ──────────────────────────────────────────

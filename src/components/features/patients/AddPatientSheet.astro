@@ -99,7 +99,7 @@
 
       <!-- Total Sessions -->
       <div>
-        <label class="block text-sm font-bold text-text-muted mb-2">Total Sessions Included</label>
+        <label class="block text-sm font-bold text-text-muted mb-2">Număr Total Ședințe</label>
         <input 
           type="number" 
           name="totalSessions" 
@@ -109,19 +109,19 @@
         />
       </div>
 
-      <!-- Payment Status -->
+      <!-- Status Plată -->
       <div>
-        <label class="block text-sm font-bold text-text-muted mb-2">Payment Status</label>
-        <input type="hidden" name="paymentStatus" id="patientPaymentStatus" value="Unpaid" />
+        <label class="block text-sm font-bold text-text-muted mb-2">Status Plată</label>
+        <input type="hidden" name="paymentStatus" id="patientPaymentStatus" value="Neachitat" />
         <div class="flex flex-wrap gap-2">
-          <button type="button" data-payment="Unpaid" class="px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Unpaid</button>
-          <button type="button" data-payment="Paid" class="px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Paid</button>
+          <button type="button" data-payment="Neachitat" class="px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Neachitat</button>
+          <button type="button" data-payment="Achitat" class="px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Achitat</button>
         </div>
       </div>
 
       <!-- Drive Link -->
       <div>
-        <label class="block text-sm font-bold text-text-muted mb-2">Drive Link (Optional)</label>
+        <label class="block text-sm font-bold text-text-muted mb-2">Link Dosar / Drive (Opțional)</label>
         <div class="relative">
           <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
           <input 
@@ -138,10 +138,10 @@
 
   <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-8 flex gap-3">
     <button type="button" id="save-patient-btn" class="flex-1 py-4 rounded-2xl bg-black/5 text-black font-bold text-sm active:scale-95 transition-transform border border-black/10">
-      Save Patient
+      Salvează Pacient
     </button>
     <button type="button" id="save-and-book-btn" class="flex-[2] py-4 rounded-2xl bg-black text-white font-bold text-sm active:scale-95 transition-transform shadow-lg">
-      Save & Book Session
+      Salvează & Programează
     </button>
   </div>
 </div>
