@@ -37,7 +37,7 @@ export async function updateAppointment(id: string, updates: {
   ora?: string;
   locatie?: 'Belaqva' | 'Ghimbav';
 }) {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('programari')
     .update(updates)
     .eq('id', id);
@@ -51,7 +51,7 @@ export async function getAppointmentsByDate(date: string): Promise<Programare[]>
     .from('programari')
     .select(`
       *,
-      pacienti ( prenume, nume, telefon, locatie, sedinte_ramase, status_abonament )
+      pacienti ( prenume, nume, telefon, locatie, sedinte_ramase, status_abonament, sedinte_folosite, sedinte_total, achitat )
     `)
     .eq('data', date)
     .order('ora', { ascending: true });
@@ -105,7 +105,7 @@ export async function createAppointment(input: {
     status:     'programat',
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('programari')
     .insert(payload)
     .select('id')
@@ -119,7 +119,7 @@ export async function createAppointment(input: {
 // ── Finalizare sesiune (SessionWrapUpSheet → Save & Close) ────
 // Triggerul `incrementeaza_sedinte_folosite` rulează automat
 export async function completeSession(id: string, note?: string) {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('programari')
     .update({ status: 'finalizat', note: note ?? null })
     .eq('id', id);
@@ -129,7 +129,7 @@ export async function completeSession(id: string, note?: string) {
 
 // ── Marcare absent ────────────────────────────────────────────
 export async function markAbsent(id: string, motiv?: string) {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('programari')
     .update({ status: 'absent', motiv: motiv ?? null })
     .eq('id', id);
@@ -139,7 +139,7 @@ export async function markAbsent(id: string, motiv?: string) {
 
 // ── Anulare programare ────────────────────────────────────────
 export async function cancelAppointment(id: string, motiv?: string) {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('programari')
     .update({ status: 'anulat', motiv: motiv ?? null })
     .eq('id', id);
@@ -149,7 +149,7 @@ export async function cancelAppointment(id: string, motiv?: string) {
 
 // ── Reprogramare (rebook next week din WrapUp) ────────────────
 export async function rebookNextWeek(originalId: string): Promise<string> {
-  const { data: orig, error: fetchErr } = await supabase
+  const { data: orig, error: fetchErr } = await (supabase as any)
     .from('programari')
     .select('pacient_id, data, ora, locatie')
     .eq('id', originalId)
