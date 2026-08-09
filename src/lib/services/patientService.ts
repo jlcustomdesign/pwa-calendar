@@ -213,6 +213,25 @@ export async function getPatientPayments(id: string): Promise<number> {
 }
 
 
+// ── Resetează/Șterge toate plățile pacientului ─────────────────
+export async function resetPayments(id: string) {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(`kineto_plati_${id}`);
+    } catch (e) {
+      console.warn('Eroare ștergere plăți local:', e);
+    }
+  }
+
+  try {
+    await (supabase as any).from('plati').delete().eq('pacient_id', id);
+  } catch (err) {
+    console.warn('Eroare ștergere plăți Supabase:', err);
+  }
+
+  await (supabase as any).from('pacienti').update({ achitat: false }).eq('id', id);
+}
+
 // ── Ștergere pacient ──────────────────────────────────────────
 export async function deletePatient(id: string) {
   const { error } = await supabase

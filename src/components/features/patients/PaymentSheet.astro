@@ -27,6 +27,13 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </button>
+
+      <button type="button" id="btn-reset-payment" class="w-full py-4 px-6 rounded-2xl bg-rose-100 text-rose-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
+        <span>Resetează Plata (Neachitat)</span>
+        <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
     </div>
 
     <!-- View 2: Custom Amount Form -->
@@ -60,7 +67,7 @@
 </div>
 
 <script>
-  import { getPatient, setPaymentStatus, addPayment, getPatientPayments } from '../../../lib/services/patientService';
+  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments } from '../../../lib/services/patientService';
 
   class PaymentSheetManager {
     private sheet: HTMLElement | null;
@@ -118,6 +125,7 @@
         this.showCustomView();
       });
       document.getElementById('btn-fully-paid')?.addEventListener('click', () => this.handleFullyPaid());
+      document.getElementById('btn-reset-payment')?.addEventListener('click', () => this.handleResetPayment());
 
       // Custom Form Handlers
       document.getElementById('btn-cancel-custom')?.addEventListener('click', () => {
@@ -202,6 +210,17 @@
         this.close();
       } catch (err: any) {
         alert('Eroare la actualizarea plății: ' + (err.message || err));
+      }
+    }
+
+    private async handleResetPayment() {
+      if (!this.currentPatientId) return;
+      try {
+        await resetPayments(this.currentPatientId);
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        this.close();
+      } catch (err: any) {
+        alert('Eroare la resetarea plății: ' + (err.message || err));
       }
     }
     
