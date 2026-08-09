@@ -571,7 +571,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     // 5. Reminders
     const cbLastSession = document.getElementById('reminder-last-session-checkbox') as HTMLInputElement | null;
     const txtTemplate   = document.getElementById('whatsapp-template') as HTMLTextAreaElement | null;
-    if (cbLastSession) cbLastSession.checked = true; // reminder_threshold > 0
+    if (cbLastSession) cbLastSession.checked = (settings.reminder_threshold ?? 2) > 0;
     if (txtTemplate)   txtTemplate.value     = settings.whatsapp_template || '';
 
     // 6. Categories
