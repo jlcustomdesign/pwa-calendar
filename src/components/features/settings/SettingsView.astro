@@ -346,36 +346,19 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       <!-- 7. Formular Backup & Export Date -->
       {section === 'backup' && (
         <section class="space-y-4">
-          <!-- Card 1: Salvare Automată în Baza de Date Cloud -->
-          <div class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm border border-border-subtle/50 space-y-3">
-            <div class="flex items-center justify-between gap-4">
-              <div>
-                <h3 class="text-lg sm:text-xl font-bold text-text-main">Salvare automată în baza de date</h3>
-                <p class="text-xs sm:text-sm font-semibold text-text-muted mt-1">Toate datele tale sunt salvate și securizate automat în cloud la fiecare modificare.</p>
-              </div>
-              <div class="w-9 h-9 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            </div>
-          </div>
 
           <!-- Card 2: Export Raport Excel / CSV -->
           <div class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm border border-border-subtle/50 space-y-4">
             <div>
               <h3 class="text-lg sm:text-xl font-bold text-text-main">Export date în Excel (.csv)</h3>
-              <p class="text-xs sm:text-sm font-semibold text-text-muted mt-1">Descarcă lista completă de pacienți, numere de telefon, pachete de ședințe și încasări într-un fișier Excel.</p>
+              <p class="text-xs sm:text-sm font-semibold text-text-muted mt-1">Descarcă rapid datele pacienților și încasările în format Excel.</p>
             </div>
 
             <button
               type="button"
               id="btn-export-excel"
-              class="w-full py-4 px-6 rounded-full bg-brand-secondary hover:brightness-105 text-white font-extrabold text-base shadow-md shadow-brand-secondary/20 active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+              class="w-full py-4 px-6 rounded-full bg-brand-secondary hover:brightness-105 text-white font-extrabold text-base shadow-md shadow-brand-secondary/20 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
             >
-              <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
               <span>Descarcă raport Excel (.csv)</span>
             </button>
           </div>
@@ -440,9 +423,9 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 </div>
 
 <script>
-  import { getSettings, saveSettings, type AppSettings } from '../../../utils/settings';
+  import { getSettings as getSettingsDB, saveSettings as saveSettingsDB, getProfile, saveProfile } from '../../../lib/services/settingsService';
 
-  function initSubSectionLogic() {
+  async function initSubSectionLogic() {
     // Oprire/blocare scroll pagină dacă este deschisă o sub-categorie
     const params = new URLSearchParams(window.location.search);
     if (params.has('section')) {
@@ -455,8 +438,15 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       document.body.style.touchAction = '';
     }
 
-    // Load Settings
-    const settings = getSettings();
+    // Load Settings din Supabase
+    let settings: any = {};
+    let profileData: any = {};
+    try {
+      settings = await getSettingsDB();
+      profileData = await getProfile();
+    } catch (e) {
+      console.error('Eroare la încărcarea setărilor:', e);
+    }
 
     // Toast Notification helper
     const toast = document.getElementById('settings-toast');
@@ -510,10 +500,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const inputEmail = document.getElementById('email-address') as HTMLInputElement | null;
     const inputUsername = document.getElementById('username') as HTMLInputElement | null;
 
-    if (inputName) inputName.value = settings.profile.displayName;
-    if (inputPhone) inputPhone.value = settings.profile.phoneNumber;
-    if (inputEmail) inputEmail.value = settings.profile.email;
-    if (inputUsername) inputUsername.value = settings.profile.username;
+    if (inputName)     inputName.value     = profileData?.display_name || '';
+    if (inputPhone)    inputPhone.value    = profileData?.telefon       || '';
+    if (inputEmail)    inputEmail.value    = profileData?.email         || '';
+    if (inputUsername) inputUsername.value = profileData?.username      || '';
 
     // 2. Schedule
     const inputWorkStart = document.getElementById('work-start') as HTMLInputElement | null;
@@ -521,14 +511,16 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const displayWorkStart = document.getElementById('display-work-start');
     const displayWorkEnd = document.getElementById('display-work-end');
 
-    if (inputWorkStart) inputWorkStart.value = settings.schedule.workStart;
-    if (inputWorkEnd) inputWorkEnd.value = settings.schedule.workEnd;
-    if (displayWorkStart) displayWorkStart.textContent = settings.schedule.workStart;
-    if (displayWorkEnd) displayWorkEnd.textContent = settings.schedule.workEnd;
+    if (inputWorkStart)   inputWorkStart.value          = settings.work_start || '08:00';
+    if (inputWorkEnd)     inputWorkEnd.value             = settings.work_end   || '19:00';
+    if (displayWorkStart) displayWorkStart.textContent   = settings.work_start || '08:00';
+    if (displayWorkEnd)   displayWorkEnd.textContent     = settings.work_end   || '19:00';
 
     const dayChips = document.querySelectorAll<HTMLButtonElement>('[data-day-chip]');
     dayChips.forEach((chip, index) => {
-      const isActive = settings.schedule.workDays[index];
+      // zile_lucratoare e array de isodow (1=Luni...5=Vineri), index 0=Luni
+      const isodow = index + 1;
+      const isActive = (settings.zile_lucratoare || [1,2,3,4,5]).includes(isodow);
       chip.setAttribute('data-active', isActive ? 'true' : 'false');
       if (isActive) {
         chip.classList.add('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
@@ -559,25 +551,25 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const displayBreakStart = document.getElementById('display-break-start');
     const displayBreakEnd = document.getElementById('display-break-end');
 
-    if (inputBreakStart) inputBreakStart.value = settings.breakTime.breakStart;
-    if (inputBreakEnd) inputBreakEnd.value = settings.breakTime.breakEnd;
-    if (displayBreakStart) displayBreakStart.textContent = settings.breakTime.breakStart;
-    if (displayBreakEnd) displayBreakEnd.textContent = settings.breakTime.breakEnd;
+    if (inputBreakStart)   inputBreakStart.value          = settings.lunch_start || '13:00';
+    if (inputBreakEnd)     inputBreakEnd.value             = settings.lunch_end   || '14:00';
+    if (displayBreakStart) displayBreakStart.textContent   = settings.lunch_start || '13:00';
+    if (displayBreakEnd)   displayBreakEnd.textContent     = settings.lunch_end   || '14:00';
 
     // 4. Packages
     const inputDuration = document.getElementById('sessionDuration') as HTMLInputElement | null;
     const inputBreakBetween = document.getElementById('breakBetween') as HTMLInputElement | null;
     const inputPrice = document.getElementById('sessionPrice') as HTMLInputElement | null;
 
-    if (inputDuration) inputDuration.value = settings.packages.sessionDuration.toString();
-    if (inputBreakBetween) inputBreakBetween.value = settings.packages.breakBetween.toString();
-    if (inputPrice) inputPrice.value = settings.packages.sessionPrice.toString();
+    if (inputDuration)     inputDuration.value     = (settings.session_duration ?? 50).toString();
+    if (inputBreakBetween) inputBreakBetween.value  = (settings.break_buffer      ?? 10).toString();
+    if (inputPrice)        inputPrice.value         = (settings.default_price      ?? 150).toString();
 
     // 5. Reminders
     const cbLastSession = document.getElementById('reminder-last-session-checkbox') as HTMLInputElement | null;
-    const txtTemplate = document.getElementById('whatsapp-template') as HTMLTextAreaElement | null;
-    if (cbLastSession) cbLastSession.checked = settings.reminders.reminderLastSession;
-    if (txtTemplate) txtTemplate.value = settings.reminders.whatsappTemplate;
+    const txtTemplate   = document.getElementById('whatsapp-template') as HTMLTextAreaElement | null;
+    if (cbLastSession) cbLastSession.checked = true; // reminder_threshold > 0
+    if (txtTemplate)   txtTemplate.value     = settings.whatsapp_template || '';
 
     // 6. Categories
     const categoriesContainer = document.getElementById('categories-container');
@@ -618,7 +610,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
     if (categoriesContainer) {
       categoriesContainer.innerHTML = '';
-      settings.categories.forEach(renderCategory);
+      (settings.categories || []).forEach(renderCategory);
     }
 
     btnConfirmAddCategory?.addEventListener('click', () => {
@@ -812,51 +804,61 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
     // Form Submit
     const form = document.getElementById('settings-form');
-    form?.addEventListener('submit', (e) => {
+    form?.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const newSettings: Partial<AppSettings> = {};
+      const section = params.get('section');
 
-      if (params.get('section') === 'profile') {
-        newSettings.profile = {
-          displayName: inputName?.value || '',
-          phoneNumber: inputPhone?.value || '',
-          email: inputEmail?.value || '',
-          username: inputUsername?.value || ''
-        };
-      } else if (params.get('section') === 'schedule') {
-        const days = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-day-chip]'))
-          .map(chip => chip.getAttribute('data-active') === 'true');
-        
-        newSettings.schedule = {
-          workDays: days.length > 0 ? days : settings.schedule.workDays,
-          workStart: inputWorkStart?.value || settings.schedule.workStart,
-          workEnd: inputWorkEnd?.value || settings.schedule.workEnd
-        };
-      } else if (params.get('section') === 'break') {
-        newSettings.breakTime = {
-          breakStart: inputBreakStart?.value || settings.breakTime.breakStart,
-          breakEnd: inputBreakEnd?.value || settings.breakTime.breakEnd
-        };
-      } else if (params.get('section') === 'packages') {
-        newSettings.packages = {
-          sessionDuration: parseInt(inputDuration?.value || '50', 10),
-          breakBetween: parseInt(inputBreakBetween?.value || '10', 10),
-          sessionPrice: parseInt(inputPrice?.value || '150', 10)
-        };
-      } else if (params.get('section') === 'reminders') {
-        newSettings.reminders = {
-          reminderLastSession: cbLastSession?.checked ?? true,
-          whatsappTemplate: txtTemplate?.value || ''
-        };
-      } else if (params.get('section') === 'categories') {
-        const catEls = document.querySelectorAll('[data-category-chip]');
-        const currentCats = Array.from(catEls).map(el => el.getAttribute('data-category-chip') || '');
-        newSettings.categories = currentCats;
+      try {
+        if (section === 'profile') {
+          // Salvează în tabela `profiles`
+          await saveProfile({
+            display_name: inputName?.value || undefined,
+            telefon:      inputPhone?.value || undefined,
+            username:     inputUsername?.value || undefined,
+          });
+
+        } else if (section === 'schedule') {
+          const activeChips = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-day-chip]'))
+            .map((chip, i) => chip.getAttribute('data-active') === 'true' ? i + 1 : null)
+            .filter((v): v is number => v !== null);
+
+          await saveSettingsDB({
+            zile_lucratoare: activeChips,
+            work_start: inputWorkStart?.value || '08:00',
+            work_end:   inputWorkEnd?.value   || '19:00',
+          });
+
+        } else if (section === 'break') {
+          await saveSettingsDB({
+            lunch_start: inputBreakStart?.value || '13:00',
+            lunch_end:   inputBreakEnd?.value   || '14:00',
+          });
+
+        } else if (section === 'packages') {
+          await saveSettingsDB({
+            session_duration: parseInt(inputDuration?.value    || '50',  10),
+            break_buffer:     parseInt(inputBreakBetween?.value || '10', 10),
+            default_price:    parseFloat(inputPrice?.value    || '150'),
+          });
+
+        } else if (section === 'reminders') {
+          await saveSettingsDB({
+            whatsapp_template: txtTemplate?.value || '',
+            reminder_threshold: cbLastSession?.checked ? 2 : 0,
+          });
+
+        } else if (section === 'categories') {
+          const catEls = document.querySelectorAll('[data-category-chip]');
+          const currentCats = Array.from(catEls).map(el => el.getAttribute('data-category-chip') || '').filter(Boolean);
+          await saveSettingsDB({ categories: currentCats });
+        }
+
+        showToast('Setările au fost salvate cu succes!');
+      } catch (err: any) {
+        showToast('Eroare la salvare: ' + (err?.message || 'necunoscută'));
+        console.error(err);
       }
-
-      saveSettings(newSettings);
-      showToast('Setările au fost salvate cu succes!');
     });
   }
 

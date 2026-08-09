@@ -29,64 +29,9 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
   <AddSessionSheet />
 
   <script>
-    import { getSettings } from '../../utils/settings';
+    import { getAppointmentsByDate } from '../../lib/services/appointmentService';
+    import { getSettings } from '../../lib/services/settingsService';
 
-    function initDefaultSessions() {
-      const raw = localStorage.getItem('kineto_sessions');
-      let existing = raw ? JSON.parse(raw) : null;
-      
-      // Re-initialize if empty or if legacy items are missing IDs
-      if (!existing || !Array.isArray(existing) || existing.length === 0 || existing.some((s: any) => !s.id)) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const initial = [
-          {
-            id: "sess_1",
-            patientName: "Maria Popescu",
-            selectedDate: todayStr,
-            selectedTime: "09:00",
-            attendanceCount: 4,
-            totalSessions: 10,
-            location: "Ghimbav",
-            recurring: true,
-            reminder: true,
-          },
-          {
-            id: "sess_2",
-            patientName: "Elena Stan",
-            selectedDate: todayStr,
-            selectedTime: "11:30",
-            attendanceCount: 8,
-            totalSessions: 10,
-            location: "Ghimbav",
-            recurring: true,
-            reminder: false,
-          },
-          {
-            id: "sess_3",
-            patientName: "Andrei Ionescu",
-            selectedDate: todayStr,
-            selectedTime: "14:30",
-            attendanceCount: 1,
-            totalSessions: 10,
-            location: "Belaqua",
-            recurring: false,
-            reminder: true,
-          },
-          {
-            id: "sess_4",
-            patientName: "Ion Vasile",
-            selectedDate: todayStr,
-            selectedTime: "16:00",
-            attendanceCount: 6,
-            totalSessions: 12,
-            location: "Belaqua",
-            recurring: true,
-            reminder: true,
-          }
-        ];
-        localStorage.setItem('kineto_sessions', JSON.stringify(initial));
-      }
-    }
 
     function createSessionCardHTML(session: any) {
       const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
@@ -205,45 +150,58 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
       `;
     }
 
-    function renderTimeline() {
+    async function renderTimeline() {
       const container = document.getElementById('timeline-slots-container');
       if (!container) return;
 
-      initDefaultSessions();
-      const settings = getSettings();
-      const startHour = parseInt(settings.schedule.workStart.split(':')[0], 10) || 8;
-      const endHour = parseInt(settings.schedule.workEnd.split(':')[0], 10) || 18;
+      let settings: any = {};
+      let storedSessions: any[] = [];
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      try {
+        settings = await getSettings();
+        const appts = await getAppointmentsByDate(todayStr);
+        storedSessions = appts.map((a: any) => ({
+          id: a.id,
+          patientId: a.pacient_id,
+          patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
+          selectedTime: a.ora,
+          selectedDate: a.data,
+          location: a.locatie,
+          attendanceCount: a.pacienti?.sedinte_folosite || 1,
+          totalSessions: a.pacienti?.sedinte_total || 10,
+        }));
+      } catch (e) {
+        console.error('Eroare citire programari din DB:', e);
+      }
+
+      const startHour = parseInt((settings.work_start || '08:00').split(':')[0], 10) || 8;
+      const endHour = parseInt((settings.work_end || '19:00').split(':')[0], 10) || 19;
 
       const timeSlots: string[] = [];
       for (let h = startHour; h <= endHour; h++) {
         timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
       }
 
-      const storedSessions = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
-
       container.innerHTML = timeSlots.map((slotTimeStr) => {
         const slotHourStr = slotTimeStr.split(':')[0];
 
-        // Find session in this hour block (e.g. 08:15 matches hour 08)
         const session = storedSessions.find((s: any) => {
-          const t = s.selectedTime || s.time || '';
+          const t = s.selectedTime || '';
           return t.startsWith(`${slotHourStr}:`);
         });
 
-        const displayTimeStr = session ? (session.selectedTime || session.time || slotTimeStr) : slotTimeStr;
+        const displayTimeStr = session ? session.selectedTime : slotTimeStr;
         const [hourStr, minStr] = displayTimeStr.split(':');
 
         return `
           <div class="relative flex items-stretch gap-4 min-h-[4.5rem]">
-            
-            <!-- Clock on 2 Rows -->
             <div class="w-14 shrink-0 text-center flex flex-col items-center justify-center select-none relative pt-1">
               <span class="text-2xl font-black text-black leading-none tracking-tight">${hourStr}</span>
               <span class="text-xs font-bold text-text-muted tracking-wider uppercase mt-0.5">${minStr || '00'}</span>
               <div class="absolute right-0 top-1/2 -translate-y-1/2 left-full w-screen h-px bg-neutral-200/80 -z-10"></div>
             </div>
             
-            <!-- Slot Content -->
             <div class="flex-1 pb-2" data-slot-time="${slotTimeStr}">
               ${session ? createSessionCardHTML(session) : `
                 <button 
@@ -251,7 +209,7 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
                   class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
                   onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', showDateTime: false } }))"
                 >
-                  + Tap to add session
+                  + Adaugă ședință
                 </button>
               `}
             </div>
@@ -260,29 +218,6 @@ import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.as
       }).join('');
     }
 
-    // Global session handlers
-    (window as any).editSession = function(id: string) {
-      const stored = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
-      const session = stored.find((s: any) => s.id === id);
-      if (session) {
-        window.dispatchEvent(new CustomEvent('openAddSession', { 
-          detail: { 
-            isEdit: true, 
-            session, 
-            showDateTime: true 
-          } 
-        }));
-      }
-    };
-
-    (window as any).deleteSession = function(id: string) {
-      let stored = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
-      stored = stored.filter((s: any) => s.id !== id);
-      localStorage.setItem('kineto_sessions', JSON.stringify(stored));
-      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-    };
-
-    // Listeners
     window.addEventListener('sessionsUpdated', renderTimeline);
     document.addEventListener('DOMContentLoaded', renderTimeline);
     document.addEventListener('astro:page-load', renderTimeline);

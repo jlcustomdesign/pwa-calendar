@@ -30,71 +30,32 @@ import DailyProgress from './DailyProgress.astro';
 </div>
 
 <script>
-  function initDefaultSessions() {
-    const raw = localStorage.getItem('kineto_sessions');
-    let existing = raw ? JSON.parse(raw) : null;
-    
-    if (!existing || !Array.isArray(existing) || existing.length === 0 || existing.some((s: any) => !s.id)) {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const initial = [
-        {
-          id: "sess_1",
-          patientName: "Maria Popescu",
-          selectedDate: todayStr,
-          selectedTime: "09:00",
-          attendanceCount: 4,
-          totalSessions: 10,
-          location: "Ghimbav",
-          recurring: true,
-          reminder: true,
-        },
-        {
-          id: "sess_2",
-          patientName: "Elena Stan",
-          selectedDate: todayStr,
-          selectedTime: "11:30",
-          attendanceCount: 8,
-          totalSessions: 10,
-          location: "Ghimbav",
-          recurring: true,
-          reminder: false,
-        },
-        {
-          id: "sess_3",
-          patientName: "Andrei Ionescu",
-          selectedDate: todayStr,
-          selectedTime: "14:30",
-          attendanceCount: 1,
-          totalSessions: 10,
-          location: "Belaqua",
-          recurring: false,
-          reminder: true,
-        },
-        {
-          id: "sess_4",
-          patientName: "Ion Vasile",
-          selectedDate: todayStr,
-          selectedTime: "16:00",
-          attendanceCount: 6,
-          totalSessions: 12,
-          location: "Belaqua",
-          recurring: true,
-          reminder: true,
-        }
-      ];
-      localStorage.setItem('kineto_sessions', JSON.stringify(initial));
-    }
-  }
+  import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
 
-  function renderAgendaBlock() {
+  async function renderAgendaBlock() {
     const list = document.getElementById('agenda-sessions-list');
     if (!list) return;
 
-    initDefaultSessions();
-    const stored = JSON.parse(localStorage.getItem('kineto_sessions') || '[]');
-    const patients = JSON.parse(localStorage.getItem('kineto_patients') || '[]');
     const todayStr = new Date().toISOString().split('T')[0];
     const nowStr = new Date().toTimeString().slice(0, 5);
+
+    let stored: any[] = [];
+    try {
+      const appts = await getAppointmentsByDate(todayStr);
+      stored = appts.map((a: any) => ({
+        id: a.id,
+        patientId: a.pacient_id,
+        patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
+        selectedTime: a.ora,
+        selectedDate: a.data,
+        location: a.locatie,
+        attendanceCount: a.pacienti?.sedinte_folosite || 1,
+        totalSessions: a.pacienti?.sedinte_total || 10,
+        paymentStatus: a.pacienti?.achitat ? 'Paid fully' : 'Unpaid'
+      }));
+    } catch (e) {
+      console.error('Eroare citire agenda din DB:', e);
+    }
 
     // Calculate today's progress dynamically
     const todaySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === todayStr);
@@ -113,15 +74,14 @@ import DailyProgress from './DailyProgress.astro';
     }
 
     list.innerHTML = stored.map((session: any) => {
-      const patient = patients.find((p: any) => p.id === session.patientId);
-      const locationStr = session.location || (patient ? patient.location : "Ghimbav") || "Ghimbav";
+      const locationStr = session.location || "Belaqva";
       const isGhimbav = locationStr.toLowerCase() === "ghimbav";
       const cardClasses = isGhimbav ? "bg-brand-secondary text-white" : "bg-brand-primary text-black";
       const gradientColors = isGhimbav ? "from-white/30 to-white" : "from-black/30 to-black";
       const progressPercentage = Math.min(100, Math.round(((session.attendanceCount || 1) / (session.totalSessions || 10)) * 100));
 
-      const timeStr = session.selectedTime || session.time || "08:00";
-      const patientNameStr = session.patientName || "Patient";
+      const timeStr = session.selectedTime || "08:00";
+      const patientNameStr = session.patientName || "Pacient";
       const timeParts = timeStr.split(':');
       const hourNum = parseInt(timeParts[0] || "0", 10);
       const minute = timeParts[1] || "00";
@@ -129,8 +89,7 @@ import DailyProgress from './DailyProgress.astro';
       const endTime = `${endHourStr}:${minute}`;
 
       const isPast = timeStr < nowStr;
-      
-      const paymentStatus = patient ? (patient.paymentStatus || 'Unpaid') : 'Unpaid';
+      const paymentStatus = session.paymentStatus || 'Unpaid';
 
       let paymentClass = '';
       if (paymentStatus === 'Unpaid') {

@@ -50,6 +50,7 @@ import '../styles/global.css';
         <!-- Conținut Formular Suprapus Deasupra (z-10) -->
         <div class="relative z-10 space-y-5">
           <form id="login-form" class="space-y-4" action="/dashboard" method="GET">
+            <div id="login-error" class="hidden p-3 rounded-xl bg-red-100 border border-red-200 text-red-700 text-xs font-bold text-center"></div>
             
             <!-- Câmp Email -->
             <div class="space-y-1.5">
@@ -111,12 +112,14 @@ import '../styles/global.css';
 
     </div>
 
-    <!-- Script simplu pentru toggle vizibilitate parolă și redirecționare -->
     <script>
-      function initLoginPage() {
+      import { login } from '../lib/services/authService';
+
+      async function initLoginPage() {
         const toggleBtn = document.getElementById('toggle-password');
         const passwordInput = document.getElementById('password') as HTMLInputElement | null;
         const loginForm = document.getElementById('login-form');
+        const errEl = document.getElementById('login-error');
 
         if (toggleBtn && passwordInput) {
           toggleBtn.addEventListener('click', () => {
@@ -126,9 +129,25 @@ import '../styles/global.css';
         }
 
         if (loginForm) {
-          loginForm.addEventListener('submit', (e) => {
+          loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            window.location.href = '/dashboard';
+            const emailInput = document.getElementById('email') as HTMLInputElement;
+            const passInput  = document.getElementById('password') as HTMLInputElement;
+            const btn = loginForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+            if (btn) { btn.disabled = true; btn.textContent = 'Se conectează...'; }
+            if (errEl) errEl.classList.add('hidden');
+
+            try {
+              await login(emailInput?.value?.trim(), passInput?.value);
+              window.location.href = '/dashboard';
+            } catch (err: any) {
+              if (errEl) {
+                errEl.textContent = 'Email sau parolă incorecte.';
+                errEl.classList.remove('hidden');
+              }
+              if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+            }
           });
         }
       }
