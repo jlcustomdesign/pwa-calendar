@@ -10,7 +10,7 @@
   <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
   <div class="flex-1 overflow-y-auto no-scrollbar pb-24">
-    <h3 id="patient-sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-6">New Patient</h3>
+    <h3 id="patient-sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-6">Pacient nou</h3>
 
     <form id="add-patient-form" class="space-y-6">
       <input type="hidden" name="patientId" id="editPatientId" value="" />
@@ -18,25 +18,25 @@
       <!-- General Details -->
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-bold text-text-muted mb-2">Full Name</label>
+          <label class="block text-sm font-extrabold text-black mb-2">Nume complet</label>
           <input 
             type="text" 
             name="name" 
             id="patientName" 
             required
-            placeholder="e.g. Alexandru Popa" 
-            class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
+            placeholder="ex: Alexandru Popa" 
+            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-bold text-text-muted mb-2">Phone Number</label>
+          <label class="block text-sm font-extrabold text-black mb-2">Număr de telefon</label>
           <input 
             type="tel" 
             name="phone" 
             id="patientPhone" 
-            placeholder="e.g. 0740 123 456" 
-            class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
+            placeholder="ex: 0740 123 456" 
+            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all"
           />
         </div>
       </div>
@@ -45,21 +45,21 @@
       <div class="grid grid-cols-2 gap-4">
         <!-- Plan (Chips) -->
         <div>
-          <label class="block text-sm font-bold text-text-muted mb-2">Plan</label>
-          <input type="hidden" name="plan" id="patientPlan" value="Subscription" />
+          <label class="block text-sm font-extrabold text-black mb-2">Plan</label>
+          <input type="hidden" name="plan" id="patientPlan" value="Abonament" />
           <div class="flex flex-col gap-2">
-            <button type="button" data-plan="Subscription" class="px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Subscription</button>
-            <button type="button" data-plan="One Time" class="px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">One Time</button>
+            <button type="button" data-plan="Abonament" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Abonament</button>
+            <button type="button" data-plan="Ședință unică" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Ședință unică</button>
           </div>
         </div>
 
         <!-- Location (Chips) -->
         <div>
-          <label class="block text-sm font-bold text-text-muted mb-2">Location</label>
+          <label class="block text-sm font-extrabold text-black mb-2">Locație</label>
           <input type="hidden" name="location" id="patientLocation" value="Belaqva" />
           <div class="flex flex-col gap-2">
-            <button type="button" data-location="Belaqva" class="px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Belaqva</button>
-            <button type="button" data-location="Ghimbav" class="px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Ghimbav</button>
+            <button type="button" data-location="Belaqva" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Belaqva</button>
+            <button type="button" data-location="Ghimbav" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Ghimbav</button>
           </div>
         </div>
       </div>
@@ -67,31 +67,30 @@
       <!-- Cost & Frequency -->
       <div class="grid gap-4">
         <div>
-          <label class="block text-sm font-bold text-text-muted mb-2">Cost (RON)</label>
+          <label class="block text-sm font-extrabold text-black mb-2">Cost (RON)</label>
           <input 
             type="number" 
             name="cost" 
             id="patientCost" 
-            placeholder="e.g. 150" 
-            class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
+            placeholder="ex: 150" 
+            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all"
           />
         </div>
         <div>
-          <label class="block text-sm font-bold text-text-muted mb-2">Frequency</label>
+          <label class="block text-sm font-extrabold text-black mb-2">Frecvență</label>
           <div class="flex flex-col gap-3">
             <div class="flex flex-wrap gap-2">
-              <button type="button" data-frequency="1 time/week" class="px-3 py-2 rounded-xl text-xs font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">1 / week</button>
-              <button type="button" data-frequency="2 times/week" class="px-3 py-2 rounded-xl text-xs font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">2 / week</button>
-              <button type="button" data-frequency="3 times/week" class="px-3 py-2 rounded-xl text-xs font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">3 / week</button>
-              <button type="button" data-frequency="Occasional" class="px-3 py-2 rounded-xl text-xs font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Occasional</button>
+              <button type="button" data-frequency="1 / săptămână" class="px-3 py-2 rounded-xl text-xs font-bold transition-all bg-black/5 text-black hover:bg-black/10">1 / săptămână</button>
+              <button type="button" data-frequency="2 / săptămână" class="px-3 py-2 rounded-xl text-xs font-bold transition-all bg-black/5 text-black hover:bg-black/10">2 / săptămână</button>
+              <button type="button" data-frequency="3 / săptămână" class="px-3 py-2 rounded-xl text-xs font-bold transition-all bg-black/5 text-black hover:bg-black/10">3 / săptămână</button>
             </div>
             <input 
               type="text" 
               name="frequency" 
               id="patientFrequency" 
-              placeholder="Or type custom (e.g. 4/week)" 
-              value="1 time/week"
-              class="w-full px-4 py-2.5 rounded-xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black text-sm"
+              placeholder="Sau introdu personalizat (ex: 5 / săptămână)" 
+              value="1 / săptămână"
+              class="w-full px-4 py-2.5 rounded-xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary transition-all font-bold text-black text-sm"
             />
           </div>
         </div>
@@ -99,7 +98,7 @@
 
       <!-- Total Sessions -->
       <div>
-        <label class="block text-sm font-bold text-text-muted mb-2">Număr Total Ședințe</label>
+        <label class="block text-sm font-extrabold text-black mb-2">Număr total ședințe</label>
         <input 
           type="number" 
           name="totalSessions" 
@@ -111,17 +110,17 @@
 
       <!-- Status Plată -->
       <div>
-        <label class="block text-sm font-bold text-text-muted mb-2">Status Plată</label>
+        <label class="block text-sm font-extrabold text-black mb-2">Status plată</label>
         <input type="hidden" name="paymentStatus" id="patientPaymentStatus" value="Neachitat" />
         <div class="flex flex-wrap gap-2">
-          <button type="button" data-payment="Neachitat" class="px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Neachitat</button>
-          <button type="button" data-payment="Achitat" class="px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-transparent bg-black/5 text-text-muted hover:bg-black/10">Achitat</button>
+          <button type="button" data-payment="Neachitat" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Neachitat</button>
+          <button type="button" data-payment="Achitat" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Achitat</button>
         </div>
       </div>
 
       <!-- Drive Link -->
       <div>
-        <label class="block text-sm font-bold text-text-muted mb-2">Link Dosar / Drive (Opțional)</label>
+        <label class="block text-sm font-extrabold text-black mb-2">Link dosar / Drive (opțional)</label>
         <div class="relative">
           <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
           <input 
@@ -136,12 +135,9 @@
     </form>
   </div>
 
-  <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-8 flex gap-3">
-    <button type="button" id="save-patient-btn" class="flex-1 py-4 rounded-2xl bg-black/5 text-black font-bold text-sm active:scale-95 transition-transform border border-black/10">
-      Salvează Pacient
-    </button>
-    <button type="button" id="save-and-book-btn" class="flex-[2] py-4 rounded-2xl bg-black text-white font-bold text-sm active:scale-95 transition-transform shadow-lg">
-      Salvează & Programează
+  <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-8">
+    <button type="button" id="save-patient-btn" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer">
+      Salvează
     </button>
   </div>
 </div>
@@ -193,8 +189,9 @@
       // Bind Plan Chips
       const planChips = document.querySelectorAll<HTMLButtonElement>('[data-plan]');
       planChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          const planVal = chip.dataset.plan || 'Subscription';
+        chip.addEventListener('click', (e) => {
+          e.preventDefault();
+          const planVal = chip.dataset.plan || 'Abonament';
           if (this.form) {
             (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = planVal;
           }
@@ -218,7 +215,7 @@
       const freqChips = document.querySelectorAll<HTMLButtonElement>('[data-frequency]');
       freqChips.forEach(chip => {
         chip.addEventListener('click', () => {
-          const freqVal = chip.dataset.frequency || '1 time/week';
+          const freqVal = chip.dataset.frequency || '1 / săptămână';
           if (this.form) {
             (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = freqVal;
           }
@@ -246,60 +243,114 @@
       });
 
       const saveBtn = document.getElementById('save-patient-btn');
-      const saveAndBookBtn = document.getElementById('save-and-book-btn');
-
       saveBtn?.addEventListener('click', () => this.savePatient(false));
-      saveAndBookBtn?.addEventListener('click', () => this.savePatient(true));
     }
 
     updatePlanChips(selectedPlan: string) {
+      const clean = (s: string) => (s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const normSelected = clean(selectedPlan);
+
       const planChips = document.querySelectorAll<HTMLButtonElement>('[data-plan]');
       planChips.forEach(chip => {
-        if (chip.dataset.plan === selectedPlan) {
-          chip.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
-          chip.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        const chipPlan = clean(chip.dataset.plan || '');
+        let isMatch = false;
+
+        if (normSelected.includes('abonament') || normSelected.includes('subscrip')) {
+          isMatch = chipPlan.includes('abonament');
+        } else if (normSelected.includes('sedinta') || normSelected.includes('unica') || normSelected.includes('one') || normSelected.includes('single')) {
+          isMatch = chipPlan.includes('sedinta') || chipPlan.includes('unica');
         } else {
-          chip.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
-          chip.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+          isMatch = chipPlan === normSelected;
+        }
+
+        if (isMatch) {
+          chip.style.backgroundColor = '#ffc107';
+          chip.style.color = '#000000';
+          chip.classList.remove('bg-black/5');
+          chip.classList.add('shadow-sm', 'font-extrabold');
+        } else {
+          chip.style.backgroundColor = '';
+          chip.style.color = '';
+          chip.classList.add('bg-black/5', 'text-black');
+          chip.classList.remove('shadow-sm');
         }
       });
     }
 
     updateLocationChips(selectedLoc: string) {
+      const clean = (s: string) => (s || '').toLowerCase().trim();
+      const normSelected = clean(selectedLoc);
+
       const locationChips = document.querySelectorAll<HTMLButtonElement>('[data-location]');
       locationChips.forEach(chip => {
-        if (chip.dataset.location === selectedLoc) {
-          chip.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
-          chip.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        const chipLoc = clean(chip.dataset.location || '');
+        const isMatch = chipLoc === normSelected;
+
+        if (isMatch) {
+          chip.style.backgroundColor = '#ffc107';
+          chip.style.color = '#000000';
+          chip.classList.remove('bg-black/5');
+          chip.classList.add('shadow-sm', 'font-extrabold');
         } else {
-          chip.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
-          chip.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+          chip.style.backgroundColor = '';
+          chip.style.color = '';
+          chip.classList.add('bg-black/5', 'text-black');
+          chip.classList.remove('shadow-sm');
         }
       });
     }
 
     updateFrequencyChips(selectedFreq: string) {
+      const clean = (s: string) => (s || '').toLowerCase().trim();
+      const normSelected = clean(selectedFreq);
+
       const freqChips = document.querySelectorAll<HTMLButtonElement>('[data-frequency]');
       freqChips.forEach(chip => {
-        if (chip.dataset.frequency === selectedFreq) {
-          chip.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
-          chip.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        const chipFreq = clean(chip.dataset.frequency || '');
+        const isMatch = chipFreq === normSelected ||
+          (chipFreq.length > 0 && normSelected.length > 0 && chipFreq.charAt(0) === normSelected.charAt(0) && chipFreq.charAt(0) >= '1' && chipFreq.charAt(0) <= '9');
+
+        if (isMatch) {
+          chip.style.backgroundColor = '#ffc107';
+          chip.style.color = '#000000';
+          chip.classList.remove('bg-black/5');
+          chip.classList.add('shadow-sm', 'font-extrabold');
         } else {
-          chip.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
-          chip.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+          chip.style.backgroundColor = '';
+          chip.style.color = '';
+          chip.classList.add('bg-black/5', 'text-black');
+          chip.classList.remove('shadow-sm');
         }
       });
     }
 
     updatePaymentChips(selectedPayment: string) {
+      const clean = (s: string) => (s || '').toLowerCase().trim();
+      const normSelected = clean(selectedPayment);
+
       const paymentChips = document.querySelectorAll<HTMLButtonElement>('[data-payment]');
       paymentChips.forEach(chip => {
-        if (chip.dataset.payment === selectedPayment) {
-          chip.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
-          chip.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+        const chipPayment = clean(chip.dataset.payment || '');
+        let isMatch = false;
+
+        if (normSelected === 'neachitat' || normSelected === 'unpaid') {
+          isMatch = chipPayment === 'neachitat';
+        } else if (normSelected === 'achitat' || normSelected === 'paid') {
+          isMatch = chipPayment === 'achitat';
         } else {
-          chip.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
-          chip.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
+          isMatch = chipPayment === normSelected;
+        }
+
+        if (isMatch) {
+          chip.style.backgroundColor = '#ffc107';
+          chip.style.color = '#000000';
+          chip.classList.remove('bg-black/5');
+          chip.classList.add('shadow-sm', 'font-extrabold');
+        } else {
+          chip.style.backgroundColor = '';
+          chip.style.color = '';
+          chip.classList.add('bg-black/5', 'text-black');
+          chip.classList.remove('shadow-sm');
         }
       });
     }
@@ -312,9 +363,7 @@
       }
 
       const saveBtn = document.getElementById('save-patient-btn') as HTMLButtonElement | null;
-      const saveAndBookBtn = document.getElementById('save-and-book-btn') as HTMLButtonElement | null;
       if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Se salvează…'; }
-      if (saveAndBookBtn) { saveAndBookBtn.disabled = true; saveAndBookBtn.textContent = 'Se salvează…'; }
 
       const formData = new FormData(this.form);
       const patientId = formData.get('patientId') as string;
@@ -360,8 +409,7 @@
           alert('Eroare la salvarea pacientului: ' + msg);
         }
       } finally {
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Patient'; }
-        if (saveAndBookBtn) { saveAndBookBtn.disabled = false; saveAndBookBtn.textContent = 'Save & Book Session'; }
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Salvează'; }
       }
     }
 
@@ -378,30 +426,30 @@
         }
 
         if (titleEl) {
-          titleEl.textContent = isEdit ? 'Edit Patient' : 'New Patient';
+          titleEl.textContent = isEdit ? 'Editează pacient' : 'Pacient nou';
         }
 
         if (isEdit && patient && this.form) {
-          const editPaymentStatus = patient.achitat ? 'Paid' : 'Unpaid';
+          const editPaymentStatus = patient.achitat ? 'Achitat' : 'Neachitat';
           (this.form.querySelector('[name="name"]') as HTMLInputElement).value = patient.name || '';
           (this.form.querySelector('[name="phone"]') as HTMLInputElement).value = patient.telefon || '';
-          (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = patient.plan || 'Subscription';
+          (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = patient.plan || 'Abonament';
           (this.form.querySelector('[name="location"]') as HTMLInputElement).value = patient.locatie || 'Belaqva';
           (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = patient.cost != null ? String(patient.cost) : '';
           (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = patient.sedinte_total != null ? String(patient.sedinte_total) : '';
-          (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = patient.frecventa || '1 time/week';
+          (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = patient.frecventa || '1 / săptămână';
           (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = editPaymentStatus;
           (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.drive_link || '';
-          this.updatePlanChips(patient.plan || 'Subscription');
+          this.updatePlanChips(patient.plan || 'Abonament');
           this.updateLocationChips(patient.locatie || 'Belaqva');
-          this.updateFrequencyChips(patient.frecventa || '1 time/week');
+          this.updateFrequencyChips(patient.frecventa || '1 / săptămână');
           this.updatePaymentChips(editPaymentStatus);
         } else if (this.form) {
           this.form.reset();
-          this.updatePlanChips('Subscription');
+          this.updatePlanChips('Abonament');
           this.updateLocationChips('Belaqva');
-          this.updateFrequencyChips('1 time/week');
-          this.updatePaymentChips('Unpaid');
+          this.updateFrequencyChips('1 / săptămână');
+          this.updatePaymentChips('Neachitat');
         }
 
         this.open();
