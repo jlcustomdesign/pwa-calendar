@@ -73,6 +73,9 @@ import DailyProgress from './DailyProgress.astro';
           location: a.pacienti?.locatie || 'Belaqva',
           attendanceCount: a.pacienti?.sedinte_folosite ?? 0,
           totalSessions: a.pacienti?.sedinte_total || 10,
+          remainingSessions: a.pacienti?.sedinte_ramase ?? Math.max(0, (a.pacienti?.sedinte_total || 10) - (a.pacienti?.sedinte_folosite ?? 0)),
+          subscriptionDone: (a.pacienti?.sedinte_total || 0) > 0 && (a.pacienti?.sedinte_ramase ?? 0) <= 0,
+          status: a.status || 'programat',
           paymentStatus: pStatus,
           costTotal,
           sumaIncasata
@@ -134,7 +137,7 @@ import DailyProgress from './DailyProgress.astro';
       const gradientColors = isGhimbav ? "from-white/30 to-white" : "from-black/30 to-black";
       const count = session.attendanceCount ?? 0;
       const totalSess = session.totalSessions || 10;
-      const remainingSessions = Math.max(0, totalSess - count);
+      const remainingSessions = session.remainingSessions ?? Math.max(0, totalSess - count);
       const progressPercentage = Math.min(100, Math.round((count / totalSess) * 100));
 
       const timeStr = session.selectedTime || "08:00";
@@ -145,9 +148,48 @@ import DailyProgress from './DailyProgress.astro';
       const endHourStr = (hourNum + 1).toString().padStart(2, '0');
       const endTime = `${endHourStr}:${minute}`;
 
+      const sessionStatus = session.status || 'programat';
       const isOngoing = isToday && nowStr >= timeStr && nowStr < endTime;
       const isPast = currentAgendaDate < todayStr || (isToday && nowStr >= endTime);
       const paymentStatus = session.paymentStatus || 'Neachitat';
+
+      // Determine status badge
+      let statusBadge = '';
+      if (sessionStatus === 'finalizat') {
+        statusBadge = `
+          <div class="shrink-0 flex items-center">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold ${isGhimbav ? 'bg-white/15 text-white/80' : 'bg-black/10 text-black/70'} backdrop-blur-sm">
+              <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+              Finalizat
+            </span>
+          </div>`;
+      } else if (isOngoing) {
+        statusBadge = `
+          <div class="shrink-0 flex items-center">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold ${isGhimbav ? 'bg-white/20 text-white' : 'bg-black/10 text-black'} backdrop-blur-sm shadow-sm">
+              <span class="w-2 h-2 rounded-full ${isGhimbav ? 'bg-emerald-400' : 'bg-emerald-600'} shrink-0"></span>
+              În desfășurare
+            </span>
+          </div>`;
+      } else if (sessionStatus === 'absent' || sessionStatus === 'anulat') {
+        statusBadge = `
+          <div class="shrink-0 flex items-center">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-600/90 text-white backdrop-blur-sm shadow-sm">
+              ${sessionStatus === 'absent' ? 'Absent' : 'Anulat'}
+            </span>
+          </div>`;
+      } else if (isPast) {
+        statusBadge = `
+          <div class="shrink-0 flex items-center">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-500 text-white backdrop-blur-sm shadow-sm">
+              Așteaptă confirmare
+            </span>
+          </div>`;
+      }
+
+      const subscriptionWarning = session.subscriptionDone
+        ? `<p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-rose-700 mt-1 truncate">Abonament terminat — reînnoiește</p>`
+        : '';
 
       let paymentClass = '';
       if (paymentStatus === 'Neachitat') {
@@ -204,22 +246,9 @@ import DailyProgress from './DailyProgress.astro';
               <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
                 <div class="flex-1 min-w-0">
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
+                  ${subscriptionWarning}
                 </div>
-                ${isOngoing ? `
-                  <div class="shrink-0 flex items-center">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold ${isGhimbav ? 'bg-white/20 text-white' : 'bg-black/10 text-black'} backdrop-blur-sm shadow-sm">
-                      <span class="w-2 h-2 rounded-full ${isGhimbav ? 'bg-emerald-400' : 'bg-emerald-600'} shrink-0"></span>
-                      În desfășurare
-                    </span>
-                  </div>
-                ` : (isPast ? `
-                  <div class="shrink-0 flex items-center">
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold ${isGhimbav ? 'bg-white/15 text-white/80' : 'bg-black/10 text-black/70'} backdrop-blur-sm">
-                      <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                      Finalizat
-                    </span>
-                  </div>
-                ` : '')}
+                ${statusBadge}
               </div>
 
               <div class="flex items-center gap-4 mt-5 relative z-10 pl-24">

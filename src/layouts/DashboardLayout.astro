@@ -2,6 +2,8 @@
 import Dock from '../components/layout/Dock.astro';
 import PaymentSheet from '../components/features/patients/PaymentSheet.astro';
 import AddSessionSheet from '../components/features/agenda/AddSessionSheet.astro';
+import SessionWrapUpSheet from '../components/features/agenda/SessionWrapUpSheet.astro';
+import FrequencyPromptBanner from '../components/features/agenda/FrequencyPromptBanner.astro';
 import CustomToast from '../components/ui/CustomToast.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
@@ -43,6 +45,8 @@ const { title, hideDock = false } = Astro.props;
       {!hideDock && <Dock transition:persist />}
       <PaymentSheet transition:persist />
       <AddSessionSheet transition:persist />
+      <SessionWrapUpSheet transition:persist />
+      <FrequencyPromptBanner transition:persist />
       <CustomToast transition:persist />
     </div>
 
@@ -67,6 +71,7 @@ const { title, hideDock = false } = Astro.props;
         }
 
         function handleSwipeStart(surface: HTMLElement, clientX: number) {
+          if ((window as any)._sessionDragActive) return; // drag & drop activ — nu interfera
           activeSurface = surface;
           startX = clientX;
           currentX = startX;

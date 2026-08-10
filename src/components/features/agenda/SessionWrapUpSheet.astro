@@ -9,57 +9,58 @@
   <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
   <div class="flex-1 overflow-y-auto no-scrollbar">
-    <h3 class="text-2xl font-extrabold tracking-tight text-black mb-2">Session Complete</h3>
-    <p id="wrapup-patient-name" class="text-text-muted font-semibold mb-6">Patient Name</p>
+    <h3 class="text-2xl font-extrabold tracking-tight text-black mb-1">Confirmă sesiunea</h3>
+    <p id="wrapup-queue-position" class="text-xs font-bold text-text-muted uppercase tracking-widest mb-4"></p>
 
-    <form id="wrapup-session-form" class="space-y-8">
-      
-      <!-- Session Notes -->
-      <div class="space-y-2">
-        <label for="wrapup-session-notes" class="text-sm font-bold text-text-muted">Session Notes</label>
-        <div class="bg-black/5 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-brand-primary transition-all p-4">
-          <textarea 
-            id="wrapup-session-notes" 
-            name="notes" 
-            rows="3"
-            placeholder="Patient showed improved mobility..."
-            class="w-full bg-transparent border-none font-medium text-black focus:outline-none resize-none"
-          ></textarea>
+    <p id="wrapup-patient-name" class="text-xl font-extrabold text-black">Patient Name</p>
+    <p id="wrapup-session-date" class="text-text-muted font-semibold mb-6">Data și ora sesiunii</p>
+
+    <!-- Rebook Toggle -->
+    <div class="bg-black/5 rounded-3xl p-5 flex flex-col gap-4 mb-6">
+      <div class="flex items-center justify-between gap-4">
+        <div class="min-w-0">
+          <h4 class="font-bold text-black text-lg leading-tight">Programează și săptămâna viitoare</h4>
+          <p id="wrapup-next-date" class="text-sm text-text-muted font-medium mt-1">Aceeași zi și oră</p>
         </div>
+        
+        <!-- Massive iOS-style toggle -->
+        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+          <input type="checkbox" id="rebook-toggle" name="rebook" class="sr-only peer" checked>
+          <div class="w-16 h-9 bg-black/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-brand-primary"></div>
+        </label>
       </div>
+    </div>
 
-      <!-- Rebook Toggle -->
-      <div class="bg-black/5 rounded-3xl p-5 flex flex-col gap-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h4 class="font-bold text-black text-lg">Rebook for next week?</h4>
-            <p id="wrapup-next-date" class="text-sm text-text-muted font-medium mt-1">Next Thursday, 14:00</p>
-          </div>
-          
-          <!-- Massive iOS-style toggle -->
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="rebook-toggle" name="rebook" class="sr-only peer" checked>
-            <div class="w-16 h-9 bg-black/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-brand-primary"></div>
-          </label>
-        </div>
-      </div>
-    </form>
-  </div>
-
-  <div class="pt-6 mt-auto">
-    <button type="submit" form="wrapup-session-form" class="w-full py-4 rounded-2xl bg-black text-white font-bold text-lg active:scale-95 transition-transform shadow-lg">
-      Save & Close
-    </button>
+    <!-- Attendance Actions -->
+    <div class="flex gap-3">
+      <button type="button" id="wrapup-btn-absent" class="flex-1 py-4 rounded-2xl bg-rose-600 text-white font-extrabold text-lg active:scale-95 transition-transform shadow-lg disabled:opacity-50">
+        Nu a venit
+      </button>
+      <button type="button" id="wrapup-btn-came" class="flex-1 py-4 rounded-2xl bg-emerald-600 text-white font-extrabold text-lg active:scale-95 transition-transform shadow-lg disabled:opacity-50">
+        Da, a venit
+      </button>
+    </div>
   </div>
 </div>
 
 <script>
+  import { getPendingWrapUps, completeSession, markAbsent, rebookNextWeek } from '../../../lib/services/appointmentService';
+  import type { PendingWrapUp } from '../../../lib/services/appointmentService';
+
   class SessionWrapUpManager {
     sheet: HTMLElement | null;
-    form: HTMLFormElement | null;
     overlay: HTMLElement | null = null;
     patientLabel: HTMLElement | null;
     dateLabel: HTMLElement | null;
+    nextDateLabel: HTMLElement | null;
+    queuePosLabel: HTMLElement | null;
+    rebookToggle: HTMLInputElement | null;
+    btnCame: HTMLButtonElement | null;
+    btnAbsent: HTMLButtonElement | null;
+    queue: PendingWrapUp[] = [];
+    current: PendingWrapUp | null = null;
+    isOpen: boolean = false;
+    isProcessing: boolean = false;
     startY: number;
     currentY: number;
     startX: number = 0;
@@ -68,9 +69,13 @@
 
     constructor() {
       this.sheet = document.getElementById('session-wrapup-sheet');
-      this.form = document.getElementById('wrapup-session-form') as HTMLFormElement;
       this.patientLabel = document.getElementById('wrapup-patient-name');
-      this.dateLabel = document.getElementById('wrapup-next-date');
+      this.dateLabel = document.getElementById('wrapup-session-date');
+      this.nextDateLabel = document.getElementById('wrapup-next-date');
+      this.queuePosLabel = document.getElementById('wrapup-queue-position');
+      this.rebookToggle = document.getElementById('rebook-toggle') as HTMLInputElement;
+      this.btnCame = document.getElementById('wrapup-btn-came') as HTMLButtonElement;
+      this.btnAbsent = document.getElementById('wrapup-btn-absent') as HTMLButtonElement;
       this.startY = 0;
       this.currentY = 0;
 
@@ -95,26 +100,120 @@
       this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
       this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
 
-      // Open event
-      window.addEventListener('openWrapUp', (e: any) => {
-        if (this.patientLabel && e.detail?.patientName) {
-          this.patientLabel.textContent = e.detail.patientName;
-        }
-        if (this.dateLabel && e.detail?.nextDateStr) {
-          this.dateLabel.textContent = e.detail.nextDateStr;
-        }
-        this.open();
-      });
+      this.btnCame?.addEventListener('click', () => this.answer(true));
+      this.btnAbsent?.addEventListener('click', () => this.answer(false));
+    }
 
-      this.form?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        console.log("WrapUp mutation stub triggered.");
-        this.close();
-      });
+    formatDate(dateStr: string): string {
+      const d = new Date(dateStr + 'T00:00:00');
+      if (isNaN(d.getTime())) return dateStr;
+      const day = d.toLocaleDateString('ro-RO', { weekday: 'long' });
+      const month = d.toLocaleDateString('ro-RO', { month: 'long' });
+      const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+      return `${cap(day)}, ${d.getDate()} ${month}`;
+    }
+
+    nextWeekDateStr(dateStr: string): string {
+      const d = new Date(dateStr + 'T00:00:00');
+      d.setDate(d.getDate() + 7);
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    async checkQueue() {
+      if (this.isOpen || this.isProcessing) return;
+      try {
+        this.queue = await getPendingWrapUps();
+      } catch (e) {
+        console.error('Eroare citire wrap-up queue:', e);
+        return;
+      }
+      if (this.queue.length === 0) return;
+      this.showCurrent();
+    }
+
+    showCurrent() {
+      const item = this.queue[0];
+      if (!item) {
+        this.finishQueue();
+        return;
+      }
+      this.current = item;
+
+      if (this.patientLabel) {
+        this.patientLabel.textContent = item.pacienti
+          ? `${item.pacienti.prenume} ${item.pacienti.nume}`
+          : 'Pacient';
+      }
+      if (this.dateLabel) {
+        this.dateLabel.textContent = `${this.formatDate(item.data)} · ${(item.ora || '').slice(0, 5)}`;
+      }
+      if (this.nextDateLabel) {
+        this.nextDateLabel.textContent = `${this.formatDate(this.nextWeekDateStr(item.data))} · ${(item.ora || '').slice(0, 5)}`;
+      }
+      if (this.queuePosLabel) {
+        this.queuePosLabel.textContent = this.queue.length > 1
+          ? `Mai ai ${this.queue.length} sesiuni de confirmat`
+          : 'Ultima sesiune de confirmat';
+      }
+      if (this.rebookToggle) this.rebookToggle.checked = true;
+
+      this.open();
+    }
+
+    async answer(came: boolean) {
+      if (!this.current || this.isProcessing) return;
+      this.isProcessing = true;
+      if (this.btnCame) this.btnCame.disabled = true;
+      if (this.btnAbsent) this.btnAbsent.disabled = true;
+
+      const item = this.current;
+      const patientName = item.pacienti ? `${item.pacienti.prenume} ${item.pacienti.nume}` : 'Pacientul';
+
+      try {
+        if (came) {
+          await completeSession(item.id);
+        } else {
+          await markAbsent(item.id, 'Absent — confirmat din wrap-up');
+        }
+
+        if (this.rebookToggle?.checked) {
+          try {
+            await rebookNextWeek(item.id);
+          } catch (rebookErr: any) {
+            (window as any).showToast(
+              `${patientName}: sesiunea a fost salvată, dar reprogramarea a eșuat (${rebookErr?.message || rebookErr}).`,
+              'warning',
+              'Reprogramare eșuată'
+            );
+          }
+        }
+      } catch (err: any) {
+        (window as any).showToast('Eroare la salvarea confirmării: ' + (err?.message || err), 'error');
+      }
+
+      this.queue.shift();
+      this.current = null;
+      this.isProcessing = false;
+      if (this.btnCame) this.btnCame.disabled = false;
+      if (this.btnAbsent) this.btnAbsent.disabled = false;
+
+      if (this.queue.length > 0) {
+        this.showCurrent();
+      } else {
+        this.finishQueue();
+      }
+    }
+
+    finishQueue() {
+      this.close();
+      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+      window.dispatchEvent(new CustomEvent('patientsUpdated'));
+      (window as any).showToast('Toate sesiunile au fost confirmate.', 'success');
     }
 
     open() {
       if (!this.sheet || !this.overlay) return;
+      this.isOpen = true;
       this.sheet.classList.remove('translate-y-full');
       this.overlay.classList.remove('opacity-0', 'pointer-events-none');
       document.body.style.overflow = 'hidden';
@@ -122,12 +221,14 @@
 
     close() {
       if (!this.sheet || !this.overlay) return;
+      this.isOpen = false;
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
       document.body.style.overflow = '';
-      
-      setTimeout(() => this.form?.reset(), 500);
+      // Sesiunile rămase în coadă se reîntreabă la următorul reload complet al aplicației
+      this.queue = [];
+      this.current = null;
     }
 
     handleTouchStart(e: TouchEvent) {
@@ -179,7 +280,24 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    new SessionWrapUpManager();
-  });
+  let wrapUpManager: SessionWrapUpManager | null = null;
+  let wrapUpCheckedThisLoad = false;
+
+  function initWrapUp() {
+    if (!wrapUpManager) {
+      wrapUpManager = new SessionWrapUpManager();
+    }
+    // Rulează coada o singură dată per încărcare completă a aplicației
+    if (!wrapUpCheckedThisLoad) {
+      wrapUpCheckedThisLoad = true;
+      // Mic delay ca auth-ul Supabase să fie restaurat din storage
+      setTimeout(() => wrapUpManager?.checkQueue(), 1500);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initWrapUp);
+  document.addEventListener('astro:page-load', initWrapUp);
+
+  // Permite re-verificarea manuală (ex: după ce trece o sesiune în timpul utilizării)
+  window.addEventListener('checkWrapUps', () => wrapUpManager?.checkQueue());
 </script>
