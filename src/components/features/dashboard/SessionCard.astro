@@ -44,6 +44,7 @@ if (location === 'Ghimbav') {
   gradientColors = "from-black/30 to-black";
 }
 
+const remainingSessions = Math.max(0, totalSessions - attendanceCount);
 const progressPercentage = Math.min(100, Math.round((attendanceCount / totalSessions) * 100));
 const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
 ---
@@ -87,7 +88,7 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
       <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
         <div class={`h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out`} style={`width: ${progressPercentage}%;`}></div>
       </div>
-      <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">{attendanceCount}/{totalSessions}</div>
+      <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">{remainingSessions}/{totalSessions}</div>
     </div>
 
   </div>
@@ -98,10 +99,7 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
       
       <!-- Full Program Time Display -->
       <div class="px-6 pt-4 pb-2 flex justify-between items-center">
-        <div class="flex items-center gap-2 text-sm font-bold opacity-90 bg-black/5 px-4 py-2 rounded-xl backdrop-blur-sm">
-          <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+        <div class="flex items-center gap-2 text-base font-extrabold opacity-95 bg-black/5 px-4 py-2 rounded-xl backdrop-blur-sm">
           {startTime} - {endTime}
         </div>
         <div class="text-xs font-bold uppercase tracking-widest opacity-60 text-right">

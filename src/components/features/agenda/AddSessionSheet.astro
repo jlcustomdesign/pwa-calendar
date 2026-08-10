@@ -34,177 +34,118 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       <input type="hidden" name="sessionId" id="sessionId" value="" />
       
       <!-- Custom Patient Picker -->
-      <div class="space-y-3">
-        <label class="text-sm font-bold text-text-muted">Alege Pacientul</label>
-        
-        <!-- Select Patient Button -->
-        <button type="button" id="show-patients-btn" class="w-full flex items-center justify-between px-6 py-4 rounded-[1.5rem] bg-black/5 font-bold text-lg text-black hover:bg-black/10 active:scale-95 transition-all border border-dashed border-black/20">
-          <span class="flex items-center gap-2">
-            <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            <span id="selected-patient-name">Alege Pacientul</span>
-          </span>
-        </button>
+      <div class="space-y-2">
+        <!-- Search Patient Input (Always visible) -->
+        <div class="relative">
+          <input 
+            type="text" 
+            id="search-patient-input" 
+            placeholder="Căutare pacient..." 
+            class="w-full px-6 py-4 rounded-full border-2 border-brand-secondary bg-transparent text-lg font-bold text-black focus:outline-none focus:border-brand-secondary transition-all"
+          />
+          <div class="absolute inset-y-0 right-6 flex items-center pointer-events-none">
+            <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+        </div>
 
-        <!-- Search Patient Input (Visible when patient picker opens) -->
-        <input 
-          type="text" 
-          id="search-patient-input" 
-          placeholder="Caută pacient..." 
-          class="hidden w-full px-4 py-3 rounded-2xl bg-black/5 border border-black/10 text-sm font-bold text-black focus:outline-none focus:ring-2 focus:ring-brand-secondary/40 focus:ring-inset placeholder:text-text-muted mb-2 transition-all"
-        />
-
-        <div id="patient-list" class="hidden flex-col gap-3 pb-2 overflow-y-auto max-h-[40vh] no-scrollbar">
+        <div id="patient-list" class="hidden flex-col gap-3 pb-2 overflow-y-auto max-h-[40vh] no-scrollbar mt-4 px-2">
           <!-- Populated by JS -->
         </div>
       </div>
 
-      <!-- Custom Date/Time Selectors (Controlled by JS) -->
-      <div id="date-time-selectors" class="space-y-5">
-        
-        <!-- Date Selector -->
-        <div class="space-y-3 relative">
-          <div class="flex justify-between items-center">
-            <label class="text-sm font-bold text-text-muted">Dată</label>
-            <span id="display-selected-date" class="text-sm font-bold text-black">Azi</span>
-          </div>
-          <input type="hidden" name="selectedDate" id="selectedDate" value={todayStr} />
-          
-          <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x snap-mandatory">
-            {upcomingDates.map((d, i) => (
-              <button 
-                type="button" 
-                data-date-btn={d.value}
-                data-display-date={d.displayDay === 'Azi' ? 'Azi' : `${d.displayDay}, ${d.displayDate}`}
-                class={`shrink-0 snap-start flex flex-col items-center justify-center w-[4.5rem] h-[4.5rem] rounded-[1.5rem] border-2 transition-all duration-300 ${i === 0 ? 'border-brand-primary bg-brand-primary/10 text-black' : 'border-transparent bg-black/5 text-text-muted hover:bg-black/10'}`}
-              >
-                <span class="text-[0.65rem] font-bold uppercase tracking-wider">{d.displayDay}</span>
-                <span class="text-xl font-extrabold">{d.displayDate}</span>
-              </button>
-            ))}
-            <button
-              type="button"
-              id="other-date-btn"
-              class="shrink-0 snap-start flex flex-col items-center justify-center w-[4.5rem] h-[4.5rem] rounded-[1.5rem] border-2 border-transparent bg-black/5 text-text-muted transition-all duration-300"
-            >
-              <svg class="w-6 h-6 mb-1 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-              <span class="text-[0.65rem] font-bold uppercase tracking-wider">Altele</span>
-            </button>
-          </div>
-          <input type="date" id="native-date-picker" class="sr-only" />
-          </div>
-        </div>
+      <!-- Date/Time Selectors (Butoane Principale) -->
+      <div id="date-time-selectors" class="space-y-3 pt-2">
+        <input type="hidden" name="selectedDate" id="selectedDate" value={todayStr} />
+        <input type="hidden" name="selectedTime" id="selectedTime" value="08:00" />
 
-        <!-- Time Selector -->
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <label class="text-sm font-bold text-text-muted">Oră</label>
-            <span id="display-selected-time" class="text-sm font-bold text-black">08:00</span>
+        <!-- Button 1: Alege Data -->
+        <button 
+          type="button" 
+          id="btn-trigger-date-sheet"
+          class="w-full px-6 py-4 rounded-full border-2 border-brand-secondary bg-transparent text-lg font-bold text-black flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer"
+        >
+          <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <span class="text-lg font-bold text-black" id="display-date-label">Alege data</span>
           </div>
-          <input type="hidden" name="selectedTime" id="selectedTime" value="08:00" />
-          
-          <div id="time-slots-container" class="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x snap-mandatory">
-            <!-- Populated by JS -->
+          <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <!-- Button 2: Alege Ora -->
+        <button 
+          type="button" 
+          id="btn-trigger-time-sheet"
+          class="w-full px-6 py-4 rounded-full border-2 border-brand-secondary bg-transparent text-lg font-bold text-black flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer"
+        >
+          <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="text-lg font-bold text-black" id="display-time-label">Alege ora</span>
           </div>
-
-          <!-- Custom Time Accordion Toggle & Range Slider Drawer -->
-          <div class="pt-2">
-            <button 
-              type="button" 
-              id="toggle-custom-time-btn" 
-              class="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-black/5 hover:bg-black/10 active:scale-[0.99] transition-all border border-black/5 text-sm font-bold text-black"
-            >
-              <div class="flex items-center gap-2">
-                <svg class="w-4 h-4 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Setează Ora Exactă</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span id="custom-time-badge-preview" class="text-xs font-bold text-black bg-white px-3 py-1 rounded-full shadow-xs border border-black/5">
-                  08:00
-                </span>
-                <svg id="custom-time-chevron" class="w-4 h-4 transition-transform duration-300 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </button>
-
-            <!-- Collapsible Slider Drawer -->
-            <div id="custom-time-drawer" class="grid transition-[grid-template-rows] duration-300 ease-out" style="grid-template-rows: 0fr;">
-              <div class="overflow-hidden pt-3">
-                <div class="bg-black/5 p-4 rounded-[2rem] border border-black/10 flex flex-col gap-3">
-                  <div class="flex items-center justify-between px-1">
-                    <span class="text-xs font-extrabold uppercase tracking-widest text-text-muted">Alege ora exactă</span>
-                    <span id="slider-time-display" class="text-xl font-black tracking-tight text-black bg-white px-4 py-1 rounded-xl shadow-xs border border-black/5">
-                      08:00
-                    </span>
-                  </div>
-
-                  <!-- Range Slider for total minutes (360=06:00 to 1320=22:00, step 5) -->
-                  <div class="flex flex-col gap-2 py-1">
-                    <input 
-                      type="range" 
-                      id="time-range-slider" 
-                      min="360" 
-                      max="1320" 
-                      step="5" 
-                      value="480"
-                      class="w-full h-3 bg-white rounded-lg appearance-none cursor-pointer accent-black border border-black/10 focus:outline-none"
-                    />
-                    <div class="flex justify-between text-[10px] font-extrabold text-text-muted px-1">
-                      <span>06:00</span>
-                      <span>10:00</span>
-                      <span>14:00</span>
-                      <span>18:00</span>
-                      <span>22:00</span>
-                    </div>
-                  </div>
-
-                  <!-- Quick Minute Chips (:00, :15, :30, :45) -->
-                  <div class="grid grid-cols-4 gap-2 pt-0.5">
-                    <button type="button" data-min-chip="00" class="py-2 text-xs font-bold rounded-xl bg-white border border-black/5 text-black hover:bg-black hover:text-white transition-all active:scale-95 text-center shadow-xs">:00</button>
-                    <button type="button" data-min-chip="15" class="py-2 text-xs font-bold rounded-xl bg-white border border-black/5 text-black hover:bg-black hover:text-white transition-all active:scale-95 text-center shadow-xs">:15</button>
-                    <button type="button" data-min-chip="30" class="py-2 text-xs font-bold rounded-xl bg-white border border-black/5 text-black hover:bg-black hover:text-white transition-all active:scale-95 text-center shadow-xs">:30</button>
-                    <button type="button" data-min-chip="45" class="py-2 text-xs font-bold rounded-xl bg-white border border-black/5 text-black hover:bg-black hover:text-white transition-all active:scale-95 text-center shadow-xs">:45</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
 
-      <!-- Practical Action Buttons (Hidden until patient selected) -->
-      <div id="settings-container" class="hidden gap-4">
-        <label class="flex-1 cursor-pointer group">
-          <input type="checkbox" name="recurring" class="peer sr-only" />
-          <div class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-black/5 peer-checked:bg-black peer-checked:text-white hover:bg-black/10 active:scale-95 transition-all text-sm font-bold text-black">
-            <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Recurentă
-          </div>
-        </label>
-        <label class="flex-1 cursor-pointer group">
-          <input type="checkbox" name="reminder" class="peer sr-only" />
-          <div class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-black/5 peer-checked:bg-black peer-checked:text-white hover:bg-black/10 active:scale-95 transition-all text-sm font-bold text-black">
-            <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            Notificare
-          </div>
-        </label>
-      </div>
 
-      <!-- Save button lives inside the popup content so it scrolls with the form -->
-      <div class="sticky bottom-0 bg-surface-card pt-4 pb-2">
-        <button type="submit" id="submit-btn" class="w-full py-4 rounded-2xl bg-black text-white font-bold text-lg active:scale-95 transition-transform shadow-lg">
-          Salvează programarea
+
+      <div class="pt-4 pb-2">
+        <button type="submit" id="submit-btn" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-xl shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer">
+          Salvează
         </button>
       </div>
     </form>
   </div>
 </div>
+
+<!-- Custom Time Picker Sheet (Stil Bottom Sheet identic cu Calendar) -->
+<div 
+  id="add-session-time-modal" 
+  class="fixed inset-x-0 bottom-0 z-[120] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden space-y-4"
+>
+  <!-- Swipe handle -->
+  <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-2 shrink-0 cursor-grab active:cursor-grabbing"></div>
+
+  <!-- Modal Header -->
+  <div class="flex items-center justify-between pb-2 border-b border-border-subtle/40 px-1">
+    <h3 class="text-xl font-black text-text-main font-sans tracking-tight">Alege ora</h3>
+    <button type="button" id="btn-close-session-time" class="w-8 h-8 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold flex items-center justify-center transition-colors">&times;</button>
+  </div>
+
+  <!-- 24H Time Preview Display -->
+  <div class="flex items-center justify-center gap-3 py-3.5 bg-surface-base/80 rounded-2xl border border-border-subtle/60 shadow-inner text-text-main font-black text-4xl font-sans tracking-tight">
+    <span id="session-hour-display">08</span>
+    <span class="text-text-muted/60">:</span>
+    <span id="session-minute-display">00</span>
+  </div>
+
+  <!-- Quick Hours Grid -->
+  <div>
+    <div class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1" id="session-hours-grid"></div>
+  </div>
+
+  <!-- Minutes Selector -->
+  <div class="space-y-1.5 pt-1">
+    <div class="text-xs font-extrabold text-text-muted font-sans uppercase tracking-wider">Minute</div>
+    <div class="grid grid-cols-4 gap-2" id="session-minutes-grid"></div>
+  </div>
+
+  <!-- Confirm Button -->
+  <div class="pt-2 mt-auto">
+    <button type="button" id="btn-confirm-session-time" class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-95 transition-all text-center cursor-pointer">
+      Salvează
+    </button>
+  </div>
+</div>
+<div id="add-session-time-overlay" class="fixed inset-0 bg-black/40 z-[115] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm"></div>
 
 <!-- Custom Date Picker Sheet -->
 <div 
@@ -237,8 +178,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   </div>
 
   <div class="pt-4 mt-auto">
-    <button type="button" id="date-picker-close" class="w-full py-3.5 rounded-2xl bg-black/5 text-black font-bold text-sm active:scale-95 transition-transform">
-      Anulează
+    <button type="button" id="date-picker-close" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-95 transition-all text-center cursor-pointer">
+      Salvează
     </button>
   </div>
 </div>
@@ -267,6 +208,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     settings: any;
     currentHour: number = 8;
     currentMin: number = 0;
+    selectedCustomHour: string = '08';
+    selectedCustomMinute: string = '00';
 
     constructor() {
       this.sheet = document.getElementById('add-session-sheet');
@@ -276,6 +219,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.datePickerSheet = document.getElementById('custom-date-picker-sheet');
       this.datePickerOverlay = document.getElementById('custom-date-picker-overlay');
       this.currentPickerDate = new Date();
+      this.selectedCustomHour = '08';
+      this.selectedCustomMinute = '00';
       this.startY = 0;
       this.currentY = 0;
       this.settings = getSettings();
@@ -285,28 +230,29 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.bindEvents();
       this.bindDateTimeSelectors();
       this.bindDatePicker();
+      this.bindCustomTimeModal();
     }
-
     populateDynamicContent() {
-      // Populate time slots with default fallback 08:00 - 18:00
+      // Populate time slots
       const timeContainer = document.getElementById('time-slots-container');
       if (timeContainer) {
         timeContainer.innerHTML = '';
         const workStartStr = this.settings?.work_start || this.settings?.schedule?.workStart || '08:00';
-        const workEndStr   = this.settings?.work_end   || this.settings?.schedule?.workEnd   || '18:00';
+        const workEndStr   = this.settings?.work_end   || this.settings?.schedule?.workEnd   || '20:00';
 
         const startHour = parseInt(workStartStr.split(':')[0], 10) || 8;
-        const endHour   = parseInt(workEndStr.split(':')[0], 10)   || 18;
+        const endHour   = parseInt(workEndStr.split(':')[0], 10)   || 20;
         
         let i = 0;
         for (let h = startHour; h <= endHour; h++) {
-          ['00'].forEach(m => {
+          ['00', '30'].forEach(m => {
+            if (h === endHour && m !== '00') return;
             const timeStr = `${h.toString().padStart(2, '0')}:${m}`;
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.dataset.timeBtn = timeStr;
-            btn.className = `shrink-0 snap-start flex items-center justify-center px-6 h-12 rounded-[1.25rem] border-2 font-bold transition-all duration-300 ${i === 0 ? 'border-brand-secondary bg-brand-secondary/10 text-black' : 'border-transparent bg-black/5 text-text-muted hover:bg-black/10'}`;
-            btn.textContent = timeStr;
+            btn.className = `shrink-0 flex flex-col items-center justify-center px-2 py-1 transition-all duration-300 ${i === 0 ? 'text-brand-secondary' : 'text-black opacity-70 hover:opacity-100'}`;
+            btn.innerHTML = `<span class="text-xl font-extrabold">${timeStr}</span>`;
             timeContainer.appendChild(btn);
             i++;
           });
@@ -363,25 +309,15 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         // Re-bind change listeners for new radios
         const patientRadios = this.form?.querySelectorAll('input[name="patientId"]');
         const settingsContainer = document.getElementById('settings-container');
-        const selectedPatientNameSpan = document.getElementById('selected-patient-name');
-        const showPatientsBtn = document.getElementById('show-patients-btn');
 
         patientRadios?.forEach(radio => {
           radio.addEventListener('change', (e: any) => {
             if (e.target.checked) {
-              if (selectedPatientNameSpan) {
-                selectedPatientNameSpan.textContent = e.target.getAttribute('data-patient-name') || 'Pacient';
+              const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
+              if (searchInput) {
+                searchInput.value = e.target.getAttribute('data-patient-name') || '';
               }
               
-              if (showPatientsBtn) {
-                const colorClass = e.target.getAttribute('data-color-class');
-                showPatientsBtn.className = `w-full flex items-center justify-between px-6 py-4 rounded-[1.5rem] font-bold text-lg hover:brightness-95 active:scale-95 transition-all ${colorClass}`;
-                showPatientsBtn.classList.remove('hidden');
-              }
-
-              const searchInput = document.getElementById('search-patient-input');
-              if (searchInput) searchInput.classList.add('hidden');
-
               patientList?.classList.add('hidden');
               patientList?.classList.remove('flex');
               
@@ -445,78 +381,49 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const timeBtns = document.querySelectorAll<HTMLButtonElement>('[data-time-btn]');
       const nativeDatePicker = document.getElementById('native-date-picker') as HTMLInputElement;
       const otherDateBtn = document.getElementById('other-date-btn');
-
-      const toggleBtn = document.getElementById('toggle-custom-time-btn');
-      const drawer = document.getElementById('custom-time-drawer');
-      const chevron = document.getElementById('custom-time-chevron');
-      const rangeSlider = document.getElementById('time-range-slider') as HTMLInputElement;
-      const minChips = document.querySelectorAll<HTMLButtonElement>('[data-min-chip]');
       
-      const displayDate = document.getElementById('display-selected-date');
-      const displayTime = document.getElementById('display-selected-time');
-
-      toggleBtn?.addEventListener('click', () => {
-        if (!drawer) return;
-        const isOpen = drawer.style.gridTemplateRows === '1fr';
-        drawer.style.gridTemplateRows = isOpen ? '0fr' : '1fr';
-        if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-      });
-
-      rangeSlider?.addEventListener('input', (e: any) => {
-        const val = parseInt(e.target.value, 10);
-        this.updateCustomTimeDisplay(val);
-      });
-
-      minChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          const m = parseInt(chip.dataset.minChip || '0', 10);
-          const totalM = (this.currentHour * 60) + m;
-          this.updateCustomTimeDisplay(totalM);
-        });
-      });
+      const nativeTimePicker = document.getElementById('native-time-picker') as HTMLInputElement;
+      const timeScrollLeftBtn = document.getElementById('time-scroll-left');
+      const timeSlotsContainer = document.getElementById('time-slots-container');
 
       dateBtns.forEach(btn => {
         btn.addEventListener('click', () => {
           dateBtns.forEach(b => {
-            b.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
-            b.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
+            b.classList.remove('text-brand-secondary');
+            b.classList.add('text-black', 'opacity-70');
           });
           
           if (otherDateBtn) {
-             otherDateBtn.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
-             otherDateBtn.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
+             otherDateBtn.classList.remove('text-brand-secondary');
+             otherDateBtn.classList.add('text-black');
           }
           
-          btn.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
-          btn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
+          btn.classList.add('text-brand-secondary');
+          btn.classList.remove('text-black', 'opacity-70');
           
           if (this.dateInput) this.dateInput.value = btn.dataset.dateBtn || '';
-          if (displayDate) displayDate.textContent = btn.dataset.displayDate || '';
           
           btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         });
       });
       
       if (nativeDatePicker && otherDateBtn) {
+         // Nu mai e nevoie de schimbat selectedVal pt nativeDatePicker (date picker e custom sheet momentan pt alte zile, 
+         // dar dacă se folosește native-date-picker, păstrăm logica)
          nativeDatePicker.addEventListener('change', (e: any) => {
              const selectedVal = e.target.value;
              if (!selectedVal) return;
              
              dateBtns.forEach(b => {
-                b.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
-                b.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
+                b.classList.remove('text-brand-secondary');
+                b.classList.add('text-black', 'opacity-70');
              });
              
-             otherDateBtn.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
-             otherDateBtn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
-             
-             const parsed = new Date(selectedVal + 'T00:00:00');
-             const displayStr = `${parsed.toLocaleDateString('ro-RO', { weekday: 'short' })}, ${parsed.getDate()}`;
+             otherDateBtn.classList.add('text-brand-secondary');
+             otherDateBtn.classList.remove('text-black');
              
              if (this.dateInput) this.dateInput.value = selectedVal;
-             if (displayDate) displayDate.textContent = displayStr;
              
-             otherDateBtn.querySelector('span')!.textContent = parsed.getDate().toString();
              otherDateBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
          });
       }
@@ -525,88 +432,57 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         this.openDatePicker();
       });
 
+      // ---- TIME SELECTORS LOGIC ----
+      
+      timeScrollLeftBtn?.addEventListener('click', () => {
+        if (timeSlotsContainer) {
+          timeSlotsContainer.scrollBy({ left: -100, behavior: 'smooth' });
+        }
+      });
+
       timeBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-          timeBtns.forEach(b => {
-            b.classList.remove('border-brand-secondary', 'bg-brand-secondary/10', 'text-black');
-            b.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
-          });
-          
-          btn.classList.add('border-brand-secondary', 'bg-brand-secondary/10', 'text-black');
-          btn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
-          
-          const timeVal = btn.dataset.timeBtn || '08:00';
-          const [h, m] = timeVal.split(':').map(n => parseInt(n, 10));
-          this.updateCustomTimeDisplay((h * 60) + m);
-          
-          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          this.selectTime(btn.dataset.timeBtn || '08:00');
         });
       });
     }
     
     selectDate(dateStr: string) {
       if (!dateStr || !this.dateInput) return;
-
       this.dateInput.value = dateStr;
-      const displayDate = document.getElementById('display-selected-date');
-      const dateBtns = document.querySelectorAll<HTMLButtonElement>('[data-date-btn]');
-      const otherDateBtn = document.getElementById('other-date-btn');
-      const nativeDatePicker = document.getElementById('native-date-picker') as HTMLInputElement;
-      let matched = false;
 
-      dateBtns.forEach(btn => {
-        btn.classList.remove('border-brand-primary', 'bg-brand-primary/10', 'text-black');
-        btn.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
-
-        if (btn.dataset.dateBtn === dateStr) {
-          matched = true;
-          btn.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
-          btn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
-          if (displayDate) displayDate.textContent = btn.dataset.displayDate || dateStr;
-          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-      });
-
-      if (!matched && otherDateBtn) {
-        otherDateBtn.classList.add('border-brand-primary', 'bg-brand-primary/10', 'text-black');
-        otherDateBtn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
-
-        // Use a midnight time to avoid timezone shifts parsing the YYYY-MM-DD string
+      const dateLabel = document.getElementById('display-date-label');
+      if (dateLabel) {
         const parsed = new Date(dateStr + 'T00:00:00');
-        const weekday = parsed.toLocaleDateString('ro-RO', { weekday: 'short' });
-        const displayStr = `${weekday}, ${parsed.getDate()}`;
-
-        if (displayDate) displayDate.textContent = displayStr;
-
-        const span = otherDateBtn.querySelector('span');
-        if (span) span.textContent = parsed.getDate().toString();
-        if (nativeDatePicker) nativeDatePicker.value = dateStr;
-
-        otherDateBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        if (!isNaN(parsed.getTime())) {
+          const weekday = parsed.toLocaleDateString('ro-RO', { weekday: 'long' });
+          const monthName = parsed.toLocaleDateString('ro-RO', { month: 'long' });
+          const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+          const formatted = `${weekday.charAt(0).toUpperCase() + weekday.slice(1)}, ${parsed.getDate()} ${capitalizedMonth}`;
+          dateLabel.textContent = formatted;
+        } else {
+          dateLabel.textContent = dateStr;
+        }
       }
     }
 
     selectTime(timeStr: string) {
-       const [h, m] = timeStr.split(':').map(n => parseInt(n, 10));
-       const totalM = ((isNaN(h) ? 8 : h) * 60) + (isNaN(m) ? 0 : m);
-       this.updateCustomTimeDisplay(totalM);
+      if (!timeStr || !this.timeInput) return;
+      this.timeInput.value = timeStr;
 
-       const timeBtns = document.querySelectorAll<HTMLButtonElement>('[data-time-btn]');
-       const btn = Array.from(timeBtns).find(b => b.dataset.timeBtn === timeStr);
-       if (btn) {
-         timeBtns.forEach(b => {
-           b.classList.remove('border-brand-secondary', 'bg-brand-secondary/10', 'text-black');
-           b.classList.add('border-transparent', 'bg-black/5', 'text-text-muted');
-         });
-         btn.classList.add('border-brand-secondary', 'bg-brand-secondary/10', 'text-black');
-         btn.classList.remove('border-transparent', 'bg-black/5', 'text-text-muted');
-       }
+      const timeLabel = document.getElementById('display-time-label');
+      if (timeLabel) {
+        timeLabel.textContent = timeStr;
+      }
     }
 
     bindDatePicker() {
       const prevBtn = document.getElementById('date-picker-prev');
       const nextBtn = document.getElementById('date-picker-next');
       const closeBtn = document.getElementById('date-picker-close');
+      const triggerBtn = document.getElementById('btn-trigger-date-sheet');
+
+      triggerBtn?.addEventListener('click', () => this.openDatePicker());
 
       prevBtn?.addEventListener('click', () => {
         this.currentPickerDate.setMonth(this.currentPickerDate.getMonth() - 1);
@@ -694,26 +570,170 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       }
 
       for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(year, month, d);
+        const dayOfWeek = dateObj.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
         const isSelected = dateStr === selectedValue;
         const isToday = dateStr === todayStr;
 
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = `aspect-square rounded-2xl text-sm font-extrabold transition-all active:scale-95 ${
-          isSelected
-            ? 'bg-black text-white shadow-lg'
-            : isToday
-              ? 'bg-brand-primary text-black'
-              : 'bg-black/5 text-black hover:bg-black/10'
-        }`;
+        
+        if (isWeekend) {
+          btn.disabled = true;
+          btn.className = 'aspect-square rounded-2xl text-sm font-extrabold bg-black/5 text-black/30 pointer-events-none cursor-not-allowed';
+          btn.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.06) 4px, rgba(0,0,0,0.06) 8px)';
+        } else {
+          btn.className = `aspect-square rounded-2xl text-sm font-extrabold transition-all active:scale-95 ${
+            isSelected
+              ? 'bg-black text-white shadow-lg'
+              : isToday
+                ? 'bg-brand-primary text-black'
+                : 'bg-black/5 text-black hover:bg-black/10'
+          }`;
+          btn.addEventListener('click', () => {
+            this.selectDate(dateStr);
+            this.closeDatePicker();
+          });
+        }
+        
         btn.textContent = d.toString();
-        btn.addEventListener('click', () => {
-          this.selectDate(dateStr);
-          this.closeDatePicker();
-        });
         grid.appendChild(btn);
       }
+    }
+
+    openCustomTimeModal() {
+      const modal = document.getElementById('add-session-time-modal');
+      const overlay = document.getElementById('add-session-time-overlay');
+      if (!modal) return;
+
+      const currentVal = this.timeInput?.value || '08:00';
+      const parts = currentVal.split(':');
+      this.selectedCustomHour = parts[0] || '08';
+      this.selectedCustomMinute = parts[1] || '00';
+      
+      const hd = document.getElementById('session-hour-display');
+      const md = document.getElementById('session-minute-display');
+      if (hd) hd.textContent = this.selectedCustomHour;
+      if (md) md.textContent = this.selectedCustomMinute;
+
+      this.renderTimeGrids();
+      
+      modal.classList.remove('translate-y-full');
+      overlay?.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    renderTimeGrids() {
+      const hoursGrid = document.getElementById('session-hours-grid');
+      const minutesGrid = document.getElementById('session-minutes-grid');
+      const hoursList = ['07','08','09','10','11','12','13','14','15','16','17','18'];
+      const minutesList = ['00','15','30','45'];
+
+      if (hoursGrid) {
+        hoursGrid.innerHTML = '';
+        hoursList.forEach(h => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isSel = h === this.selectedCustomHour;
+          btn.className = `py-2 rounded-xl font-extrabold text-sm transition-all ${
+            isSel ? 'bg-brand-secondary text-white shadow-sm scale-105' : 'bg-surface-base hover:bg-brand-primary/30 text-text-main'
+          }`;
+          btn.textContent = h;
+          btn.addEventListener('click', () => {
+            this.selectedCustomHour = h;
+            const hd = document.getElementById('session-hour-display');
+            if (hd) hd.textContent = h;
+            this.renderTimeGrids();
+          });
+          hoursGrid.appendChild(btn);
+        });
+      }
+      
+      if (minutesGrid) {
+        minutesGrid.innerHTML = '';
+        minutesList.forEach(m => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isSel = m === this.selectedCustomMinute;
+          btn.className = `py-2 rounded-xl font-extrabold text-sm transition-all ${
+            isSel ? 'bg-brand-secondary text-white shadow-sm scale-105' : 'bg-surface-base hover:bg-brand-primary/30 text-text-main'
+          }`;
+          btn.textContent = m;
+          btn.addEventListener('click', () => {
+            this.selectedCustomMinute = m;
+            const md = document.getElementById('session-minute-display');
+            if (md) md.textContent = m;
+            this.renderTimeGrids();
+          });
+          minutesGrid.appendChild(btn);
+        });
+      }
+    }
+
+    // --- Custom Time Modal Logic ---
+    bindCustomTimeModal() {
+      const btnOpen = document.getElementById('btn-open-session-time');
+      const btnTimeSheet = document.getElementById('btn-trigger-time-sheet');
+      const btnClose = document.getElementById('btn-close-session-time');
+      const btnConfirm = document.getElementById('btn-confirm-session-time');
+      const modal = document.getElementById('add-session-time-modal');
+
+      const closeModal = () => {
+        if (!modal) return;
+        const overlay = document.getElementById('add-session-time-overlay');
+        modal.style.transform = '';
+        modal.classList.add('translate-y-full');
+        overlay?.classList.add('opacity-0', 'pointer-events-none');
+      };
+
+      if (btnOpen) {
+        btnOpen.addEventListener('click', () => this.openCustomTimeModal());
+      }
+      if (btnTimeSheet) {
+        btnTimeSheet.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.openCustomTimeModal();
+        });
+      }
+      if (btnClose) {
+        btnClose.addEventListener('click', closeModal);
+      }
+      const timeOverlay = document.getElementById('add-session-time-overlay');
+      if (timeOverlay) {
+        timeOverlay.addEventListener('click', closeModal);
+      }
+
+      // Swipe down to close for time sheet
+      let timeStartY = 0;
+      modal?.addEventListener('touchstart', (e: any) => {
+        timeStartY = e.touches[0].clientY;
+      }, { passive: true });
+      modal?.addEventListener('touchmove', (e: any) => {
+        const deltaY = e.touches[0].clientY - timeStartY;
+        if (deltaY > 0 && modal) {
+          modal.style.transform = `translateY(${deltaY}px)`;
+        }
+      }, { passive: true });
+      modal?.addEventListener('touchend', (e: any) => {
+        const deltaY = (e.changedTouches[0].clientY || 0) - timeStartY;
+        if (modal) {
+          modal.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+          if (deltaY > 150) {
+            closeModal();
+          } else {
+            modal.style.transform = 'translateY(0)';
+          }
+        }
+      });
+
+      btnConfirm?.addEventListener('click', () => {
+        const timeStr = `${this.selectedCustomHour}:${this.selectedCustomMinute}`;
+        this.selectTime(timeStr);
+        closeModal();
+      });
     }
 
     bindEvents() {
@@ -748,11 +768,11 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           }
 
           if (isEdit) {
-            if (titleEl) titleEl.textContent = 'Editează Programarea';
+            if (titleEl) titleEl.textContent = 'Editează programarea';
             if (submitBtnEl) submitBtnEl.textContent = 'Salvează Modificările';
           } else {
-            if (titleEl) titleEl.textContent = 'Programare Nouă';
-            if (submitBtnEl) submitBtnEl.textContent = 'Salvează programarea';
+            if (titleEl) titleEl.textContent = 'Programare nouă';
+            if (submitBtnEl) submitBtnEl.textContent = 'Salvează';
           }
 
         // Control Date & Time selectors visibility
@@ -762,18 +782,23 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           dateTimeContainer?.classList.add('hidden');
         }
 
-        if (timeStr) {
-          this.selectTime(timeStr);
-        }
-        if (dateStr) {
-          this.selectDate(dateStr);
+        if (isEdit) {
+          if (timeStr) this.selectTime(timeStr);
+          if (dateStr) this.selectDate(dateStr);
+        } else {
+          // Reset labels to default on new appointment
+          const dateLabel = document.getElementById('display-date-label');
+          const timeLabel = document.getElementById('display-time-label');
+          if (dateLabel) dateLabel.textContent = 'Alege data';
+          if (timeLabel) timeLabel.textContent = 'Alege ora';
+          if (this.dateInput && dateStr) this.dateInput.value = dateStr;
+          if (this.timeInput && timeStr) this.timeInput.value = timeStr;
         }
 
         // Reset patient selector state
-        const showBtn = document.getElementById('show-patients-btn');
         const pList = document.getElementById('patient-list');
+        const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
         const settingsContainer = document.getElementById('settings-container');
-        const selectedPatientNameSpan = document.getElementById('selected-patient-name');
 
         const patientRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
         patientRadios?.forEach(r => r.checked = false);
@@ -787,19 +812,14 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             matchingRadio.dispatchEvent(new Event('change'));
           }
         } else {
-          if (showBtn && pList) {
-            showBtn.className = 'w-full flex items-center justify-between px-6 py-4 rounded-[1.5rem] bg-black/5 font-bold text-lg text-black hover:bg-black/10 active:scale-95 transition-all border border-dashed border-black/20';
-            showBtn.classList.remove('hidden');
+          if (searchInput) searchInput.value = '';
+          if (pList) {
             pList.classList.add('hidden');
             pList.classList.remove('flex');
           }
-
           if (settingsContainer) {
             settingsContainer.classList.add('hidden');
             settingsContainer.classList.remove('flex');
-          }
-          if (selectedPatientNameSpan) {
-            selectedPatientNameSpan.textContent = "Alege Pacientul";
           }
         }
 
@@ -859,29 +879,25 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         } finally {
           if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Salvează programarea';
+            submitBtn.textContent = 'Salvează';
           }
         }
       });
 
       // Handle showing patient list and search input
-      const showPatientsBtn = document.getElementById('show-patients-btn');
       const patientList = document.getElementById('patient-list');
       const searchPatientInput = document.getElementById('search-patient-input') as HTMLInputElement | null;
 
-      showPatientsBtn?.addEventListener('click', () => {
-        showPatientsBtn.classList.add('hidden');
-        if (searchPatientInput) {
-          searchPatientInput.classList.remove('hidden');
-          searchPatientInput.value = '';
-          searchPatientInput.focus();
-        }
+      searchPatientInput?.addEventListener('focus', () => {
         patientList?.classList.remove('hidden');
         patientList?.classList.add('flex');
       });
 
       searchPatientInput?.addEventListener('input', (e: any) => {
         const query = e.target.value.toLowerCase().trim();
+        patientList?.classList.remove('hidden');
+        patientList?.classList.add('flex');
+        
         const labels = patientList?.querySelectorAll('label');
         labels?.forEach((label) => {
           const radio = label.querySelector('input[type="radio"]') as HTMLInputElement | null;
@@ -985,6 +1001,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       globalAddSessionSheetManager.bindEvents();
       globalAddSessionSheetManager.bindDateTimeSelectors();
       globalAddSessionSheetManager.bindDatePicker();
+      globalAddSessionSheetManager.bindCustomTimeModal();
     }
   });
 </script>

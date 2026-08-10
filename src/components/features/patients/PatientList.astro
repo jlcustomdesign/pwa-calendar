@@ -6,18 +6,18 @@
   <!-- Search Bar and Add Button -->
   <div class="flex gap-3" id="patient-search-row">
     <div class="relative flex-1 min-w-0">
-      <input type="text" id="patient-search" placeholder="Caută pacienți..." class="w-full bg-white rounded-full py-3 pl-12 pr-4 text-black focus:outline-none focus:ring-2 focus:ring-brand-primary border border-black/5 shadow-sm font-medium h-[52px]" />
-      <svg class="w-5 h-5 absolute left-4 top-[16px] text-black/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+      <input type="text" id="patient-search" placeholder="Căutare pacient..." class="w-full bg-white rounded-full py-3.5 pl-12 pr-4 text-black focus:outline-none border border-black/10 shadow-sm text-base font-extrabold h-[56px]" />
+      <svg class="w-5 h-5 absolute left-4 top-[18px] text-black/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
     </div>
     <button 
       id="add-patient-btn"
       onclick="window.dispatchEvent(new CustomEvent('openAddPatient'))"
-      class="h-[52px] shrink-0 rounded-full bg-black text-white flex items-center justify-center shadow-lg active:scale-95"
+      class="h-[56px] shrink-0 rounded-full bg-brand-primary hover:brightness-105 text-black flex items-center justify-center shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer"
     >
-      <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+      <svg class="w-6 h-6 shrink-0 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
       </svg>
-      <span class="add-label font-bold text-sm">Adaugă</span>
+      <span class="add-label font-extrabold text-base text-black">Adaugă</span>
     </button>
   </div>
 
@@ -53,10 +53,10 @@
   </style>
   <!-- Filters -->
   <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar" style="-ms-overflow-style: none; scrollbar-width: none;">
-    <button class="filter-btn active px-5 py-2 rounded-full bg-black text-white text-sm font-bold whitespace-nowrap active:scale-95 transition-transform" data-filter="all">Toți</button>
-    <button class="filter-btn px-5 py-2 rounded-full bg-white text-black text-sm font-bold whitespace-nowrap border border-black/5 shadow-sm active:scale-95 transition-transform" data-filter="ghimbav">Ghimbav</button>
-    <button class="filter-btn px-5 py-2 rounded-full bg-white text-black text-sm font-bold whitespace-nowrap border border-black/5 shadow-sm active:scale-95 transition-transform" data-filter="belaqva">Belaqva</button>
-    <button class="filter-btn px-5 py-2 rounded-full bg-white text-black text-sm font-bold whitespace-nowrap border border-black/5 shadow-sm active:scale-95 transition-transform" data-filter="unpaid">Neachitați</button>
+    <button class="filter-btn active px-5 py-2.5 rounded-full bg-brand-primary text-black font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm" data-filter="all">Toți</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all" data-filter="ghimbav">Ghimbav</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all" data-filter="belaqva">Belaqva</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all" data-filter="unpaid">Neachitați</button>
   </div>
 </div>
 
@@ -172,12 +172,12 @@
       filterBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
           filterBtns.forEach(b => {
-            b.classList.remove('bg-black', 'text-white');
-            b.classList.add('bg-white', 'text-black');
+            b.classList.remove('bg-brand-primary');
+            b.classList.add('bg-white', 'border', 'border-black/10', 'shadow-sm');
           });
           const target = e.currentTarget as HTMLElement;
-          target.classList.remove('bg-white', 'text-black');
-          target.classList.add('bg-black', 'text-white');
+          target.classList.remove('bg-white', 'border', 'border-black/10');
+          target.classList.add('bg-brand-primary');
           
           this.currentFilter = target.getAttribute('data-filter') || 'all';
           this.render();
@@ -262,6 +262,7 @@
 
         const attendanceCount = patient.sedinte_folosite || 0;
         const totalSessions = patient.sedinte_total || 10;
+        const remainingSessions = Math.max(0, totalSessions - attendanceCount);
         const progressPercentage = Math.min(100, Math.round((attendanceCount / totalSessions) * 100));
 
         const cardWrapper = document.createElement('div');
@@ -342,7 +343,7 @@
               <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
                 <div class="h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
               </div>
-              <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${attendanceCount}/${totalSessions}</div>
+              <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${remainingSessions}/${totalSessions}</div>
             </div>
           </div>
 
