@@ -182,7 +182,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                   <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
                     <div class="h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
                   </div>
-                  <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${remainingSessions}/${session.totalSessions || 10}</div>
+                  <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${session.attendanceCount ?? 0}/${session.totalSessions || 10}</div>
                 </div>
               </div>
 
@@ -220,6 +220,13 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                       <span class="whitespace-nowrap truncate">${paymentStatus}</span>
                     </button>
                   </div>
+                  ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') && isPast ? `
+                    <div class="px-6 pb-5 pt-1">
+                      <button type="button" class="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm active:scale-95 transition-transform shadow-sm" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
+                        Confirmă ședința
+                      </button>
+                    </div>
+                  ` : ''}
                 </div>
               </div>
             </div>
@@ -306,7 +313,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
               <span class="text-xs font-bold text-text-muted tracking-wider uppercase mt-0.5">${minStr || '00'}</span>
             </div>
             
-            <div class="flex-1 pb-2" data-slot-time="${slotTimeStr}">
+            <div class="flex-1 min-w-0 pb-2" data-slot-time="${slotTimeStr}">
               ${session ? createSessionCardHTML(session) : (isLunchSlot ? `
                 <div class="w-full h-16 rounded-2xl bg-amber-500/10 border-2 border-dashed border-amber-500/30 flex items-center justify-between px-6 text-amber-900 font-bold text-sm select-none">
                   <div class="flex items-center gap-2.5">

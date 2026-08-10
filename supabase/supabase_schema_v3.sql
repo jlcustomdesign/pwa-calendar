@@ -307,8 +307,9 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_valideaza_programare ON public.programari;
+-- Validăm doar când se programează/reprogramează (data sau ora), nu la schimbarea statusului.
 CREATE TRIGGER trg_valideaza_programare
-  BEFORE INSERT OR UPDATE OF data, ora, status ON public.programari
+  BEFORE INSERT OR UPDATE OF data, ora ON public.programari
   FOR EACH ROW EXECUTE FUNCTION public.valideaza_programare();
 
 -- Trigger: incrementează automat sedinte_folosite la finalizarea sesiunii

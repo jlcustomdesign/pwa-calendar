@@ -42,7 +42,10 @@ export async function updateAppointment(id: string, updates: {
     .update(updates)
     .eq('id', id);
 
-  if (error) throw new Error('Eroare la actualizarea programării: ' + error.message);
+  if (error) {
+    console.error('updateAppointment error:', error, { id, updates });
+    throw new Error('Eroare la actualizarea programării: ' + (error.message || JSON.stringify(error)));
+  }
 }
 
 // ── Programări pentru o zi specifică (calendar zilnic) ────────
@@ -124,7 +127,10 @@ export async function completeSession(id: string, note?: string) {
     .update({ status: 'finalizat', note: note ?? null })
     .eq('id', id);
 
-  if (error) throw new Error('Eroare la finalizarea sesiunii: ' + error.message);
+  if (error) {
+    console.error('completeSession error:', error, { id });
+    throw new Error('Eroare la finalizarea sesiunii: ' + (error.message || JSON.stringify(error)));
+  }
 }
 
 // ── Marcare absent ────────────────────────────────────────────
@@ -134,7 +140,10 @@ export async function markAbsent(id: string, motiv?: string) {
     .update({ status: 'absent', motiv: motiv ?? null })
     .eq('id', id);
 
-  if (error) throw new Error('Eroare la marcarea absenței: ' + error.message);
+  if (error) {
+    console.error('markAbsent error:', error, { id });
+    throw new Error('Eroare la marcarea absenței: ' + (error.message || JSON.stringify(error)));
+  }
 }
 
 // ── Anulare programare ────────────────────────────────────────
@@ -144,7 +153,10 @@ export async function cancelAppointment(id: string, motiv?: string) {
     .update({ status: 'anulat', motiv: motiv ?? null })
     .eq('id', id);
 
-  if (error) throw new Error('Eroare la anularea programării: ' + error.message);
+  if (error) {
+    console.error('cancelAppointment error:', error, { id });
+    throw new Error('Eroare la anularea programării: ' + (error.message || JSON.stringify(error)));
+  }
 }
 
 // ── Reprogramare (rebook next week din WrapUp) ────────────────
