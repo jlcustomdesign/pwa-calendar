@@ -207,6 +207,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     scrollAtTop: boolean = true;
     settings: any;
     currentHour: number = 8;
+    currentMin: number = 0;
     selectedCustomHour: string = '08';
     selectedCustomMinute: string = '00';
     selectedPatientId: string | null = null;
@@ -318,6 +319,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
               if (searchInput) {
                 searchInput.value = e.target.getAttribute('data-patient-name') || '';
               }
+              const selectedPatientNameSpan = document.getElementById('selected-patient-name');
               if (selectedPatientNameSpan) {
                 selectedPatientNameSpan.textContent = e.target.getAttribute('data-patient-name') || 'Pacient';
               }
