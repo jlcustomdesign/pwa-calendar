@@ -81,6 +81,12 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       const endHourStr = (hourNum + 1).toString().padStart(2, '0');
       const endTime = `${endHourStr}:${minute}`;
 
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+      const nowStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      const isOngoing = selectedDate === todayStr && nowStr >= timeStr && nowStr < endTime;
+
       return `
         <div class="w-full relative group" data-session-id="${session.id}">
           <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden">
@@ -106,13 +112,19 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
             </div>
 
             <!-- Draggable Foreground -->
-            <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
+            <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses} ${isOngoing ? 'ring-4 ring-emerald-400 ring-offset-2' : ''}">
               
               <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
-                <div class="flex items-center gap-4 w-full relative z-10">
+                <div class="flex items-center justify-between gap-4 w-full relative z-10">
                   <div class="flex-1 min-w-0">
                     <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
                   </div>
+                  ${isOngoing ? `
+                    <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500 text-white text-[11px] font-black uppercase tracking-wider shadow-md animate-pulse shrink-0">
+                      <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                      În desfășurare
+                    </div>
+                  ` : ''}
                 </div>
 
                 <div class="flex items-center gap-4 mt-5 relative z-10">

@@ -112,7 +112,12 @@ import DailyProgress from './DailyProgress.astro';
       const endHourStr = (hourNum + 1).toString().padStart(2, '0');
       const endTime = `${endHourStr}:${minute}`;
 
-      const isPast = currentAgendaDate < todayStr || (currentAgendaDate === todayStr && timeStr < nowStr);
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+      const nowStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      const isOngoing = currentAgendaDate === todayStr && nowStr >= timeStr && nowStr < endTime;
+      const isPast = currentAgendaDate < todayStr || (currentAgendaDate === todayStr && nowStr >= endTime);
       const paymentStatus = session.paymentStatus || 'Neachitat';
 
       let paymentClass = '';
@@ -127,7 +132,7 @@ import DailyProgress from './DailyProgress.astro';
       }
 
       return `
-        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden ${isPast ? 'opacity-90' : ''}">
+        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden ${isPast ? 'opacity-80' : ''}">
           <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
             <div class="flex items-center gap-3">
               <button 
@@ -147,7 +152,7 @@ import DailyProgress from './DailyProgress.astro';
             </div>
           </div>
 
-          <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
+          <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses} ${isOngoing ? 'ring-4 ring-emerald-400 ring-offset-2' : ''}">
             ${isPast ? `
               <div 
                 class="absolute inset-0 z-10 pointer-events-none bg-black/5"
@@ -165,9 +170,17 @@ import DailyProgress from './DailyProgress.astro';
                 </div>
               </div>
 
-              <div class="flex items-center gap-4 w-full relative z-10 pl-24">
+              <div class="flex items-center justify-between gap-4 w-full relative z-10 pl-24">
                 <div class="flex-1 min-w-0">
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
+                </div>
+                ${isOngoing ? `
+                  <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500 text-white text-[11px] font-black uppercase tracking-wider shadow-md animate-pulse shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                    În desfășurare
+                  </div>
+                ` : ''}
+              </div>
                 </div>
               </div>
 
