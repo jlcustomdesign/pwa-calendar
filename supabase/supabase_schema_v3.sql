@@ -316,10 +316,11 @@ CREATE TRIGGER trg_valideaza_programare
 CREATE OR REPLACE FUNCTION public.incrementeaza_sedinte_folosite()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
-  -- Când o programare devine 'finalizat', incrementăm sedinte_folosite
+  -- Când o programare devine 'finalizat', incrementăm sedinte_folosite,
+  -- dar nu depășim sedinte_total (evităm violarea check-ului când pachetul e terminat)
   IF NEW.status = 'finalizat' AND (OLD.status IS NULL OR OLD.status <> 'finalizat') THEN
     UPDATE public.pacienti
-    SET sedinte_folosite = sedinte_folosite + 1
+    SET sedinte_folosite = LEAST(sedinte_folosite + 1, sedinte_total)
     WHERE id = NEW.pacient_id;
   END IF;
   -- Dacă revenim din 'finalizat' (corecție), decrementăm
