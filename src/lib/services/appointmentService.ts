@@ -169,3 +169,60 @@ export async function rebookNextWeek(originalId: string): Promise<string> {
     locatie:    orig.locatie as 'Belaqva' | 'Ghimbav',
   });
 }
+
+// ── Wrap-up: sesiuni trecute încă nerezolvate ─────────────────
+// (status 'programat', data trecută sau azi dar ora + 1h a trecut)
+export interface PendingWrapUp {
+  id: string;
+  pacient_id: string;
+  data: string;
+  ora: string;
+  pacienti: { prenume: string; nume: string } | null;
+}
+
+export async function getPendingWrapUps(): Promise<PendingWrapUp[]> {
+  const now = new Date();
+  const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const cutoffTime = new Date(now.getTime() - 60 * 60 * 1000);
+  const cutoffStr = String(cutoffTime.getHours()).padStart(2, '0') + ':' + String(cutoffTime.getMinutes()).padStart(2, '0');
+
+  const { data, error } = await (supabase as any)
+    .from('programari')
+    .select(`
+      id, pacient_id, data, ora,
+      pacienti ( prenume, nume )
+    `)
+    .eq('status', 'programat')
+    .lte('data', todayStr)
+    .order('data', { ascending: true })
+    .order('ora',  { ascending: true });
+
+  if (error) throw new Error('Eroare la citirea sesiunilor de confirmat: ' + error.message);
+
+  return (data ?? []).filter((a: PendingWrapUp) =>
+    a.data < todayStr || (a.ora || '00:00') <= cutoffStr
+  );
+}
+
+// ── Câte programări are pacientul în săptămâna datei (L–D) ────
+export async function countPatientWeekAppointments(patientId: string, dateStr: string): Promise<number> {
+  const d = new Date(dateStr + 'T00:00:00');
+  const dow = d.getDay(); // 0 = Duminică
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const fmt = (x: Date) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+
+  const { count, error } = await (supabase as any)
+    .from('programari')
+    .select('id', { count: 'exact', head: true })
+    .eq('pacient_id', patientId)
+    .gte('data', fmt(monday))
+    .lte('data', fmt(sunday))
+    .not('status', 'in', '("anulat","absent")');
+
+  if (error) throw new Error('Eroare la numărarea programărilor săptămânale: ' + error.message);
+  return count ?? 0;
+}

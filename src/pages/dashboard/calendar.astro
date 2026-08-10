@@ -32,8 +32,17 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
   </div>
   </div>
 
+  <style>
+    /* Long-press drag & drop: oprește callout-ul iOS și selecția textului pe carduri */
+    [data-session-id] {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+  </style>
+
   <script>
-    import { getAppointmentsByDate } from '../../lib/services/appointmentService';
+    import { getAppointmentsByDate, updateAppointment } from '../../lib/services/appointmentService';
     import { getSettings } from '../../lib/services/settingsService';
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -81,10 +90,52 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       const nowStr = now.toTimeString().slice(0, 5);
       const isToday = currentCalendarDate === todayStr;
 
+      const sessionStatus = session.status || 'programat';
       const isOngoing = isToday && nowStr >= timeStr && nowStr < endTime;
+      const isPast = currentCalendarDate < todayStr || (isToday && nowStr >= endTime);
+
+      const remainingSessions = session.remainingSessions ?? Math.max(0, (session.totalSessions || 10) - (session.attendanceCount ?? 0));
+
+      // Determine status badge
+      let statusBadge = '';
+      if (sessionStatus === 'finalizat') {
+        statusBadge = `
+          <div class="shrink-0 flex items-center">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold ${isGhimbav ? 'bg-white/15 text-white/80' : 'bg-black/10 text-black/70'} backdrop-blur-sm">
+              <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+              Finalizat
+            </span>
+          </div>`;
+      } else if (isOngoing) {
+        statusBadge = `
+          <div class="shrink-0 flex items-center">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold ${isGhimbav ? 'bg-white/20 text-white' : 'bg-black/10 text-black'} backdrop-blur-sm shadow-sm">
+              <span class="w-2 h-2 rounded-full ${isGhimbav ? 'bg-emerald-400' : 'bg-emerald-600'} shrink-0"></span>
+              În desfășurare
+            </span>
+          </div>`;
+      } else if (sessionStatus === 'absent' || sessionStatus === 'anulat') {
+        statusBadge = `
+          <div class="shrink-0 flex items-center">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-600/90 text-white backdrop-blur-sm shadow-sm">
+              ${sessionStatus === 'absent' ? 'Absent' : 'Anulat'}
+            </span>
+          </div>`;
+      } else if (isPast) {
+        statusBadge = `
+          <div class="shrink-0 flex items-center">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-500 text-white backdrop-blur-sm shadow-sm">
+              Așteaptă confirmare
+            </span>
+          </div>`;
+      }
+
+      const subscriptionWarning = session.subscriptionDone
+        ? `<p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-rose-700 mt-1 truncate">Abonament terminat — reînnoiește pachetul</p>`
+        : '';
 
       return `
-        <div class="w-full relative group" data-session-id="${session.id}">
+        <div class="w-full relative group" data-session-id="${session.id}" data-session-time="${timeStr}" data-session-date="${session.selectedDate || currentCalendarDate}">
           <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden">
             
             <!-- Swipe Action Background -->
@@ -122,29 +173,16 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                 <div class="flex items-center gap-3 w-full relative z-10 justify-between">
                   <div class="flex-1 min-w-0">
                     <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
+                    ${subscriptionWarning}
                   </div>
-                  ${isOngoing ? `
-                    <div class="shrink-0 flex items-center">
-                      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold ${isGhimbav ? 'bg-white/20 text-white' : 'bg-black/10 text-black'} backdrop-blur-sm shadow-sm">
-                        <span class="w-2 h-2 rounded-full ${isGhimbav ? 'bg-emerald-400' : 'bg-emerald-600'} shrink-0"></span>
-                        În desfășurare
-                      </span>
-                    </div>
-                  ` : (isToday && nowStr >= endTime ? `
-                    <div class="shrink-0 flex items-center">
-                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold ${isGhimbav ? 'bg-white/15 text-white/80' : 'bg-black/10 text-black/70'} backdrop-blur-sm">
-                        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        Finalizat
-                      </span>
-                    </div>
-                  ` : '')}
+                  ${statusBadge}
                 </div>
 
                 <div class="flex items-center gap-4 mt-5 relative z-10">
                   <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
                     <div class="h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
                   </div>
-                  <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${session.attendanceCount ?? 0}/${session.totalSessions || 10}</div>
+                  <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${remainingSessions}/${session.totalSessions || 10}</div>
                 </div>
               </div>
 
@@ -204,6 +242,8 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
         storedSessions = appts.map((a: any) => {
           const sumaIncasata = Number(a.pacienti?.suma_incasata || 0);
           const costTotal = Number(a.pacienti?.cost || 0);
+          const sedinteRamase = a.pacienti?.sedinte_ramase ?? Math.max(0, (a.pacienti?.sedinte_total || 10) - (a.pacienti?.sedinte_folosite ?? 0));
+          const totalSess = a.pacienti?.sedinte_total || 10;
           let pStatus = 'Neachitat';
           if (a.pacienti?.achitat === true || a.pacienti?.status_plata === 'Achitat' || a.pacienti?.status_plata === 'Achitat integral') {
             pStatus = 'Achitat integral';
@@ -224,7 +264,10 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
             selectedDate: a.data,
             location: a.pacienti?.locatie || 'Belaqva',
             attendanceCount: a.pacienti?.sedinte_folosite ?? 0,
-            totalSessions: a.pacienti?.sedinte_total || 10,
+            totalSessions: totalSess,
+            remainingSessions: sedinteRamase,
+            subscriptionDone: totalSess > 0 && sedinteRamase <= 0,
+            status: a.status || 'programat',
             paymentStatus: pStatus,
           };
         });
@@ -293,5 +336,215 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
     window.addEventListener('patientsUpdated', renderTimeline);
     document.addEventListener('DOMContentLoaded', renderTimeline);
     document.addEventListener('astro:page-load', renderTimeline);
+
+    // ── Drag & drop: mută o programare (long-press apoi drag) ──────────────
+    // Drop pe un slot orar din timeline → schimbă ora.
+    // Drop pe o zi din strip-ul săptămânii (WeeklyCalendarCard) → schimbă ziua.
+    // Triggerul DB `valideaza_programare` respinge suprapunerile — afișăm mesajul.
+    function initSessionDragDrop() {
+      if ((window as any)._sessionDragDropInit) return;
+      (window as any)._sessionDragDropInit = true;
+
+      const MOVE_CANCEL_PX = 12;
+
+      let activePointerId: number | null = null;
+      let pressTimer: number | undefined;
+      let startX = 0;
+      let startY = 0;
+      let sourceCard: HTMLElement | null = null;
+      let dragging = false;
+      let ghostEl: HTMLElement | null = null;
+      let ghostOffsetX = 0;
+      let ghostOffsetY = 0;
+      let suppressClick = false;
+      let dropTarget: { type: 'slot' | 'day'; el: HTMLElement; value: string } | null = null;
+
+      function cancelPress() {
+        clearTimeout(pressTimer);
+        pressTimer = undefined;
+        if (!dragging) {
+          activePointerId = null;
+          sourceCard = null;
+        }
+      }
+
+      function clearTargetHighlight() {
+        if (!dropTarget) return;
+        dropTarget.el.style.outline = '';
+        dropTarget.el.style.outlineOffset = '';
+        dropTarget.el.style.borderRadius = '';
+        dropTarget = null;
+      }
+
+      function engageDrag(x: number, y: number) {
+        if (!sourceCard || dragging) return;
+        dragging = true;
+        (window as any)._sessionDragActive = true;
+
+        const rect = sourceCard.getBoundingClientRect();
+        ghostOffsetX = x - rect.left;
+        ghostOffsetY = y - rect.top;
+
+        ghostEl = sourceCard.cloneNode(true) as HTMLElement;
+        ghostEl.style.cssText += `;position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;z-index:70;pointer-events:none;margin:0;opacity:0.95;box-shadow:0 24px 48px rgba(0,0,0,0.3);border-radius:2.5rem;`;
+        document.body.appendChild(ghostEl);
+
+        sourceCard.style.opacity = '0.35';
+        document.body.style.overflow = 'hidden';
+        moveGhost(x, y);
+      }
+
+      function moveGhost(x: number, y: number) {
+        if (!ghostEl) return;
+        ghostEl.style.left = `${x - ghostOffsetX}px`;
+        ghostEl.style.top = `${y - ghostOffsetY}px`;
+      }
+
+      function updateDropTarget(x: number, y: number) {
+        clearTargetHighlight();
+        const el = document.elementFromPoint(x, y) as HTMLElement | null;
+        if (!el) return;
+
+        const dayEl = el.closest('[data-calendar-item]') as HTMLElement | null;
+        if (dayEl && dayEl.closest('#calendar-strip')) {
+          const yy = dayEl.getAttribute('data-year');
+          const mm = dayEl.getAttribute('data-month');
+          const dd = dayEl.getAttribute('data-date');
+          if (yy && mm !== null && dd) {
+            const dateStr = `${yy}-${(parseInt(mm) + 1).toString().padStart(2, '0')}-${dd.padStart(2, '0')}`;
+            dropTarget = { type: 'day', el: dayEl, value: dateStr };
+            dayEl.style.outline = '2px solid black';
+            dayEl.style.outlineOffset = '2px';
+            return;
+          }
+        }
+
+        const slotEl = el.closest('[data-slot-time]') as HTMLElement | null;
+        if (slotEl && slotEl.closest('#timeline-slots-container')) {
+          const slotTime = slotEl.getAttribute('data-slot-time');
+          if (slotTime) {
+            dropTarget = { type: 'slot', el: slotEl, value: slotTime };
+            slotEl.style.outline = '2px dashed #0a0a0a';
+            slotEl.style.outlineOffset = '-2px';
+            slotEl.style.borderRadius = '1rem';
+          }
+        }
+      }
+
+      function cleanupDrag() {
+        clearTargetHighlight();
+        if (ghostEl) {
+          ghostEl.remove();
+          ghostEl = null;
+        }
+        if (sourceCard) sourceCard.style.opacity = '';
+        sourceCard = null;
+        activePointerId = null;
+        dragging = false;
+        (window as any)._sessionDragActive = false;
+        document.body.style.overflow = '';
+      }
+
+      async function finishDrag() {
+        const target = dropTarget;
+        const card = sourceCard;
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 350);
+        cleanupDrag();
+        if (!target || !card) return;
+
+        const sessionId = card.getAttribute('data-session-id');
+        const origTime = card.getAttribute('data-session-time');
+        const origDate = card.getAttribute('data-session-date');
+        if (!sessionId) return;
+
+        const updates: { ora?: string; data?: string } = {};
+        if (target.type === 'slot') {
+          if (target.value === origTime) return; // aceeași oră — nimic de făcut
+          updates.ora = target.value;
+        } else {
+          if (target.value === origDate) return; // aceeași zi — nimic de făcut
+          updates.data = target.value;
+        }
+
+        try {
+          await updateAppointment(sessionId, updates);
+          (window as any).showToast('Programarea a fost mutată cu succes.', 'success');
+          if (target.type === 'day') {
+            (target.el as HTMLButtonElement).click(); // comută timeline-ul pe ziua nouă
+          }
+          window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+        } catch (err: any) {
+          (window as any).showToast('Nu am putut muta programarea: ' + (err?.message || err), 'error');
+          window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+        }
+      }
+
+      document.addEventListener('pointerdown', (e: PointerEvent) => {
+        if (dragging) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        const target = e.target as HTMLElement;
+        if (target.closest('button') || target.closest('a')) return;
+        const card = target.closest('[data-session-id]') as HTMLElement | null;
+        if (!card || !card.closest('#timeline-slots-container')) return;
+
+        activePointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+        sourceCard = card;
+
+        const holdMs = e.pointerType === 'mouse' ? 250 : 500;
+        clearTimeout(pressTimer);
+        pressTimer = window.setTimeout(() => engageDrag(startX, startY), holdMs);
+      });
+
+      document.addEventListener('pointermove', (e: PointerEvent) => {
+        if (activePointerId === null || e.pointerId !== activePointerId) return;
+        if (!dragging) {
+          if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_CANCEL_PX) cancelPress();
+          return;
+        }
+        moveGhost(e.clientX, e.clientY);
+        updateDropTarget(e.clientX, e.clientY);
+      });
+
+      document.addEventListener('pointerup', (e: PointerEvent) => {
+        if (activePointerId === null || e.pointerId !== activePointerId) return;
+        if (!dragging) {
+          cancelPress();
+          return;
+        }
+        finishDrag();
+      });
+
+      document.addEventListener('pointercancel', (e: PointerEvent) => {
+        if (activePointerId === null || e.pointerId !== activePointerId) return;
+        clearTimeout(pressTimer);
+        if (dragging) cleanupDrag();
+        else cancelPress();
+      });
+
+      // Blochează scroll-ul paginii doar cât timp drag-ul e activ
+      document.addEventListener('touchmove', (e: TouchEvent) => {
+        if (dragging && e.cancelable) e.preventDefault();
+      }, { passive: false });
+
+      // Blochează meniul contextual pe long-press în timpul drag-ului
+      document.addEventListener('contextmenu', (e: Event) => {
+        if (dragging) e.preventDefault();
+      });
+
+      // Nu declanșa expandarea cardului din click-ul de la finalul drag-ului
+      document.addEventListener('click', (e: Event) => {
+        if (suppressClick) {
+          e.stopPropagation();
+          e.preventDefault();
+          suppressClick = false;
+        }
+      }, true);
+    }
+
+    document.addEventListener('DOMContentLoaded', initSessionDragDrop);
+    document.addEventListener('astro:page-load', initSessionDragDrop);
   </script>
 </DashboardLayout>
