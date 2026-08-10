@@ -51,7 +51,7 @@ export async function getAppointmentsByDate(date: string): Promise<Programare[]>
     .from('programari')
     .select(`
       *,
-      pacienti ( prenume, nume, telefon, locatie, sedinte_ramase, status_abonament, sedinte_folosite, sedinte_total, achitat )
+      pacienti ( prenume, nume, telefon, locatie, sedinte_ramase, status_abonament, sedinte_folosite, sedinte_total, achitat, cost )
     `)
     .eq('data', date)
     .order('ora', { ascending: true });

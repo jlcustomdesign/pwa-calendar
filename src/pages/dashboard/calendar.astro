@@ -3,7 +3,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import WeeklyCalendarCard from '../../components/features/dashboard/WeeklyCalendarCard.astro';
 import AddEventBanner from '../../components/features/dashboard/AddEventBanner.astro';
 import SessionCard from '../../components/features/dashboard/SessionCard.astro';
-import AddSessionSheet from '../../components/features/agenda/AddSessionSheet.astro';
 import BlobBackground from '../../components/ui/BlobBackground.astro';
 ---
 
@@ -33,9 +32,6 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
   </div>
   </div>
 
-  <!-- Bottom Sheets -->
-  <AddSessionSheet />
-
   <script>
     import { getAppointmentsByDate } from '../../lib/services/appointmentService';
     import { getSettings } from '../../lib/services/settingsService';
@@ -61,13 +57,13 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
 
       let paymentClass = '';
       if (paymentStatus === 'Neachitat') {
-        paymentClass = 'bg-black text-white hover:bg-black/80 shadow-sm';
+        paymentClass = 'bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm';
       } else if (paymentStatus === 'Achitat parțial') {
         paymentClass = 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm font-black';
-      } else if (paymentStatus === 'Achitat integral') {
-        paymentClass = 'bg-white/40 text-black hover:bg-white/50';
+      } else if (paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat') {
+        paymentClass = 'bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-sm';
       } else {
-        paymentClass = 'bg-black/50 text-white hover:bg-black/60';
+        paymentClass = 'bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm';
       }
       
       const gradientColors = isGhimbav ? "from-white/30 to-white" : "from-black/30 to-black";
@@ -82,10 +78,10 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       const endTime = `${endHourStr}:${minute}`;
 
       const now = new Date();
-      const todayStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
-      const nowStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      const nowStr = now.toTimeString().slice(0, 5);
+      const isToday = currentCalendarDate === todayStr;
 
-      const isOngoing = selectedDate === todayStr && nowStr >= timeStr && nowStr < endTime;
+      const isOngoing = isToday && nowStr >= timeStr && nowStr < endTime;
 
       return `
         <div class="w-full relative group" data-session-id="${session.id}">
@@ -103,6 +99,14 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                 </button>
                 <button 
                   type="button" 
+                  class="w-12 h-12 rounded-full bg-orange-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform" 
+                  onclick="window.cancelSession('${session.id}'); event.stopPropagation();"
+                  title="Marchează ca Anulat/Absent"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                </button>
+                <button 
+                  type="button" 
                   class="w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform" 
                   onclick="window.deleteSession('${session.id}'); event.stopPropagation();"
                 >
@@ -112,19 +116,28 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
             </div>
 
             <!-- Draggable Foreground -->
-            <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses} ${isOngoing ? 'ring-4 ring-emerald-400 ring-offset-2' : ''}">
+            <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
               
               <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
-                <div class="flex items-center justify-between gap-4 w-full relative z-10">
+                <div class="flex items-center gap-3 w-full relative z-10 justify-between">
                   <div class="flex-1 min-w-0">
                     <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
                   </div>
                   ${isOngoing ? `
-                    <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500 text-white text-[11px] font-black uppercase tracking-wider shadow-md animate-pulse shrink-0">
-                      <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
-                      În desfășurare
+                    <div class="shrink-0 flex items-center">
+                      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold ${isGhimbav ? 'bg-white/20 text-white' : 'bg-black/10 text-black'} backdrop-blur-sm shadow-sm">
+                        <span class="w-2 h-2 rounded-full ${isGhimbav ? 'bg-emerald-400' : 'bg-emerald-600'} shrink-0"></span>
+                        În desfășurare
+                      </span>
                     </div>
-                  ` : ''}
+                  ` : (isToday && nowStr >= endTime ? `
+                    <div class="shrink-0 flex items-center">
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold ${isGhimbav ? 'bg-white/15 text-white/80' : 'bg-black/10 text-black/70'} backdrop-blur-sm">
+                        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        Finalizat
+                      </span>
+                    </div>
+                  ` : '')}
                 </div>
 
                 <div class="flex items-center gap-4 mt-5 relative z-10">
@@ -192,12 +205,14 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
           const sumaIncasata = Number(a.pacienti?.suma_incasata || 0);
           const costTotal = Number(a.pacienti?.cost || 0);
           let pStatus = 'Neachitat';
-          if (a.pacienti?.status_plata) {
-            pStatus = a.pacienti.status_plata;
-          } else if (a.pacienti?.achitat || (costTotal > 0 && sumaIncasata >= costTotal)) {
+          if (a.pacienti?.achitat === true || a.pacienti?.status_plata === 'Achitat' || a.pacienti?.status_plata === 'Achitat integral') {
             pStatus = 'Achitat integral';
-          } else if (sumaIncasata > 0) {
+          } else if (a.pacienti?.status_plata === 'Achitat parțial' || (costTotal > 0 && sumaIncasata > 0 && sumaIncasata < costTotal)) {
             pStatus = 'Achitat parțial';
+          } else if (costTotal > 0 && sumaIncasata >= costTotal) {
+            pStatus = 'Achitat integral';
+          } else if (a.pacienti?.status_plata) {
+            pStatus = a.pacienti.status_plata;
           }
 
           return {
@@ -219,6 +234,8 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
 
       const startHour = parseInt((settings.work_start || '08:00').split(':')[0], 10) || 8;
       const endHour = parseInt((settings.work_end || '18:00').split(':')[0], 10) || 18;
+      const lunchStart = settings.lunch_start || (settings as any).pause_start || '13:00';
+      const lunchEnd = settings.lunch_end || (settings as any).pause_end || '14:00';
 
       const timeSlots: string[] = [];
       for (let h = startHour; h <= endHour; h++) {
@@ -229,10 +246,13 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
         const slotHourStr = slotTimeStr.split(':')[0];
 
         const session = storedSessions.find((s: any) => {
-          const t = s.selectedTime || '';
-          return t.startsWith(`${slotHourStr}:`);
+          if (!s.selectedTime) return false;
+          const sessionHour = parseInt(s.selectedTime.split(':')[0], 10);
+          const slotHour = parseInt(slotHourStr, 10);
+          return !isNaN(sessionHour) && sessionHour === slotHour;
         });
 
+        const isLunchSlot = !session && slotTimeStr >= lunchStart && slotTimeStr < lunchEnd;
         const displayTimeStr = session ? session.selectedTime : slotTimeStr;
         const [hourStr, minStr] = displayTimeStr.split(':');
 
@@ -244,7 +264,17 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
             </div>
             
             <div class="flex-1 pb-2" data-slot-time="${slotTimeStr}">
-              ${session ? createSessionCardHTML(session) : `
+              ${session ? createSessionCardHTML(session) : (isLunchSlot ? `
+                <div class="w-full h-16 rounded-2xl bg-amber-500/10 border-2 border-dashed border-amber-500/30 flex items-center justify-between px-6 text-amber-900 font-bold text-sm select-none">
+                  <div class="flex items-center gap-2.5">
+                    <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Pauză de masă</span>
+                  </div>
+                  <span class="text-xs font-black bg-amber-500/20 text-amber-900 px-3 py-1 rounded-full">${lunchStart} - ${lunchEnd}</span>
+                </div>
+              ` : `
                 <button 
                   type="button"
                   class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
@@ -252,7 +282,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                 >
                   + Adaugă ședință
                 </button>
-              `}
+              `)}
             </div>
           </div>
         `;

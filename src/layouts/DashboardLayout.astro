@@ -1,6 +1,8 @@
 ---
 import Dock from '../components/layout/Dock.astro';
 import PaymentSheet from '../components/features/patients/PaymentSheet.astro';
+import AddSessionSheet from '../components/features/agenda/AddSessionSheet.astro';
+import CustomToast from '../components/ui/CustomToast.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
@@ -37,14 +39,17 @@ const { title, hideDock = false } = Astro.props;
         <slot />
       </main>
 
-      <!-- Persistent Floating Icon Dock -->
+      <!-- Persistent Floating Icon Dock & Sheets -->
       {!hideDock && <Dock transition:persist />}
+      <PaymentSheet transition:persist />
+      <AddSessionSheet transition:persist />
+      <CustomToast transition:persist />
     </div>
 
     <!-- Global Session Card Interactive Controller (Expand & Swipe-to-Edit/Delete) -->
     <script>
       import { setPaymentStatus } from '../lib/services/patientService';
-      import { getAppointment, deleteAppointment } from '../lib/services/appointmentService';
+      import { getAppointment, deleteAppointment, cancelAppointment, markAbsent } from '../lib/services/appointmentService';
 
       function setupSessionCardController() {
         let activeSurface: HTMLElement | null = null;
@@ -53,8 +58,13 @@ const { title, hideDock = false } = Astro.props;
         let isSwiping = false;
         let isOpen = false;
         let wasSwiping = false;
-        const SWIPE_THRESHOLD = -50;
-        const MAX_SWIPE = -140;
+        const SWIPE_THRESHOLD = -60;
+
+        function getMaxSwipe(surface: HTMLElement | null): number {
+          if (!surface) return -230;
+          if (surface.closest('#patient-list-container')) return -140;
+          return -230;
+        }
 
         function handleSwipeStart(surface: HTMLElement, clientX: number) {
           activeSurface = surface;
@@ -62,7 +72,8 @@ const { title, hideDock = false } = Astro.props;
           currentX = startX;
           isSwiping = true;
           wasSwiping = false;
-          isOpen = surface.style.transform.includes(`${MAX_SWIPE}px`);
+          const maxSwipe = getMaxSwipe(surface);
+          isOpen = surface.style.transform.includes(`${maxSwipe}px`);
           surface.style.transition = 'none';
         }
 
@@ -75,9 +86,10 @@ const { title, hideDock = false } = Astro.props;
             wasSwiping = true;
           }
 
-          let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
+          const maxSwipe = getMaxSwipe(activeSurface);
+          let targetX = isOpen ? maxSwipe + diffX : diffX;
           if (targetX > 0) targetX = 0;
-          if (targetX < MAX_SWIPE - 20) targetX = MAX_SWIPE - 20;
+          if (targetX < maxSwipe - 20) targetX = maxSwipe - 20;
 
           activeSurface.style.transform = `translateX(${targetX}px)`;
         }
@@ -88,15 +100,16 @@ const { title, hideDock = false } = Astro.props;
           activeSurface.style.transition = 'transform 300ms cubic-bezier(0.32, 0.72, 0, 1)';
 
           const diffX = currentX - startX;
+          const maxSwipe = getMaxSwipe(activeSurface);
 
           if (!isOpen && diffX < SWIPE_THRESHOLD) {
             isOpen = true;
-            activeSurface.style.transform = `translateX(${MAX_SWIPE}px)`;
+            activeSurface.style.transform = `translateX(${maxSwipe}px)`;
           } else if (isOpen && diffX > -SWIPE_THRESHOLD) {
             isOpen = false;
             activeSurface.style.transform = 'translateX(0px)';
           } else {
-            activeSurface.style.transform = isOpen ? `translateX(${MAX_SWIPE}px)` : 'translateX(0px)';
+            activeSurface.style.transform = isOpen ? `translateX(${maxSwipe}px)` : 'translateX(0px)';
           }
 
           setTimeout(() => {
@@ -190,7 +203,7 @@ const { title, hideDock = false } = Astro.props;
             // Toggle back to Unpaid in Supabase
             setPaymentStatus(patientId, false)
               .then(() => window.dispatchEvent(new CustomEvent('patientsUpdated')))
-              .catch((err: any) => alert('Eroare la actualizarea plății: ' + (err.message || err)));
+              .catch((err: any) => (window as any).showToast('Eroare la actualizarea plății: ' + (err.message || err), 'error'));
           }
         };
 
@@ -220,23 +233,38 @@ const { title, hideDock = false } = Astro.props;
               }
             }));
           } catch (err: any) {
-            alert('Eroare la încărcarea programării: ' + (err.message || err));
+            (window as any).showToast('Eroare la încărcarea programării: ' + (err.message || err), 'error');
           }
         };
 
         (window as any).deleteSession = async (input: string | HTMLElement) => {
           const sessionId = resolveSessionId(input);
           if (!sessionId) return;
-          if (!confirm('Sigur vrei să ștergi această programare?')) return;
+          const confirmed = await (window as any).showConfirm('Ștergere Programare', 'Sigur vrei să ștergi această programare?');
+          if (!confirmed) return;
           try {
             await deleteAppointment(sessionId);
             window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            (window as any).showToast('Programarea a fost ștearsă cu succes.', 'success');
           } catch (err: any) {
-            alert('Eroare la ștergerea programării: ' + (err.message || err));
+            (window as any).showToast('Eroare la ștergerea programării: ' + (err.message || err), 'error');
+          }
+        };
+
+        (window as any).cancelSession = async (input: string | HTMLElement) => {
+          const sessionId = resolveSessionId(input);
+          if (!sessionId) return;
+          const confirmed = await (window as any).showConfirm('Anulare Programare', 'Sigur vrei să marchezi această programare ca anulată/absent?');
+          if (!confirmed) return;
+          try {
+            await markAbsent(sessionId, 'Anulat de la card');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            (window as any).showToast('Programarea a fost anulată cu succes.', 'success');
+          } catch (err: any) {
+            (window as any).showToast('Eroare la anularea programării: ' + (err.message || err), 'error');
           }
         };
       }
     </script>
-    <PaymentSheet />
   </body>
 </html>

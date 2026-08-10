@@ -404,9 +404,9 @@
       } catch (err: any) {
         const msg = err.message || err.toString();
         if (msg.includes('Există deja')) {
-          alert(`⚠️ Atenție!\n\n${msg}`);
+          (window as any).showToast(msg, 'warning', 'Pacient existent');
         } else {
-          alert('Eroare la salvarea pacientului: ' + msg);
+          (window as any).showToast('Eroare la salvarea pacientului: ' + msg, 'error');
         }
       } finally {
         if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Salvează'; }

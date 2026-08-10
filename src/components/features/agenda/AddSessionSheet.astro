@@ -207,9 +207,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     scrollAtTop: boolean = true;
     settings: any;
     currentHour: number = 8;
-    currentMin: number = 0;
     selectedCustomHour: string = '08';
     selectedCustomMinute: string = '00';
+    selectedPatientId: string | null = null;
 
     constructor() {
       this.sheet = document.getElementById('add-session-sheet');
@@ -313,9 +313,13 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         patientRadios?.forEach(radio => {
           radio.addEventListener('change', (e: any) => {
             if (e.target.checked) {
+              this.selectedPatientId = e.target.value;
               const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
               if (searchInput) {
                 searchInput.value = e.target.getAttribute('data-patient-name') || '';
+              }
+              if (selectedPatientNameSpan) {
+                selectedPatientNameSpan.textContent = e.target.getAttribute('data-patient-name') || 'Pacient';
               }
               
               patientList?.classList.add('hidden');
@@ -736,6 +740,69 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       });
     }
 
+    async handleSubmit(e?: Event) {
+      if (e) e.preventDefault();
+      
+      const formData = this.form ? new FormData(this.form) : null;
+      const sessionIdInput = document.getElementById('sessionId') as HTMLInputElement | null;
+      const sessionId = sessionIdInput?.value || (formData?.get('sessionId') as string) || '';
+      
+      const patientRadio = this.form?.querySelector('input[name="patientId"]:checked') as HTMLInputElement | null;
+      const patientId = this.selectedPatientId || patientRadio?.value || (formData?.get('patientId') as string) || '';
+      
+      const timeVal = (document.getElementById('selectedTime') as HTMLInputElement)?.value;
+      const dateVal = (document.getElementById('selectedDate') as HTMLInputElement)?.value;
+
+      const selectedTime = timeVal || (formData?.get('selectedTime') as string) || '08:00';
+      const selectedDate = dateVal || (formData?.get('selectedDate') as string) || new Date().toISOString().split('T')[0];
+
+      if (!patientId) {
+        (window as any).showToast('Te rugăm să selectezi un pacient din listă.', 'warning', 'Pacient neselectat');
+        return;
+      }
+
+      // Check Lunch Break overlap from settings
+      const lunchStart = this.settings?.lunch_start || this.settings?.pause_start || '13:00';
+      const lunchEnd = this.settings?.lunch_end || this.settings?.pause_end || '14:00';
+      if (selectedTime >= lunchStart && selectedTime < lunchEnd) {
+        (window as any).showToast(`Ora ${selectedTime} se suprapune cu pauza de masă (${lunchStart} - ${lunchEnd}).`, 'warning', 'Pauză de masă');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Se salvează…';
+      }
+
+      try {
+        if (sessionId) {
+          await updateAppointment(sessionId, {
+            pacient_id: patientId,
+            data: selectedDate,
+            ora: selectedTime,
+          });
+          (window as any).showToast('Programarea a fost modificată cu succes.', 'success');
+        } else {
+          await createAppointment({
+            pacient_id: patientId,
+            data: selectedDate,
+            ora: selectedTime,
+          });
+          (window as any).showToast('Programarea a fost salvată cu succes.', 'success');
+        }
+
+        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+        this.close();
+      } catch (err: any) {
+        (window as any).showToast('Eroare la salvarea programării: ' + (err.message || err), 'error');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = sessionId ? 'Salvează Modificările' : 'Salvează programarea';
+        }
+      }
+    }
     bindEvents() {
       if (!this.sheet) return;
 
@@ -775,12 +842,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             if (submitBtnEl) submitBtnEl.textContent = 'Salvează';
           }
 
-        // Control Date & Time selectors visibility
-        if (showDateTime) {
-          dateTimeContainer?.classList.remove('hidden');
-        } else {
-          dateTimeContainer?.classList.add('hidden');
-        }
+        // Keep Date & Time selectors visible so user can always see and change selected hour
+        dateTimeContainer?.classList.remove('hidden');
 
         if (isEdit) {
           if (timeStr) this.selectTime(timeStr);
@@ -802,6 +865,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
         const patientRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
         patientRadios?.forEach(r => r.checked = false);
+        this.selectedPatientId = null;
 
         if (patientName) {
           const matchingRadio = Array.from(patientRadios || []).find(r =>
@@ -809,6 +873,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           );
           if (matchingRadio) {
             matchingRadio.checked = true;
+            this.selectedPatientId = matchingRadio.value;
             matchingRadio.dispatchEvent(new Event('change'));
           }
         } else {
@@ -835,54 +900,17 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       (window as any)._addSessionWindowListenerBound = true;
       }
 
-      this.form?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        if (!this.form) return;
-        
-        const formData = new FormData(this.form);
-        const sessionId = formData.get('sessionId') as string;
-        const patientId = formData.get('patientId') as string;
-        const selectedTime = (formData.get('selectedTime') as string) || this.timeInput?.value || '08:00';
-        const selectedDate = (formData.get('selectedDate') as string) || this.dateInput?.value || new Date().toISOString().split('T')[0];
-
-        if (!patientId) {
-          alert('Te rugăm să selectezi un pacient.');
-          return;
-        }
-
-        const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Se salvează…';
-        }
-
-        try {
-          if (sessionId) {
-            await updateAppointment(sessionId, {
-              pacient_id: patientId,
-              data: selectedDate,
-              ora: selectedTime,
-            });
-          } else {
-            await createAppointment({
-              pacient_id: patientId,
-              data: selectedDate,
-              ora: selectedTime,
-            });
-          }
-
-          window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-          this.close();
-        } catch (err: any) {
-          alert('Eroare la salvarea programării: ' + (err.message || err));
-        } finally {
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Salvează';
-          }
-        }
-      });
+      // Bind submit handlers
+      const submitBtnEl = document.getElementById('submit-btn');
+      if (this.form) {
+        this.form.onsubmit = (e) => this.handleSubmit(e);
+      }
+      if (submitBtnEl) {
+        submitBtnEl.onclick = (e) => {
+          e.preventDefault();
+          this.handleSubmit(e);
+        };
+      }
 
       // Handle showing patient list and search input
       const patientList = document.getElementById('patient-list');

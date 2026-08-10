@@ -1,5 +1,5 @@
 ---
-// ReportsView.astro — Statistici Utile & Pragmatice (Azi, Săptămânal, Lunar)
+// ReportsView.astro — Statistici Utile & Pragmatice
 ---
 
 <div class="space-y-7">
@@ -38,321 +38,461 @@
     </div>
   </section>
 
-
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- 2. STATISTICI SĂPTĂMÂNALE (cu Grafic Hașurat & Interactiv)-->
+  <!-- 2. PLĂȚI RESTANTE (GLOBAL)                              -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <section class="space-y-3">
-    <div class="px-1">
-      <h2 class="text-xl sm:text-2xl font-black text-text-main">Săptămânal</h2>
+    <div class="flex items-baseline justify-between px-1">
+      <h2 class="text-xl sm:text-2xl font-black text-text-main">Restanțe Globale</h2>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <a
+        href="/dashboard/patients"
+        class="block bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40 group active:scale-[0.98]"
+      >
+        <div id="unpaid-count" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">0</div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Neachitați</div>
+      </a>
+      <a
+        href="/dashboard/patients"
+        class="block bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40 group active:scale-[0.98]"
+      >
+        <div id="unpaid-total" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">0</div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON neachitați</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 3. RAPOARTE COMPARATIVE (Tabs)                          -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section class="space-y-4">
+    <!-- Tabs -->
+    <div class="relative flex items-center space-x-2 bg-surface-card p-1.5 rounded-xl shadow-sm border border-border-subtle/70" id="reports-tabs-container">
+      <div id="tabs-active-pill" class="absolute top-1/2 rounded-lg bg-text-main pointer-events-none z-0" style="left: 0; width: 0; height: calc(100% - 12px); opacity: 0; transform: translateY(-50%); transition: transform 450ms cubic-bezier(0.34, 1.36, 0.64, 1), width 450ms cubic-bezier(0.34, 1.36, 0.64, 1), opacity 300ms ease;"></div>
+      <button class="tab-btn relative z-10 flex-1 py-1.5 rounded-lg text-sm font-black transition-all text-text-inverse" data-tab="week">Săpt</button>
+      <button class="tab-btn relative z-10 flex-1 py-1.5 rounded-lg text-sm font-black transition-all text-text-muted hover:text-text-main" data-tab="month">Lun</button>
+      <button class="tab-btn relative z-10 flex-1 py-1.5 rounded-lg text-sm font-black transition-all text-text-muted hover:text-text-main" data-tab="quarter">Trim</button>
+      <button class="tab-btn relative z-10 flex-1 py-1.5 rounded-lg text-sm font-black transition-all text-text-muted hover:text-text-main" data-tab="year">An</button>
     </div>
 
-    <div class="space-y-3">
+    <!-- Antet perioadă + navigare -->
+    <div class="flex items-center justify-between px-1">
+      <div class="flex flex-col">
+        <h2 id="report-title" class="text-xl sm:text-2xl font-black text-text-main">Săptămânal</h2>
+        <span id="report-date-range" class="text-sm font-bold text-text-muted">--</span>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" id="prev-report-btn" class="p-2 rounded-full bg-surface-card shadow-sm border border-border-subtle/70 active:scale-95 transition-transform text-text-main hover:text-brand-secondary">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <button type="button" id="next-report-btn" class="p-2 rounded-full bg-surface-card shadow-sm border border-border-subtle/70 active:scale-95 transition-transform text-text-main hover:text-brand-secondary">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+      </div>
+    </div>
 
-      <!-- Card Grafic Hașurat (Smooth Curved Line Chart cu Punct Roz Interactiv pe Zile) -->
-      <div class="bg-surface-card rounded-[2.2rem] p-5 shadow-sm border border-border-subtle/70 space-y-4">
-        
-        <!-- Header Grafic -->
+    <!-- Conținut Săptămânal -->
+    <div id="tab-week-content" class="space-y-3">
+      <!-- Card Grafic Hașurat -->
+      <div class="bg-surface-card rounded-[2.2rem] p-5 shadow-sm border border-border-subtle/70 space-y-4 relative overflow-hidden">
         <div>
-          <div class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Evoluție săptămânală</div>
+          <div id="chart-subtitle" class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Evoluție săptămânală</div>
           <div id="chart-active-value" class="text-2xl sm:text-3xl font-black text-text-main mt-0.5 transition-all">
             0 <span class="text-sm font-sans font-black text-text-main">RON</span>
           </div>
         </div>
 
-        <!-- SVG Smooth Area Chart cu Hașură (Hatch Pattern) -->
-        <div class="relative w-full h-36">
-          <svg viewBox="0 0 350 120" class="w-full h-full overflow-visible" preserveAspectRatio="none">
+        <div class="relative w-full h-36" id="chart-container">
+          <svg viewBox="0 0 350 120" class="w-full h-full overflow-visible" preserveAspectRatio="none" id="reports-svg">
             <defs>
-              <!-- Hașură diagonală neagră/subtilă (Diagonal Hatch Pattern) -->
               <pattern id="hatch-pattern" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
                 <line x1="0" y1="0" x2="0" y2="8" stroke="rgb(var(--color-text-main))" stroke-width="1.5" opacity="0.25" />
               </pattern>
 
-              <!-- Soft Gradient de fond -->
               <linearGradient id="soft-bg-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stop-color="rgb(var(--color-brand-primary))" stop-opacity="0.2" />
                 <stop offset="100%" stop-color="rgb(var(--color-surface-card))" stop-opacity="0.0" />
               </linearGradient>
+
+              <clipPath id="hatch-clip">
+                <rect id="hatch-clip-rect" x="0" y="0" width="350" height="120" style="transition: width 300ms ease;" />
+              </clipPath>
             </defs>
 
-            <!-- Fundal Gradient Soft sub curbă -->
-            <path
-              id="chart-path-gradient"
-              d="M 10,85 C 50,80 80,45 105,45 C 140,45 160,30 175,30 C 205,30 225,52 245,52 C 275,52 300,15 340,12 L 340,105 L 10,105 Z"
-              fill="url(#soft-bg-gradient)"
-            />
-
-            <!-- Zone Hașurată sub curbă -->
-            <path
-              id="chart-path-hatch"
-              d="M 10,85 C 50,80 80,45 105,45 C 140,45 160,30 175,30 C 205,30 225,52 245,52 C 275,52 300,15 340,12 L 340,105 L 10,105 Z"
-              fill="url(#hatch-pattern)"
-            />
-
-            <!-- Linia curbată neagră fluidă (Curved Stroke) -->
-            <path
-              id="chart-path-stroke"
-              d="M 10,85 C 50,80 80,45 105,45 C 140,45 160,30 175,30 C 205,30 225,52 245,52 C 275,52 300,15 340,12"
-              fill="none"
-              stroke="rgb(var(--color-text-main))"
-              stroke-width="3"
-              stroke-linecap="round"
-            />
-
-            <!-- Doar Punctul Roz Activ (Fără Linii Întrerupte) -->
-            <circle id="pink-dot-glow" cx="245" cy="52" r="7" fill="rgb(var(--color-brand-secondary))" opacity="0.3" class="transition-all duration-300" />
-            <circle id="pink-dot" cx="245" cy="52" r="5" fill="rgb(var(--color-brand-secondary))" stroke="#ffffff" stroke-width="2.5" class="transition-all duration-300 shadow-md" />
+            <path id="chart-path-gradient" fill="url(#soft-bg-gradient)" d="" />
+            <path id="chart-path-hatch" fill="url(#hatch-pattern)" d="" />
+            <path id="chart-path-stroke" fill="none" stroke="rgb(var(--color-text-main))" stroke-width="3" stroke-linecap="round" d="" />
           </svg>
+          
+          <div id="pink-dot-glow" class="absolute bg-brand-secondary rounded-full opacity-30 transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 20px; height: 20px; z-index: 20;"></div>
+          <div id="pink-dot" class="absolute bg-brand-secondary rounded-full border-[2.5px] border-white shadow-md transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 14px; height: 14px; z-index: 21;"></div>
         </div>
 
-        <!-- Etichete axa X (Zilele de lucru: L M M J V — mult mai mari și mai îngroșate) -->
-        <div class="flex items-center justify-between px-2 text-xl sm:text-2xl font-black text-text-main">
-          <button type="button" data-day-idx="0" data-val="0 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">L</button>
-          <button type="button" data-day-idx="1" data-val="0 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">M</button>
-          <button type="button" data-day-idx="2" data-val="0 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">M</button>
-          <button type="button" data-day-idx="3" data-val="0 RON" class="day-btn text-brand-secondary font-black transition-colors cursor-pointer py-1 px-2">J</button>
-          <button type="button" data-day-idx="4" data-val="0 RON" class="day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2">V</button>
+        <div class="flex items-center justify-between px-2 text-xl sm:text-2xl font-black text-text-main" id="chart-x-labels">
+          <!-- Dynamic labels generated in JS -->
         </div>
-
       </div>
 
-      <!-- Card 1: Timp activ vs. anulări -->
+      <!-- Card Timp Activ -->
       <div class="bg-surface-card rounded-[2.2rem] p-5 shadow-sm border border-border-subtle/70 space-y-3">
-        <!-- Bară de progres duală -->
         <div class="w-full h-3.5 bg-surface-base rounded-full overflow-hidden flex items-center p-0.5 border border-border-subtle/40">
           <div id="week-progress-bar" class="h-full bg-brand-primary rounded-full transition-all duration-1000" style="width: 100%"></div>
           <div id="week-cancel-bar" class="h-full bg-brand-secondary/80 rounded-full transition-all duration-1000 ml-0.5" style="width: 0%"></div>
         </div>
-
-        <!-- Procent + "timp activ" în negru -->
         <div>
           <div class="text-2xl sm:text-3xl font-black text-text-main">
             <span id="week-active-time">100%</span> <span class="text-base sm:text-lg font-black text-text-main">timp activ</span>
           </div>
         </div>
-
-        <!-- Dedesubt: anulări -->
         <div>
           <div class="text-2xl sm:text-3xl font-black text-text-main">
             <span id="week-cancel-time">0%</span> <span class="text-base sm:text-lg font-black text-text-main">anulări</span>
           </div>
         </div>
       </div>
-
-      <!-- 2 Carduri Separate pentru Pacienți Neachitați -->
-      <div class="grid grid-cols-2 gap-3">
-        <!-- Card 1: Număr Pacienți Neachitați -->
-        <a
-          href="/dashboard/patients"
-          class="block bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40 group active:scale-[0.98]"
-        >
-          <div id="unpaid-count" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">0</div>
-          <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Neachitați</div>
-        </a>
-
-        <!-- Card 2: Sumă Totală Restanță -->
-        <a
-          href="/dashboard/patients"
-          class="block bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40 group active:scale-[0.98]"
-        >
-          <div id="unpaid-total" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">0</div>
-          <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON neachitați</div>
-        </a>
-      </div>
-
-    </div>
-  </section>
-
-
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- 3. STATISTICI LUNARE (Venit & Volum Ședințe)            -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <section class="space-y-3">
-    <div class="px-1">
-      <h2 class="text-xl sm:text-2xl font-black text-text-main">Lunar</h2>
     </div>
 
-    <!-- 2 Carduri Separate pentru Lunar -->
-    <div class="grid grid-cols-2 gap-3">
-      <!-- Card 1: Venit Lunar -->
-      <div class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
-        <div id="month-income" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">0</div>
-        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON</div>
-      </div>
-
-      <!-- Card 2: Ședințe Făcute Lunar -->
-      <div class="bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-border-subtle/70 flex flex-col items-center justify-center text-center transition-all hover:border-brand-secondary/40">
-        <div id="month-sessions" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">0</div>
-        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Ședințe făcute</div>
-      </div>
-    </div>
+    <!-- Conținut Generic (Lunar/Trimestrial/Anual) - Eliminat deoarece folosim graficul pentru toate! -->
   </section>
 
 </div>
 
 <script>
-  import { getTodayStats, getWeekStats, getMonthStats, getUnpaidPatients } from '../../../lib/services/reportsService';
+  import { getTodayStats, getWeekStats, getMonthStats, getQuarterStats, getYearStats, getUnpaidPatients } from '../../../lib/services/reportsService';
 
-  async function initReportsView() {
+  type TabType = 'week' | 'month' | 'quarter' | 'year';
+  let activeTab: TabType = 'week';
+  
+  let currentBaseDate = new Date();
+  
+  const formatDateRO = (date: Date, showYear = false) => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = date.toLocaleDateString('ro-RO', { month: 'short' });
+    if (showYear) {
+      return `${day} ${month} ${date.getFullYear()}`;
+    }
+    return `${day} ${month}`;
+  };
+
+  async function loadTodayStats() {
     try {
       const today = await getTodayStats();
-      const week = await getWeekStats();
-      const month = await getMonthStats();
-      const unpaid = await getUnpaidPatients();
-
-      // Update Date Display
       const todayDateDisplay = document.getElementById('today-date-display');
       if (todayDateDisplay) {
         const d = new Date();
-        const dayName = d.toLocaleDateString('ro-RO', { weekday: 'long' });
-        const dayNameCap = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+        const dayNameCap = d.toLocaleDateString('ro-RO', { weekday: 'long' }).charAt(0).toUpperCase() + d.toLocaleDateString('ro-RO', { weekday: 'long' }).slice(1);
         const dayNum = d.getDate().toString().padStart(2, '0');
-        const monthName = d.toLocaleDateString('ro-RO', { month: 'long' });
-        const monthNameCap = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+        const monthNameCap = d.toLocaleDateString('ro-RO', { month: 'long' }).charAt(0).toUpperCase() + d.toLocaleDateString('ro-RO', { month: 'long' }).slice(1);
         todayDateDisplay.textContent = `${dayNameCap}, ${dayNum} ${monthNameCap}`;
       }
 
-      // Update Today
-      const todayDone = document.getElementById('today-done');
-      const todayTotal = document.getElementById('today-total');
-      const todayAbsent = document.getElementById('today-absent');
-      const todayIncome = document.getElementById('today-income');
+      document.getElementById('today-done')!.textContent = today.finalizate.toString();
+      document.getElementById('today-total')!.textContent = today.sedinte_total.toString();
+      document.getElementById('today-absent')!.textContent = today.absente.toString();
+      document.getElementById('today-income')!.textContent = today.venit_azi.toString();
 
-      if (todayDone) todayDone.textContent = today.finalizate.toString();
-      if (todayTotal) todayTotal.textContent = today.sedinte_total.toString();
-      if (todayAbsent) todayAbsent.textContent = today.absente.toString();
-      if (todayIncome) todayIncome.textContent = today.venit_azi.toString();
-
-      // Update Unpaid
-      const unpaidCount = document.getElementById('unpaid-count');
-      const unpaidTotal = document.getElementById('unpaid-total');
-      if (unpaidCount) unpaidCount.textContent = unpaid.count.toString();
-      if (unpaidTotal) unpaidTotal.textContent = unpaid.totalRON.toString();
-
-      // Update Month
-      const monthIncome = document.getElementById('month-income');
-      const monthSessions = document.getElementById('month-sessions');
-      if (monthIncome) monthIncome.textContent = month.venit.toString();
-      if (monthSessions) monthSessions.textContent = month.finalizate.toString();
-
-      // Update Week Time active
-      const weekActiveTime = document.getElementById('week-active-time');
-      const weekCancelTime = document.getElementById('week-cancel-time');
-      const weekProgressBar = document.getElementById('week-progress-bar');
-      const weekCancelBar = document.getElementById('week-cancel-bar');
-
-      if (weekActiveTime) weekActiveTime.textContent = `${week.prezenta}%`;
-      if (weekCancelTime) weekCancelTime.textContent = `${100 - week.prezenta}%`;
-      if (weekProgressBar) weekProgressBar.style.width = `${week.prezenta}%`;
-      if (weekCancelBar) weekCancelBar.style.width = `${100 - week.prezenta}%`;
-
-      // Update Chart with Real Data
-      initInteractiveHatchChart(week.byDay, week.startStr);
-
-    } catch (e) {
-      console.error('Eroare încărcare rapoarte Supabase:', e);
+      const unpaid = await getUnpaidPatients();
+      document.getElementById('unpaid-count')!.textContent = unpaid.count.toString();
+      document.getElementById('unpaid-total')!.textContent = unpaid.totalRON.toString();
+    } catch(e) {
+      console.error('Error loading today stats:', e);
     }
   }
 
-  function initInteractiveHatchChart(byDay?: Record<string, any>, startStr?: string) {
+  async function loadReportStats() {
+    try {
+      const dateStr = currentBaseDate.toISOString().split('T')[0];
+      const titleEl = document.getElementById('report-title');
+      const subtitleEl = document.getElementById('chart-subtitle');
+      const dateRangeEl = document.getElementById('report-date-range');
+      const tabWeekContent = document.getElementById('tab-week-content');
+
+      let statData: any;
+
+      if (activeTab === 'week') {
+        if (titleEl) titleEl.textContent = 'Săptămânal';
+        if (subtitleEl) subtitleEl.textContent = 'Evoluție săptămânală';
+        statData = await getWeekStats(dateStr);
+        if (dateRangeEl) dateRangeEl.textContent = `${formatDateRO(new Date(statData.startStr))} - ${formatDateRO(new Date(statData.endStr))}`;
+      } else if (activeTab === 'month') {
+        if (titleEl) titleEl.textContent = 'Lunar';
+        if (subtitleEl) subtitleEl.textContent = 'Evoluție lunară';
+        statData = await getMonthStats(dateStr);
+        const monthName = currentBaseDate.toLocaleDateString('ro-RO', { month: 'long' });
+        if (dateRangeEl) dateRangeEl.textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${currentBaseDate.getFullYear()}`;
+      } else if (activeTab === 'quarter') {
+        if (titleEl) titleEl.textContent = 'Trimestrial';
+        if (subtitleEl) subtitleEl.textContent = 'Evoluție trimestrială';
+        statData = await getQuarterStats(dateStr);
+        if (dateRangeEl) dateRangeEl.textContent = `${formatDateRO(new Date(statData.startStr), true)} - ${formatDateRO(new Date(statData.endStr), true)}`;
+      } else if (activeTab === 'year') {
+        if (titleEl) titleEl.textContent = 'Anual';
+        if (subtitleEl) subtitleEl.textContent = 'Evoluție anuală';
+        statData = await getYearStats(dateStr);
+        if (dateRangeEl) dateRangeEl.textContent = `${currentBaseDate.getFullYear()}`;
+      }
+
+      if (statData) {
+        // Update stats generic to the week template
+        const totalPast = statData.finalizate + statData.absente;
+        const prezenta = totalPast > 0 ? Math.round((statData.finalizate / totalPast) * 100) : 0;
+        const anulari = totalPast > 0 ? Math.round((statData.absente / totalPast) * 100) : 0;
+        
+        document.getElementById('week-active-time')!.textContent = `${prezenta}%`;
+        document.getElementById('week-cancel-time')!.textContent = `${anulari}%`;
+        document.getElementById('week-progress-bar')!.style.width = `${prezenta}%`;
+        document.getElementById('week-cancel-bar')!.style.width = `${anulari}%`;
+
+        // Load chart
+        initInteractiveHatchChart(statData.chartData, statData.startStr, activeTab);
+      }
+    } catch (e) {
+      console.error('Error loading report stats:', e);
+    }
+  }
+
+  function initInteractiveHatchChart(chartData: { label: string, val: number, dateStr?: string }[], startStr: string, periodType: TabType) {
+    const container = document.getElementById('chart-x-labels');
+    if (!container) return;
+    
+    // Create label buttons dynamically
+    container.innerHTML = '';
+    chartData.forEach((item, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      const textSize = chartData.length <= 7 ? 'text-xl sm:text-2xl' : 'text-sm sm:text-base';
+      btn.className = `day-btn hover:text-brand-secondary transition-colors cursor-pointer py-1 px-2 text-text-muted ${textSize} font-black`;
+      btn.textContent = item.label;
+      btn.dataset.idx = idx.toString();
+      container.appendChild(btn);
+    });
+
+    const svg = document.getElementById('reports-svg');
     const dayBtns = document.querySelectorAll('.day-btn');
     const dot = document.getElementById('pink-dot');
     const dotGlow = document.getElementById('pink-dot-glow');
     const valueDisplay = document.getElementById('chart-active-value');
-
     const pathGradient = document.getElementById('chart-path-gradient');
     const pathHatch = document.getElementById('chart-path-hatch');
     const pathStroke = document.getElementById('chart-path-stroke');
+    
+    if (!svg || !dot || !dotGlow || !valueDisplay || dayBtns.length === 0) return;
 
-    if (!dot || !dotGlow || !valueDisplay || dayBtns.length === 0) return;
-
-    // FĂRĂ DATE DIN BURTĂ: Dacă nu există date sau totul e 0, afișăm 0 RON
-    let chartDays = [0, 0, 0, 0, 0]; 
-    if (byDay && startStr) {
-      const start = new Date(startStr);
-      chartDays = [];
-      for(let i=0; i<5; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        const dateStr = d.toISOString().split('T')[0];
-        chartDays.push(byDay[dateStr]?.venit || 0);
+    const clipPathDef = svg.querySelector('clipPath');
+    let hatchClipRectNew = svg.querySelector('rect');
+    
+    // Fix SVG Clip Path ID issue across navigations and tab switches
+    if (clipPathDef && hatchClipRectNew) {
+      if (clipPathDef.id === 'hatch-clip') {
+        const uniqueSuffix = Math.random().toString(36).substr(2, 9);
+        clipPathDef.id = `hatch-clip-${uniqueSuffix}`;
       }
+      
+      const activeClipId = clipPathDef.id;
+      if (pathGradient) pathGradient.setAttribute('clip-path', `url(#${activeClipId})`);
+      if (pathHatch) pathHatch.setAttribute('clip-path', `url(#${activeClipId})`);
+      if (pathStroke) pathStroke.setAttribute('clip-path', `url(#${activeClipId})`);
     }
 
-    const maxVal = Math.max(...chartDays, 100);
-    const minY = 105;
+    const chartVals = chartData.map(d => d.val);
+    const maxVal = Math.max(...chartVals, 100);
+    const minY = 115;
     const maxY = 15;
-    const xCoords = [15, 95, 175, 255, 335];
+    const pointsCount = chartVals.length;
+    const step = pointsCount > 1 ? (320 / (pointsCount - 1)) : 320;
+    const xCoords = Array.from({length: pointsCount}, (_, i) => 15 + i * step);
 
-    const points = chartDays.map((val, i) => {
+    const points = chartVals.map((val, i) => {
       const y = minY - (val / maxVal) * (minY - maxY);
       return { x: xCoords[i], y, val };
     });
 
-    // Generate Smooth SVG Path (Bezier Curves)
-    let strokePath = `M ${points[0].x},${points[0].y}`;
-    for(let i=0; i<points.length - 1; i++) {
-      const p1 = points[i];
-      const p2 = points[i+1];
-      const cx1 = p1.x + (p2.x - p1.x) / 2;
-      const cy1 = p1.y;
-      const cx2 = p1.x + (p2.x - p1.x) / 2;
-      const cy2 = p2.y;
-      strokePath += ` C ${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}`;
+    let activeBtnIdx = chartData.length - 1; // Default to last point if nothing else matches
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    // Find the closest point that is today or past
+    for (let i = chartData.length - 1; i >= 0; i--) {
+      const item = chartData[i];
+      if (item && item.dateStr && item.dateStr <= todayStr) {
+        activeBtnIdx = i;
+        break;
+      }
     }
-    const fillPath = strokePath + ` L ${points[4].x},115 L ${points[0].x},115 Z`;
 
-    // Apply paths to SVG elements
-    if (pathStroke) pathStroke.setAttribute('d', strokePath);
-    if (pathGradient) pathGradient.setAttribute('d', fillPath);
-    if (pathHatch) pathHatch.setAttribute('d', fillPath);
+    const activePoints = points.slice(0, activeBtnIdx + 1);
 
-    // Prepare day coordinates for click interaction
+    if (activePoints.length === 0) {
+      // Nothing to draw
+    } else if (activePoints.length === 1) {
+      // Draw a horizontal flat line from left edge to the point
+      const p = activePoints[0];
+      const strokePath = `M 0,${p.y} L ${p.x},${p.y}`;
+      const fillPath = `M 0,115 L 0,${p.y} L ${p.x},${p.y} L ${p.x},115 Z`;
+      
+      if (pathStroke) pathStroke.setAttribute('d', strokePath);
+      if (pathGradient) pathGradient.setAttribute('d', fillPath);
+      if (pathHatch) pathHatch.setAttribute('d', fillPath);
+    } else {
+      let strokePath = `M ${activePoints[0].x},${activePoints[0].y}`;
+      for(let i=0; i<activePoints.length - 1; i++) {
+        const p1 = activePoints[i];
+        const p2 = activePoints[i+1];
+        const cx1 = p1.x + (p2.x - p1.x) / 2;
+        const cy1 = p1.y;
+        const cx2 = p1.x + (p2.x - p1.x) / 2;
+        const cy2 = p2.y;
+        strokePath += ` C ${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}`;
+      }
+      const fillPath = strokePath + ` L ${activePoints[activePoints.length - 1].x},115 L ${activePoints[0].x},115 Z`;
+      
+      if (pathStroke) pathStroke.setAttribute('d', strokePath);
+      if (pathGradient) pathGradient.setAttribute('d', fillPath);
+      if (pathHatch) pathHatch.setAttribute('d', fillPath);
+    }
+
+    // We will clip the chart dynamically based on the clicked point
+    // The initial clipping is handled by the click event triggered at the end of this function
+
+
     const dayCoords = points.map(p => ({
       cx: p.x,
       cy: p.y,
+      left: `${(p.x / 350) * 100}%`,
+      top: `${(p.y / 120) * 100}%`,
       val: `${p.val} <span class="text-sm font-sans font-black text-text-main">RON</span>`
     }));
 
-    // Initially select current day if weekday, else fallback to latest day
-    const currentDayIdx = Math.min(Math.max(new Date().getDay() - 1, 0), 4);
-    let activeBtnIdx = currentDayIdx;
-
     dayBtns.forEach((btn, idx) => {
-      const clone = btn.cloneNode(true);
-      btn.parentNode?.replaceChild(clone, btn);
-      
-      clone.addEventListener('click', () => {
+      btn.addEventListener('click', () => {
         const coord = dayCoords[idx];
         if (coord) {
-          dot.setAttribute('cx', coord.cx.toString());
-          dot.setAttribute('cy', coord.cy.toString());
-          dotGlow.setAttribute('cx', coord.cx.toString());
-          dotGlow.setAttribute('cy', coord.cy.toString());
+          dot.style.left = coord.left;
+          dot.style.top = coord.top;
+          dotGlow.style.left = coord.left;
+          dotGlow.style.top = coord.top;
+          
+          dot.classList.remove('hidden');
+          dotGlow.classList.remove('hidden');
+          
           valueDisplay.innerHTML = coord.val;
+
+          if (hatchClipRectNew) {
+            hatchClipRectNew.setAttribute('width', (coord.cx + 5).toString());
+          }
 
           document.querySelectorAll('.day-btn').forEach(b => {
             b.classList.remove('text-brand-secondary', 'font-black');
             b.classList.add('text-text-muted');
           });
-          (clone as Element).classList.remove('text-text-muted');
-          (clone as Element).classList.add('text-brand-secondary', 'font-black');
+          btn.classList.remove('text-text-muted');
+          btn.classList.add('text-brand-secondary', 'font-black');
         }
       });
     });
 
-    // Trigger initial selection
     const newDayBtns = document.querySelectorAll('.day-btn');
     if (newDayBtns[activeBtnIdx]) {
       newDayBtns[activeBtnIdx].dispatchEvent(new Event('click'));
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    initReportsView();
-  });
-  document.addEventListener('astro:page-load', () => {
-    initReportsView();
-  });
+  function setupTabs() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const activePill = document.getElementById('tabs-active-pill');
+
+    function updatePill(target: HTMLElement) {
+      if (!activePill) return;
+      const width = target.offsetWidth;
+      const left = target.offsetLeft;
+      activePill.style.opacity = '1';
+      activePill.style.width = `${width}px`;
+      activePill.style.transform = `translate(${left}px, -50%)`;
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const newTab = target.dataset.tab as TabType;
+        if (newTab !== activeTab) {
+          activeTab = newTab;
+          currentBaseDate = new Date(); // Reset date when switching tabs
+          
+          tabBtns.forEach(b => {
+            b.classList.remove('text-text-inverse');
+            b.classList.add('text-text-muted', 'hover:text-text-main');
+          });
+          target.classList.remove('text-text-muted', 'hover:text-text-main');
+          target.classList.add('text-text-inverse');
+
+          updatePill(target);
+          loadReportStats();
+        } else {
+          // If the user clicks the already active tab, just load stats (forces refresh on return)
+          updatePill(target);
+          loadReportStats();
+        }
+      });
+    });
+
+    setTimeout(() => {
+      const initialBtn = document.querySelector(`[data-tab="${activeTab}"]`) as HTMLElement;
+      if (initialBtn) updatePill(initialBtn);
+    }, 50);
+  }
+
+  function setupNavigation() {
+    document.getElementById('prev-report-btn')?.addEventListener('click', () => {
+      if (activeTab === 'week') currentBaseDate.setDate(currentBaseDate.getDate() - 7);
+      else if (activeTab === 'month') currentBaseDate.setMonth(currentBaseDate.getMonth() - 1);
+      else if (activeTab === 'quarter') currentBaseDate.setMonth(currentBaseDate.getMonth() - 3);
+      else if (activeTab === 'year') currentBaseDate.setFullYear(currentBaseDate.getFullYear() - 1);
+      loadReportStats();
+    });
+    
+    document.getElementById('next-report-btn')?.addEventListener('click', () => {
+      if (activeTab === 'week') currentBaseDate.setDate(currentBaseDate.getDate() + 7);
+      else if (activeTab === 'month') currentBaseDate.setMonth(currentBaseDate.getMonth() + 1);
+      else if (activeTab === 'quarter') currentBaseDate.setMonth(currentBaseDate.getMonth() + 3);
+      else if (activeTab === 'year') currentBaseDate.setFullYear(currentBaseDate.getFullYear() + 1);
+      loadReportStats();
+    });
+  }
+
+  async function initReportsView() {
+    const container = document.getElementById('reports-tabs-container');
+    if (!container) return; // Not on this page
+
+    setupTabs();
+    setupNavigation();
+    await Promise.all([
+      loadTodayStats(),
+      loadReportStats()
+    ]);
+  }
+
+  if (!(window as any)._reportsNavSetup) {
+    document.addEventListener('astro:page-load', () => {
+      const container = document.getElementById('reports-tabs-container');
+      if (container) {
+        currentBaseDate = new Date();
+        activeTab = 'week';
+        
+        // Setup initially
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(b => {
+          if (b.getAttribute('data-tab') === activeTab) {
+            b.classList.remove('text-text-muted', 'hover:text-text-main');
+            b.classList.add('text-text-inverse');
+          } else {
+            b.classList.remove('text-text-inverse');
+            b.classList.add('text-text-muted', 'hover:text-text-main');
+          }
+        });
+
+        initReportsView();
+      }
+    });
+    (window as any)._reportsNavSetup = true;
+  }
 </script>

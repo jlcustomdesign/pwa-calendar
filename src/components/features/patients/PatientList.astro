@@ -188,10 +188,11 @@
     async deletePatient(id: string) {
       try {
         await deletePatientDB(id);
+        (window as any).showToast('Pacientul a fost șters cu succes.', 'success');
         this.render();
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
       } catch (err: any) {
-        alert('Eroare la ștergerea pacientului: ' + err.message);
+        (window as any).showToast('Eroare la ștergerea pacientului: ' + err.message, 'error');
       }
     }
 
@@ -263,19 +264,22 @@
         
         let paymentClass = '';
         if (paymentStatus === 'Neachitat') {
-          paymentClass = 'bg-black text-white hover:bg-black/80 shadow-sm';
+          paymentClass = 'bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm';
         } else if (paymentStatus === 'Achitat parțial') {
           paymentClass = 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm font-black';
         } else if (paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat') {
-          paymentClass = 'bg-white/40 text-black hover:bg-white/50';
+          paymentClass = 'bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-sm';
         } else {
-          paymentClass = 'bg-black/50 text-white hover:bg-black/60';
+          paymentClass = 'bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm';
         }
 
         const attendanceCount = patient.sedinte_folosite || 0;
         const totalSessions = patient.sedinte_total || 10;
         const remainingSessions = Math.max(0, totalSessions - attendanceCount);
         const progressPercentage = Math.min(100, Math.round((attendanceCount / totalSessions) * 100));
+
+        const isFullyPaid = paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat' || patient.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal);
+        const restDePlata = isFullyPaid ? 0 : Math.max(0, costTotal - sumaIncasata);
 
         const cardWrapper = document.createElement('div');
         cardWrapper.className = 'block relative rounded-[2.5rem] shadow-sm overflow-hidden mb-4';
@@ -363,13 +367,16 @@
           <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
             <div class="overflow-hidden relative z-20">
               
-              <!-- Full Program Time Display -->
-              <div class="px-6 pt-4 pb-2 flex justify-between items-center">
-                <div class="flex items-center gap-2 text-sm font-bold opacity-90 bg-black/5 px-4 py-2 rounded-xl backdrop-blur-sm">
-                  ${patient.frecventa || 'N/A'} • ${planName}
+              <!-- Financial & Program Info Display -->
+              <div class="px-6 pt-4 pb-1 space-y-2">
+                <div class="flex justify-between items-center text-sm font-bold opacity-90 bg-black/5 px-4 py-2.5 rounded-2xl backdrop-blur-sm">
+                  <span>${patient.frecventa || 'N/A'} • ${planName}</span>
+                  <span class="text-xs font-bold uppercase tracking-widest opacity-60 text-right">${locatie || 'Belaqva'}</span>
                 </div>
-                <div class="text-xs font-bold uppercase tracking-widest opacity-60 text-right">
-                  ${locatie || 'Necunoscut'}
+
+                <div class="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-black/5 text-xs sm:text-sm font-bold">
+                  <span class="opacity-75">Cost Abonament: <strong class="text-black font-extrabold">${costTotal} RON</strong></span>
+                  <span>Rest de plată: <strong class="${restDePlata > 0 ? 'text-rose-600 font-black' : 'text-emerald-700 font-black'}">${restDePlata > 0 ? restDePlata + ' RON' : '0 RON (Achitat)'}</strong></span>
                 </div>
               </div>
 
@@ -405,9 +412,10 @@
         });
 
         const deleteBtn = actionsBg.querySelector('.delete-btn');
-        deleteBtn?.addEventListener('click', (e) => {
+        deleteBtn?.addEventListener('click', async (e) => {
           e.stopPropagation();
-          if (confirm(`Sigur dorești să ștergi pacientul ${patient.name}?`)) {
+          const confirmed = await (window as any).showConfirm('Ștergere Pacient', `Sigur dorești să ștergi pacientul ${patient.name}?`);
+          if (confirmed) {
             this.deletePatient(patient.id);
           }
         });

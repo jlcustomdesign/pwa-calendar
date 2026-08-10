@@ -5,10 +5,24 @@
   <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]">
     <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8 cursor-grab active:cursor-grabbing" id="payment-drag-handle"></div>
     
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center justify-between mb-4">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">Status plată</h2>
         <p class="text-neutral-500 font-medium mt-1" id="payment-subtitle">Selectează modalitatea de plată</p>
+      </div>
+    </div>
+
+    <!-- Patient Financial Summary Card -->
+    <div id="payment-summary-box" class="mb-6 bg-neutral-100 p-4 rounded-2xl border border-neutral-200/70 flex items-center justify-between">
+      <div>
+        <div class="font-extrabold text-neutral-900 text-base" id="payment-patient-name">Se încarcă…</div>
+        <div class="text-neutral-500 font-bold text-xs mt-0.5" id="payment-cost-breakdown">
+          Cost abonament: <strong class="text-black font-extrabold" id="payment-total-cost">0 RON</strong> • Achitat: <strong class="text-black font-extrabold" id="payment-total-paid">0 RON</strong>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">Rest de plată</div>
+        <div class="text-lg font-black text-rose-600 leading-tight" id="payment-remaining-due">0 RON</div>
       </div>
     </div>
 
@@ -48,6 +62,9 @@
             class="w-full bg-neutral-100 border-none rounded-2xl py-4 pl-14 pr-4 text-lg font-bold text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:ring-black transition-all"
             placeholder="0"
           >
+        </div>
+        <div class="text-xs font-bold text-neutral-500 mt-2 px-1">
+          Rest curent de plată: <strong class="text-rose-600 font-black" id="custom-remaining-bold">0 RON</strong>
         </div>
       </div>
       
@@ -187,7 +204,7 @@
             window.dispatchEvent(new CustomEvent('patientsUpdated'));
             this.close();
           } catch (err: any) {
-            alert('Eroare la adăugarea plății: ' + (err.message || err));
+            (window as any).showToast('Eroare la adăugarea plății: ' + (err.message || err), 'error');
           }
         }
       }
@@ -206,10 +223,11 @@
         } else {
            await setPaymentStatus(this.currentPatientId, true);
         }
+        (window as any).showToast('Plata a fost marcată ca achitată integral.', 'success');
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
         this.close();
       } catch (err: any) {
-        alert('Eroare la actualizarea plății: ' + (err.message || err));
+        (window as any).showToast('Eroare la actualizarea plății: ' + (err.message || err), 'error');
       }
     }
 
@@ -217,10 +235,11 @@
       if (!this.currentPatientId) return;
       try {
         await resetPayments(this.currentPatientId);
+        (window as any).showToast('Plățile pacientului au fost resetate.', 'info');
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
         this.close();
       } catch (err: any) {
-        alert('Eroare la resetarea plății: ' + (err.message || err));
+        (window as any).showToast('Eroare la resetarea plății: ' + (err.message || err), 'error');
       }
     }
     
@@ -282,9 +301,43 @@
       }
     }
 
+    private async loadPatientFinancials() {
+      if (!this.currentPatientId) return;
+      try {
+        const patient = await getPatient(this.currentPatientId);
+        const totalPaid = await getPatientPayments(this.currentPatientId);
+        const cost = Number(patient.cost || 0);
+        const statusPlata = (patient as any).status_plata;
+        const isFullyPaid = patient.achitat === true || statusPlata === 'Achitat integral' || statusPlata === 'Achitat' || (cost > 0 && totalPaid >= cost);
+        const remaining = isFullyPaid ? 0 : Math.max(0, cost - totalPaid);
+
+        const nameEl = document.getElementById('payment-patient-name');
+        const totalCostEl = document.getElementById('payment-total-cost');
+        const totalPaidEl = document.getElementById('payment-total-paid');
+        const remainingDueEl = document.getElementById('payment-remaining-due');
+        const customHintEl = document.getElementById('custom-remaining-bold');
+
+        if (nameEl) nameEl.textContent = patient.name;
+        if (totalCostEl) totalCostEl.textContent = `${cost} RON`;
+        if (totalPaidEl) totalPaidEl.textContent = `${totalPaid} RON`;
+        if (remainingDueEl) {
+          remainingDueEl.textContent = `${remaining} RON`;
+          remainingDueEl.className = remaining > 0 
+            ? 'text-lg font-black text-rose-600 leading-tight' 
+            : 'text-lg font-black text-emerald-600 leading-tight';
+        }
+        if (customHintEl) {
+          customHintEl.textContent = `${remaining} RON`;
+        }
+      } catch (e) {
+        console.error('Eroare la citirea datelor financiare ale pacientului:', e);
+      }
+    }
+
     private open() {
       if (!this.sheet || !this.content || !this.backdrop) return;
       this.isOpen = true;
+      this.loadPatientFinancials();
       
       this.sheet.classList.remove('hidden');
       // Trigger reflow

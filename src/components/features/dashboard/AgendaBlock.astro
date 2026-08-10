@@ -43,7 +43,10 @@ import DailyProgress from './DailyProgress.astro';
     const list = document.getElementById('agenda-sessions-list');
     if (!list) return;
 
-    const nowStr = new Date().toTimeString().slice(0, 5);
+    const now = new Date();
+    const nowStr = now.toTimeString().slice(0, 5);
+    const isToday = currentAgendaDate === todayStr;
+
     let stored: any[] = [];
     try {
       const appts = await getAppointmentsByDate(currentAgendaDate);
@@ -51,12 +54,14 @@ import DailyProgress from './DailyProgress.astro';
         const sumaIncasata = Number(a.pacienti?.suma_incasata || 0);
         const costTotal = Number(a.pacienti?.cost || 0);
         let pStatus = 'Neachitat';
-        if (a.pacienti?.status_plata) {
-          pStatus = a.pacienti.status_plata;
-        } else if (a.pacienti?.achitat || (costTotal > 0 && sumaIncasata >= costTotal)) {
+        if (a.pacienti?.achitat === true || a.pacienti?.status_plata === 'Achitat' || a.pacienti?.status_plata === 'Achitat integral') {
           pStatus = 'Achitat integral';
-        } else if (sumaIncasata > 0) {
+        } else if (a.pacienti?.status_plata === 'Achitat parțial' || (costTotal > 0 && sumaIncasata > 0 && sumaIncasata < costTotal)) {
           pStatus = 'Achitat parțial';
+        } else if (costTotal > 0 && sumaIncasata >= costTotal) {
+          pStatus = 'Achitat integral';
+        } else if (a.pacienti?.status_plata) {
+          pStatus = a.pacienti.status_plata;
         }
 
         return {
@@ -68,7 +73,9 @@ import DailyProgress from './DailyProgress.astro';
           location: a.pacienti?.locatie || 'Belaqva',
           attendanceCount: a.pacienti?.sedinte_folosite ?? 0,
           totalSessions: a.pacienti?.sedinte_total || 10,
-          paymentStatus: pStatus
+          paymentStatus: pStatus,
+          costTotal,
+          sumaIncasata
         };
       });
     } catch (e) {
@@ -96,7 +103,31 @@ import DailyProgress from './DailyProgress.astro';
       return;
     }
 
-    list.innerHTML = stored.map((session: any) => {
+    const getSessionCategory = (session: any) => {
+      const timeStr = session.selectedTime || "08:00";
+      const timeParts = timeStr.split(':');
+      const hourNum = parseInt(timeParts[0] || "0", 10);
+      const minute = timeParts[1] || "00";
+      const endTime = `${(hourNum + 1).toString().padStart(2, '0')}:${minute}`;
+
+      const isOngoing = isToday && nowStr >= timeStr && nowStr < endTime;
+      const isPast = currentAgendaDate < todayStr || (isToday && nowStr >= endTime);
+
+      if (isOngoing) return 0; // Ongoing comes first
+      if (!isPast) return 1;   // Upcoming comes second
+      return 2;                // Past comes at bottom
+    };
+
+    const sorted = [...stored].sort((a: any, b: any) => {
+      const catA = getSessionCategory(a);
+      const catB = getSessionCategory(b);
+      if (catA !== catB) return catA - catB;
+      const timeA = a.selectedTime || "08:00";
+      const timeB = b.selectedTime || "08:00";
+      return timeA.localeCompare(timeB);
+    });
+
+    list.innerHTML = sorted.map((session: any) => {
       const locationStr = session.location || "Belaqva";
       const isGhimbav = locationStr.toLowerCase() === "ghimbav";
       const cardClasses = isGhimbav ? "bg-brand-secondary text-white" : "bg-brand-primary text-black";
@@ -114,27 +145,23 @@ import DailyProgress from './DailyProgress.astro';
       const endHourStr = (hourNum + 1).toString().padStart(2, '0');
       const endTime = `${endHourStr}:${minute}`;
 
-      const now = new Date();
-      const todayStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
-      const nowStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
-      const isOngoing = currentAgendaDate === todayStr && nowStr >= timeStr && nowStr < endTime;
-      const isPast = currentAgendaDate < todayStr || (currentAgendaDate === todayStr && nowStr >= endTime);
+      const isOngoing = isToday && nowStr >= timeStr && nowStr < endTime;
+      const isPast = currentAgendaDate < todayStr || (isToday && nowStr >= endTime);
       const paymentStatus = session.paymentStatus || 'Neachitat';
 
       let paymentClass = '';
       if (paymentStatus === 'Neachitat') {
-        paymentClass = 'bg-black text-white hover:bg-black/80 shadow-sm';
+        paymentClass = 'bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm';
       } else if (paymentStatus === 'Achitat parțial') {
         paymentClass = 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm font-black';
-      } else if (paymentStatus === 'Achitat integral') {
-        paymentClass = 'bg-white/40 text-black hover:bg-white/50';
+      } else if (paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat') {
+        paymentClass = 'bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-sm';
       } else {
-        paymentClass = 'bg-black/50 text-white hover:bg-black/60';
+        paymentClass = 'bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm';
       }
 
       return `
-        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden ${isPast ? 'opacity-80' : ''}">
+        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden">
           <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
             <div class="flex items-center gap-3">
               <button 
@@ -146,6 +173,14 @@ import DailyProgress from './DailyProgress.astro';
               </button>
               <button 
                 type="button" 
+                class="w-12 h-12 rounded-full bg-orange-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
+                onclick="window.cancelSession('${session.id}'); event.stopPropagation();"
+                title="Marchează ca Anulat/Absent"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+              </button>
+              <button 
+                type="button" 
                 class="w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
                 onclick="window.deleteSession('${session.id}'); event.stopPropagation();"
               >
@@ -154,13 +189,7 @@ import DailyProgress from './DailyProgress.astro';
             </div>
           </div>
 
-          <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses} ${isOngoing ? 'ring-4 ring-emerald-400 ring-offset-2' : ''}">
-            ${isPast ? `
-              <div 
-                class="absolute inset-0 z-10 pointer-events-none bg-black/5"
-                style="background-image: repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(0,0,0,0.1) 8px, rgba(0,0,0,0.1) 10px);"
-              ></div>
-            ` : ''}
+          <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
 
             <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[110px] p-6">
               
@@ -172,18 +201,25 @@ import DailyProgress from './DailyProgress.astro';
                 </div>
               </div>
 
-              <div class="flex items-center justify-between gap-4 w-full relative z-10 pl-24">
+              <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
                 <div class="flex-1 min-w-0">
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
                 </div>
                 ${isOngoing ? `
-                  <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500 text-white text-[11px] font-black uppercase tracking-wider shadow-md animate-pulse shrink-0">
-                    <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
-                    În desfășurare
+                  <div class="shrink-0 flex items-center">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold ${isGhimbav ? 'bg-white/20 text-white' : 'bg-black/10 text-black'} backdrop-blur-sm shadow-sm">
+                      <span class="w-2 h-2 rounded-full ${isGhimbav ? 'bg-emerald-400' : 'bg-emerald-600'} shrink-0"></span>
+                      În desfășurare
+                    </span>
                   </div>
-                ` : ''}
-              </div>
-                </div>
+                ` : (isPast ? `
+                  <div class="shrink-0 flex items-center">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold ${isGhimbav ? 'bg-white/15 text-white/80' : 'bg-black/10 text-black/70'} backdrop-blur-sm">
+                      <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                      Finalizat
+                    </span>
+                  </div>
+                ` : '')}
               </div>
 
               <div class="flex items-center gap-4 mt-5 relative z-10 pl-24">
@@ -196,12 +232,20 @@ import DailyProgress from './DailyProgress.astro';
 
             <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
               <div class="overflow-hidden relative z-20">
-                <div class="px-6 pt-4 pb-2 flex justify-between items-center">
-                  <div class="flex items-center gap-2 text-base font-extrabold opacity-95 bg-black/5 px-4 py-2 rounded-xl backdrop-blur-sm">
-                    ${timeStr} - ${endTime}
+                <div class="px-6 pt-4 pb-1 space-y-2">
+                  <div class="flex justify-between items-center text-sm font-bold opacity-90 bg-black/5 px-4 py-2 rounded-xl backdrop-blur-sm">
+                    <span class="flex items-center gap-1.5">
+                      <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      ${timeStr} - ${endTime}
+                    </span>
+                    <span class="text-xs font-bold uppercase tracking-widest opacity-60 text-right">${locationStr}</span>
                   </div>
-                  <div class="text-xs font-bold uppercase tracking-widest opacity-60 text-right">
-                    ${locationStr}
+
+                  <div class="flex items-center justify-between px-4 py-2.5 rounded-xl bg-black/5 text-xs sm:text-sm font-bold">
+                    <span>Cost: <strong class="text-black font-extrabold">${session.costTotal || 0} RON</strong></span>
+                    <span>Rest de plată: <strong class="${session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat' || ((session.costTotal || 0) > 0 && (session.sumaIncasata || 0) >= (session.costTotal || 0)) || ((session.costTotal || 0) - (session.sumaIncasata || 0)) <= 0 ? 'text-emerald-700 font-black' : 'text-rose-600 font-black'}">${session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat' || ((session.costTotal || 0) > 0 && (session.sumaIncasata || 0) >= (session.costTotal || 0)) || ((session.costTotal || 0) - (session.sumaIncasata || 0)) <= 0 ? '0 RON (Achitat)' : ((session.costTotal || 0) - (session.sumaIncasata || 0)) + ' RON'}</strong></span>
                   </div>
                 </div>
 
