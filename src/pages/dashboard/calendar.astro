@@ -279,11 +279,19 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
           const folosite = a.pacienti?.sedinte_folosite ?? 0;
           const totalSess = a.pacienti?.sedinte_total || 10;
           const sedinteRamase = Math.max(0, totalSess - folosite);
+          const costPerSession = totalSess > 0 ? (costTotal / totalSess) : costTotal;
+          const sedintePlatite = costPerSession > 0 ? Math.floor(sumaIncasata / costPerSession) : 0;
+
           let pStatus = 'Neachitat';
           if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
             pStatus = 'Achitat integral';
-          } else if (sumaIncasata > 0 && sumaIncasata < costTotal) {
-            pStatus = 'Achitat parțial';
+          } else if (sumaIncasata > 0) {
+            const isFuture = a.data > todayStr;
+            if (!isFuture && (folosite <= sedintePlatite || sumaIncasata >= costPerSession)) {
+              pStatus = 'Achitat';
+            } else {
+              pStatus = 'Neachitat';
+            }
           } else if (a.pacienti?.status_plata) {
             pStatus = a.pacienti.status_plata;
           }

@@ -56,26 +56,31 @@ import DailyProgress from './DailyProgress.astro';
 
     const now = new Date();
     const nowStr = now.toTimeString().slice(0, 5);
-    const isToday = currentAgendaDate === todayStr;
-
     let stored: any[] = [];
     try {
       const appts = await getAppointmentsByDate(currentAgendaDate);
       stored = await Promise.all(appts.map(async (a: any) => {
         const sumaIncasata = await getPatientPayments(a.pacient_id);
         const costTotal = Number(a.pacienti?.cost || 0);
-        let pStatus = 'Neachitat';
-        if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
-          pStatus = 'Achitat integral';
-        } else if (sumaIncasata > 0 && sumaIncasata < costTotal) {
-          pStatus = 'Achitat parțial';
-        } else if (a.pacienti?.status_plata) {
-          pStatus = a.pacienti.status_plata;
-        }
-
         const folosite = a.pacienti?.sedinte_folosite ?? 0;
         const totalSess = a.pacienti?.sedinte_total || 10;
         const sedinteRamase = Math.max(0, totalSess - folosite);
+        const costPerSession = totalSess > 0 ? (costTotal / totalSess) : costTotal;
+        const sedintePlatite = costPerSession > 0 ? Math.floor(sumaIncasata / costPerSession) : 0;
+
+        let pStatus = 'Neachitat';
+        if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
+          pStatus = 'Achitat integral';
+        } else if (sumaIncasata > 0) {
+          const isFuture = a.data > todayStr;
+          if (!isFuture && (folosite <= sedintePlatite || sumaIncasata >= costPerSession)) {
+            pStatus = 'Achitat';
+          } else {
+            pStatus = 'Neachitat';
+          }
+        } else if (a.pacienti?.status_plata) {
+          pStatus = a.pacienti.status_plata;
+        }
 
         return {
           id: a.id,
