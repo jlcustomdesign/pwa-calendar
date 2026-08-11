@@ -879,8 +879,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       // Listen for custom event to open sheet
       if (!(window as any)._addSessionWindowListenerBound) {
         window.addEventListener('openAddSession', async (e: any) => {
-          await this.populatePatients(); // Ensure patient list is up to date
-
           const detail = e.detail || {};
           const isEdit = !!detail.isEdit;
           const session = detail.session;
@@ -906,61 +904,68 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             if (submitBtnEl) submitBtnEl.textContent = 'Salvează';
           }
 
-        // Keep Date & Time selectors visible so user can always see and change selected hour
-        dateTimeContainer?.classList.remove('hidden');
+          // Keep Date & Time selectors visible so user can always see and change selected hour
+          dateTimeContainer?.classList.remove('hidden');
 
-        if (isEdit) {
-          if (timeStr) this.selectTime(timeStr);
-          if (dateStr) this.selectDate(dateStr);
-        } else {
-          // Reset labels to default, then apply any provided date/time
-          const dateLabel = document.getElementById('display-date-label');
-          const timeLabel = document.getElementById('display-time-label');
-          if (dateLabel) dateLabel.textContent = 'Alege data';
-          if (timeLabel) timeLabel.textContent = 'Alege ora';
-          if (dateStr) this.selectDate(dateStr);
-          if (timeStr) this.selectTime(timeStr);
-        }
-
-        // Reset patient selector state
-        const pList = document.getElementById('patient-list');
-        const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
-        const settingsContainer = document.getElementById('settings-container');
-
-        const patientRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
-        patientRadios?.forEach(r => r.checked = false);
-        this.selectedPatientId = null;
-
-        if (patientName) {
-          const matchingRadio = Array.from(patientRadios || []).find(r =>
-            r.getAttribute('data-patient-name') === patientName || r.value === patientName
-          );
-          if (matchingRadio) {
-            matchingRadio.checked = true;
-            this.selectedPatientId = matchingRadio.value;
-            matchingRadio.dispatchEvent(new Event('change'));
+          if (isEdit) {
+            if (timeStr) this.selectTime(timeStr);
+            if (dateStr) this.selectDate(dateStr);
+          } else {
+            // Reset labels to default, then apply any provided date/time
+            const dateLabel = document.getElementById('display-date-label');
+            const timeLabel = document.getElementById('display-time-label');
+            if (dateLabel) dateLabel.textContent = 'Alege data';
+            if (timeLabel) timeLabel.textContent = 'Alege ora';
+            if (dateStr) this.selectDate(dateStr);
+            if (timeStr) this.selectTime(timeStr);
           }
-        } else {
-          if (searchInput) searchInput.value = '';
-          if (pList) {
-            pList.classList.add('hidden');
-            pList.classList.remove('flex');
-          }
-          if (settingsContainer) {
-            settingsContainer.classList.add('hidden');
-            settingsContainer.classList.remove('flex');
-          }
-        }
 
-        if (isEdit && session) {
-          const recurringCb = this.form?.querySelector('input[name="recurring"]') as HTMLInputElement;
-          const reminderCb = this.form?.querySelector('input[name="reminder"]') as HTMLInputElement;
-          if (recurringCb) recurringCb.checked = !!session.recurring;
-          if (reminderCb) reminderCb.checked = !!session.reminder;
-        }
+          // Reset patient selector state
+          const pList = document.getElementById('patient-list');
+          const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
+          const settingsContainer = document.getElementById('settings-container');
 
-        this.open();
-      });
+          const patientRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
+          patientRadios?.forEach(r => r.checked = false);
+          this.selectedPatientId = null;
+
+          if (!patientName) {
+            if (searchInput) searchInput.value = '';
+            if (pList) {
+              pList.classList.add('hidden');
+              pList.classList.remove('flex');
+            }
+            if (settingsContainer) {
+              settingsContainer.classList.add('hidden');
+              settingsContainer.classList.remove('flex');
+            }
+          }
+
+          if (isEdit && session) {
+            const recurringCb = this.form?.querySelector('input[name="recurring"]') as HTMLInputElement;
+            const reminderCb = this.form?.querySelector('input[name="reminder"]') as HTMLInputElement;
+            if (recurringCb) recurringCb.checked = !!session.recurring;
+            if (reminderCb) reminderCb.checked = !!session.reminder;
+          }
+
+          // Open the sheet immediately for smooth feedback
+          this.open();
+
+          // Load patients in the background, then pre-select if a name was provided
+          await this.populatePatients();
+
+          if (patientName) {
+            const refreshedRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
+            const matchingRadio = Array.from(refreshedRadios || []).find(r =>
+              r.getAttribute('data-patient-name') === patientName || r.value === patientName
+            );
+            if (matchingRadio) {
+              matchingRadio.checked = true;
+              this.selectedPatientId = matchingRadio.value;
+              matchingRadio.dispatchEvent(new Event('change'));
+            }
+          }
+        });
       (window as any)._addSessionWindowListenerBound = true;
       }
 
