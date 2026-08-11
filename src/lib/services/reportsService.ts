@@ -10,7 +10,6 @@ import { toLocalISOString } from '../../utils/date';
 export async function getTodayStats(date?: string) {
   const now = new Date();
   const todayStr = toLocalISOString(now);
-  const nowStr = now.toTimeString().slice(0, 5); // "HH:MM"
   const targetDate = date ?? todayStr;
 
   const { data: programariData, error: programariError } = await supabase
@@ -22,7 +21,7 @@ export async function getTodayStats(date?: string) {
 
   const { data: platiData } = await supabase
     .from('plati')
-    .select('suma')
+    .select('suma, pacient_id')
     .eq('data_platii', targetDate);
 
   const progList = (programariData || []) as any[];
@@ -30,32 +29,26 @@ export async function getTodayStats(date?: string) {
 
   const sedinte_total = progList.length;
 
-  // Ședința e finalizată dacă e marcată explicit SAU dacă timpul ei a trecut deja
-  const finalizate = progList.filter(p => {
-    if (p.status === 'finalizat') return true;
-    if (p.status === 'absent') return false;
-    if (targetDate < todayStr) return true;
-    if (targetDate === todayStr) {
-      const pOra = (p.ora || '').slice(0, 5);
-      return pOra <= nowStr;
-    }
-    return false;
-  }).length;
-
+  // Ședința e finalizată DOAR dacă statusul ei este 'finalizat' sau 'finalizata'
+  const finalizate = progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata').length;
   const absente = progList.filter(p => p.status === 'absent').length;
 
-  // Venitul de azi se calculează exclusiv din plățile efectuate azi
-  let venit_azi = platiList.reduce((sum, p) => sum + (p.suma || 0), 0);
+  // Venit din tabela plati
+  let venit_azi = platiList.reduce((sum, p) => sum + Number(p.suma || 0), 0);
+
+  // Dacă nu sunt plăți înregistrate separat, calculăm din ședințele finalizate
+  if (venit_azi === 0 && finalizate > 0) {
+    venit_azi = progList
+      .filter(p => p.status === 'finalizat' || p.status === 'finalizata')
+      .reduce((sum, p) => sum + Number(p.pacienti?.cost || 0), 0);
+  }
 
   return { sedinte_total, finalizate, absente, venit_azi, data: targetDate };
 }
 
-// ── Statistici SĂPTĂMÂNALE (Luni - Vineri) ─────────────────────
+// ── Statistici SĂPTĂMÂNALE (Luni - Duminică) ─────────────────────
 export async function getWeekStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = toLocalISOString(realNow);
-  const nowStr = realNow.toTimeString().slice(0, 5);
-  
   const refDate = baseDate ? new Date(baseDate) : realNow;
 
   const day = refDate.getDay(); // 0 = Duminică, 1 = Luni...
@@ -72,7 +65,7 @@ export async function getWeekStats(baseDate?: string) {
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('data, ora, status, pacienti(cost)')
+    .select('data, ora, status, pacient_id, pacienti(cost)')
     .gte('data', startStr)
     .lte('data', endStr);
 
@@ -80,7 +73,7 @@ export async function getWeekStats(baseDate?: string) {
 
   const { data: platiData } = await supabase
     .from('plati')
-    .select('data_platii, suma')
+    .select('data_platii, suma, pacient_id')
     .gte('data_platii', startStr)
     .lte('data_platii', endStr);
 
@@ -98,22 +91,29 @@ export async function getWeekStats(baseDate?: string) {
 
   progList.forEach((p: any) => {
     if (!byDay[p.data]) byDay[p.data] = { finalizate: 0, absente: 0, venit: 0 };
-
-    const isPastSession = p.data < todayStr || (p.data === todayStr && (p.ora || '').slice(0, 5) <= nowStr);
-    const isDone = p.status === 'finalizat' || (p.status !== 'absent' && isPastSession);
+    const isDone = p.status === 'finalizat' || p.status === 'finalizata';
 
     if (isDone) {
       byDay[p.data].finalizate++;
+      byDay[p.data].venit += Number(p.pacienti?.cost || 0);
     }
     if (p.status === 'absent') {
       byDay[p.data].absente++;
     }
   });
 
-  // Dacă există plăți dedicate în tabela `plati`, le adăugăm la venit
+  // Dacă există plăți dedicate în tabela `plati`, le suprapunem/înlocuim venitul
+  const platiByDay: Record<string, number> = {};
   platiList.forEach((p: any) => {
-    if (byDay[p.data_platii]) {
-      byDay[p.data_platii].venit += (p.suma || 0);
+    if (p.data_platii) {
+      const dStr = p.data_platii.split('T')[0];
+      platiByDay[dStr] = (platiByDay[dStr] || 0) + Number(p.suma || 0);
+    }
+  });
+
+  Object.keys(byDay).forEach(dStr => {
+    if (platiByDay[dStr] !== undefined && platiByDay[dStr] > 0) {
+      byDay[dStr].venit = platiByDay[dStr];
     }
   });
 
@@ -137,9 +137,6 @@ export async function getWeekStats(baseDate?: string) {
 // ── Statistici LUNARE ─────────────────────────────────────────
 export async function getMonthStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = toLocalISOString(realNow);
-  const nowStr = realNow.toTimeString().slice(0, 5);
-
   const refDate = baseDate ? new Date(baseDate) : realNow;
 
   const startStr = toLocalISOString(new Date(refDate.getFullYear(), refDate.getMonth(), 1));
@@ -163,29 +160,32 @@ export async function getMonthStats(baseDate?: string) {
   const platiList = (platiData || []) as any[];
 
   const total = progList.length;
-  const finalizate = progList.filter(p => {
-    if (p.status === 'finalizat') return true;
-    if (p.status === 'absent') return false;
-    if (p.data < todayStr) return true;
-    if (p.data === todayStr) return (p.ora || '').slice(0, 5) <= nowStr;
-    return false;
-  }).length;
+  const finalizate = progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata').length;
   const absente = progList.filter(p => p.status === 'absent').length;
 
-  let venit = platiList.reduce((sum, p) => sum + (p.suma || 0), 0);
+  let venitPlati = platiList.reduce((sum, p) => sum + Number(p.suma || 0), 0);
+  let venitSedinte = progList
+    .filter(p => p.status === 'finalizat' || p.status === 'finalizata')
+    .reduce((sum, p) => sum + Number(p.pacienti?.cost || 0), 0);
+
+  let venit = Math.max(venitPlati, venitSedinte);
 
   const byPeriod = [0, 0, 0, 0];
-  platiList.forEach((p: any) => {
-    if (!p.data_platii) return;
-    const parts = p.data_platii.split('T')[0].split('-');
+  const itemsToDistribute = platiList.length > 0 ? platiList : progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata');
+
+  itemsToDistribute.forEach((item: any) => {
+    const dateField = item.data_platii || item.data;
+    if (!dateField) return;
+    const parts = dateField.split('T')[0].split('-');
     const d = parseInt(parts[2], 10);
+    const amount = Number(item.suma || item.pacienti?.cost || 0);
     if (!isNaN(d)) {
-      let idx = Math.floor((d - 1) / 8); 
-      if (idx > 3) idx = 3; 
-      byPeriod[idx] += (p.suma || 0);
+      let idx = Math.floor((d - 1) / 8);
+      if (idx > 3) idx = 3;
+      byPeriod[idx] += amount;
     }
   });
-  
+
   const chartData = byPeriod.map((val, i) => {
     const d = new Date(refDate.getFullYear(), refDate.getMonth(), i * 8 + 1);
     return { label: `S${i+1}`, val, dateStr: toLocalISOString(d) };
@@ -197,9 +197,6 @@ export async function getMonthStats(baseDate?: string) {
 // ── Statistici TRIMESTRIALE ───────────────────────────────────
 export async function getQuarterStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = toLocalISOString(realNow);
-  const nowStr = realNow.toTimeString().slice(0, 5);
-
   const refDate = baseDate ? new Date(baseDate) : realNow;
   const currentQuarter = Math.floor(refDate.getMonth() / 3);
   const startStr = toLocalISOString(new Date(refDate.getFullYear(), currentQuarter * 3, 1));
@@ -223,27 +220,30 @@ export async function getQuarterStats(baseDate?: string) {
   const platiList = (platiData || []) as any[];
 
   const total = progList.length;
-  const finalizate = progList.filter(p => {
-    if (p.status === 'finalizat') return true;
-    if (p.status === 'absent') return false;
-    if (p.data < todayStr) return true;
-    if (p.data === todayStr) return (p.ora || '').slice(0, 5) <= nowStr;
-    return false;
-  }).length;
+  const finalizate = progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata').length;
   const absente = progList.filter(p => p.status === 'absent').length;
 
-  let venit = platiList.reduce((sum, p) => sum + (p.suma || 0), 0);
+  let venitPlati = platiList.reduce((sum, p) => sum + Number(p.suma || 0), 0);
+  let venitSedinte = progList
+    .filter(p => p.status === 'finalizat' || p.status === 'finalizata')
+    .reduce((sum, p) => sum + Number(p.pacienti?.cost || 0), 0);
+
+  let venit = Math.max(venitPlati, venitSedinte);
 
   const byMonth = [0, 0, 0];
-  platiList.forEach((p: any) => {
-    if (!p.data_platii) return;
-    const parts = p.data_platii.split('T')[0].split('-');
+  const itemsToDistribute = platiList.length > 0 ? platiList : progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata');
+
+  itemsToDistribute.forEach((item: any) => {
+    const dateField = item.data_platii || item.data;
+    if (!dateField) return;
+    const parts = dateField.split('T')[0].split('-');
     const m = (parseInt(parts[1], 10) - 1) % 3;
+    const amount = Number(item.suma || item.pacienti?.cost || 0);
     if (!isNaN(m) && m >= 0 && m < 3) {
-      byMonth[m] += (p.suma || 0);
+      byMonth[m] += amount;
     }
   });
-  
+
   const monthNames = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const chartData = byMonth.map((val, i) => {
     const mIdx = currentQuarter * 3 + i;
@@ -257,9 +257,6 @@ export async function getQuarterStats(baseDate?: string) {
 // ── Statistici ANUALE ─────────────────────────────────────────
 export async function getYearStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = toLocalISOString(realNow);
-  const nowStr = realNow.toTimeString().slice(0, 5);
-
   const refDate = baseDate ? new Date(baseDate) : realNow;
   const startStr = toLocalISOString(new Date(refDate.getFullYear(), 0, 1));
   const endStr = toLocalISOString(new Date(refDate.getFullYear(), 12, 0));
@@ -282,27 +279,30 @@ export async function getYearStats(baseDate?: string) {
   const platiList = (platiData || []) as any[];
 
   const total = progList.length;
-  const finalizate = progList.filter(p => {
-    if (p.status === 'finalizat') return true;
-    if (p.status === 'absent') return false;
-    if (p.data < todayStr) return true;
-    if (p.data === todayStr) return (p.ora || '').slice(0, 5) <= nowStr;
-    return false;
-  }).length;
+  const finalizate = progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata').length;
   const absente = progList.filter(p => p.status === 'absent').length;
 
-  let venit = platiList.reduce((sum, p) => sum + (p.suma || 0), 0);
+  let venitPlati = platiList.reduce((sum, p) => sum + Number(p.suma || 0), 0);
+  let venitSedinte = progList
+    .filter(p => p.status === 'finalizat' || p.status === 'finalizata')
+    .reduce((sum, p) => sum + Number(p.pacienti?.cost || 0), 0);
+
+  let venit = Math.max(venitPlati, venitSedinte);
 
   const byMonth = Array(12).fill(0);
-  platiList.forEach((p: any) => {
-    if (!p.data_platii) return;
-    const parts = p.data_platii.split('T')[0].split('-');
+  const itemsToDistribute = platiList.length > 0 ? platiList : progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata');
+
+  itemsToDistribute.forEach((item: any) => {
+    const dateField = item.data_platii || item.data;
+    if (!dateField) return;
+    const parts = dateField.split('T')[0].split('-');
     const m = parseInt(parts[1], 10) - 1;
+    const amount = Number(item.suma || item.pacienti?.cost || 0);
     if (!isNaN(m) && m >= 0 && m < 12) {
-      byMonth[m] += (p.suma || 0);
+      byMonth[m] += amount;
     }
   });
-  
+
   const initialLetters = ['I', 'F', 'M', 'A', 'M', 'I', 'I', 'A', 'S', 'O', 'N', 'D'];
   const chartData = byMonth.map((val, i) => {
     const d = new Date(refDate.getFullYear(), i, 1);
