@@ -3,8 +3,16 @@
  * Avoids the UTC-shift bug from calling toISOString() on local-midnight dates.
  */
 export function toLocalISOString(date: Date): string {
+  if (!date) return new Date().toISOString().split('T')[0];
   const offsetMs = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offsetMs).toISOString().split('T')[0];
+}
+
+// Polyfill Date.prototype.toLocalISOString for total safety
+if (typeof Date !== 'undefined' && !(Date.prototype as any).toLocalISOString) {
+  (Date.prototype as any).toLocalISOString = function (this: Date) {
+    return toLocalISOString(this);
+  };
 }
 
 /**
