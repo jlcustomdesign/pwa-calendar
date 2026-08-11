@@ -188,21 +188,20 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                 <div class="overflow-hidden relative z-20">
                   ${subscriptionWarningDetails}
                            <div class="px-6 pt-2 pb-2 space-y-3">
-                  <!-- Row 1: Time & Location Pill with Clock and Location Pin Icons -->
-                  <div class="flex items-center justify-center gap-3 px-4 py-3.5 rounded-2xl bg-black/10 text-sm sm:text-base font-extrabold text-black">
+                  <!-- Row 1: Time & Location Pill with Clock and Location Pin Icons (No 'la' prefix, no separator bar) -->
+                  <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-black/10 text-sm sm:text-base font-extrabold text-black">
                     <span class="flex items-center gap-1.5 shrink-0">
                       <svg class="w-4 h-4 opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
                       <span>${timeRangeText}</span>
                     </span>
-                    <span class="opacity-30 font-light shrink-0">|</span>
                     <span class="flex items-center gap-1.5 shrink-0">
                       <svg class="w-4 h-4 opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                       </svg>
-                      <span>la ${locationStr}</span>
+                      <span>${locationStr}</span>
                     </span>
                   </div>
 
