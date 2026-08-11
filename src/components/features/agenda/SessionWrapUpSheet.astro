@@ -102,6 +102,17 @@
 
       this.btnCame?.addEventListener('click', () => this.answer(true));
       this.btnAbsent?.addEventListener('click', () => this.answer(false));
+
+      // Open event — pentru o sesiune specifică sau re-verificare forțată
+      window.addEventListener('openWrapUp', (e: any) => {
+        const appt = e.detail?.appointment;
+        if (appt) {
+          this.queue = [appt];
+          this.showCurrent();
+        } else if (e.detail?.forceCheck) {
+          this.checkQueue();
+        }
+      });
     }
 
     formatDate(dateStr: string): string {

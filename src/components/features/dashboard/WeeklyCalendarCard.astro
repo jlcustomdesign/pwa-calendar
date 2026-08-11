@@ -493,9 +493,10 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
 
     requestAnimationFrame(() => {
       const savedDate = localStorage.getItem('selectedCalendarDate');
+      const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
       let activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
 
-      if (savedDate) {
+      if (savedDate && savedDate === todayStr) {
         const targetBtn = allButtons.find((b) => {
           const y = b.getAttribute("data-year");
           const m = b.getAttribute("data-month");
@@ -508,6 +509,9 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
           selectDay(targetBtn, false);
           activeBtn = targetBtn;
         }
+      } else if (savedDate) {
+        // Data salvată e din altă zi — nu o mai restaurem, selectăm azi implicit
+        localStorage.removeItem('selectedCalendarDate');
       }
 
       if (activeBtn) {

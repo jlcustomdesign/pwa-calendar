@@ -269,6 +269,19 @@ const { title, hideDock = false } = Astro.props;
             (window as any).showToast('Eroare la anularea programării: ' + (err.message || err), 'error');
           }
         };
+
+        // Confirmă o sesiune trecută direct din card
+        (window as any).confirmSession = async (sessionId: string) => {
+          if (!sessionId) return;
+          try {
+            const appointment = await getAppointment(sessionId);
+            window.dispatchEvent(new CustomEvent('openWrapUp', {
+              detail: { appointment }
+            }));
+          } catch (err: any) {
+            (window as any).showToast('Eroare la încărcarea programării: ' + (err.message || err), 'error');
+          }
+        };
       }
     </script>
   </body>
