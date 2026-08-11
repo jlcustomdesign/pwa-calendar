@@ -1,314 +1,384 @@
 ---
+// SessionWrapUpSheet.astro — Pop-up inteligent la confirmarea unei ședințe
 ---
 
-<div 
-  id="session-wrapup-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2rem] p-6 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col"
->
-  <!-- Swipe handle -->
-  <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
+<div id="session-wrapup-sheet" class="fixed inset-0 z-[120] pointer-events-none hidden">
+  <div id="session-wrapup-backdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto transition-opacity duration-500 opacity-0"></div>
+  
+  <div id="session-wrapup-content" class="absolute bottom-0 left-0 right-0 bg-surface-card rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto no-scrollbar border-t border-border-subtle/50">
+    <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 cursor-grab active:cursor-grabbing" id="wrapup-drag-handle"></div>
 
-  <div class="flex-1 overflow-y-auto no-scrollbar">
-    <h3 class="text-2xl font-extrabold tracking-tight text-black mb-1">Confirmă sesiunea</h3>
-    <p id="wrapup-queue-position" class="text-xs font-bold text-text-muted uppercase tracking-widest mb-4"></p>
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-2xl font-black tracking-tight text-text-main">Finalizează ședința</h2>
+        <p class="text-text-muted font-bold text-sm mt-0.5" id="wrapup-subtitle">Confirmă detaliile și programează săptămâna viitoare</p>
+      </div>
+      <button type="button" id="wrapup-close-btn" class="w-9 h-9 rounded-full bg-surface-base hover:bg-black/10 text-text-muted font-bold text-lg flex items-center justify-center transition-colors">
+        &times;
+      </button>
+    </div>
 
-    <p id="wrapup-patient-name" class="text-xl font-extrabold text-black">Patient Name</p>
-    <p id="wrapup-session-date" class="text-text-muted font-semibold mb-6">Data și ora sesiunii</p>
-
-    <!-- Rebook Toggle -->
-    <div class="bg-black/5 rounded-3xl p-5 flex flex-col gap-4 mb-6">
-      <div class="flex items-center justify-between gap-4">
-        <div class="min-w-0">
-          <h4 class="font-bold text-black text-lg leading-tight">Programează și săptămâna viitoare</h4>
-          <p id="wrapup-next-date" class="text-sm text-text-muted font-medium mt-1">Aceeași zi și oră</p>
+    <!-- Patient & Session Summary Card -->
+    <div class="mb-5 bg-surface-base/80 p-4 rounded-2xl border border-border-subtle/70 flex items-center justify-between">
+      <div>
+        <div class="font-extrabold text-text-main text-lg" id="wrapup-patient-name">Se încarcă…</div>
+        <div class="text-text-muted font-bold text-xs mt-0.5" id="wrapup-session-details">
+          Ședința de azi • 08:00
         </div>
-        
-        <!-- Massive iOS-style toggle -->
-        <label class="relative inline-flex items-center cursor-pointer shrink-0">
-          <input type="checkbox" id="rebook-toggle" name="rebook" class="sr-only peer" checked>
-          <div class="w-16 h-9 bg-black/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-brand-primary"></div>
-        </label>
+      </div>
+      <div class="text-right">
+        <div class="text-[10px] font-extrabold uppercase tracking-wider text-text-muted">Ședințe efectuate</div>
+        <div class="text-base font-black text-brand-secondary leading-tight" id="wrapup-session-count">-- / --</div>
       </div>
     </div>
 
-    <!-- Attendance Actions -->
-    <div class="flex gap-3">
-      <button type="button" id="wrapup-btn-absent" class="flex-1 py-4 rounded-2xl bg-rose-600 text-white font-extrabold text-lg active:scale-95 transition-transform shadow-lg disabled:opacity-50">
-        Nu a venit
+    <!-- Subscription Alert (if total sessions reached or near end) -->
+    <div id="wrapup-subscription-alert" class="hidden mb-5 p-4 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-900 text-sm font-bold flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg class="w-6 h-6 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <span>Abonament aproape finalizat!</span>
+      </div>
+      <button type="button" id="btn-renew-package" class="px-3 py-1.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs shadow-sm hover:brightness-105 active:scale-95 transition-all">
+        + Reînnoiește pachet
       </button>
-      <button type="button" id="wrapup-btn-came" class="flex-1 py-4 rounded-2xl bg-emerald-600 text-white font-extrabold text-lg active:scale-95 transition-transform shadow-lg disabled:opacity-50">
-        Da, a venit
+    </div>
+
+    <!-- Section 1: Next Week Recurrence Selection -->
+    <div class="space-y-3 mb-6">
+      <label class="block text-base font-extrabold text-text-main">
+        📅 Dorești programare și pe săptămâna viitoare?
+      </label>
+      
+      <div class="grid grid-cols-1 gap-2.5" id="recurrence-options-container">
+        <!-- Option A: Same day & time next week (DEFAULT) -->
+        <button 
+          type="button" 
+          data-recurrence-option="same" 
+          class="w-full p-4 rounded-2xl border-2 border-brand-secondary bg-brand-secondary/10 text-text-main font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-5 h-5 rounded-full border-2 border-brand-secondary bg-brand-secondary flex items-center justify-center text-white shrink-0">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="text-left">
+              <div class="font-extrabold text-sm sm:text-base text-text-main" id="wrapup-same-slot-label">Da, lunea viitoare la 08:00</div>
+              <div class="text-xs font-semibold text-text-muted mt-0.5" id="wrapup-same-slot-date">+7 zile mai târziu</div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Option B: Pick custom day/time for next week -->
+        <button 
+          type="button" 
+          data-recurrence-option="custom" 
+          class="w-full p-4 rounded-2xl border border-border-subtle bg-surface-base/50 hover:bg-surface-base text-text-main font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-5 h-5 rounded-full border-2 border-text-muted/40 flex items-center justify-center shrink-0">
+              <div class="w-2 h-2 rounded-full bg-transparent"></div>
+            </div>
+            <div class="text-left">
+              <div class="font-extrabold text-sm sm:text-base text-text-main">Altă zi / altă oră săptămâna viitoare</div>
+              <div class="text-xs font-semibold text-text-muted mt-0.5">Alege manual din calendar</div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Option C: Do not schedule for next week -->
+        <button 
+          type="button" 
+          data-recurrence-option="none" 
+          class="w-full p-4 rounded-2xl border border-border-subtle bg-surface-base/50 hover:bg-surface-base text-text-main font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-5 h-5 rounded-full border-2 border-text-muted/40 flex items-center justify-center shrink-0">
+              <div class="w-2 h-2 rounded-full bg-transparent"></div>
+            </div>
+            <div class="text-left">
+              <div class="font-extrabold text-sm sm:text-base text-text-main">Nu, doar confirmă ședința curentă</div>
+              <div class="text-xs font-semibold text-text-muted mt-0.5">Nu creează nicio altă programare</div>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom Date/Time Selectors (Hidden by default, shown if Custom option selected) -->
+    <div id="wrapup-custom-datetime-box" class="hidden mb-6 p-4 rounded-2xl bg-surface-base border border-border-subtle space-y-3">
+      <div class="text-xs font-black uppercase text-text-muted">Alege data și ora pentru săptămâna viitoare</div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-text-muted mb-1">Data</label>
+          <input type="date" id="wrapup-custom-date" class="w-full px-3 py-2.5 rounded-xl border border-border-subtle bg-white font-bold text-sm text-text-main focus:outline-none focus:border-brand-secondary" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-text-muted mb-1">Ora</label>
+          <input type="time" id="wrapup-custom-time" value="08:00" class="w-full px-3 py-2.5 rounded-xl border border-border-subtle bg-white font-bold text-sm text-text-main focus:outline-none focus:border-brand-secondary" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Action Button -->
+    <div class="pt-2">
+      <button 
+        type="button" 
+        id="btn-confirm-wrapup" 
+        class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-lg shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+      >
+        <span>Confirmă ședința</span>
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+        </svg>
       </button>
     </div>
   </div>
 </div>
 
 <script>
-  import { getPendingWrapUps, completeSession, markAbsent, rebookNextWeek } from '../../../lib/services/appointmentService';
-  import type { PendingWrapUp } from '../../../lib/services/appointmentService';
+  import { completeSession, createAppointment } from '../../../lib/services/appointmentService';
+  import { getPatient, updatePatient } from '../../../lib/services/patientService';
 
-  class SessionWrapUpManager {
-    sheet: HTMLElement | null;
-    overlay: HTMLElement | null = null;
-    patientLabel: HTMLElement | null;
-    dateLabel: HTMLElement | null;
-    nextDateLabel: HTMLElement | null;
-    queuePosLabel: HTMLElement | null;
-    rebookToggle: HTMLInputElement | null;
-    btnCame: HTMLButtonElement | null;
-    btnAbsent: HTMLButtonElement | null;
-    queue: PendingWrapUp[] = [];
-    current: PendingWrapUp | null = null;
-    isOpen: boolean = false;
-    isProcessing: boolean = false;
-    startY: number;
-    currentY: number;
-    startX: number = 0;
-    dragEngaged: boolean = false;
-    scrollAtTop: boolean = true;
+  class WrapUpSheetManager {
+    private sheet: HTMLElement | null;
+    private backdrop: HTMLElement | null;
+    private content: HTMLElement | null;
+
+    private currentAppointment: any = null;
+    private selectedRecurrence: 'same' | 'custom' | 'none' = 'same';
+
+    private nextWeekDateStr: string = '';
+    private nextWeekDayName: string = '';
 
     constructor() {
       this.sheet = document.getElementById('session-wrapup-sheet');
-      this.patientLabel = document.getElementById('wrapup-patient-name');
-      this.dateLabel = document.getElementById('wrapup-session-date');
-      this.nextDateLabel = document.getElementById('wrapup-next-date');
-      this.queuePosLabel = document.getElementById('wrapup-queue-position');
-      this.rebookToggle = document.getElementById('rebook-toggle') as HTMLInputElement;
-      this.btnCame = document.getElementById('wrapup-btn-came') as HTMLButtonElement;
-      this.btnAbsent = document.getElementById('wrapup-btn-absent') as HTMLButtonElement;
-      this.startY = 0;
-      this.currentY = 0;
+      this.backdrop = document.getElementById('session-wrapup-backdrop');
+      this.content = document.getElementById('session-wrapup-content');
 
-      this.createOverlay();
       this.bindEvents();
     }
 
-    createOverlay() {
-      this.overlay = document.createElement('div');
-      this.overlay.className = 'fixed inset-0 bg-black/40 z-[90] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm';
-      document.body.appendChild(this.overlay);
-
-      this.overlay.addEventListener('click', () => this.close());
-    }
-
-    bindEvents() {
-      if (!this.sheet) return;
-
-      // Swipe-down to dismiss from anywhere on the sheet — only engages on a
-      // clearly vertical downward swipe while the form is scrolled to the top
-      this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
-      this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
-      this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
-
-      this.btnCame?.addEventListener('click', () => this.answer(true));
-      this.btnAbsent?.addEventListener('click', () => this.answer(false));
-
-      // Open event — pentru o sesiune specifică sau re-verificare forțată
-      window.addEventListener('openWrapUp', (e: any) => {
-        const appt = e.detail?.appointment;
-        if (appt) {
-          this.queue = [appt];
-          this.showCurrent();
-        } else if (e.detail?.forceCheck) {
-          this.checkQueue();
+    private bindEvents() {
+      window.addEventListener('openWrapUp', ((e: CustomEvent) => {
+        if (e.detail?.appointment) {
+          this.currentAppointment = e.detail.appointment;
+          this.initView();
+          this.open();
         }
+      }) as EventListener);
+
+      this.backdrop?.addEventListener('click', () => this.close());
+      document.getElementById('wrapup-close-btn')?.addEventListener('click', () => this.close());
+
+      // Handle Recurrence option selection
+      const optionsContainer = document.getElementById('recurrence-options-container');
+      optionsContainer?.querySelectorAll<HTMLButtonElement>('[data-recurrence-option]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const opt = btn.getAttribute('data-recurrence-option') as 'same' | 'custom' | 'none';
+          this.setRecurrenceOption(opt);
+        });
+      });
+
+      // Renew package button
+      document.getElementById('btn-renew-package')?.addEventListener('click', async () => {
+        if (!this.currentAppointment?.pacient_id && !this.currentAppointment?.pacienti?.id) return;
+        const patientId = this.currentAppointment.pacient_id || this.currentAppointment.pacienti?.id;
+        try {
+          const patient = await getPatient(patientId);
+          const newTotal = (patient.sedinte_total || 10) + 10;
+          await updatePatient(patientId, { sedinte_total: newTotal });
+          (window as any).showToast(`Pachetul pacientului a fost extins la ${newTotal} ședințe!`, 'success');
+          
+          const alertEl = document.getElementById('wrapup-subscription-alert');
+          if (alertEl) alertEl.classList.add('hidden');
+          
+          const countEl = document.getElementById('wrapup-session-count');
+          if (countEl) countEl.textContent = `${patient.sedinte_folosite || 0} / ${newTotal}`;
+        } catch (err: any) {
+          (window as any).showToast('Eroare la extinderea pachetului: ' + (err?.message || err), 'error');
+        }
+      });
+
+      // Submit Confirm Wrap-Up
+      document.getElementById('btn-confirm-wrapup')?.addEventListener('click', () => {
+        this.handleConfirm();
       });
     }
 
-    formatDate(dateStr: string): string {
-      const d = new Date(dateStr + 'T00:00:00');
-      if (isNaN(d.getTime())) return dateStr;
-      const day = d.toLocaleDateString('ro-RO', { weekday: 'long' });
-      const month = d.toLocaleDateString('ro-RO', { month: 'long' });
-      const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-      return `${cap(day)}, ${d.getDate()} ${month}`;
-    }
+    private async initView() {
+      if (!this.currentAppointment) return;
 
-    nextWeekDateStr(dateStr: string): string {
-      const d = new Date(dateStr + 'T00:00:00');
-      d.setDate(d.getDate() + 7);
-      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    }
+      const appt = this.currentAppointment;
+      const patientName = appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : (appt.patientName || 'Pacient');
+      const timeStr = appt.ora || appt.selectedTime || '08:00';
+      const dateStr = appt.data || appt.selectedDate || new Date().toISOString().split('T')[0];
 
-    async checkQueue() {
-      if (this.isOpen || this.isProcessing) return;
-      try {
-        this.queue = await getPendingWrapUps();
-      } catch (e) {
-        console.error('Eroare citire wrap-up queue:', e);
-        return;
-      }
-      if (this.queue.length === 0) return;
-      this.showCurrent();
-    }
+      // Calculate next week date (+7 days)
+      const currentDateObj = new Date(dateStr + 'T00:00:00');
+      const nextWeekObj = new Date(currentDateObj);
+      nextWeekObj.setDate(nextWeekObj.getDate() + 7);
 
-    showCurrent() {
-      const item = this.queue[0];
-      if (!item) {
-        this.finishQueue();
-        return;
-      }
-      this.current = item;
+      this.nextWeekDateStr = nextWeekObj.toISOString().split('T')[0];
+      const dayName = nextWeekObj.toLocaleDateString('ro-RO', { weekday: 'long' });
+      this.nextWeekDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
-      if (this.patientLabel) {
-        this.patientLabel.textContent = item.pacienti
-          ? `${item.pacienti.prenume} ${item.pacienti.nume}`
-          : 'Pacient';
-      }
-      if (this.dateLabel) {
-        this.dateLabel.textContent = `${this.formatDate(item.data)} · ${(item.ora || '').slice(0, 5)}`;
-      }
-      if (this.nextDateLabel) {
-        this.nextDateLabel.textContent = `${this.formatDate(this.nextWeekDateStr(item.data))} · ${(item.ora || '').slice(0, 5)}`;
-      }
-      if (this.queuePosLabel) {
-        this.queuePosLabel.textContent = this.queue.length > 1
-          ? `Mai ai ${this.queue.length} sesiuni de confirmat`
-          : 'Ultima sesiune de confirmat';
-      }
-      if (this.rebookToggle) this.rebookToggle.checked = true;
+      const formattedNextDate = `${this.nextWeekDayName}, ${nextWeekObj.getDate()} ${nextWeekObj.toLocaleDateString('ro-RO', { month: 'short' })}`;
 
-      this.open();
-    }
+      // Populate UI
+      const nameEl = document.getElementById('wrapup-patient-name');
+      const detailsEl = document.getElementById('wrapup-session-details');
+      const countEl = document.getElementById('wrapup-session-count');
+      const sameSlotLabel = document.getElementById('wrapup-same-slot-label');
+      const sameSlotDate = document.getElementById('wrapup-same-slot-date');
 
-    async answer(came: boolean) {
-      if (!this.current || this.isProcessing) return;
-      this.isProcessing = true;
-      if (this.btnCame) this.btnCame.disabled = true;
-      if (this.btnAbsent) this.btnAbsent.disabled = true;
+      if (nameEl) nameEl.textContent = patientName;
+      if (detailsEl) detailsEl.textContent = `Ședință ${dateStr} • ora ${timeStr}`;
+      
+      const folosite = (appt.pacienti?.sedinte_folosite ?? 0) + 1; // including today
+      const total = appt.pacienti?.sedinte_total || 10;
+      if (countEl) countEl.textContent = `${folosite} / ${total}`;
 
-      const item = this.current;
-      const patientName = item.pacienti ? `${item.pacienti.prenume} ${item.pacienti.nume}` : 'Pacientul';
+      if (sameSlotLabel) sameSlotLabel.textContent = `Da, ${this.nextWeekDayName.toLowerCase()} viitoare la ${timeStr}`;
+      if (sameSlotDate) sameSlotDate.textContent = `Data: ${formattedNextDate}`;
 
-      try {
-        if (came) {
-          await completeSession(item.id);
+      // Set custom date picker default to next week
+      const customDateInput = document.getElementById('wrapup-custom-date') as HTMLInputElement;
+      const customTimeInput = document.getElementById('wrapup-custom-time') as HTMLInputElement;
+      if (customDateInput) customDateInput.value = this.nextWeekDateStr;
+      if (customTimeInput) customTimeInput.value = timeStr;
+
+      // Show subscription warning if needed
+      const alertEl = document.getElementById('wrapup-subscription-alert');
+      if (alertEl) {
+        if (folosite >= total) {
+          alertEl.classList.remove('hidden');
         } else {
-          await markAbsent(item.id, 'Absent — confirmat din wrap-up');
+          alertEl.classList.add('hidden');
         }
+      }
 
-        if (this.rebookToggle?.checked) {
-          try {
-            await rebookNextWeek(item.id);
-          } catch (rebookErr: any) {
-            (window as any).showToast(
-              `${patientName}: sesiunea a fost salvată, dar reprogramarea a eșuat (${rebookErr?.message || rebookErr}).`,
-              'warning',
-              'Reprogramare eșuată'
-            );
+      // Default option reset to "same"
+      this.setRecurrenceOption('same');
+    }
+
+    private setRecurrenceOption(option: 'same' | 'custom' | 'none') {
+      this.selectedRecurrence = option;
+      const container = document.getElementById('recurrence-options-container');
+      const customBox = document.getElementById('wrapup-custom-datetime-box');
+
+      if (!container) return;
+
+      container.querySelectorAll<HTMLButtonElement>('[data-recurrence-option]').forEach(btn => {
+        const opt = btn.getAttribute('data-recurrence-option');
+        const isSel = opt === option;
+        const iconContainer = btn.querySelector('.rounded-full');
+
+        if (isSel) {
+          btn.className = 'w-full p-4 rounded-2xl border-2 border-brand-secondary bg-brand-secondary/10 text-text-main font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]';
+          if (iconContainer) {
+            iconContainer.className = 'w-5 h-5 rounded-full border-2 border-brand-secondary bg-brand-secondary flex items-center justify-center text-white shrink-0';
+            iconContainer.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+          }
+        } else {
+          btn.className = 'w-full p-4 rounded-2xl border border-border-subtle bg-surface-base/50 hover:bg-surface-base text-text-main font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]';
+          if (iconContainer) {
+            iconContainer.className = 'w-5 h-5 rounded-full border-2 border-text-muted/40 flex items-center justify-center shrink-0';
+            iconContainer.innerHTML = '<div class="w-2 h-2 rounded-full bg-transparent"></div>';
           }
         }
-      } catch (err: any) {
-        (window as any).showToast('Eroare la salvarea confirmării: ' + (err?.message || err), 'error');
-      }
+      });
 
-      this.queue.shift();
-      this.current = null;
-      this.isProcessing = false;
-      if (this.btnCame) this.btnCame.disabled = false;
-      if (this.btnAbsent) this.btnAbsent.disabled = false;
-
-      if (this.queue.length > 0) {
-        this.showCurrent();
-      } else {
-        this.finishQueue();
-      }
-    }
-
-    finishQueue() {
-      this.close();
-      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-      window.dispatchEvent(new CustomEvent('patientsUpdated'));
-      (window as any).showToast('Toate sesiunile au fost confirmate.', 'success');
-    }
-
-    open() {
-      if (!this.sheet || !this.overlay) return;
-      this.isOpen = true;
-      this.sheet.classList.remove('translate-y-full');
-      this.overlay.classList.remove('opacity-0', 'pointer-events-none');
-      document.body.style.overflow = 'hidden';
-    }
-
-    close() {
-      if (!this.sheet || !this.overlay) return;
-      this.isOpen = false;
-      this.sheet.style.transform = '';
-      this.sheet.classList.add('translate-y-full');
-      this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      document.body.style.overflow = '';
-      // Sesiunile rămase în coadă se reîntreabă la următorul reload complet al aplicației
-      this.queue = [];
-      this.current = null;
-    }
-
-    handleTouchStart(e: TouchEvent) {
-      this.startY = e.touches[0].clientY;
-      this.currentY = this.startY;
-      this.startX = e.touches[0].clientX;
-      this.dragEngaged = false;
-      // Only allow sheet drag when the scrollable form is at the top,
-      // otherwise the gesture should scroll the form instead
-      const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
-      this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
-    }
-
-    handleTouchMove(e: TouchEvent) {
-      const y = e.touches[0].clientY;
-      const deltaY = y - this.startY;
-      const deltaX = e.touches[0].clientX - this.startX;
-
-      if (!this.dragEngaged) {
-        if (this.scrollAtTop && deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
-          this.dragEngaged = true;
-          if (this.sheet) this.sheet.style.transition = 'none';
+      if (customBox) {
+        if (option === 'custom') {
+          customBox.classList.remove('hidden');
         } else {
-          return;
+          customBox.classList.add('hidden');
         }
       }
-
-      this.currentY = y;
-      if (deltaY > 0 && this.sheet) {
-        if (e.cancelable) e.preventDefault();
-        this.sheet.style.transform = `translateY(${deltaY}px)`;
-      }
     }
 
-    handleTouchEnd() {
-      if (!this.sheet || !this.dragEngaged) {
-        this.dragEngaged = false;
-        return;
+    private async handleConfirm() {
+      if (!this.currentAppointment) return;
+
+      const btnConfirm = document.getElementById('btn-confirm-wrapup') as HTMLButtonElement | null;
+      if (btnConfirm) {
+        btnConfirm.disabled = true;
+        btnConfirm.textContent = 'Se procesează…';
       }
-      this.dragEngaged = false;
-      const deltaY = this.currentY - this.startY;
-      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
-      
-      if (deltaY > 150) {
+
+      const appt = this.currentAppointment;
+      const patientId = appt.pacient_id || appt.pacienti?.id;
+
+      try {
+        // 1. Confirm current session
+        await completeSession(appt.id);
+
+        // 2. Schedule next week session if selected
+        if (this.selectedRecurrence === 'same') {
+          const timeStr = appt.ora || appt.selectedTime || '08:00';
+          await createAppointment({
+            pacient_id: patientId,
+            data: this.nextWeekDateStr,
+            ora: timeStr,
+          });
+          (window as any).showToast(`Ședința a fost marcată ca efectuată și s-a programat automat ${this.nextWeekDayName} viitoare la ${timeStr}!`, 'success');
+        } else if (this.selectedRecurrence === 'custom') {
+          const customDateInput = document.getElementById('wrapup-custom-date') as HTMLInputElement;
+          const customTimeInput = document.getElementById('wrapup-custom-time') as HTMLInputElement;
+          const targetDate = customDateInput?.value || this.nextWeekDateStr;
+          const targetTime = customTimeInput?.value || '08:00';
+
+          await createAppointment({
+            pacient_id: patientId,
+            data: targetDate,
+            ora: targetTime,
+          });
+          (window as any).showToast(`Ședința a fost marcată ca efectuată și noua programare a fost creată pe ${targetDate} la ${targetTime}!`, 'success');
+        } else {
+          (window as any).showToast('Ședința a fost marcată ca efectuată cu succes!', 'success');
+        }
+
+        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
         this.close();
-      } else {
-        this.sheet.style.transform = 'translateY(0)';
+      } catch (err: any) {
+        (window as any).showToast('Eroare la procesare: ' + (err?.message || err), 'error');
+      } finally {
+        if (btnConfirm) {
+          btnConfirm.disabled = false;
+          btnConfirm.textContent = 'Confirmă ședința';
+        }
       }
     }
+
+    private open() {
+      if (!this.sheet || !this.content || !this.backdrop) return;
+      this.sheet.classList.remove('hidden');
+      void this.sheet.offsetWidth;
+      this.backdrop.classList.remove('opacity-0');
+      this.content.classList.remove('translate-y-full');
+    }
+
+    private close() {
+      if (!this.sheet || !this.content || !this.backdrop) return;
+      this.backdrop.classList.add('opacity-0');
+      this.content.classList.add('translate-y-full');
+      setTimeout(() => {
+        if (this.sheet) this.sheet.classList.add('hidden');
+        this.currentAppointment = null;
+      }, 500);
+    }
   }
 
-  let wrapUpManager: SessionWrapUpManager | null = null;
-  let wrapUpCheckedThisLoad = false;
+  let globalWrapUpManager: WrapUpSheetManager | null = null;
 
-  function initWrapUp() {
-    if (!wrapUpManager) {
-      wrapUpManager = new SessionWrapUpManager();
+  document.addEventListener('astro:page-load', () => {
+    if (!document.getElementById('session-wrapup-sheet')) return;
+
+    if (!globalWrapUpManager) {
+      globalWrapUpManager = new WrapUpSheetManager();
     }
-    // Rulează coada o singură dată per încărcare completă a aplicației
-    if (!wrapUpCheckedThisLoad) {
-      wrapUpCheckedThisLoad = true;
-      // Mic delay ca auth-ul Supabase să fie restaurat din storage
-      setTimeout(() => wrapUpManager?.checkQueue(), 1500);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', initWrapUp);
-  document.addEventListener('astro:page-load', initWrapUp);
-
-  // Permite re-verificarea manuală (ex: după ce trece o sesiune în timpul utilizării)
-  window.addEventListener('checkWrapUps', () => wrapUpManager?.checkQueue());
+  });
 </script>

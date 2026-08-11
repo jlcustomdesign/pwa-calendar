@@ -193,7 +193,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                       </svg>
                       <span class="truncate">Sună</span>
                     </a>
-                    <a href="#" class="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold text-black min-w-0" onclick="event.stopPropagation()">
+                    <a href="${session.driveLink || '#'}" target="${session.driveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold text-black min-w-0 ${!session.driveLink ? 'opacity-50' : ''}" onclick="event.stopPropagation(); if (!'${session.driveLink}') { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
                       <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                       </svg>
@@ -209,10 +209,11 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                       <span class="whitespace-nowrap truncate">${paymentStatus}</span>
                     </button>
                   </div>
-                  ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') && isPast ? `
+                  ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') ? `
                     <div class="px-6 pb-5 pt-1">
-                      <button type="button" class="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm active:scale-95 transition-transform shadow-sm" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
-                        Confirmă ședința
+                      <button type="button" class="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm active:scale-95 transition-transform shadow-sm flex items-center justify-center gap-2" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span>Confirmă ședința</span>
                       </button>
                     </div>
                   ` : ''}
@@ -256,6 +257,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
             patientId: a.pacient_id,
             patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
             patientPhone: a.pacienti?.telefon || '',
+            driveLink: a.pacienti?.drive_link || '',
             selectedTime: a.ora,
             selectedDate: a.data,
             location: a.pacienti?.locatie || 'Belaqva',

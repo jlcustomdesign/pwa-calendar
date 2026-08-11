@@ -372,12 +372,12 @@
       const payload = {
         name: patientName,
         telefon: (formData.get('phone') as string) || '',
-        plan: (formData.get('plan') as any) || 'Subscription',
+        plan: (formData.get('plan') as any) || 'Abonament',
         locatie: (formData.get('location') as any) || 'Belaqva',
         cost: formData.get('cost') ? Number(formData.get('cost')) : 0,
         sedinte_total: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
-        frecventa: (formData.get('frequency') as string) || '1/week',
-        achitat: formData.get('paymentStatus') === 'Paid fully' || formData.get('paymentStatus') === 'Paid',
+        frecventa: (formData.get('frequency') as string) || '1 / săptămână',
+        achitat: formData.get('paymentStatus') === 'Achitat' || formData.get('paymentStatus') === 'Paid fully' || formData.get('paymentStatus') === 'Paid',
         drive_link: (formData.get('driveLink') as string) || '',
       };
 

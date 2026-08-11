@@ -77,6 +77,15 @@ export async function getPatient(id: string): Promise<PacientView> {
   return data;
 }
 
+function normalizePlan(plan: string | undefined | null): 'Subscription' | 'One Time' {
+  if (!plan) return 'Subscription';
+  const clean = plan.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  if (clean.includes('sedinta') || clean.includes('unica') || clean.includes('one')) {
+    return 'One Time';
+  }
+  return 'Subscription';
+}
+
 // ── Adăugare pacient nou ──────────────────────────────────────
 // UI trimite `name` ca string unic ("Maria Popescu")
 // Funcția împarte în prenume + nume pentru DB
@@ -84,7 +93,7 @@ export async function addPatient(input: {
   name:          string;
   telefon:       string;
   locatie:       'Belaqva' | 'Ghimbav';
-  plan:          'Subscription' | 'One Time';
+  plan:          any;
   cost:          number;
   frecventa:     string;
   sedinte_total: number;
@@ -112,7 +121,7 @@ export async function addPatient(input: {
     nume,
     telefon:       input.telefon,
     locatie:       input.locatie,
-    plan:          input.plan,
+    plan:          normalizePlan(input.plan),
     cost:          input.cost,
     frecventa:     input.frecventa,
     sedinte_total: input.sedinte_total,
@@ -133,6 +142,10 @@ export async function addPatient(input: {
 
 // ── Actualizare pacient (editare) ─────────────────────────────
 export async function updatePatient(id: string, updates: PacientUpdate & { name?: string }) {
+  if (updates.plan) {
+    updates.plan = normalizePlan(updates.plan);
+  }
+
   // Dacă se trimite `name`, îl splitim în prenume + nume
   if (updates.name) {
     const nameTrimmed = updates.name.trim();

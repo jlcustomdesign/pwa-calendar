@@ -285,10 +285,11 @@ import DailyProgress from './DailyProgress.astro';
                     <span class="whitespace-nowrap truncate">${paymentStatus}</span>
                   </button>
                 </div>
-                ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') && isPast ? `
+                ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') ? `
                   <div class="px-6 pb-5 pt-1">
-                    <button type="button" class="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm active:scale-95 transition-transform shadow-sm" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
-                      Confirmă ședința
+                    <button type="button" class="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm active:scale-95 transition-transform shadow-sm flex items-center justify-center gap-2" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                      <span>Confirmă ședința</span>
                     </button>
                   </div>
                 ` : ''}
