@@ -22,15 +22,15 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
 <div 
   id="add-session-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
+  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
 >
   <!-- Swipe handle -->
   <div id="add-session-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
-  <div class="flex-1 overflow-y-auto no-scrollbar px-1">
+  <div class="flex-1 overflow-y-auto no-scrollbar px-1 pb-28">
     <h3 id="sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-8">Programare nouă</h3>
 
-    <form id="add-session-form" class="space-y-7 pb-4">
+    <form id="add-session-form" class="space-y-7">
       <input type="hidden" name="sessionId" id="sessionId" value="" />
       
       <!-- Custom Patient Picker -->
@@ -98,15 +98,14 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           </svg>
         </button>
       </div>
-
-
-
-      <div class="pt-4 pb-2">
-        <button type="submit" id="submit-btn" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-xl shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer">
-          Salvează
-        </button>
-      </div>
     </form>
+  </div>
+
+  <!-- Sticky Submit Button -->
+  <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-12">
+    <button type="submit" id="submit-btn" form="add-session-form" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-xl shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer">
+      Salvează
+    </button>
   </div>
 </div>
 
@@ -1083,6 +1082,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const sheet = handle.closest('.fixed') as HTMLElement | null;
 
       handle.addEventListener('touchstart', (e: any) => {
+        e.stopPropagation();
         startY = e.touches[0].clientY;
         currentY = startY;
         dragging = true;
@@ -1090,6 +1090,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       }, { passive: true });
 
       handle.addEventListener('touchmove', (e: any) => {
+        e.stopPropagation();
         if (!dragging) return;
         currentY = e.touches[0].clientY;
         const deltaY = currentY - startY;
@@ -1098,7 +1099,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         }
       }, { passive: true });
 
-      const onEnd = () => {
+      const onEnd = (e?: Event) => {
+        if (e) e.stopPropagation();
         if (!dragging) return;
         dragging = false;
         const deltaY = currentY - startY;
