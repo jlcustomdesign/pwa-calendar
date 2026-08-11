@@ -187,57 +187,62 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
               <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
                 <div class="overflow-hidden relative z-20">
                   ${subscriptionWarningDetails}
-                  
-                  <div class="px-6 pt-2 pb-2 space-y-2.5">
-                    <!-- Row 1: Time & Location strictly matching user sketch -->
-                    <div class="flex items-center justify-between px-5 py-3 rounded-full bg-black/5 text-sm sm:text-base font-extrabold text-black">
+                           <div class="px-6 pt-2 pb-2 space-y-3">
+                  <!-- Row 1: Time & Location Pill with Clock and Location Pin Icons -->
+                  <div class="flex items-center justify-center gap-3 px-4 py-3.5 rounded-2xl bg-black/10 text-sm sm:text-base font-extrabold text-black">
+                    <span class="flex items-center gap-1.5 shrink-0">
+                      <svg class="w-4 h-4 opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
                       <span>${timeRangeText}</span>
-                      <span class="opacity-80">la ${locationStr}</span>
-                    </div>
-
-                    <!-- Row 2: Cost & Rest strictly matching user sketch -->
-                    <div class="flex items-center justify-between px-5 py-3 rounded-full bg-black/5 text-sm sm:text-base font-extrabold text-black">
-                      <span>Cost: <strong>${session.costTotal || 0} RON</strong></span>
-                      <span>Rest: <strong class="${isPaid ? 'text-emerald-900' : 'text-rose-700'}">${isPaid ? '0 RON' : restDePlata + ' RON'}</strong></span>
-                    </div>
-
-                    <!-- Row 3: Three equal oval action buttons: Sună | Dosar | Achitat -->
-                    <div class="grid grid-cols-3 gap-2 pt-1">
-                      <a href="tel:${session.patientPhone || '+1234567890'}" class="flex items-center justify-center gap-1.5 py-3 rounded-full bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-xs sm:text-sm font-extrabold text-black cursor-pointer" onclick="event.stopPropagation()">
-                        <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                        <span>Sună</span>
-                      </a>
-
-                      <a href="${driveLink || '#'}" target="${driveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="flex items-center justify-center gap-1.5 py-3 rounded-full bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-xs sm:text-sm font-extrabold text-black cursor-pointer ${!driveLink ? 'opacity-50' : ''}" onclick="event.stopPropagation(); if (!'${driveLink}') { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
-                        <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                        </svg>
-                        <span>Dosar</span>
-                      </a>
-
-                      <button 
-                        type="button"
-                        class="flex items-center justify-center gap-1 py-3 px-2 rounded-full ${paymentBadgeClass} hover:opacity-90 active:scale-95 transition-all text-xs sm:text-sm font-extrabold cursor-pointer" 
-                        onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${session.patientId}' } }))"
-                      >
-                        <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span class="truncate">${displayPaymentLabel}</span>
-                      </button>
-                    </div>
+                    </span>
+                    <span class="opacity-30 font-light shrink-0">|</span>
+                    <span class="flex items-center gap-1.5 shrink-0">
+                      <svg class="w-4 h-4 opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                      <span>la ${locationStr}</span>
+                    </span>
                   </div>
 
-                  ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') ? `
-                    <div class="px-6 pb-5 pt-2">
-                      <button type="button" class="w-full py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm sm:text-base active:scale-95 transition-transform shadow-md flex items-center justify-center gap-2 cursor-pointer" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        <span>Confirmă ședința</span>
-                      </button>
+                  <!-- Row 2: Payment Badge on Left + Icon-only Call/Folder Buttons on Right -->
+                  <div class="flex items-center justify-between pt-0.5">
+                    <button 
+                      type="button"
+                      class="flex items-center gap-1.5 py-2.5 px-4 rounded-full ${paymentBadgeClass} hover:opacity-90 active:scale-95 transition-all text-xs sm:text-sm font-extrabold cursor-pointer" 
+                      onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${session.patientId}' } }))"
+                    >
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>${displayPaymentLabel}</span>
+                    </button>
+
+                    <div class="flex items-center gap-2">
+                      <a href="tel:${session.patientPhone || '+1234567890'}" class="w-11 h-11 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Sună pacientul" onclick="event.stopPropagation()">
+                        <svg class="w-5 h-5 opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      </a>
+
+                      <a href="${driveLink || '#'}" target="${driveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="w-11 h-11 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer ${!driveLink ? 'opacity-50' : ''}" title="Deschide Dosar/Drive" onclick="event.stopPropagation(); if (!'${driveLink}') { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
+                        <svg class="w-5 h-5 opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                      </a>
                     </div>
-                  ` : ''}
+                  </div>
+                </div>
+
+                ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') ? `
+                  <div class="px-6 pb-5 pt-2">
+                    <button type="button" class="w-full py-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm sm:text-base tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center gap-2 cursor-pointer" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                      <span>CONFIRMĂ ȘEDINȚA</span>
+                    </button>
+                  </div>
+                ` : ''}
                 </div>
               </div>
             </div>
