@@ -130,7 +130,7 @@ if (activeDayObj) {
 
 const rawWeekday = initialDate.toLocaleDateString('ro-RO', { weekday: 'long' });
 const initialDayName = rawWeekday ? (rawWeekday.charAt(0).toUpperCase() + rawWeekday.slice(1)) : 'Luni';
-const rawMonthName = initialDate.toLocaleDateString('ro-RO', { month: 'long' });
+const rawMonthName = initialDate.toLocaleDateString('ro-RO', { month: 'short' });
 const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${initialDate.getFullYear()}`;
 ---
 
@@ -395,7 +395,7 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
         if (!isNaN(dateObj.getTime())) {
           const fullDay = dateObj.toLocaleDateString('ro-RO', { weekday: 'long' });
           const capitalizedDay = fullDay.charAt(0).toUpperCase() + fullDay.slice(1);
-          const monthName = dateObj.toLocaleDateString('ro-RO', { month: 'long' });
+          const monthName = dateObj.toLocaleDateString('ro-RO', { month: 'short' });
 
           if (dayNameEl) dayNameEl.textContent = capitalizedDay;
           if (dateSuffixEl) dateSuffixEl.textContent = `${dateNum} ${monthName} ${yearNum}`;
