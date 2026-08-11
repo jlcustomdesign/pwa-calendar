@@ -50,8 +50,12 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           </div>
         </div>
 
-        <div id="patient-list" class="hidden flex-col gap-3 pb-2 overflow-y-auto max-h-[40vh] no-scrollbar mt-4 px-2">
-          <!-- Populated by JS -->
+        <div id="patient-list" class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] mt-4 px-2" style="grid-template-rows: 0fr;">
+          <div class="overflow-hidden">
+            <div id="patient-list-inner" class="flex flex-col gap-3 pb-2 overflow-y-auto max-h-[40vh] no-scrollbar">
+              <!-- Populated by JS -->
+            </div>
+          </div>
         </div>
 
         <div id="patient-subscription-warning" class="hidden mt-3 px-4 py-3 rounded-2xl bg-rose-100 text-rose-900 text-sm font-bold leading-snug">
@@ -267,22 +271,23 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
     async populatePatients() {
       const patientList = document.getElementById('patient-list');
-      if (patientList) {
-        patientList.innerHTML = '';
-        
+      const patientListInner = document.getElementById('patient-list-inner');
+      if (patientListInner) {
+        patientListInner.innerHTML = '';
+
         let rawPatients: any[] = [];
         try {
           rawPatients = await getPatients();
         } catch (e) {
           console.error(e);
         }
-        
+
         // Asigură că fiecare pacient apare o SINGURĂ dată (deduplicare după ID)
         const patients = Array.from(new Map(rawPatients.map(p => [p.id, p])).values());
         this.patientsCache = patients;
 
         if (patients.length === 0) {
-          patientList.innerHTML = '<div class="p-4 text-center text-sm font-bold text-text-muted bg-black/5 rounded-2xl">Nu s-au găsit pacienți. Te rugăm să adaugi un pacient mai întâi.</div>';
+          patientListInner.innerHTML = '<div class="p-4 text-center text-sm font-bold text-text-muted bg-black/5 rounded-2xl">Nu s-au găsit pacienți. Te rugăm să adaugi un pacient mai întâi.</div>';
           return;
         }
 
@@ -293,15 +298,15 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           const totalSess = patient.sedinte_total ?? 0;
           const ramase = patient.sedinte_ramase ?? Math.max(0, totalSess - (patient.sedinte_folosite ?? 0));
           const subscriptionDone = totalSess > 0 && ramase <= 0;
-          
+
           // Roz pt Ghimbav, Galben pt Belaqva
-          const colorClass = isGhimbav 
-              ? 'bg-brand-secondary text-white' 
+          const colorClass = isGhimbav
+              ? 'bg-brand-secondary text-white'
               : 'bg-brand-primary text-black';
-          
+
           const label = document.createElement('label');
           label.className = 'relative cursor-pointer w-full';
-          
+
           label.innerHTML = `
             <input type="radio" name="patientId" value="${patientId}" data-patient-name="${catName}" data-color-class="${colorClass}" data-sessions-left="${ramase}" data-total-sessions="${totalSess}" class="peer sr-only" />
             <div class="px-6 py-4 rounded-[1.5rem] font-bold text-lg transition-opacity flex items-center justify-between ${colorClass}">
@@ -314,7 +319,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
               </div>
             </div>
           `;
-          patientList.appendChild(label);
+          patientListInner.appendChild(label);
         });
 
         // Re-bind change listeners for new radios
@@ -345,10 +350,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
                   subscriptionWarning.classList.add('hidden');
                 }
               }
-              
-              patientList?.classList.add('hidden');
-              patientList?.classList.remove('flex');
-              
+
+              if (patientList) patientList.style.gridTemplateRows = '0fr';
+
               settingsContainer?.classList.remove('hidden');
               settingsContainer?.classList.add('flex');
             }
@@ -931,10 +935,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
           if (!patientName) {
             if (searchInput) searchInput.value = '';
-            if (pList) {
-              pList.classList.add('hidden');
-              pList.classList.remove('flex');
-            }
+            if (pList) pList.style.gridTemplateRows = '0fr';
             if (settingsContainer) {
               settingsContainer.classList.add('hidden');
               settingsContainer.classList.remove('flex');
@@ -983,19 +984,18 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
       // Handle showing patient list and search input
       const patientList = document.getElementById('patient-list');
+      const patientListInner = document.getElementById('patient-list-inner');
       const searchPatientInput = document.getElementById('search-patient-input') as HTMLInputElement | null;
 
       searchPatientInput?.addEventListener('focus', () => {
-        patientList?.classList.remove('hidden');
-        patientList?.classList.add('flex');
+        if (patientList) patientList.style.gridTemplateRows = '1fr';
       });
 
       searchPatientInput?.addEventListener('input', (e: any) => {
         const query = e.target.value.toLowerCase().trim();
-        patientList?.classList.remove('hidden');
-        patientList?.classList.add('flex');
-        
-        const labels = patientList?.querySelectorAll('label');
+        if (patientList) patientList.style.gridTemplateRows = '1fr';
+
+        const labels = patientListInner?.querySelectorAll('label');
         labels?.forEach((label) => {
           const radio = label.querySelector('input[type="radio"]') as HTMLInputElement | null;
           const patientName = (radio?.getAttribute('data-patient-name') || '').toLowerCase();
