@@ -1010,17 +1010,17 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
     open() {
       if (!this.sheet || !this.overlay) return;
-      // Reset any inline transform from drag and force a reflow so the browser
-      // registers the closed state before animating open.
+      // Reset any inline transform from drag and set closed state
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
-      void this.sheet.offsetHeight;
-      this.sheet.classList.remove('translate-y-full');
-
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      void this.overlay.offsetHeight;
-      this.overlay.classList.remove('opacity-0', 'pointer-events-none');
       document.body.style.overflow = 'hidden';
+
+      // Remove closed state on the next frame so the browser actually animates
+      requestAnimationFrame(() => {
+        this.sheet?.classList.remove('translate-y-full');
+        this.overlay?.classList.remove('opacity-0', 'pointer-events-none');
+      });
     }
 
     close() {
