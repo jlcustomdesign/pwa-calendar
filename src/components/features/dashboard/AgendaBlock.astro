@@ -262,20 +262,20 @@ import DailyProgress from './DailyProgress.astro';
                 ${subscriptionWarningDetails}
                 
                 <div class="px-6 pt-2 pb-2 space-y-3">
-                  <!-- Row 1: Pink Pill with White Text for Time & Location -->
-                  <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-rose-600 text-white text-sm sm:text-base font-extrabold shadow-sm">
-                    <span class="flex items-center gap-1.5 shrink-0 text-white">
-                      <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <!-- Row 1: White Pill with Pink Text for Time & Location -->
+                  <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white text-rose-600 text-sm sm:text-base font-extrabold shadow-sm border border-black/5">
+                    <span class="flex items-center gap-1.5 shrink-0 text-rose-600">
+                      <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
-                      <span class="text-white">${timeRangeText}</span>
+                      <span class="text-rose-600 font-black">${timeRangeText}</span>
                     </span>
-                    <span class="flex items-center gap-1.5 shrink-0 text-white">
-                      <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span class="flex items-center gap-1.5 shrink-0 text-rose-600">
+                      <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                       </svg>
-                      <span class="text-white">${locationStr}</span>
+                      <span class="text-rose-600 font-black">${locationStr}</span>
                     </span>
                   </div>
 
