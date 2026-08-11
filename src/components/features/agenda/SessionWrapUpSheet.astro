@@ -621,6 +621,8 @@
 
     private close() {
       if (!this.sheet || !this.content || !this.backdrop) return;
+      this.closeDatePicker();
+      this.closeTimePicker();
       this.backdrop.classList.add('opacity-0');
       this.content.classList.add('translate-y-full');
       setTimeout(() => {
