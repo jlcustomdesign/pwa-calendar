@@ -426,18 +426,15 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
   import { getSettings as getSettingsDB, saveSettings as saveSettingsDB, getProfile, saveProfile } from '../../../lib/services/settingsService';
   import { exportPatientsCSV } from '../../../lib/services/patientService';
   import { setSettingsCache } from '../../../lib/store';
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   async function initSubSectionLogic() {
     // Oprire/blocare scroll pagină dacă este deschisă o sub-categorie
     const params = new URLSearchParams(window.location.search);
     if (params.has('section')) {
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
+      lockBodyScroll();
     } else {
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
+      unlockBodyScroll();
     }
 
     // Load Settings din Supabase
@@ -768,6 +765,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       renderHoursGrid();
       renderMinutesGrid();
 
+      lockBodyScroll();
       timeModal.classList.remove('opacity-0', 'pointer-events-none');
       timeDialog.classList.remove('scale-95');
       timeDialog.classList.add('scale-100');
@@ -775,6 +773,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
     function closeTimeModal() {
       if (!timeModal || !timeDialog) return;
+      unlockBodyScroll();
       timeModal.classList.add('opacity-0', 'pointer-events-none');
       timeDialog.classList.remove('scale-100');
       timeDialog.classList.add('scale-95');

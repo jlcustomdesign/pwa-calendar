@@ -10,10 +10,14 @@
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl sm:text-2xl font-black tracking-tight text-neutral-900">Finalizează ședința</h2>
+      <div>
+        <h2 class="text-xl sm:text-2xl font-black tracking-tight text-text-main">Finalizează ședința</h2>
+        <p class="text-text-muted font-bold text-sm mt-0.5" id="wrapup-subtitle">Confirmă detaliile și programează săptămâna viitoare</p>
+      </div>
       <button type="button" id="wrapup-close-btn" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 font-bold text-base flex items-center justify-center transition-colors">
         &times;
       </button>
+    </div>
     </div>
 
     <!-- Patient & Session Summary Card (Lean & Essential) -->
@@ -101,38 +105,22 @@
       </div>
     </div>
 
-    <!-- Custom Date/Time Selectors (Romanian Calendar Inline) -->
-    <div id="wrapup-custom-datetime-box" class="hidden mb-6 p-4 rounded-2xl bg-neutral-50 border border-neutral-200/90 space-y-3.5 shadow-sm">
-      <div class="text-xs font-black uppercase tracking-wider text-neutral-800">Alege data și ora pentru săptămâna viitoare</div>
-      
-      <!-- Romanian Calendar -->
-      <div class="space-y-3 bg-white p-3 rounded-2xl border border-neutral-200/60">
-        <!-- Month Header -->
-        <div class="flex items-center justify-between px-1">
-          <button type="button" id="wrapup-cal-prev" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center font-bold text-neutral-700 text-sm active:scale-95 transition-all cursor-pointer">
-            &larr;
-          </button>
-          <div id="wrapup-cal-month-title" class="font-black text-sm text-neutral-900">August 2026</div>
-          <button type="button" id="wrapup-cal-next" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center font-bold text-neutral-700 text-sm active:scale-95 transition-all cursor-pointer">
-            &rarr;
-          </button>
-        </div>
-
-        <!-- Romanian Weekday Headers (L M M J V S D) -->
-        <div class="grid grid-cols-7 text-center">
-          <span class="text-xs font-black text-neutral-700">L</span>
-          <span class="text-xs font-black text-neutral-700">M</span>
-          <span class="text-xs font-black text-neutral-700">M</span>
-          <span class="text-xs font-black text-neutral-700">J</span>
-          <span class="text-xs font-black text-neutral-700">V</span>
-          <span class="text-xs font-black text-neutral-700">S</span>
-          <span class="text-xs font-black text-neutral-700">D</span>
-        </div>
-
-        <!-- Days Grid -->
-        <div id="wrapup-cal-days-grid" class="grid grid-cols-7 gap-1">
-          <!-- Populated by JS -->
-        </div>
+    <!-- Custom Date/Time Selectors (Hidden by default, shown if Custom option selected) -->
+    <div id="wrapup-custom-datetime-box" class="hidden mb-6 p-4 rounded-2xl bg-surface-base border border-border-subtle space-y-3">
+      <div class="text-xs font-black uppercase text-text-muted">Alege data și ora pentru săptămâna viitoare</div>
+      <div class="grid grid-cols-2 gap-3">
+        <button type="button" id="wrapup-trigger-date" class="text-left px-3 py-2.5 rounded-xl border border-border-subtle bg-white font-bold text-sm text-text-main focus:outline-none focus:border-brand-secondary active:scale-[0.98] transition-transform">
+          <span class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Data</span>
+          <span id="wrapup-display-date">--</span>
+        </button>
+        <button type="button" id="wrapup-trigger-time" class="text-left px-3 py-2.5 rounded-xl border border-border-subtle bg-white font-bold text-sm text-text-main focus:outline-none focus:border-brand-secondary active:scale-[0.98] transition-transform">
+          <span class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Ora</span>
+          <span id="wrapup-display-time">08:00</span>
+        </button>
+      </div>
+      <input type="hidden" id="wrapup-custom-time" value="08:00" />
+      <input type="hidden" id="wrapup-custom-date" />
+    </div>
       </div>
 
       <!-- Custom Time Selector Grid (Hours 07-18 + Minutes 00, 15, 30, 45) -->
@@ -165,11 +153,70 @@
       </button>
     </div>
   </div>
+
+  <!-- Custom Date Picker Sheet -->
+  <div 
+    id="wrapup-date-picker-sheet" 
+    class="fixed inset-x-0 bottom-0 z-[130] bg-surface-card rounded-t-[2rem] p-4 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden pointer-events-auto"
+  >
+    <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
+    <div class="flex items-center justify-between mb-6 px-1">
+      <button type="button" id="wrapup-date-prev" class="w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center active:scale-95 transition-transform">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+      </button>
+      <h3 id="wrapup-date-month-year" class="text-lg font-extrabold tracking-tight">August 2026</h3>
+      <button type="button" id="wrapup-date-next" class="w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center active:scale-95 transition-transform">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+      </button>
+    </div>
+    <div class="grid grid-cols-7 mb-2">
+      {['L','M','M','J','V','S','D'].map(d => (
+        <div class="text-center text-xs font-bold text-text-muted uppercase tracking-wider py-2">{d}</div>
+      ))}
+    </div>
+    <div id="wrapup-date-grid" class="grid grid-cols-7 gap-1 flex-1 overflow-y-auto no-scrollbar"></div>
+    <div class="pt-4 mt-auto">
+      <button type="button" id="wrapup-date-close" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-95 transition-all text-center cursor-pointer">
+        Salvează
+      </button>
+    </div>
+  </div>
+  <div id="wrapup-date-picker-overlay" class="fixed inset-0 bg-black/40 z-[125] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm"></div>
+
+  <!-- Custom Time Picker Sheet -->
+  <div 
+    id="wrapup-time-picker-sheet" 
+    class="fixed inset-x-0 bottom-0 z-[130] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden space-y-4 pointer-events-auto"
+  >
+    <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-2 shrink-0 cursor-grab active:cursor-grabbing"></div>
+    <div class="flex items-center justify-between pb-2 border-b border-border-subtle/40 px-1">
+      <h3 class="text-xl font-black text-text-main font-sans tracking-tight">Alege ora</h3>
+    </div>
+    <div class="flex items-center justify-center gap-3 py-3.5 bg-surface-base/80 rounded-2xl border border-border-subtle/60 shadow-inner text-text-main font-black text-4xl font-sans tracking-tight">
+      <span id="wrapup-time-hour">08</span>
+      <span class="text-text-muted/60">:</span>
+      <span id="wrapup-time-minute">00</span>
+    </div>
+    <div>
+      <div class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1 py-2" id="wrapup-time-hours-grid"></div>
+    </div>
+    <div class="space-y-1.5 pt-1">
+      <div class="text-xs font-extrabold text-text-muted font-sans uppercase tracking-wider">Minute</div>
+      <div class="grid grid-cols-4 gap-2" id="wrapup-time-minutes-grid"></div>
+    </div>
+    <div class="pt-2 mt-auto">
+      <button type="button" id="wrapup-time-confirm" class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-95 transition-all text-center cursor-pointer">
+        Salvează
+      </button>
+    </div>
+  </div>
+  <div id="wrapup-time-picker-overlay" class="fixed inset-0 bg-black/40 z-[125] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm"></div>
 </div>
 
 <script>
   import { completeSession, createAppointment } from '../../../lib/services/appointmentService';
   import { getPatient, updatePatient } from '../../../lib/services/patientService';
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class WrapUpSheetManager {
     private sheet: HTMLElement | null;
@@ -186,6 +233,12 @@
     private selectedCustomHour: string = '08';
     private selectedCustomMinute: string = '00';
     private selectedCustomTimeStr: string = '08:00';
+
+    private customDate: string = '';
+    private customTime: string = '08:00';
+    private pickerDate: Date = new Date();
+    private selectedHour: string = '08';
+    private selectedMinute: string = '00';
 
     constructor() {
       this.sheet = document.getElementById('session-wrapup-sheet');
@@ -205,7 +258,9 @@
       }) as EventListener);
 
       this.backdrop?.addEventListener('click', () => this.close());
-      document.getElementById('wrapup-close-btn')?.addEventListener('click', () => this.close());
+
+      // Swipe-down to close main wrap-up sheet
+      this.bindSheetSwipe();
 
       // Calendar month navigation
       document.getElementById('wrapup-cal-prev')?.addEventListener('click', () => {
@@ -250,6 +305,30 @@
       document.getElementById('btn-confirm-wrapup')?.addEventListener('click', () => {
         this.handleConfirm();
       });
+
+      // Custom date/time triggers
+      document.getElementById('wrapup-trigger-date')?.addEventListener('click', () => this.openDatePicker());
+      document.getElementById('wrapup-trigger-time')?.addEventListener('click', () => this.openTimePicker());
+
+      // Date picker controls
+      document.getElementById('wrapup-date-prev')?.addEventListener('click', () => {
+        this.pickerDate.setMonth(this.pickerDate.getMonth() - 1);
+        this.renderDatePicker();
+      });
+      document.getElementById('wrapup-date-next')?.addEventListener('click', () => {
+        this.pickerDate.setMonth(this.pickerDate.getMonth() + 1);
+        this.renderDatePicker();
+      });
+      document.getElementById('wrapup-date-close')?.addEventListener('click', () => this.closeDatePicker());
+      document.getElementById('wrapup-date-picker-overlay')?.addEventListener('click', () => this.closeDatePicker());
+
+      // Time picker controls
+      document.getElementById('wrapup-time-confirm')?.addEventListener('click', () => this.closeTimePicker());
+      document.getElementById('wrapup-time-picker-overlay')?.addEventListener('click', () => this.closeTimePicker());
+
+      // Swipe-down to close pickers
+      this.bindPickerSwipe('wrapup-date-picker-sheet', () => this.closeDatePicker());
+      this.bindPickerSwipe('wrapup-time-picker-sheet', () => this.closeTimePicker());
     }
 
     private async initView() {
@@ -297,18 +376,12 @@
       if (sameSlotLabel) sameSlotLabel.textContent = 'Da, peste o săptămână';
       if (sameSlotDate) sameSlotDate.textContent = formattedNextDate;
 
-      // Set custom date picker default to next week
-      this.pickerMonth = new Date(nextWeekObj);
-      const timeParts = cleanTime.split(':');
-      this.selectedCustomHour = timeParts[0] || '08';
-      this.selectedCustomMinute = timeParts[1] || '00';
-
-      const customDateInput = document.getElementById('wrapup-custom-date') as HTMLInputElement;
-      if (customDateInput) customDateInput.value = this.nextWeekDateStr;
-      this.updateCustomTimeValue();
-
-      this.renderCustomCalendar();
-      this.renderTimeSelectors();
+      // Set custom date/time defaults to next week
+      this.customDate = this.nextWeekDateStr;
+      this.customTime = timeStr;
+      [this.selectedHour, this.selectedMinute] = timeStr.split(':');
+      this.pickerDate = new Date(this.nextWeekDateStr + 'T00:00:00');
+      this.updateCustomDateTimeDisplay();
 
       // Show subscription warning if needed
       const alertEl = document.getElementById('wrapup-subscription-alert');
@@ -521,10 +594,8 @@
           });
           (window as any).showToast(`Ședința a fost marcată ca efectuată și s-a programat automat ${this.nextWeekDayName} viitoare la ${timeStr}!`, 'success');
         } else if (this.selectedRecurrence === 'custom') {
-          const customDateInput = document.getElementById('wrapup-custom-date') as HTMLInputElement;
-          const customTimeInput = document.getElementById('wrapup-custom-time') as HTMLInputElement;
-          const targetDate = customDateInput?.value || this.nextWeekDateStr;
-          const targetTime = customTimeInput?.value || '08:00';
+          const targetDate = this.customDate || this.nextWeekDateStr;
+          const targetTime = this.customTime || '08:00';
 
           await createAppointment({
             pacient_id: patientId,
@@ -549,18 +620,264 @@
       }
     }
 
+    // --- Custom Date Picker ---
+    private openDatePicker() {
+      const sheet = document.getElementById('wrapup-date-picker-sheet');
+      const overlay = document.getElementById('wrapup-date-picker-overlay');
+      if (!sheet || !overlay) return;
+
+      const parsed = new Date(this.customDate + 'T00:00:00');
+      if (!isNaN(parsed.getTime())) {
+        this.pickerDate = parsed;
+      }
+      this.renderDatePicker();
+      sheet.classList.remove('translate-y-full');
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    private closeDatePicker() {
+      const sheet = document.getElementById('wrapup-date-picker-sheet');
+      const overlay = document.getElementById('wrapup-date-picker-overlay');
+      if (!sheet || !overlay) return;
+      sheet.style.transform = '';
+      sheet.classList.add('translate-y-full');
+      overlay.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    private renderDatePicker() {
+      const grid = document.getElementById('wrapup-date-grid');
+      const monthYear = document.getElementById('wrapup-date-month-year');
+      if (!grid || !monthYear) return;
+
+      const year = this.pickerDate.getFullYear();
+      const month = this.pickerDate.getMonth();
+      const monthName = this.pickerDate.toLocaleDateString('ro-RO', { month: 'long' });
+      monthYear.textContent = `${monthName} ${year}`;
+
+      const firstDayOfMonth = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      grid.innerHTML = '';
+
+      for (let i = 0; i < startOffset; i++) {
+        grid.appendChild(document.createElement('div'));
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(year, month, d);
+        const dayOfWeek = dateObj.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+        const isSelected = dateStr === this.customDate;
+        const isToday = dateStr === todayStr;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+
+        if (isWeekend) {
+          btn.disabled = true;
+          btn.className = 'aspect-square rounded-2xl text-sm font-extrabold bg-black/5 text-black/30 pointer-events-none cursor-not-allowed';
+          btn.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.06) 4px, rgba(0,0,0,0.06) 8px)';
+        } else {
+          btn.className = `aspect-square rounded-2xl text-sm font-extrabold transition-all active:scale-95 ${
+            isSelected
+              ? 'bg-black text-white shadow-lg'
+              : isToday
+                ? 'bg-brand-primary text-black'
+                : 'bg-black/5 text-black hover:bg-black/10'
+          }`;
+          btn.addEventListener('click', () => {
+            this.customDate = dateStr;
+            this.updateCustomDateTimeDisplay();
+            this.renderDatePicker();
+          });
+        }
+
+        btn.textContent = d.toString();
+        grid.appendChild(btn);
+      }
+    }
+
+    // --- Custom Time Picker ---
+    private openTimePicker() {
+      const sheet = document.getElementById('wrapup-time-picker-sheet');
+      const overlay = document.getElementById('wrapup-time-picker-overlay');
+      if (!sheet || !overlay) return;
+
+      const parts = this.customTime.split(':');
+      this.selectedHour = parts[0] || '08';
+      this.selectedMinute = parts[1] || '00';
+
+      const hourEl = document.getElementById('wrapup-time-hour');
+      const minuteEl = document.getElementById('wrapup-time-minute');
+      if (hourEl) hourEl.textContent = this.selectedHour;
+      if (minuteEl) minuteEl.textContent = this.selectedMinute;
+
+      this.renderTimeGrids();
+      sheet.classList.remove('translate-y-full');
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    private closeTimePicker() {
+      const sheet = document.getElementById('wrapup-time-picker-sheet');
+      const overlay = document.getElementById('wrapup-time-picker-overlay');
+      if (!sheet || !overlay) return;
+      this.customTime = `${this.selectedHour}:${this.selectedMinute}`;
+      this.updateCustomDateTimeDisplay();
+      sheet.style.transform = '';
+      sheet.classList.add('translate-y-full');
+      overlay.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    private bindPickerSwipe(sheetId: string, onClose: () => void) {
+      const sheet = document.getElementById(sheetId);
+      if (!sheet) return;
+
+      let startY = 0;
+      sheet.addEventListener('touchstart', (e: any) => {
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+      sheet.addEventListener('touchmove', (e: any) => {
+        const deltaY = e.touches[0].clientY - startY;
+        if (deltaY > 0) {
+          sheet.style.transition = 'none';
+          sheet.style.transform = `translateY(${deltaY}px)`;
+        }
+      }, { passive: true });
+      sheet.addEventListener('touchend', (e: any) => {
+        const deltaY = (e.changedTouches[0].clientY || 0) - startY;
+        sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 150) {
+          onClose();
+        } else {
+          sheet.style.transform = 'translateY(0)';
+        }
+      });
+    }
+
+    private bindSheetSwipe() {
+      const sheet = this.content;
+      const handle = document.getElementById('wrapup-drag-handle');
+      if (!sheet) return;
+
+      let startY = 0;
+      let isDragging = false;
+
+      const onStart = (clientY: number) => {
+        startY = clientY;
+        isDragging = true;
+      };
+      const onMove = (clientY: number) => {
+        if (!isDragging) return;
+        const deltaY = clientY - startY;
+        if (deltaY > 0) {
+          sheet.style.transition = 'none';
+          sheet.style.transform = `translateY(${deltaY}px)`;
+        }
+      };
+      const onEnd = (clientY: number) => {
+        if (!isDragging) return;
+        isDragging = false;
+        const deltaY = clientY - startY;
+        sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 120) {
+          this.close();
+        } else {
+          sheet.style.transform = 'translateY(0)';
+        }
+      };
+
+      handle?.addEventListener('touchstart', (e: any) => onStart(e.touches[0].clientY), { passive: true });
+      handle?.addEventListener('touchmove', (e: any) => onMove(e.touches[0].clientY), { passive: true });
+      handle?.addEventListener('touchend', (e: any) => onEnd(e.changedTouches[0].clientY), { passive: true });
+
+      sheet.addEventListener('touchstart', (e: any) => onStart(e.touches[0].clientY), { passive: true });
+      sheet.addEventListener('touchmove', (e: any) => onMove(e.touches[0].clientY), { passive: true });
+      sheet.addEventListener('touchend', (e: any) => onEnd(e.changedTouches[0].clientY), { passive: true });
+    }
+
+    private renderTimeGrids() {
+      const hoursGrid = document.getElementById('wrapup-time-hours-grid');
+      const minutesGrid = document.getElementById('wrapup-time-minutes-grid');
+      const hoursList = ['07','08','09','10','11','12','13','14','15','16','17','18'];
+      const minutesList = ['00','15','30','45'];
+
+      if (hoursGrid) {
+        hoursGrid.innerHTML = '';
+        hoursList.forEach(h => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isSel = h === this.selectedHour;
+          btn.className = `py-2 rounded-xl font-extrabold text-sm transition-all ${
+            isSel ? 'bg-brand-secondary text-white shadow-sm scale-105' : 'bg-surface-base hover:bg-brand-primary/30 text-text-main'
+          }`;
+          btn.textContent = h;
+          btn.addEventListener('click', () => {
+            this.selectedHour = h;
+            const hd = document.getElementById('wrapup-time-hour');
+            if (hd) hd.textContent = h;
+            this.renderTimeGrids();
+          });
+          hoursGrid.appendChild(btn);
+        });
+      }
+
+      if (minutesGrid) {
+        minutesGrid.innerHTML = '';
+        minutesList.forEach(m => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isSel = m === this.selectedMinute;
+          btn.className = `py-2 rounded-xl font-extrabold text-sm transition-all ${
+            isSel ? 'bg-brand-secondary text-white shadow-sm scale-105' : 'bg-surface-base hover:bg-brand-primary/30 text-text-main'
+          }`;
+          btn.textContent = m;
+          btn.addEventListener('click', () => {
+            this.selectedMinute = m;
+            const md = document.getElementById('wrapup-time-minute');
+            if (md) md.textContent = m;
+            this.renderTimeGrids();
+          });
+          minutesGrid.appendChild(btn);
+        });
+      }
+    }
+
+    private updateCustomDateTimeDisplay() {
+      const dateDisplay = document.getElementById('wrapup-display-date');
+      const timeDisplay = document.getElementById('wrapup-display-time');
+      if (dateDisplay) {
+        const parsed = new Date(this.customDate + 'T00:00:00');
+        if (!isNaN(parsed.getTime())) {
+          const fmt = parsed.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', weekday: 'short' });
+          dateDisplay.textContent = fmt;
+        } else {
+          dateDisplay.textContent = '--';
+        }
+      }
+      if (timeDisplay) timeDisplay.textContent = this.customTime;
+    }
+
     private open() {
       if (!this.sheet || !this.content || !this.backdrop) return;
       this.sheet.classList.remove('hidden');
+      this.content.style.transform = '';
       void this.sheet.offsetWidth;
       this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
+      lockBodyScroll();
     }
 
     private close() {
       if (!this.sheet || !this.content || !this.backdrop) return;
+      this.closeDatePicker();
+      this.closeTimePicker();
       this.backdrop.classList.add('opacity-0');
+      this.content.style.transform = '';
       this.content.classList.add('translate-y-full');
+      unlockBodyScroll();
       setTimeout(() => {
         if (this.sheet) this.sheet.classList.add('hidden');
         this.currentAppointment = null;
@@ -578,3 +895,13 @@
     }
   });
 </script>
+
+<style>
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>

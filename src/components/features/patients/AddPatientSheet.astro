@@ -4,15 +4,15 @@
 
 <div 
   id="add-patient-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2rem] p-4 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden"
+  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[90vh] overflow-hidden"
 >
   <!-- Swipe handle -->
-  <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
+  <div id="add-patient-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
-  <div class="flex-1 overflow-y-auto no-scrollbar pb-24">
-    <h3 id="patient-sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-6">Pacient nou</h3>
+  <div class="flex-1 overflow-y-auto no-scrollbar px-2 pt-2 pb-28">
+    <h3 id="patient-sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-8">Pacient nou</h3>
 
-    <form id="add-patient-form" class="space-y-6">
+    <form id="add-patient-form" class="space-y-7">
       <input type="hidden" name="patientId" id="editPatientId" value="" />
       
       <!-- General Details -->
@@ -135,7 +135,7 @@
     </form>
   </div>
 
-  <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-8">
+  <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-12">
     <button type="button" id="save-patient-btn" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer">
       Salvează
     </button>
@@ -144,6 +144,7 @@
 
 <script>
   import { addPatient, updatePatient } from '../../../lib/services/patientService';
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class AddPatientSheetManager {
     sheet: HTMLElement | null;
@@ -182,6 +183,43 @@
       this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
       this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
       this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
+
+      // Dedicated drag handle close
+      const dragHandle = document.getElementById('add-patient-drag-handle');
+      if (dragHandle) {
+        let startY = 0;
+        let currentY = 0;
+        let dragging = false;
+        dragHandle.addEventListener('touchstart', (e: any) => {
+          startY = e.touches[0].clientY;
+          currentY = startY;
+          dragging = true;
+          if (this.sheet) this.sheet.style.transition = 'none';
+        }, { passive: true });
+        dragHandle.addEventListener('touchmove', (e: any) => {
+          if (!dragging) return;
+          currentY = e.touches[0].clientY;
+          const deltaY = currentY - startY;
+          if (deltaY > 0 && this.sheet) {
+            this.sheet.style.transform = `translateY(${deltaY}px)`;
+          }
+        }, { passive: true });
+        const onEnd = () => {
+          if (!dragging) return;
+          dragging = false;
+          const deltaY = currentY - startY;
+          if (this.sheet) {
+            this.sheet.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
+            if (deltaY > 80) {
+              this.close();
+            } else {
+              this.sheet.style.transform = 'translateY(0)';
+            }
+          }
+        };
+        dragHandle.addEventListener('touchend', onEnd);
+        dragHandle.addEventListener('touchcancel', onEnd);
+      }
 
       // We will move the window listener outside of bindEvents to avoid duplicates.
       // It is now handled in the init function.
@@ -459,7 +497,7 @@
       if (!this.sheet || !this.overlay) return;
       this.sheet.classList.remove('translate-y-full');
       this.overlay.classList.remove('opacity-0', 'pointer-events-none');
-      document.body.style.overflow = 'hidden';
+      lockBodyScroll();
     }
 
     close() {
@@ -467,7 +505,7 @@
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      document.body.style.overflow = '';
+      unlockBodyScroll();
       setTimeout(() => this.form?.reset(), 500);
     }
 

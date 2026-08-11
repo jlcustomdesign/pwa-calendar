@@ -17,7 +17,7 @@
     class="relative bg-surface-card rounded-t-[2.5rem] p-8 pb-12 shadow-2xl transform translate-y-full transition-transform duration-500 ease-out modal-sheet pointer-events-auto w-full max-w-md mx-auto"
   >
     <!-- Drag Handle -->
-    <div class="w-12 h-1.5 bg-border-light rounded-full mx-auto mb-6 cursor-grab active:cursor-grabbing"></div>
+    <div id="patient-details-drag-handle" class="w-12 h-1.5 bg-border-light rounded-full mx-auto mb-6 cursor-grab active:cursor-grabbing"></div>
     
     <div class="flex justify-between items-start mb-6">
       <div>
@@ -59,16 +59,20 @@
 </div>
 
 <script>
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+
   function setupModals() {
     const triggers = document.querySelectorAll('[data-modal-trigger]');
-    
+
     triggers.forEach(trigger => {
       trigger.addEventListener('click', () => {
         const modalId = trigger.getAttribute('data-modal-trigger');
         if (!modalId) return;
-        
+
         const modal = document.getElementById(modalId);
         if (modal) {
+          lockBodyScroll();
+
           // Show modal — fade the backdrop element itself so the blur
           // animates gradually (same pattern as the other sheets)
           const backdrop = modal.querySelector('.modal-backdrop');
@@ -76,7 +80,7 @@
             backdrop.classList.remove('opacity-0', 'pointer-events-none');
             backdrop.classList.add('pointer-events-auto');
           }
-          
+
           const sheet = modal.querySelector('.modal-sheet');
           if (sheet) {
             sheet.classList.remove('translate-y-full');
@@ -99,6 +103,47 @@
         }
       });
     });
+
+    // Dedicated drag handle close
+    const dragHandle = document.getElementById('patient-details-drag-handle');
+    if (dragHandle) {
+      let startY = 0;
+      let currentY = 0;
+      let dragging = false;
+      dragHandle.addEventListener('touchstart', (e: TouchEvent) => {
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        dragging = true;
+        const sheet = dragHandle.closest('.modal-sheet') as HTMLElement | null;
+        if (sheet) sheet.style.transition = 'none';
+      }, { passive: true });
+      dragHandle.addEventListener('touchmove', (e: TouchEvent) => {
+        if (!dragging) return;
+        currentY = e.touches[0].clientY;
+        const sheet = dragHandle.closest('.modal-sheet') as HTMLElement | null;
+        const deltaY = currentY - startY;
+        if (deltaY > 0 && sheet) {
+          sheet.style.transform = `translateY(${deltaY}px)`;
+        }
+      }, { passive: true });
+      const onEnd = () => {
+        if (!dragging) return;
+        dragging = false;
+        const sheet = dragHandle.closest('.modal-sheet') as HTMLElement | null;
+        const modal = dragHandle.closest('.fixed.z-50') as HTMLElement | null;
+        if (sheet) {
+          sheet.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
+          const deltaY = currentY - startY;
+          if (deltaY > 80 && modal) {
+            closeModalSheet(modal);
+          } else {
+            sheet.style.transform = 'translateY(0)';
+          }
+        }
+      };
+      dragHandle.addEventListener('touchend', onEnd);
+      dragHandle.addEventListener('touchcancel', onEnd);
+    }
 
     // Swipe-down to dismiss — works from anywhere on the sheet, as long as
     // the gesture is a clearly vertical downward swipe
@@ -157,6 +202,8 @@
   }
 
   function closeModalSheet(modal: HTMLElement) {
+    unlockBodyScroll();
+
     const sheet = modal.querySelector('.modal-sheet') as HTMLElement | null;
     if (sheet) {
       // Clear any inline drag styles so the class-based transition takes over

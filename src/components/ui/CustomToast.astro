@@ -30,6 +30,8 @@
 </div>
 
 <script>
+  import { lockBodyScroll, unlockBodyScroll } from '../../utils/scrollLock';
+
   // Toast & Confirm Modal Global API Definition
   type ToastType = 'warning' | 'error' | 'success' | 'info';
 
@@ -124,11 +126,13 @@
     if (titleEl) titleEl.textContent = title;
     if (msgEl) msgEl.textContent = message;
 
+    lockBodyScroll();
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     card.classList.remove('scale-95');
 
     return new Promise((resolve) => {
       const cleanup = (confirmed: boolean) => {
+        unlockBodyScroll();
         overlay.classList.add('opacity-0', 'pointer-events-none');
         card.classList.add('scale-95');
         okBtn?.removeEventListener('click', handleOk);
