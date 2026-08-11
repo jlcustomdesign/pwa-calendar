@@ -70,31 +70,33 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       } else if (paymentStatus === 'Achitat parțial') {
         paymentClass = 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm font-black';
       } else if (paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat') {
-        paymentClass = 'bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-sm';
-      } else {
-        paymentClass = 'bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm';
+        paymentClass = 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm font-black';
       }
       
       const gradientColors = isGhimbav ? "from-white/30 to-white" : "from-black/30 to-black";
       const progressPercentage = Math.min(100, Math.round(((session.attendanceCount ?? 0) / (session.totalSessions || 10)) * 100));
-
-      const timeStr = session.selectedTime || session.time || "08:00";
+      
+      const rawTime = session.selectedTime || session.time || "08:00";
+      const cleanTimeStr = rawTime.substring(0, 5);
       const patientNameStr = session.patientName || "Pacient";
-      const timeParts = timeStr.split(':');
-      const hourNum = parseInt(timeParts[0] || "0", 10);
-      const minute = timeParts[1] || "00";
-      const endHourStr = (hourNum + 1).toString().padStart(2, '0');
-      const endTime = `${endHourStr}:${minute}`;
+      const timeParts = cleanTimeStr.split(':');
+      const startH = parseInt(timeParts[0] || "8", 10);
+      const startM = parseInt(timeParts[1] || "0", 10);
+      const totalStartMin = startH * 60 + startM;
+      const totalEndMin = totalStartMin + 50; // 50 min session duration
+      const endH = Math.floor(totalEndMin / 60);
+      const endM = totalEndMin % 60;
+      const formattedStart = `${startH.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
+      const formattedEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+      const timeRangeText = `${formattedStart} - ${formattedEnd}`;
 
       const now = new Date();
       const nowStr = now.toTimeString().slice(0, 5);
       const isToday = currentCalendarDate === todayStr;
 
       const sessionStatus = session.status || 'programat';
-      const isOngoing = isToday && nowStr >= timeStr && nowStr < endTime;
-      const isPast = currentCalendarDate < todayStr || (isToday && nowStr >= endTime);
-
-      const remainingSessions = session.remainingSessions ?? Math.max(0, (session.totalSessions || 10) - (session.attendanceCount ?? 0));
+      const isOngoing = isToday && nowStr >= cleanTimeStr && nowStr < formattedEnd;
+      const isPast = currentCalendarDate < todayStr || (isToday && nowStr >= formattedEnd);
 
       // Icon-only status indicator for closed state
       let statusIcon = '';
@@ -110,7 +112,6 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
         statusIcon = `<svg class="w-6 h-6 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
       }
 
-      // Subscription warning shown only in open state
       const subscriptionWarningDetails = session.subscriptionDone
         ? `<div class="px-6 pb-3"><p class="text-xs font-black uppercase tracking-wider text-rose-600 bg-rose-100 px-3 py-2 rounded-xl inline-block">Abonament terminat — reînnoiește pachetul</p></div>`
         : '';
@@ -118,9 +119,23 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       const restDePlata = Math.max(0, (session.costTotal || 0) - (session.sumaIncasata || 0));
       const isPaid = restDePlata <= 0 || session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat';
 
+      let paymentBadgeClass = '';
+      let displayPaymentLabel = session.paymentStatus || 'Neachitat';
+      if (session.paymentStatus === 'Neachitat') {
+        paymentBadgeClass = 'bg-rose-600 text-white font-extrabold shadow-sm';
+      } else if (session.paymentStatus === 'Achitat parțial') {
+        paymentBadgeClass = 'bg-amber-500 text-black font-extrabold shadow-sm';
+        displayPaymentLabel = 'Parțial';
+      } else {
+        paymentBadgeClass = 'bg-emerald-600 text-white font-extrabold shadow-sm';
+        displayPaymentLabel = 'Achitat';
+      }
+
+      const driveLink = session.driveLink || '';
+
       return `
-        <div class="w-full relative group" data-session-id="${session.id}" data-session-time="${timeStr}" data-session-date="${session.selectedDate || currentCalendarDate}">
-          <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden">
+        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden" data-session-id="${session.id}" data-session-time="${cleanTimeStr}" data-session-date="${session.selectedDate || currentCalendarDate}">
+          <div class="relative w-full h-full rounded-[2.5rem] overflow-hidden">
             
             <!-- Swipe Action Background -->
             <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
@@ -172,47 +187,53 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
               <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
                 <div class="overflow-hidden relative z-20">
                   ${subscriptionWarningDetails}
-                  <div class="px-6 pt-4 pb-2 flex justify-between items-center text-black">
-                    <div class="flex items-center gap-2 text-base font-extrabold opacity-95 bg-black/5 px-4 py-2 rounded-xl backdrop-blur-sm">
-                      ${timeStr} - ${endTime}
+                  
+                  <div class="px-6 pt-2 pb-2 space-y-2.5">
+                    <!-- Row 1: Time & Location strictly matching user sketch -->
+                    <div class="flex items-center justify-between px-5 py-3 rounded-full bg-black/5 text-sm sm:text-base font-extrabold text-black">
+                      <span>${timeRangeText}</span>
+                      <span class="opacity-80">la ${locationStr}</span>
                     </div>
-                    <div class="text-xs font-bold uppercase tracking-widest opacity-70 text-right">
-                      ${locationStr}
+
+                    <!-- Row 2: Cost & Rest strictly matching user sketch -->
+                    <div class="flex items-center justify-between px-5 py-3 rounded-full bg-black/5 text-sm sm:text-base font-extrabold text-black">
+                      <span>Cost: <strong>${session.costTotal || 0} RON</strong></span>
+                      <span>Rest: <strong class="${isPaid ? 'text-emerald-900' : 'text-rose-700'}">${isPaid ? '0 RON' : restDePlata + ' RON'}</strong></span>
+                    </div>
+
+                    <!-- Row 3: Three equal oval action buttons: Sună | Dosar | Achitat -->
+                    <div class="grid grid-cols-3 gap-2 pt-1">
+                      <a href="tel:${session.patientPhone || '+1234567890'}" class="flex items-center justify-center gap-1.5 py-3 rounded-full bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-xs sm:text-sm font-extrabold text-black cursor-pointer" onclick="event.stopPropagation()">
+                        <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <span>Sună</span>
+                      </a>
+
+                      <a href="${driveLink || '#'}" target="${driveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="flex items-center justify-center gap-1.5 py-3 rounded-full bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-xs sm:text-sm font-extrabold text-black cursor-pointer ${!driveLink ? 'opacity-50' : ''}" onclick="event.stopPropagation(); if (!'${driveLink}') { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
+                        <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                        </svg>
+                        <span>Dosar</span>
+                      </a>
+
+                      <button 
+                        type="button"
+                        class="flex items-center justify-center gap-1 py-3 px-2 rounded-full ${paymentBadgeClass} hover:opacity-90 active:scale-95 transition-all text-xs sm:text-sm font-extrabold cursor-pointer" 
+                        onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${session.patientId}' } }))"
+                      >
+                        <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="truncate">${displayPaymentLabel}</span>
+                      </button>
                     </div>
                   </div>
 
-                  <div class="px-6 pb-3 pt-2 flex items-center justify-between text-black text-sm font-bold bg-black/5 mx-6 rounded-xl">
-                    <span>Cost: <strong class="font-extrabold">${session.costTotal || 0} RON</strong></span>
-                    <span>Rest: <strong class="font-extrabold ${isPaid ? 'text-emerald-700' : 'text-rose-600'}">${isPaid ? '0 RON' : restDePlata + ' RON'}</strong></span>
-                  </div>
-
-                  <div class="px-6 pb-5 pt-3 flex gap-2">
-                    <a href="tel:${session.patientPhone || '+1234567890'}" class="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold text-black min-w-0" onclick="event.stopPropagation()">
-                      <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      <span class="truncate">Sună</span>
-                    </a>
-                    <a href="${session.driveLink || '#'}" target="${session.driveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-sm font-bold text-black min-w-0 ${!session.driveLink ? 'opacity-50' : ''}" onclick="event.stopPropagation(); if (!'${session.driveLink}') { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
-                      <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                      </svg>
-                      <span class="truncate">Dosar</span>
-                    </a>
-                    <button 
-                      class="flex-[1.5] flex items-center justify-center gap-1.5 py-3 px-2.5 rounded-2xl ${paymentClass} hover:opacity-80 active:scale-95 transition-all text-xs sm:text-sm font-bold min-w-0" 
-                      onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${session.patientId}' } }))"
-                    >
-                      <svg class="w-4 h-4 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span class="whitespace-nowrap truncate">${paymentStatus}</span>
-                    </button>
-                  </div>
                   ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') ? `
-                    <div class="px-6 pb-5 pt-1">
-                      <button type="button" class="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm active:scale-95 transition-transform shadow-sm flex items-center justify-center gap-2" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <div class="px-6 pb-5 pt-2">
+                      <button type="button" class="w-full py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm sm:text-base active:scale-95 transition-transform shadow-md flex items-center justify-center gap-2 cursor-pointer" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                         <span>Confirmă ședința</span>
                       </button>
                     </div>
@@ -220,9 +241,8 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                 </div>
               </div>
             </div>
-            
-          </session-card>
-        </div>
+          </div>
+        </session-card>
       `;
     }
 
