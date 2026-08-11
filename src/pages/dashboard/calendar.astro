@@ -9,8 +9,8 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
 <DashboardLayout title="Calendar">
   <div class="relative min-h-screen overflow-hidden">
     <BlobBackground positions={[
-      { top: '-5rem', right: '-4rem' },
-      { top: '55%', left: '-4rem' },
+      { top: '-5rem', left: '-4rem' },
+      { top: '55%', right: '-3.5rem' },
       { bottom: '-2rem', left: '-3.5rem' }
     ]} />
     <div class="relative z-10 space-y-6 pb-24">
@@ -44,10 +44,22 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
   <script>
     import { getAppointmentsByDate, updateAppointment } from '../../lib/services/appointmentService';
     import { getSettings } from '../../lib/services/settingsService';
+    import { getPatientPayments, resetPatientSubscription } from '../../lib/services/patientService';
 
     const todayStr = new Date().toISOString().split('T')[0];
     let currentCalendarDate = todayStr;
     (window as any).currentCalendarDate = currentCalendarDate;
+
+    (window as any).renewSubscription = async (patientId: string, totalSessions: number) => {
+      try {
+        await resetPatientSubscription(patientId, totalSessions);
+        (window as any).showToast?.('Abonamentul a fost reînnoit! Ședințele au fost reluate de la 0.', 'success');
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+      } catch (err: any) {
+        (window as any).showToast?.('Eroare la reînnoire: ' + (err?.message || err), 'error');
+      }
+    };
 
     window.addEventListener('calendarDateSelected', (e: any) => {
       const date = e.detail?.date;
@@ -73,8 +85,13 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
         paymentClass = 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm font-black';
       }
       
-      const gradientColors = isGhimbav ? "from-white/30 to-white" : "from-black/30 to-black";
-      const progressPercentage = Math.min(100, Math.round(((session.attendanceCount ?? 0) / (session.totalSessions || 10)) * 100));
+      const count = session.attendanceCount ?? 0;
+      const totalSess = session.totalSessions || 10;
+      const isTerminat = session.subscriptionDone || (totalSess > 0 && count > 0 && count >= totalSess);
+      const displayCount = isTerminat ? totalSess : count;
+      const progressPercentage = isTerminat ? 100 : (totalSess > 0 ? Math.min(100, Math.round((count / totalSess) * 100)) : 0);
+      const progressBarFill = isGhimbav ? "bg-brand-primary" : "bg-brand-secondary";
+      const progressBarTrack = isGhimbav ? "bg-black/20" : "bg-black/15";
       
       const rawTime = session.selectedTime || session.time || "08:00";
       const cleanTimeStr = rawTime.substring(0, 5);
@@ -100,36 +117,33 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
 
       // Icon-only status indicator for closed state
       let statusIcon = '';
-      if (sessionStatus === 'finalizat') {
-        statusIcon = `<svg class="w-6 h-6 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>`;
-      } else if (isOngoing) {
-        statusIcon = `<span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>`;
-      } else if (sessionStatus === 'absent') {
+      if (sessionStatus === 'absent') {
         statusIcon = `<svg class="w-6 h-6 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
       } else if (sessionStatus === 'anulat') {
         statusIcon = `<svg class="w-6 h-6 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
-      } else if (isPast) {
-        statusIcon = `<svg class="w-6 h-6 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+      } else if (isPast || sessionStatus === 'finalizat') {
+        statusIcon = `<svg class="w-6 h-6 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"/></svg>`;
+      } else if (isOngoing) {
+        statusIcon = `<svg class="w-7 h-7 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
       }
 
       const subscriptionWarningDetails = session.subscriptionDone
-        ? `<div class="px-6 pb-3"><p class="text-xs font-black uppercase tracking-wider text-rose-600 bg-rose-100 px-3 py-2 rounded-xl inline-block">Abonament terminat — reînnoiește pachetul</p></div>`
+        ? `<div class="px-6 pb-3"><button type="button" class="w-full py-2.5 px-4 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black uppercase tracking-wider text-center shadow-md border border-black/5 hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>ABONAMENT TERMINAT — REÎNNOIEȘTE (0/${session.totalSessions || 10})</span></button></div>`
         : '';
 
       const sumaIncasata = session.sumaIncasata || 0;
-      let paymentBadgeClass = '';
+      const restDePlata = Math.max(0, (session.costTotal || 0) - (session.sumaIncasata || 0));
+      const isPaid = restDePlata <= 0 || session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat';
+
+      let paymentBadgeClass = 'bg-white hover:bg-neutral-50 text-black border border-black/5 font-extrabold shadow-sm';
       let displayPaymentLabel = 'Status plată';
-      if (session.paymentStatus === 'Neachitat') {
-        paymentBadgeClass = 'bg-rose-600 text-white font-extrabold shadow-sm';
-        displayPaymentLabel = 'Neachitat';
-      } else if (session.paymentStatus === 'Achitat parțial') {
-        paymentBadgeClass = 'bg-amber-500 text-black font-extrabold shadow-sm';
-        displayPaymentLabel = `Plată parțială (${sumaIncasata} RON)`;
-      } else if (session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat') {
-        paymentBadgeClass = 'bg-emerald-600 text-white font-extrabold shadow-sm';
+      if (session.paymentStatus === 'Achitat parțial' || (sumaIncasata > 0 && restDePlata > 0)) {
+        displayPaymentLabel = `Parțial ${sumaIncasata} RON (Rest ${restDePlata} RON)`;
+      } else if (session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal && isPaid)) {
         displayPaymentLabel = 'Achitat';
+      } else if (session.paymentStatus === 'Neachitat') {
+        displayPaymentLabel = 'Neachitat';
       } else {
-        paymentBadgeClass = 'bg-black/20 text-black font-extrabold shadow-sm';
         displayPaymentLabel = 'Status plată';
       }
 
@@ -179,10 +193,10 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                 </div>
 
                 <div class="flex items-center gap-4 mt-5 relative z-10">
-                  <div class="h-1.5 flex-1 bg-black/10 rounded-full overflow-hidden relative">
-                    <div class="h-full rounded-full bg-gradient-to-r ${gradientColors} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
+                  <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative">
+                    <div class="h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
                   </div>
-                  <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${session.attendanceCount ?? 0}/${session.totalSessions || 10}</div>
+                  <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${displayCount}/${totalSess}</div>
                 </div>
               </div>
 
@@ -191,45 +205,42 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                   ${subscriptionWarningDetails}
                   
                   <div class="px-6 pt-2 pb-2 space-y-3">
-                    <!-- Row 1: White Pill with Pink Text for Time & Location -->
-                    <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white text-rose-600 text-sm sm:text-base font-extrabold shadow-sm border border-black/5">
-                      <span class="flex items-center gap-1.5 shrink-0 text-rose-600">
-                        <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Row 1: White Pill with Black Text & Icons for Time & Location -->
+                    <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white text-black text-sm sm:text-base font-extrabold shadow-sm border border-black/5">
+                      <span class="flex items-center gap-1.5 shrink-0 text-black">
+                        <svg class="w-4 h-4 text-black opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        <span class="text-rose-600 font-black">${timeRangeText}</span>
+                        <span class="text-black font-black">${timeRangeText}</span>
                       </span>
-                      <span class="flex items-center gap-1.5 shrink-0 text-rose-600">
-                        <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <span class="flex items-center gap-1.5 shrink-0 text-black">
+                        <svg class="w-4 h-4 text-black opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
-                        <span class="text-rose-600 font-black">${locationStr}</span>
+                        <span class="text-black font-black">${locationStr}</span>
                       </span>
                     </div>
 
-                    <!-- Row 2: Payment Badge on Left (shows partial amount if partial) + Icon-only Call/Folder Buttons on Right -->
+                    <!-- Row 2: Payment Badge on Left (Spacious px-6 padding) + Icon-only Call/Folder Buttons on Right -->
                     <div class="flex items-center justify-between pt-0.5">
                       <button 
                         type="button"
-                        class="flex items-center gap-1.5 py-2.5 px-4 rounded-full ${paymentBadgeClass} hover:opacity-90 active:scale-95 transition-all text-xs sm:text-sm font-extrabold cursor-pointer" 
+                        class="h-11 flex items-center justify-center px-6 rounded-2xl ${paymentBadgeClass} hover:opacity-90 active:scale-95 transition-all text-sm sm:text-base font-black cursor-pointer shadow-sm whitespace-nowrap" 
                         onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${session.patientId}' } }))"
                       >
-                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
                         <span>${displayPaymentLabel}</span>
                       </button>
 
                       <div class="flex items-center gap-2">
-                        <a href="tel:${session.patientPhone || '+1234567890'}" class="w-11 h-11 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Sună pacientul" onclick="event.stopPropagation()">
-                          <svg class="w-5 h-5 opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <a href="tel:${session.patientPhone || '+1234567890'}" class="w-11 h-11 rounded-2xl bg-white hover:bg-neutral-50 border border-black/5 shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Sună pacientul" onclick="event.stopPropagation()">
+                          <svg class="w-5 h-5 text-black opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                           </svg>
                         </a>
 
-                        <a href="${driveLink || '#'}" target="${driveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="w-11 h-11 rounded-2xl bg-black/10 hover:bg-black/20 active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer ${!driveLink ? 'opacity-50' : ''}" title="Deschide Dosar/Drive" onclick="event.stopPropagation(); if (!'${driveLink}') { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
-                          <svg class="w-5 h-5 opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <a href="${driveLink || '#'}" target="${driveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="w-11 h-11 rounded-2xl bg-white hover:bg-neutral-50 border border-black/5 shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Deschide Dosar/Drive" onclick="event.stopPropagation(); if (!'${driveLink}') { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
+                          <svg class="w-5 h-5 text-black opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                           </svg>
                         </a>
@@ -237,9 +248,9 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                     </div>
                   </div>
 
-                  ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') && isPast ? `
+                  ${sessionStatus !== 'finalizat' && sessionStatus !== 'anulat' && sessionStatus !== 'absent' ? `
                     <div class="px-6 pb-5 pt-2">
-                      <button type="button" class="w-full py-4 rounded-full bg-white hover:bg-neutral-50 text-rose-600 font-black text-base sm:text-lg tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-black/5" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
+                      <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary hover:opacity-90' : 'bg-brand-secondary hover:opacity-90'} text-black font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-black/5" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
                         <span>CONFIRMĂ ȘEDINȚA</span>
                       </button>
                     </div>
@@ -262,18 +273,17 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       try {
         settings = await getSettings();
         const appts = await getAppointmentsByDate(currentCalendarDate);
-        storedSessions = appts.map((a: any) => {
-          const sumaIncasata = Number(a.pacienti?.suma_incasata || 0);
+        storedSessions = await Promise.all(appts.map(async (a: any) => {
+          const sumaIncasata = await getPatientPayments(a.pacient_id);
           const costTotal = Number(a.pacienti?.cost || 0);
-          const sedinteRamase = a.pacienti?.sedinte_ramase ?? Math.max(0, (a.pacienti?.sedinte_total || 10) - (a.pacienti?.sedinte_folosite ?? 0));
+          const folosite = a.pacienti?.sedinte_folosite ?? 0;
           const totalSess = a.pacienti?.sedinte_total || 10;
+          const sedinteRamase = Math.max(0, totalSess - folosite);
           let pStatus = 'Neachitat';
-          if (a.pacienti?.achitat === true || a.pacienti?.status_plata === 'Achitat' || a.pacienti?.status_plata === 'Achitat integral') {
+          if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
             pStatus = 'Achitat integral';
-          } else if (a.pacienti?.status_plata === 'Achitat parțial' || (costTotal > 0 && sumaIncasata > 0 && sumaIncasata < costTotal)) {
+          } else if (sumaIncasata > 0 && sumaIncasata < costTotal) {
             pStatus = 'Achitat parțial';
-          } else if (costTotal > 0 && sumaIncasata >= costTotal) {
-            pStatus = 'Achitat integral';
           } else if (a.pacienti?.status_plata) {
             pStatus = a.pacienti.status_plata;
           }
@@ -287,24 +297,24 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
             selectedTime: a.ora,
             selectedDate: a.data,
             location: a.pacienti?.locatie || 'Belaqva',
-            attendanceCount: a.pacienti?.sedinte_folosite ?? 0,
+            attendanceCount: folosite,
             totalSessions: totalSess,
             remainingSessions: sedinteRamase,
-            subscriptionDone: totalSess > 0 && sedinteRamase <= 0,
+            subscriptionDone: totalSess > 0 && folosite > 0 && folosite >= totalSess,
             status: a.status || 'programat',
             costTotal,
             sumaIncasata,
             paymentStatus: pStatus,
           };
-        });
+        }));
       } catch (e) {
         console.error('Eroare citire programari din DB:', e);
       }
 
       const startHour = parseInt((settings.work_start || '08:00').split(':')[0], 10) || 8;
       const endHour = parseInt((settings.work_end || '18:00').split(':')[0], 10) || 18;
-      const lunchStart = settings.lunch_start || (settings as any).pause_start || '13:00';
-      const lunchEnd = settings.lunch_end || (settings as any).pause_end || '14:00';
+      const lunchStart = (settings.lunch_start || (settings as any).pause_start || '13:00').substring(0, 5);
+      const lunchEnd = (settings.lunch_end || (settings as any).pause_end || '14:00').substring(0, 5);
 
       const timeSlots: string[] = [];
       for (let h = startHour; h <= endHour; h++) {
@@ -334,20 +344,15 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
             
             <div class="flex-1 min-w-0 pb-2" data-slot-time="${slotTimeStr}">
               ${session ? createSessionCardHTML(session) : (isLunchSlot ? `
-                <div class="w-full h-16 rounded-2xl bg-amber-500/10 border-2 border-dashed border-amber-500/30 flex items-center justify-between px-6 text-amber-900 font-bold text-sm select-none">
-                  <div class="flex items-center gap-2.5">
-                    <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Pauză de masă</span>
-                  </div>
-                  <span class="text-xs font-black bg-amber-500/20 text-amber-900 px-3 py-1 rounded-full">${lunchStart} - ${lunchEnd}</span>
+                <div class="w-full h-14 rounded-2xl flex items-center justify-between px-5 select-none" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
+                  <span class="text-sm font-black text-pink-600/70">Pauză de masă</span>
+                  <span class="text-base font-black text-pink-700/70">${lunchStart} – ${lunchEnd}</span>
                 </div>
               ` : `
                 <button 
                   type="button"
                   class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
-                  onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', showDateTime: false } }))"
+                  onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', date: currentCalendarDate, showDateTime: false } }))"
                 >
                   + Adaugă ședință
                 </button>
@@ -362,6 +367,8 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
     window.addEventListener('patientsUpdated', renderTimeline);
     document.addEventListener('DOMContentLoaded', renderTimeline);
     document.addEventListener('astro:page-load', renderTimeline);
+    // Re-renderizează timeline când se schimbă orele de lucru sau pauza din Setări
+    window.addEventListener('settingsUpdated', renderTimeline);
 
     // ── Drag & drop: mută o programare (long-press apoi drag) ──────────────
     // Drop pe un slot orar din timeline → schimbă ora.

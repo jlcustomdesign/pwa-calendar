@@ -187,7 +187,20 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
 
 // ── Adăugare plată custom (PaymentSheet) ──────────────────────
 export async function addPayment(id: string, amount: number, markAchitat: boolean) {
-  // 1. Salvare plată direct în Supabase
+  // 1. Salvare instantanee în localStorage ca fallback
+  if (typeof window !== 'undefined') {
+    try {
+      const key = `kineto_plati_${id}`;
+      const existingStr = localStorage.getItem(key);
+      const existingArr = existingStr ? JSON.parse(existingStr) : [];
+      existingArr.push({ suma: amount, timestamp: Date.now() });
+      localStorage.setItem(key, JSON.stringify(existingArr));
+    } catch (e) {
+      console.warn('Eroare salvare plată local:', e);
+    }
+  }
+
+  // 2. Salvare plată direct în Supabase
   try {
     const { error } = await (supabase as any).from('plati').insert({
       pacient_id: id,
@@ -199,12 +212,12 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
     console.warn('Network or schema warning for Supabase plati:', err);
   }
 
-  // 2. Obținem suma totală achitată și costul pacientului din Supabase
+  // 3. Obținem suma totală achitată și costul pacientului
   const totalPaid = await getPatientPayments(id);
   const patient = await getPatient(id);
   const cost = patient?.cost || 0;
 
-  // 3. Dacă s-a atins costul total sau s-a cerut marcarea ca achitat, actualizăm statusul în Supabase
+  // 4. Actualizăm statusul în Supabase
   if (markAchitat || (cost > 0 && totalPaid >= cost)) {
     await (supabase as any).from('pacienti').update({ achitat: true }).eq('id', id);
   } else {
@@ -212,17 +225,49 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
   }
 }
 
-// ── Obținere plăți pacient din Supabase ────────────────────────
+// ── Reînnoire / Resetare pachet pacient (reia ședințele de la 0) ──
+export async function resetPatientSubscription(id: string, newTotalSessions?: number): Promise<void> {
+  const current = await getPatient(id);
+  const total = newTotalSessions ?? (current.sedinte_total || 10);
+  const { error } = await (supabase as any)
+    .from('pacienti')
+    .update({
+      sedinte_folosite: 0,
+      sedinte_total: total,
+      status_abonament: 'activ'
+    })
+    .eq('id', id);
+
+  if (error) throw new Error('Eroare la reînnoirea abonamentului: ' + error.message);
+}
+
+// ── Obținere plăți pacient (Local + Supabase Hybrid) ───────────
 export async function getPatientPayments(id: string): Promise<number> {
+  let localTotal = 0;
+  if (typeof window !== 'undefined') {
+    try {
+      const key = `kineto_plati_${id}`;
+      const existingStr = localStorage.getItem(key);
+      if (existingStr) {
+        const arr = JSON.parse(existingStr);
+        localTotal = arr.reduce((total: number, item: any) => total + (item.suma || 0), 0);
+      }
+    } catch (e) {
+      console.warn('Eroare citire plăți local:', e);
+    }
+  }
+
   try {
     const { data, error } = await (supabase as any).from('plati').select('suma').eq('pacient_id', id);
-    if (!error && data) {
-      return data.reduce((total: number, plata: any) => total + (plata.suma || 0), 0);
+    if (!error && data && data.length > 0) {
+      const dbTotal = data.reduce((total: number, plata: any) => total + (plata.suma || 0), 0);
+      return Math.max(localTotal, dbTotal);
     }
   } catch (e) {
     console.error('Eroare citire plăți Supabase:', e);
   }
-  return 0;
+
+  return localTotal;
 }
 
 

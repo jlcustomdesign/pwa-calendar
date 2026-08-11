@@ -495,7 +495,9 @@ FROM public.pacienti p;
 
 
 -- ============================================================
--- 12. ROW LEVEL SECURITY (RLS) — acces liber autentificat
+-- 12. ROW LEVEL SECURITY (RLS) — acces DOAR utilizator autentificat
+--     Cheia 'anon' (vizibilă în JS bundle) NU poate accesa datele
+--     fără o sesiune validă de autentificare.
 -- ============================================================
 ALTER TABLE public.profiles           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pacienti           ENABLE ROW LEVEL SECURITY;
@@ -505,36 +507,40 @@ ALTER TABLE public.notificari         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.istoric_saptamanal ENABLE ROW LEVEL SECURITY;
 
--- Politici permisive
-DROP POLICY IF EXISTS "acces propriul profil" ON public.profiles;
-CREATE POLICY "acces propriul profil" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+-- Profiles: fiecare utilizator vede/modifică doar propriul profil
+DROP POLICY IF EXISTS "profil propriu" ON public.profiles;
+CREATE POLICY "profil propriu" ON public.profiles
+  FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
-DROP POLICY IF EXISTS "admin acces total pacienti" ON public.pacienti;
-CREATE POLICY "admin acces total pacienti" ON public.pacienti FOR ALL USING (true) WITH CHECK (true);
+-- Pacienti: DOAR utilizator autentificat (terapeut logat)
+DROP POLICY IF EXISTS "doar autentificat pacienti" ON public.pacienti;
+CREATE POLICY "doar autentificat pacienti" ON public.pacienti
+  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "admin acces total programari" ON public.programari;
-CREATE POLICY "admin acces total programari" ON public.programari FOR ALL USING (true) WITH CHECK (true);
+-- Programari: DOAR utilizator autentificat
+DROP POLICY IF EXISTS "doar autentificat programari" ON public.programari;
+CREATE POLICY "doar autentificat programari" ON public.programari
+  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "admin acces total plati" ON public.plati;
-CREATE POLICY "admin acces total plati" ON public.plati FOR ALL USING (true) WITH CHECK (true);
+-- Plati: DOAR utilizator autentificat
+DROP POLICY IF EXISTS "doar autentificat plati" ON public.plati;
+CREATE POLICY "doar autentificat plati" ON public.plati
+  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "admin acces total notificari" ON public.notificari;
-CREATE POLICY "admin acces total notificari" ON public.notificari FOR ALL USING (true) WITH CHECK (true);
+-- Notificari: DOAR utilizator autentificat
+DROP POLICY IF EXISTS "doar autentificat notificari" ON public.notificari;
+CREATE POLICY "doar autentificat notificari" ON public.notificari
+  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "citire publica settings" ON public.settings;
-CREATE POLICY "citire publica settings" ON public.settings FOR SELECT USING (true);
+-- Settings: citire + scriere DOAR autentificat
+DROP POLICY IF EXISTS "doar autentificat settings" ON public.settings;
+CREATE POLICY "doar autentificat settings" ON public.settings
+  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "admin modificare settings" ON public.settings;
-CREATE POLICY "admin modificare settings" ON public.settings FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "admin citire istoric" ON public.istoric_saptamanal;
-CREATE POLICY "admin citire istoric" ON public.istoric_saptamanal FOR SELECT USING (true);
-
--- Permite adăugare și citire liberă pe pacienți, programări, plăți și setări
-ALTER TABLE public.pacienti DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.programari DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.plati DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.settings DISABLE ROW LEVEL SECURITY;
+-- Istoric: citire DOAR autentificat (scriere din cron server-side)
+DROP POLICY IF EXISTS "doar autentificat istoric" ON public.istoric_saptamanal;
+CREATE POLICY "doar autentificat istoric" ON public.istoric_saptamanal
+  FOR SELECT USING (auth.role() = 'authenticated');
 
 -- ============================================================
 -- SFÂRȘIT SCHEMA COMPLETE SUPABASE

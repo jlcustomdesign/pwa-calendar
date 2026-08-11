@@ -493,6 +493,27 @@
         initReportsView();
       }
     });
+
+    // Actualizare automată statistici la orice acțiune din aplicație
+    window.addEventListener('sessionsUpdated', () => {
+      if (document.getElementById('reports-tabs-container')) {
+        loadTodayStats();
+        loadReportStats();
+      }
+    });
+    window.addEventListener('patientsUpdated', () => {
+      if (document.getElementById('reports-tabs-container')) {
+        loadTodayStats();
+        loadReportStats();
+      }
+    });
+    window.addEventListener('paymentsUpdated', () => {
+      if (document.getElementById('reports-tabs-container')) {
+        loadTodayStats();
+        loadReportStats();
+      }
+    });
+
     (window as any)._reportsNavSetup = true;
   }
 </script>

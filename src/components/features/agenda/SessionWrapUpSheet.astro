@@ -10,46 +10,43 @@
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
-      <div>
-        <h2 class="text-2xl font-black tracking-tight text-text-main">Finalizează ședința</h2>
-        <p class="text-text-muted font-bold text-sm mt-0.5" id="wrapup-subtitle">Confirmă detaliile și programează săptămâna viitoare</p>
-      </div>
-      <button type="button" id="wrapup-close-btn" class="w-9 h-9 rounded-full bg-surface-base hover:bg-black/10 text-text-muted font-bold text-lg flex items-center justify-center transition-colors">
+      <h2 class="text-xl sm:text-2xl font-black tracking-tight text-neutral-900">Finalizează ședința</h2>
+      <button type="button" id="wrapup-close-btn" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 font-bold text-base flex items-center justify-center transition-colors">
         &times;
       </button>
     </div>
 
-    <!-- Patient & Session Summary Card -->
-    <div class="mb-5 bg-surface-base/80 p-4 rounded-2xl border border-border-subtle/70 flex items-center justify-between">
+    <!-- Patient & Session Summary Card (Lean & Essential) -->
+    <div class="mb-5 bg-neutral-100/90 p-4 rounded-2xl border border-neutral-200/80 flex items-center justify-between">
       <div>
-        <div class="font-extrabold text-text-main text-lg" id="wrapup-patient-name">Se încarcă…</div>
-        <div class="text-text-muted font-bold text-xs mt-0.5" id="wrapup-session-details">
+        <div class="font-black text-neutral-900 text-base sm:text-lg" id="wrapup-patient-name">Se încarcă…</div>
+        <div class="text-neutral-900 font-extrabold text-sm sm:text-base mt-1" id="wrapup-session-details">
           Ședința de azi • 08:00
         </div>
       </div>
       <div class="text-right">
-        <div class="text-[10px] font-extrabold uppercase tracking-wider text-text-muted">Ședințe efectuate</div>
-        <div class="text-base font-black text-brand-secondary leading-tight" id="wrapup-session-count">-- / --</div>
+        <div class="text-[11px] font-black uppercase tracking-wider text-neutral-800">Ședințe</div>
+        <div class="text-base font-black text-rose-600 leading-tight" id="wrapup-session-count">-- / --</div>
       </div>
     </div>
 
     <!-- Subscription Alert (if total sessions reached or near end) -->
-    <div id="wrapup-subscription-alert" class="hidden mb-5 p-4 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-900 text-sm font-bold flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <svg class="w-6 h-6 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div id="wrapup-subscription-alert" class="hidden mb-5 p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs sm:text-sm font-bold flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
-        <span>Abonament aproape finalizat!</span>
+        <span>Abonament completat!</span>
       </div>
-      <button type="button" id="btn-renew-package" class="px-3 py-1.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs shadow-sm hover:brightness-105 active:scale-95 transition-all">
-        + Reînnoiește pachet
+      <button type="button" id="btn-renew-package" class="px-3 py-1.5 rounded-xl bg-amber-400 text-black font-black text-xs shadow-sm hover:brightness-105 active:scale-95 transition-all">
+        + Reînnoiește
       </button>
     </div>
 
-    <!-- Section 1: Next Week Recurrence Selection -->
+    <!-- Section 1: Next Week Recurrence Selection (Lean) -->
     <div class="space-y-3 mb-6">
-      <label class="block text-base font-extrabold text-text-main">
-        📅 Dorești programare și pe săptămâna viitoare?
+      <label class="block text-sm sm:text-base font-black text-neutral-900">
+        Programezi și săptămâna viitoare?
       </label>
       
       <div class="grid grid-cols-1 gap-2.5" id="recurrence-options-container">
@@ -57,15 +54,15 @@
         <button 
           type="button" 
           data-recurrence-option="same" 
-          class="w-full p-4 rounded-2xl border-2 border-brand-secondary bg-brand-secondary/10 text-text-main font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
+          class="w-full p-4 rounded-2xl border-2 border-rose-500 bg-rose-500/10 text-neutral-900 font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
         >
           <div class="flex items-center gap-3">
-            <div class="w-5 h-5 rounded-full border-2 border-brand-secondary bg-brand-secondary flex items-center justify-center text-white shrink-0">
+            <div class="w-5 h-5 rounded-full border-2 border-rose-500 bg-rose-500 flex items-center justify-center text-white shrink-0">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
             </div>
             <div class="text-left">
-              <div class="font-extrabold text-sm sm:text-base text-text-main" id="wrapup-same-slot-label">Da, lunea viitoare la 08:00</div>
-              <div class="text-xs font-semibold text-text-muted mt-0.5" id="wrapup-same-slot-date">+7 zile mai târziu</div>
+              <div class="font-black text-sm sm:text-base text-neutral-900" id="wrapup-same-slot-label">Da, marți viitoare la 08:00</div>
+              <div class="text-xs font-bold text-neutral-500 mt-0.5" id="wrapup-same-slot-date">+7 zile mai târziu</div>
             </div>
           </div>
         </button>
@@ -74,15 +71,14 @@
         <button 
           type="button" 
           data-recurrence-option="custom" 
-          class="w-full p-4 rounded-2xl border border-border-subtle bg-surface-base/50 hover:bg-surface-base text-text-main font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
+          class="w-full p-4 rounded-2xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-900 font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
         >
           <div class="flex items-center gap-3">
-            <div class="w-5 h-5 rounded-full border-2 border-text-muted/40 flex items-center justify-center shrink-0">
+            <div class="w-5 h-5 rounded-full border-2 border-neutral-300 flex items-center justify-center shrink-0">
               <div class="w-2 h-2 rounded-full bg-transparent"></div>
             </div>
             <div class="text-left">
-              <div class="font-extrabold text-sm sm:text-base text-text-main">Altă zi / altă oră săptămâna viitoare</div>
-              <div class="text-xs font-semibold text-text-muted mt-0.5">Alege manual din calendar</div>
+              <div class="font-black text-sm sm:text-base text-neutral-900">Altă zi / altă oră</div>
             </div>
           </div>
         </button>
@@ -91,47 +87,81 @@
         <button 
           type="button" 
           data-recurrence-option="none" 
-          class="w-full p-4 rounded-2xl border border-border-subtle bg-surface-base/50 hover:bg-surface-base text-text-main font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
+          class="w-full p-4 rounded-2xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-900 font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
         >
           <div class="flex items-center gap-3">
-            <div class="w-5 h-5 rounded-full border-2 border-text-muted/40 flex items-center justify-center shrink-0">
+            <div class="w-5 h-5 rounded-full border-2 border-neutral-300 flex items-center justify-center shrink-0">
               <div class="w-2 h-2 rounded-full bg-transparent"></div>
             </div>
             <div class="text-left">
-              <div class="font-extrabold text-sm sm:text-base text-text-main">Nu, doar confirmă ședința curentă</div>
-              <div class="text-xs font-semibold text-text-muted mt-0.5">Nu creează nicio altă programare</div>
+              <div class="font-black text-sm sm:text-base text-neutral-900">Nu, doar confirmă</div>
             </div>
           </div>
         </button>
       </div>
     </div>
 
-    <!-- Custom Date/Time Selectors (Hidden by default, shown if Custom option selected) -->
-    <div id="wrapup-custom-datetime-box" class="hidden mb-6 p-4 rounded-2xl bg-surface-base border border-border-subtle space-y-3">
-      <div class="text-xs font-black uppercase text-text-muted">Alege data și ora pentru săptămâna viitoare</div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-bold text-text-muted mb-1">Data</label>
-          <input type="date" id="wrapup-custom-date" class="w-full px-3 py-2.5 rounded-xl border border-border-subtle bg-white font-bold text-sm text-text-main focus:outline-none focus:border-brand-secondary" />
+    <!-- Custom Date/Time Selectors (Romanian Calendar Inline) -->
+    <div id="wrapup-custom-datetime-box" class="hidden mb-6 p-4 rounded-2xl bg-neutral-50 border border-neutral-200/90 space-y-3.5 shadow-sm">
+      <div class="text-xs font-black uppercase tracking-wider text-neutral-800">Alege data și ora pentru săptămâna viitoare</div>
+      
+      <!-- Romanian Calendar -->
+      <div class="space-y-3 bg-white p-3 rounded-2xl border border-neutral-200/60">
+        <!-- Month Header -->
+        <div class="flex items-center justify-between px-1">
+          <button type="button" id="wrapup-cal-prev" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center font-bold text-neutral-700 text-sm active:scale-95 transition-all cursor-pointer">
+            &larr;
+          </button>
+          <div id="wrapup-cal-month-title" class="font-black text-sm text-neutral-900">August 2026</div>
+          <button type="button" id="wrapup-cal-next" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center font-bold text-neutral-700 text-sm active:scale-95 transition-all cursor-pointer">
+            &rarr;
+          </button>
         </div>
-        <div>
-          <label class="block text-xs font-bold text-text-muted mb-1">Ora</label>
-          <input type="time" id="wrapup-custom-time" value="08:00" class="w-full px-3 py-2.5 rounded-xl border border-border-subtle bg-white font-bold text-sm text-text-main focus:outline-none focus:border-brand-secondary" />
+
+        <!-- Romanian Weekday Headers (L M M J V S D) -->
+        <div class="grid grid-cols-7 text-center">
+          <span class="text-xs font-black text-neutral-700">L</span>
+          <span class="text-xs font-black text-neutral-700">M</span>
+          <span class="text-xs font-black text-neutral-700">M</span>
+          <span class="text-xs font-black text-neutral-700">J</span>
+          <span class="text-xs font-black text-neutral-700">V</span>
+          <span class="text-xs font-black text-neutral-700">S</span>
+          <span class="text-xs font-black text-neutral-700">D</span>
+        </div>
+
+        <!-- Days Grid -->
+        <div id="wrapup-cal-days-grid" class="grid grid-cols-7 gap-1">
+          <!-- Populated by JS -->
         </div>
       </div>
+
+      <!-- Custom Time Selector Grid (Hours 07-18 + Minutes 00, 15, 30, 45) -->
+      <div class="pt-2.5 border-t border-neutral-200/60 space-y-3">
+        <div>
+          <label class="text-xs font-black uppercase tracking-wider text-neutral-800 block px-1 mb-1.5">Ora:</label>
+          <div id="wrapup-hours-grid" class="grid grid-cols-4 gap-1.5">
+            <!-- Populated by JS: 07 to 18 -->
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-black uppercase tracking-wider text-neutral-800 block px-1 mb-1.5">Minute:</label>
+          <div id="wrapup-minutes-grid" class="grid grid-cols-4 gap-1.5">
+            <!-- Populated by JS: 00, 15, 30, 45 -->
+          </div>
+        </div>
+        <input type="hidden" id="wrapup-custom-time" value="08:00" />
+      </div>
+      <input type="hidden" id="wrapup-custom-date" />
     </div>
 
-    <!-- Submit Action Button -->
+    <!-- Submit Action Button (Without Check Icon) -->
     <div class="pt-2">
       <button 
         type="button" 
         id="btn-confirm-wrapup" 
-        class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-lg shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+        class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-lg shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
       >
         <span>Confirmă ședința</span>
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-        </svg>
       </button>
     </div>
   </div>
@@ -151,6 +181,11 @@
 
     private nextWeekDateStr: string = '';
     private nextWeekDayName: string = '';
+    private pickerMonth: Date = new Date();
+    private selectedCustomDateStr: string = '';
+    private selectedCustomHour: string = '08';
+    private selectedCustomMinute: string = '00';
+    private selectedCustomTimeStr: string = '08:00';
 
     constructor() {
       this.sheet = document.getElementById('session-wrapup-sheet');
@@ -171,6 +206,16 @@
 
       this.backdrop?.addEventListener('click', () => this.close());
       document.getElementById('wrapup-close-btn')?.addEventListener('click', () => this.close());
+
+      // Calendar month navigation
+      document.getElementById('wrapup-cal-prev')?.addEventListener('click', () => {
+        this.pickerMonth.setMonth(this.pickerMonth.getMonth() - 1);
+        this.renderCustomCalendar();
+      });
+      document.getElementById('wrapup-cal-next')?.addEventListener('click', () => {
+        this.pickerMonth.setMonth(this.pickerMonth.getMonth() + 1);
+        this.renderCustomCalendar();
+      });
 
       // Handle Recurrence option selection
       const optionsContainer = document.getElementById('recurrence-options-container');
@@ -215,6 +260,8 @@
       const timeStr = appt.ora || appt.selectedTime || '08:00';
       const dateStr = appt.data || appt.selectedDate || new Date().toISOString().split('T')[0];
 
+      const cleanTime = (timeStr || '08:00').substring(0, 5);
+
       // Calculate next week date (+7 days)
       const currentDateObj = new Date(dateStr + 'T00:00:00');
       const nextWeekObj = new Date(currentDateObj);
@@ -224,7 +271,8 @@
       const dayName = nextWeekObj.toLocaleDateString('ro-RO', { weekday: 'long' });
       this.nextWeekDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
-      const formattedNextDate = `${this.nextWeekDayName}, ${nextWeekObj.getDate()} ${nextWeekObj.toLocaleDateString('ro-RO', { month: 'short' })}`;
+      const nextWeekMonthFull = nextWeekObj.toLocaleDateString('ro-RO', { month: 'long' });
+      const formattedNextDate = `${this.nextWeekDayName}, ${nextWeekObj.getDate()} ${nextWeekMonthFull}, ora ${cleanTime}`;
 
       // Populate UI
       const nameEl = document.getElementById('wrapup-patient-name');
@@ -233,21 +281,34 @@
       const sameSlotLabel = document.getElementById('wrapup-same-slot-label');
       const sameSlotDate = document.getElementById('wrapup-same-slot-date');
 
+      const sessionDateObj = new Date(dateStr + 'T00:00:00');
+      const sessionDayFull = sessionDateObj.toLocaleDateString('ro-RO', { weekday: 'long' });
+      const sessionDayCapitalized = sessionDayFull.charAt(0).toUpperCase() + sessionDayFull.slice(1);
+      const sessionMonthFull = sessionDateObj.toLocaleDateString('ro-RO', { month: 'long' });
+      const sessionDateFormatted = `${sessionDayCapitalized}, ${sessionDateObj.getDate()} ${sessionMonthFull}, ora ${cleanTime}`;
+
       if (nameEl) nameEl.textContent = patientName;
-      if (detailsEl) detailsEl.textContent = `Ședință ${dateStr} • ora ${timeStr}`;
+      if (detailsEl) detailsEl.textContent = sessionDateFormatted;
       
       const folosite = (appt.pacienti?.sedinte_folosite ?? 0) + 1; // including today
       const total = appt.pacienti?.sedinte_total || 10;
       if (countEl) countEl.textContent = `${folosite} / ${total}`;
 
-      if (sameSlotLabel) sameSlotLabel.textContent = `Da, ${this.nextWeekDayName.toLowerCase()} viitoare la ${timeStr}`;
-      if (sameSlotDate) sameSlotDate.textContent = `Data: ${formattedNextDate}`;
+      if (sameSlotLabel) sameSlotLabel.textContent = 'Da, peste o săptămână';
+      if (sameSlotDate) sameSlotDate.textContent = formattedNextDate;
 
       // Set custom date picker default to next week
+      this.pickerMonth = new Date(nextWeekObj);
+      const timeParts = cleanTime.split(':');
+      this.selectedCustomHour = timeParts[0] || '08';
+      this.selectedCustomMinute = timeParts[1] || '00';
+
       const customDateInput = document.getElementById('wrapup-custom-date') as HTMLInputElement;
-      const customTimeInput = document.getElementById('wrapup-custom-time') as HTMLInputElement;
       if (customDateInput) customDateInput.value = this.nextWeekDateStr;
-      if (customTimeInput) customTimeInput.value = timeStr;
+      this.updateCustomTimeValue();
+
+      this.renderCustomCalendar();
+      this.renderTimeSelectors();
 
       // Show subscription warning if needed
       const alertEl = document.getElementById('wrapup-subscription-alert');
@@ -261,6 +322,141 @@
 
       // Default option reset to "same"
       this.setRecurrenceOption('same');
+    }
+
+    private updateCustomTimeValue() {
+      const customTimeInput = document.getElementById('wrapup-custom-time') as HTMLInputElement;
+      if (customTimeInput) {
+        customTimeInput.value = `${this.selectedCustomHour}:${this.selectedCustomMinute}`;
+      }
+    }
+
+    private renderTimeSelectors() {
+      const hoursGrid = document.getElementById('wrapup-hours-grid');
+      const minutesGrid = document.getElementById('wrapup-minutes-grid');
+
+      const hours = ['07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18'];
+      const minutes = ['00', '15', '30', '45'];
+
+      if (hoursGrid) {
+        let hHtml = '';
+        hours.forEach(h => {
+          const isSelected = h === this.selectedCustomHour;
+          let btnClass = "py-2 px-2.5 rounded-xl font-black text-xs transition-all active:scale-95 text-center cursor-pointer ";
+          if (isSelected) {
+            btnClass += "bg-black text-white shadow-sm scale-105";
+          } else {
+            btnClass += "bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-200/70";
+          }
+          hHtml += `<button type="button" class="${btnClass}" data-hour="${h}">${h}:00</button>`;
+        });
+        hoursGrid.innerHTML = hHtml;
+
+        hoursGrid.querySelectorAll<HTMLButtonElement>('[data-hour]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const h = btn.getAttribute('data-hour');
+            if (h) {
+              this.selectedCustomHour = h;
+              this.updateCustomTimeValue();
+              this.renderTimeSelectors();
+            }
+          });
+        });
+      }
+
+      if (minutesGrid) {
+        let mHtml = '';
+        minutes.forEach(m => {
+          const isSelected = m === this.selectedCustomMinute;
+          let btnClass = "py-2 px-2.5 rounded-xl font-black text-xs transition-all active:scale-95 text-center cursor-pointer ";
+          if (isSelected) {
+            btnClass += "bg-black text-white shadow-sm scale-105";
+          } else {
+            btnClass += "bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-200/70";
+          }
+          mHtml += `<button type="button" class="${btnClass}" data-min="${m}">:${m}</button>`;
+        });
+        minutesGrid.innerHTML = mHtml;
+
+        minutesGrid.querySelectorAll<HTMLButtonElement>('[data-min]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const m = btn.getAttribute('data-min');
+            if (m) {
+              this.selectedCustomMinute = m;
+              this.updateCustomTimeValue();
+              this.renderTimeSelectors();
+            }
+          });
+        });
+      }
+    }
+
+    private renderCustomCalendar() {
+      const year = this.pickerMonth.getFullYear();
+      const month = this.pickerMonth.getMonth();
+
+      const monthTitle = document.getElementById('wrapup-cal-month-title');
+      if (monthTitle) {
+        const mName = this.pickerMonth.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+        monthTitle.textContent = mName.charAt(0).toUpperCase() + mName.slice(1);
+      }
+
+      const daysGrid = document.getElementById('wrapup-cal-days-grid');
+      if (!daysGrid) return;
+
+      const firstDayOfMonth = new Date(year, month, 1);
+      const lastDayOfMonth = new Date(year, month + 1, 0);
+
+      // Shift for Monday start: (day + 6) % 7
+      const startDayIndex = (firstDayOfMonth.getDay() + 6) % 7;
+      const totalDays = lastDayOfMonth.getDate();
+
+      let html = '';
+      for (let i = 0; i < startDayIndex; i++) {
+        html += `<div></div>`;
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      for (let day = 1; day <= totalDays; day++) {
+        const dateObj = new Date(year, month, day);
+        const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 6 = Saturday
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+        const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isSelected = dStr === this.selectedCustomDateStr;
+        const isToday = dStr === todayStr;
+
+        let dayClass = "w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs transition-all cursor-pointer mx-auto ";
+        let styleAttr = "";
+
+        if (isSelected) {
+          dayClass += "bg-rose-500 text-white shadow-sm scale-105";
+        } else if (isToday) {
+          dayClass += "bg-amber-100 text-amber-900 border border-amber-300";
+        } else if (isWeekend) {
+          dayClass += "text-neutral-400 opacity-70 hover:opacity-100";
+          styleAttr = `style="background: repeating-linear-gradient(45deg, rgba(0,0,0,0.07), rgba(0,0,0,0.07) 3px, transparent 3px, transparent 6px);"`;
+        } else {
+          dayClass += "hover:bg-neutral-200 text-neutral-800";
+        }
+
+        html += `<button type="button" class="${dayClass}" ${styleAttr} data-date="${dStr}">${day}</button>`;
+      }
+
+      daysGrid.innerHTML = html;
+
+      daysGrid.querySelectorAll<HTMLButtonElement>('[data-date]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const d = btn.getAttribute('data-date');
+          if (d) {
+            this.selectedCustomDateStr = d;
+            const customDateInput = document.getElementById('wrapup-custom-date') as HTMLInputElement;
+            if (customDateInput) customDateInput.value = d;
+            this.renderCustomCalendar();
+          }
+        });
+      });
     }
 
     private setRecurrenceOption(option: 'same' | 'custom' | 'none') {

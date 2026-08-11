@@ -425,6 +425,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 <script>
   import { getSettings as getSettingsDB, saveSettings as saveSettingsDB, getProfile, saveProfile } from '../../../lib/services/settingsService';
   import { exportPatientsCSV } from '../../../lib/services/patientService';
+  import { setSettingsCache } from '../../../lib/store';
 
   async function initSubSectionLogic() {
     // Oprire/blocare scroll pagină dacă este deschisă o sub-categorie
@@ -834,8 +835,9 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       const section = params.get('section');
 
       try {
+        let savedSettings: any = null;
+
         if (section === 'profile') {
-          // Salvează în tabela `profiles`
           await saveProfile({
             display_name: inputName?.value || undefined,
             telefon:      inputPhone?.value || undefined,
@@ -847,27 +849,27 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
             .map((chip, i) => chip.getAttribute('data-active') === 'true' ? i + 1 : null)
             .filter((v): v is number => v !== null);
 
-          await saveSettingsDB({
+          savedSettings = await saveSettingsDB({
             zile_lucratoare: activeChips,
             work_start: inputWorkStart?.value || '08:00',
             work_end:   inputWorkEnd?.value   || '19:00',
           });
 
         } else if (section === 'break') {
-          await saveSettingsDB({
+          savedSettings = await saveSettingsDB({
             lunch_start: inputBreakStart?.value || '13:00',
             lunch_end:   inputBreakEnd?.value   || '14:00',
           });
 
         } else if (section === 'packages') {
-          await saveSettingsDB({
+          savedSettings = await saveSettingsDB({
             session_duration: parseInt(inputDuration?.value    || '50',  10),
             break_buffer:     parseInt(inputBreakBetween?.value || '10', 10),
             default_price:    parseFloat(inputPrice?.value    || '150'),
           });
 
         } else if (section === 'reminders') {
-          await saveSettingsDB({
+          savedSettings = await saveSettingsDB({
             whatsapp_template: txtTemplate?.value || '',
             reminder_threshold: cbLastSession?.checked ? 2 : 0,
           });
@@ -875,7 +877,12 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
         } else if (section === 'categories') {
           const catEls = document.querySelectorAll('[data-category-chip]');
           const currentCats = Array.from(catEls).map(el => el.getAttribute('data-category-chip') || '').filter(Boolean);
-          await saveSettingsDB({ categories: currentCats });
+          savedSettings = await saveSettingsDB({ categories: currentCats });
+        }
+
+        // Notifică toate componentele că settings s-au schimbat
+        if (savedSettings) {
+          setSettingsCache(savedSettings);
         }
 
         showToast('Setările au fost salvate cu succes!');

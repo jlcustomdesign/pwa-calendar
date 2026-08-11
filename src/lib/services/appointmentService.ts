@@ -54,7 +54,7 @@ export async function getAppointmentsByDate(date: string): Promise<Programare[]>
     .from('programari')
     .select(`
       *,
-      pacienti ( prenume, nume, telefon, locatie, sedinte_ramase, status_abonament, sedinte_folosite, sedinte_total, achitat, cost )
+      pacienti ( prenume, nume, telefon, locatie, status_abonament, sedinte_folosite, sedinte_total, achitat, cost )
     `)
     .eq('data', date)
     .order('ora', { ascending: true });
@@ -119,9 +119,17 @@ export async function createAppointment(input: {
   return data.id;
 }
 
-// ── Finalizare sesiune (SessionWrapUpSheet → Save & Close) ────
-// Triggerul `incrementeaza_sedinte_folosite` rulează automat
 export async function completeSession(id: string, note?: string) {
+  // 1. Obținem programarea pentru pacient_id
+  let patientId: string | null = null;
+  try {
+    const { data: appt } = await (supabase as any).from('programari').select('pacient_id').eq('id', id).single();
+    if (appt) patientId = appt.pacient_id;
+  } catch (e) {
+    console.warn('completeSession fetch appt error:', e);
+  }
+
+  // 2. Marcăm ședința ca finalizată
   const { error } = await (supabase as any)
     .from('programari')
     .update({ status: 'finalizat', note: note ?? null })
@@ -130,6 +138,21 @@ export async function completeSession(id: string, note?: string) {
   if (error) {
     console.error('completeSession error:', error, { id });
     throw new Error('Eroare la finalizarea sesiunii: ' + (error.message || JSON.stringify(error)));
+  }
+
+  // 3. Incrementăm direct sedinte_folosite pe pacient în DB (garanție 100% că se umple bara pacientului)
+  if (patientId) {
+    try {
+      const { data: p } = await (supabase as any).from('pacienti').select('sedinte_folosite, sedinte_total').eq('id', patientId).single();
+      if (p) {
+        const currentUsed = p.sedinte_folosite ?? 0;
+        const total = p.sedinte_total || 10;
+        const nextUsed = Math.min(total, currentUsed + 1);
+        await (supabase as any).from('pacienti').update({ sedinte_folosite: nextUsed }).eq('id', patientId);
+      }
+    } catch (e) {
+      console.warn('Direct sedinte_folosite update error:', e);
+    }
   }
 }
 

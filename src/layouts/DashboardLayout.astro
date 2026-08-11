@@ -245,7 +245,7 @@ const { title, hideDock = false } = Astro.props;
         (window as any).deleteSession = async (input: string | HTMLElement) => {
           const sessionId = resolveSessionId(input);
           if (!sessionId) return;
-          const confirmed = await (window as any).showConfirm('Ștergere Programare', 'Sigur vrei să ștergi această programare?');
+          const confirmed = await (window as any).showConfirm('Ștergere programare', 'Sigur vrei să ștergi această programare?');
           if (!confirmed) return;
           try {
             await deleteAppointment(sessionId);
@@ -259,7 +259,7 @@ const { title, hideDock = false } = Astro.props;
         (window as any).cancelSession = async (input: string | HTMLElement) => {
           const sessionId = resolveSessionId(input);
           if (!sessionId) return;
-          const confirmed = await (window as any).showConfirm('Anulare Programare', 'Sigur vrei să marchezi această programare ca anulată/absent?');
+          const confirmed = await (window as any).showConfirm('Anulare programare', 'Sigur vrei să marchezi această programare ca anulată/absent?');
           if (!confirmed) return;
           try {
             await markAbsent(sessionId, 'Anulat de la card');

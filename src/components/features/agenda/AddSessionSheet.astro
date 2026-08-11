@@ -54,8 +54,52 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           <!-- Populated by JS -->
         </div>
 
-        <div id="patient-subscription-warning" class="hidden mt-3 px-4 py-3 rounded-2xl bg-rose-100 text-rose-900 text-sm font-bold leading-snug">
-          Abonament terminat — pacientul a efectuat toate ședințele și trebuie să reînnoiască pachetul.
+        <div id="patient-subscription-warning" class="hidden mt-3 px-4 py-3 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black leading-snug uppercase tracking-wider text-center border border-black/5 shadow-md">
+          Abonament terminat
+        </div>
+
+        <!-- Buton pacient nou -->
+        <button
+          type="button"
+          id="btn-show-new-patient"
+          class="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-full border-2 border-dashed border-brand-secondary/40 text-brand-secondary font-bold text-sm hover:border-brand-secondary hover:bg-brand-secondary/5 transition-all active:scale-[0.98]"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+          </svg>
+          Pacient nou
+        </button>
+
+        <!-- Mini-form pacient nou (ascuns implicit) -->
+        <div id="new-patient-form" class="hidden mt-3 p-4 rounded-3xl bg-surface-base border border-border-subtle space-y-3">
+          <p class="text-sm font-black text-text-main">Date pacient nou</p>
+          <input type="text" id="new-patient-prenume" placeholder="Prenume *"
+            class="w-full px-4 py-3 rounded-2xl border-2 border-border-subtle bg-white text-sm font-bold focus:outline-none focus:border-brand-secondary transition-all"/>
+          <input type="text" id="new-patient-nume" placeholder="Nume *"
+            class="w-full px-4 py-3 rounded-2xl border-2 border-border-subtle bg-white text-sm font-bold focus:outline-none focus:border-brand-secondary transition-all"/>
+          <input type="tel" id="new-patient-telefon" placeholder="Telefon *"
+            class="w-full px-4 py-3 rounded-2xl border-2 border-border-subtle bg-white text-sm font-bold focus:outline-none focus:border-brand-secondary transition-all"/>
+          <div class="grid grid-cols-2 gap-3">
+            <input type="number" id="new-patient-cost" placeholder="Cost/pachet (RON)"
+              class="w-full px-4 py-3 rounded-2xl border-2 border-border-subtle bg-white text-sm font-bold focus:outline-none focus:border-brand-secondary transition-all" min="0"/>
+            <input type="number" id="new-patient-sedinte" placeholder="Nr. ședințe"
+              class="w-full px-4 py-3 rounded-2xl border-2 border-border-subtle bg-white text-sm font-bold focus:outline-none focus:border-brand-secondary transition-all" min="1"/>
+          </div>
+          <select id="new-patient-locatie"
+            class="w-full px-4 py-3 rounded-2xl border-2 border-border-subtle bg-white text-sm font-bold focus:outline-none focus:border-brand-secondary transition-all">
+            <option value="Belaqva">Belaqva</option>
+            <option value="Ghimbav">Ghimbav</option>
+          </select>
+          <div class="flex gap-2 pt-1">
+            <button type="button" id="btn-cancel-new-patient"
+              class="flex-1 py-3 rounded-2xl border border-border-subtle text-sm font-bold text-text-muted hover:bg-surface-base transition-all active:scale-[0.98]">
+              Anulează
+            </button>
+            <button type="button" id="btn-save-new-patient"
+              class="flex-1 py-3 rounded-2xl bg-brand-secondary text-white text-sm font-bold hover:opacity-90 transition-all active:scale-[0.98]">
+              Salvează pacient
+            </button>
+          </div>
         </div>
       </div>
 
@@ -192,7 +236,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 <script>
   import { getSettings } from '../../../utils/settings';
 
-  import { getPatients } from '../../../lib/services/patientService';
+  import { getPatients, getPatient, addPatient, updatePatient } from '../../../lib/services/patientService';
   import { createAppointment, updateAppointment, countPatientWeekAppointments } from '../../../lib/services/appointmentService';
 
   class AddSessionSheetManager {
@@ -368,6 +412,82 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       document.body.appendChild(this.overlay);
 
       this.overlay.addEventListener('click', () => this.close());
+
+      // ── Inline new patient form ──────────────────────────────
+      const btnShowNew    = document.getElementById('btn-show-new-patient');
+      const btnCancelNew  = document.getElementById('btn-cancel-new-patient');
+      const btnSaveNew    = document.getElementById('btn-save-new-patient');
+      const newPatientForm = document.getElementById('new-patient-form');
+
+      btnShowNew?.addEventListener('click', () => {
+        newPatientForm?.classList.toggle('hidden');
+        btnShowNew.textContent = newPatientForm?.classList.contains('hidden') ? '+ Pacient nou' : '✕ Anulează';
+      });
+
+      btnCancelNew?.addEventListener('click', () => {
+        newPatientForm?.classList.add('hidden');
+        if (btnShowNew) btnShowNew.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg> Pacient nou`;
+      });
+
+      btnSaveNew?.addEventListener('click', async () => {
+        const prenume = (document.getElementById('new-patient-prenume') as HTMLInputElement)?.value.trim();
+        const nume    = (document.getElementById('new-patient-nume') as HTMLInputElement)?.value.trim();
+        const telefon = (document.getElementById('new-patient-telefon') as HTMLInputElement)?.value.trim();
+        const cost    = parseFloat((document.getElementById('new-patient-cost') as HTMLInputElement)?.value || '0');
+        const sedinte = parseInt((document.getElementById('new-patient-sedinte') as HTMLInputElement)?.value || '10', 10);
+        const locatie = (document.getElementById('new-patient-locatie') as HTMLSelectElement)?.value as 'Belaqva' | 'Ghimbav';
+
+        if (!prenume || !telefon) {
+          (window as any).showToast?.('Prenumele și telefonul sunt obligatorii.', 'warning');
+          return;
+        }
+
+        const fullName = `${prenume} ${nume}`.trim();
+
+        if (btnSaveNew) { btnSaveNew.disabled = true; btnSaveNew.textContent = 'Se salvează…'; }
+        try {
+          const newPatientId = await addPatient({
+            name: fullName, telefon, locatie,
+            plan: 'Subscription', cost, frecventa: '1/week', sedinte_total: sedinte
+          });
+
+          // Notifică toate paginile
+          window.dispatchEvent(new CustomEvent('patientsUpdated'));
+
+          // Reîncarcă lista pacienților
+          await this.populatePatients();
+
+          // Auto-selectează noul pacient creat
+          this.selectedPatientId = newPatientId;
+          const radio = this.form?.querySelector(`input[name="patientId"][value="${newPatientId}"]`) as HTMLInputElement | null;
+          if (radio) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+
+          const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
+          if (searchInput) {
+            searchInput.value = fullName;
+            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+
+          // Ascunde form-ul
+          newPatientForm?.classList.add('hidden');
+          if (btnShowNew) btnShowNew.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg> Pacient nou`;
+
+          // Resetează câmpurile
+          ['new-patient-prenume','new-patient-nume','new-patient-telefon','new-patient-cost','new-patient-sedinte'].forEach(id => {
+            const el = document.getElementById(id) as HTMLInputElement;
+            if (el) el.value = '';
+          });
+
+          (window as any).showToast?.(`Pacientul ${fullName} a fost adăugat cu succes!`, 'success');
+        } catch (err: any) {
+          (window as any).showToast?.('Eroare la adăugare pacient: ' + (err.message || err), 'error');
+        } finally {
+          if (btnSaveNew) { btnSaveNew.disabled = false; btnSaveNew.textContent = 'Salvează pacient'; }
+        }
+      });
     }
 
     updateCustomTimeDisplay(totalMinutes: number) {
@@ -810,6 +930,20 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           });
           (window as any).showToast('Programarea a fost modificată cu succes.', 'success');
         } else {
+          // Dacă pacientul are pachetul terminat, extindem automat pachetul ÎNAINTE de a crea noua programare
+          try {
+            const patient = await getPatient(patientId);
+            const folosite = patient?.sedinte_folosite ?? 0;
+            const totalSess = patient?.sedinte_total ?? 0;
+            if (totalSess > 0 && folosite >= totalSess) {
+              const addition = totalSess === 1 ? 1 : 10;
+              await updatePatient(patientId, { sedinte_total: totalSess + addition });
+              window.dispatchEvent(new CustomEvent('patientsUpdated'));
+            }
+          } catch (extErr) {
+            console.error('Eroare extindere pachet:', extErr);
+          }
+
           await createAppointment({
             pacient_id: patientId,
             data: selectedDate,
@@ -862,42 +996,17 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           const detail = e.detail || {};
           const isEdit = !!detail.isEdit;
           const session = detail.session;
-          const showDateTime = !!detail.showDateTime || isEdit;
           const timeStr = detail.time || session?.selectedTime || '08:00';
           const dateStr = detail.date || session?.selectedDate;
           const patientName = detail.patientName || session?.patientName;
-
-          const titleEl = document.getElementById('sheet-title');
-          const submitBtnEl = document.getElementById('submit-btn');
-          const sessionIdInput = document.getElementById('sessionId') as HTMLInputElement;
-          const dateTimeContainer = document.getElementById('date-time-selectors');
-
-          if (sessionIdInput) {
-            sessionIdInput.value = isEdit && session ? session.id : '';
-          }
-
-          if (isEdit) {
-            if (titleEl) titleEl.textContent = 'Editează programarea';
-            if (submitBtnEl) submitBtnEl.textContent = 'Salvează Modificările';
-          } else {
-            if (titleEl) titleEl.textContent = 'Programare nouă';
-            if (submitBtnEl) submitBtnEl.textContent = 'Salvează';
-          }
-
-        // Keep Date & Time selectors visible so user can always see and change selected hour
-        dateTimeContainer?.classList.remove('hidden');
+          const effectiveDate = dateStr || (window as any).currentCalendarDate || new Date().toISOString().split('T')[0];
 
         if (isEdit) {
           if (timeStr) this.selectTime(timeStr);
-          if (dateStr) this.selectDate(dateStr);
+          if (effectiveDate) this.selectDate(effectiveDate);
         } else {
-          // Reset labels to default on new appointment
-          const dateLabel = document.getElementById('display-date-label');
-          const timeLabel = document.getElementById('display-time-label');
-          if (dateLabel) dateLabel.textContent = 'Alege data';
-          if (timeLabel) timeLabel.textContent = 'Alege ora';
-          if (this.dateInput && dateStr) this.dateInput.value = dateStr;
-          if (this.timeInput && timeStr) this.timeInput.value = timeStr;
+          if (timeStr) this.selectTime(timeStr);
+          if (effectiveDate) this.selectDate(effectiveDate);
         }
 
         // Reset patient selector state
