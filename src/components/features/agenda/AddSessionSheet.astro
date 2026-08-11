@@ -121,7 +121,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   <!-- Modal Header -->
   <div class="flex items-center justify-between pb-2 border-b border-border-subtle/40 px-1">
     <h3 class="text-xl font-black text-text-main font-sans tracking-tight">Alege ora</h3>
-    <button type="button" id="btn-close-session-time" class="w-8 h-8 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold flex items-center justify-center transition-colors">&times;</button>
   </div>
 
   <!-- 24H Time Preview Display -->
@@ -133,7 +132,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
   <!-- Quick Hours Grid -->
   <div>
-    <div class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1" id="session-hours-grid"></div>
+    <div class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1 py-2" id="session-hours-grid"></div>
   </div>
 
   <!-- Minutes Selector -->
@@ -706,7 +705,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     bindCustomTimeModal() {
       const btnOpen = document.getElementById('btn-open-session-time');
       const btnTimeSheet = document.getElementById('btn-trigger-time-sheet');
-      const btnClose = document.getElementById('btn-close-session-time');
       const btnConfirm = document.getElementById('btn-confirm-session-time');
       const modal = document.getElementById('add-session-time-modal');
 
@@ -727,9 +725,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           e.stopPropagation();
           this.openCustomTimeModal();
         });
-      }
-      if (btnClose) {
-        btnClose.addEventListener('click', closeModal);
       }
       const timeOverlay = document.getElementById('add-session-time-overlay');
       if (timeOverlay) {
@@ -891,13 +886,13 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           if (timeStr) this.selectTime(timeStr);
           if (dateStr) this.selectDate(dateStr);
         } else {
-          // Reset labels to default on new appointment
+          // Reset labels to default, then apply any provided date/time
           const dateLabel = document.getElementById('display-date-label');
           const timeLabel = document.getElementById('display-time-label');
           if (dateLabel) dateLabel.textContent = 'Alege data';
           if (timeLabel) timeLabel.textContent = 'Alege ora';
-          if (this.dateInput && dateStr) this.dateInput.value = dateStr;
-          if (this.timeInput && timeStr) this.timeInput.value = timeStr;
+          if (dateStr) this.selectDate(dateStr);
+          if (timeStr) this.selectTime(timeStr);
         }
 
         // Reset patient selector state

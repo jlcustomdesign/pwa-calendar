@@ -173,7 +173,6 @@
     <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-2 shrink-0 cursor-grab active:cursor-grabbing"></div>
     <div class="flex items-center justify-between pb-2 border-b border-border-subtle/40 px-1">
       <h3 class="text-xl font-black text-text-main font-sans tracking-tight">Alege ora</h3>
-      <button type="button" id="wrapup-time-close-x" class="w-8 h-8 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold flex items-center justify-center transition-colors">&times;</button>
     </div>
     <div class="flex items-center justify-center gap-3 py-3.5 bg-surface-base/80 rounded-2xl border border-border-subtle/60 shadow-inner text-text-main font-black text-4xl font-sans tracking-tight">
       <span id="wrapup-time-hour">08</span>
@@ -181,7 +180,7 @@
       <span id="wrapup-time-minute">00</span>
     </div>
     <div>
-      <div class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1" id="wrapup-time-hours-grid"></div>
+      <div class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1 py-2" id="wrapup-time-hours-grid"></div>
     </div>
     <div class="space-y-1.5 pt-1">
       <div class="text-xs font-extrabold text-text-muted font-sans uppercase tracking-wider">Minute</div>
@@ -288,9 +287,12 @@
       document.getElementById('wrapup-date-picker-overlay')?.addEventListener('click', () => this.closeDatePicker());
 
       // Time picker controls
-      document.getElementById('wrapup-time-close-x')?.addEventListener('click', () => this.closeTimePicker());
       document.getElementById('wrapup-time-confirm')?.addEventListener('click', () => this.closeTimePicker());
       document.getElementById('wrapup-time-picker-overlay')?.addEventListener('click', () => this.closeTimePicker());
+
+      // Swipe-down to close pickers
+      this.bindPickerSwipe('wrapup-date-picker-sheet', () => this.closeDatePicker());
+      this.bindPickerSwipe('wrapup-time-picker-sheet', () => this.closeTimePicker());
     }
 
     private async initView() {
@@ -547,6 +549,32 @@
       sheet.style.transform = '';
       sheet.classList.add('translate-y-full');
       overlay.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    private bindPickerSwipe(sheetId: string, onClose: () => void) {
+      const sheet = document.getElementById(sheetId);
+      if (!sheet) return;
+
+      let startY = 0;
+      sheet.addEventListener('touchstart', (e: any) => {
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+      sheet.addEventListener('touchmove', (e: any) => {
+        const deltaY = e.touches[0].clientY - startY;
+        if (deltaY > 0) {
+          sheet.style.transition = 'none';
+          sheet.style.transform = `translateY(${deltaY}px)`;
+        }
+      }, { passive: true });
+      sheet.addEventListener('touchend', (e: any) => {
+        const deltaY = (e.changedTouches[0].clientY || 0) - startY;
+        sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 150) {
+          onClose();
+        } else {
+          sheet.style.transform = 'translateY(0)';
+        }
+      });
     }
 
     private renderTimeGrids() {

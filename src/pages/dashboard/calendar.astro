@@ -321,7 +321,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
                 <button 
                   type="button"
                   class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
-                  onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', showDateTime: false } }))"
+                  onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', date: '${currentCalendarDate}', showDateTime: false } }))"
                 >
                   + Adaugă ședință
                 </button>
