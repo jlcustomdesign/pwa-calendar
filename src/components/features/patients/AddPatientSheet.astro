@@ -7,7 +7,7 @@
   class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[90vh] overflow-hidden"
 >
   <!-- Swipe handle -->
-  <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
+  <div id="add-patient-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
   <div class="flex-1 overflow-y-auto no-scrollbar px-2 pt-2 pb-28">
     <h3 id="patient-sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-8">Pacient nou</h3>
@@ -183,6 +183,43 @@
       this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
       this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
       this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
+
+      // Dedicated drag handle close
+      const dragHandle = document.getElementById('add-patient-drag-handle');
+      if (dragHandle) {
+        let startY = 0;
+        let currentY = 0;
+        let dragging = false;
+        dragHandle.addEventListener('touchstart', (e: any) => {
+          startY = e.touches[0].clientY;
+          currentY = startY;
+          dragging = true;
+          if (this.sheet) this.sheet.style.transition = 'none';
+        }, { passive: true });
+        dragHandle.addEventListener('touchmove', (e: any) => {
+          if (!dragging) return;
+          currentY = e.touches[0].clientY;
+          const deltaY = currentY - startY;
+          if (deltaY > 0 && this.sheet) {
+            this.sheet.style.transform = `translateY(${deltaY}px)`;
+          }
+        }, { passive: true });
+        const onEnd = () => {
+          if (!dragging) return;
+          dragging = false;
+          const deltaY = currentY - startY;
+          if (this.sheet) {
+            this.sheet.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
+            if (deltaY > 80) {
+              this.close();
+            } else {
+              this.sheet.style.transform = 'translateY(0)';
+            }
+          }
+        };
+        dragHandle.addEventListener('touchend', onEnd);
+        dragHandle.addEventListener('touchcancel', onEnd);
+      }
 
       // We will move the window listener outside of bindEvents to avoid duplicates.
       // It is now handled in the init function.

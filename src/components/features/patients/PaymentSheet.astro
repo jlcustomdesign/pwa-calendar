@@ -138,6 +138,42 @@
       this.content?.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
       this.content?.addEventListener('touchend', () => this.handleTouchEnd());
 
+      // Dedicated drag handle close
+      const dragHandle = document.getElementById('payment-drag-handle');
+      if (dragHandle && this.content) {
+        let startY = 0;
+        let currentY = 0;
+        let dragging = false;
+        const content = this.content;
+        dragHandle.addEventListener('touchstart', (e: any) => {
+          startY = e.touches[0].clientY;
+          currentY = startY;
+          dragging = true;
+          content.style.transition = 'none';
+        }, { passive: true });
+        dragHandle.addEventListener('touchmove', (e: any) => {
+          if (!dragging) return;
+          currentY = e.touches[0].clientY;
+          const deltaY = currentY - startY;
+          if (deltaY > 0) {
+            content.style.transform = `translateY(${deltaY}px)`;
+          }
+        }, { passive: true });
+        const onEnd = () => {
+          if (!dragging) return;
+          dragging = false;
+          const deltaY = currentY - startY;
+          content.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
+          if (deltaY > 80) {
+            this.close();
+          } else {
+            content.style.transform = 'translateY(0)';
+          }
+        };
+        dragHandle.addEventListener('touchend', onEnd);
+        dragHandle.addEventListener('touchcancel', onEnd);
+      }
+
       // Initial Options Action handlers
       document.getElementById('btn-partially-paid')?.addEventListener('click', () => {
         this.showCustomView();
