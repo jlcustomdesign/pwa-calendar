@@ -85,6 +85,7 @@
 
 <script>
   import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments } from '../../../lib/services/patientService';
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class PaymentSheetManager {
     private sheet: HTMLElement | null;
@@ -347,24 +348,26 @@
       // fading a parent wrapper would disable the backdrop-blur mid-animation
       this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
+      lockBodyScroll();
     }
 
     private close() {
       if (!this.sheet || !this.content || !this.backdrop || !this.isOpen) return;
       this.isOpen = false;
-      
+      unlockBodyScroll();
+
       // Clear any inline drag styles so the class-based transition takes over
       this.content.style.transition = '';
       this.content.style.transform = '';
-      
+
       this.backdrop.classList.add('opacity-0');
       this.content.classList.add('translate-y-full');
-      
+
       // Remove focus to prevent keyboard from staying open on mobile
       if (this.customInput && document.activeElement === this.customInput) {
         this.customInput.blur();
       }
-      
+
       setTimeout(() => {
         if (!this.isOpen && this.sheet) {
           this.sheet.classList.add('hidden');

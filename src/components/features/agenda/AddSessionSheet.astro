@@ -193,6 +193,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
 <script>
   import { getSettings } from '../../../utils/settings';
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   import { getPatients } from '../../../lib/services/patientService';
   import { createAppointment, updateAppointment, countPatientWeekAppointments } from '../../../lib/services/appointmentService';
@@ -1014,7 +1015,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      document.body.style.overflow = 'hidden';
+      lockBodyScroll();
 
       // Remove closed state on the next frame so the browser actually animates
       requestAnimationFrame(() => {
@@ -1028,8 +1029,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      document.body.style.overflow = '';
-      
+      unlockBodyScroll();
+
       // Reset form
       setTimeout(() => {
         this.form?.reset();

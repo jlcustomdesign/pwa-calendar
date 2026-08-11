@@ -59,16 +59,20 @@
 </div>
 
 <script>
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+
   function setupModals() {
     const triggers = document.querySelectorAll('[data-modal-trigger]');
-    
+
     triggers.forEach(trigger => {
       trigger.addEventListener('click', () => {
         const modalId = trigger.getAttribute('data-modal-trigger');
         if (!modalId) return;
-        
+
         const modal = document.getElementById(modalId);
         if (modal) {
+          lockBodyScroll();
+
           // Show modal — fade the backdrop element itself so the blur
           // animates gradually (same pattern as the other sheets)
           const backdrop = modal.querySelector('.modal-backdrop');
@@ -76,7 +80,7 @@
             backdrop.classList.remove('opacity-0', 'pointer-events-none');
             backdrop.classList.add('pointer-events-auto');
           }
-          
+
           const sheet = modal.querySelector('.modal-sheet');
           if (sheet) {
             sheet.classList.remove('translate-y-full');
@@ -157,6 +161,8 @@
   }
 
   function closeModalSheet(modal: HTMLElement) {
+    unlockBodyScroll();
+
     const sheet = modal.querySelector('.modal-sheet') as HTMLElement | null;
     if (sheet) {
       // Clear any inline drag styles so the class-based transition takes over

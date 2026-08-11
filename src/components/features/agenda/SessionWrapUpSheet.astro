@@ -195,6 +195,7 @@
 <script>
   import { completeSession, createAppointment } from '../../../lib/services/appointmentService';
   import { getPatient, updatePatient } from '../../../lib/services/patientService';
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class WrapUpSheetManager {
     private sheet: HTMLElement | null;
@@ -686,6 +687,7 @@
       void this.sheet.offsetWidth;
       this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
+      lockBodyScroll();
     }
 
     private close() {
@@ -695,6 +697,7 @@
       this.backdrop.classList.add('opacity-0');
       this.content.style.transform = '';
       this.content.classList.add('translate-y-full');
+      unlockBodyScroll();
       setTimeout(() => {
         if (this.sheet) this.sheet.classList.add('hidden');
         this.currentAppointment = null;
