@@ -22,15 +22,15 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
 <div 
   id="add-session-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2rem] p-4 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden"
+  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
 >
   <!-- Swipe handle -->
-  <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
+  <div id="add-session-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
-  <div class="flex-1 overflow-y-auto no-scrollbar">
-    <h3 id="sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-6">Programare nouă</h3>
+  <div class="flex-1 overflow-y-auto no-scrollbar px-1">
+    <h3 id="sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-8">Programare nouă</h3>
 
-    <form id="add-session-form" class="space-y-6">
+    <form id="add-session-form" class="space-y-7 pb-4">
       <input type="hidden" name="sessionId" id="sessionId" value="" />
       
       <!-- Custom Patient Picker -->
@@ -113,10 +113,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 <!-- Custom Time Picker Sheet (Stil Bottom Sheet identic cu Calendar) -->
 <div 
   id="add-session-time-modal" 
-  class="fixed inset-x-0 bottom-0 z-[120] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden space-y-4"
+  class="fixed inset-x-0 bottom-0 z-[120] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden space-y-4"
 >
   <!-- Swipe handle -->
-  <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-2 shrink-0 cursor-grab active:cursor-grabbing"></div>
+  <div id="time-modal-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-2 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
   <!-- Modal Header -->
   <div class="flex items-center justify-between pb-2 border-b border-border-subtle/40 px-1">
@@ -153,10 +153,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 <!-- Custom Date Picker Sheet -->
 <div 
   id="custom-date-picker-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[110] bg-surface-card rounded-t-[2rem] p-4 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden"
+  class="fixed inset-x-0 bottom-0 z-[110] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
 >
   <!-- Swipe handle -->
-  <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
+  <div id="date-picker-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
   <div class="flex items-center justify-between mb-6 px-1">
     <button type="button" id="date-picker-prev" class="w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center active:scale-95 transition-transform">
@@ -526,22 +526,33 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       closeBtn?.addEventListener('click', () => this.closeDatePicker());
       this.datePickerOverlay?.addEventListener('click', () => this.closeDatePicker());
 
-      // Swipe-down to close
+      // Dedicated drag handle close
+      const dragHandle = document.getElementById('date-picker-drag-handle');
+      if (dragHandle) {
+        this.bindHandleSwipe(dragHandle, () => this.closeDatePicker());
+      }
+
+      // Swipe-down to close from anywhere on the sheet
       let startY = 0;
+      let dragging = false;
       this.datePickerSheet?.addEventListener('touchstart', (e: any) => {
         startY = e.touches[0].clientY;
+        dragging = true;
+        if (this.datePickerSheet) this.datePickerSheet.style.transition = 'none';
       }, { passive: true });
       this.datePickerSheet?.addEventListener('touchmove', (e: any) => {
+        if (!dragging) return;
         const deltaY = e.touches[0].clientY - startY;
         if (deltaY > 0 && this.datePickerSheet) {
           this.datePickerSheet.style.transform = `translateY(${deltaY}px)`;
         }
       }, { passive: true });
       this.datePickerSheet?.addEventListener('touchend', (e: any) => {
+        dragging = false;
         const deltaY = (e.changedTouches[0].clientY || 0) - startY;
         if (this.datePickerSheet) {
-          this.datePickerSheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
-          if (deltaY > 150) {
+          this.datePickerSheet.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
+          if (deltaY > 100) {
             this.closeDatePicker();
           } else {
             this.datePickerSheet.style.transform = 'translateY(0)';
@@ -731,22 +742,33 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         timeOverlay.addEventListener('click', closeModal);
       }
 
+      // Dedicated drag handle close
+      const dragHandle = document.getElementById('time-modal-drag-handle');
+      if (dragHandle) {
+        this.bindHandleSwipe(dragHandle, closeModal);
+      }
+
       // Swipe down to close for time sheet
       let timeStartY = 0;
+      let timeDragging = false;
       modal?.addEventListener('touchstart', (e: any) => {
         timeStartY = e.touches[0].clientY;
+        timeDragging = true;
+        if (modal) modal.style.transition = 'none';
       }, { passive: true });
       modal?.addEventListener('touchmove', (e: any) => {
+        if (!timeDragging) return;
         const deltaY = e.touches[0].clientY - timeStartY;
         if (deltaY > 0 && modal) {
           modal.style.transform = `translateY(${deltaY}px)`;
         }
       }, { passive: true });
       modal?.addEventListener('touchend', (e: any) => {
+        timeDragging = false;
         const deltaY = (e.changedTouches[0].clientY || 0) - timeStartY;
         if (modal) {
-          modal.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
-          if (deltaY > 150) {
+          modal.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
+          if (deltaY > 100) {
             closeModal();
           } else {
             modal.style.transform = 'translateY(0)';
@@ -848,6 +870,12 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
       this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
       this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
+
+      // Dedicated drag handle: always closes regardless of scroll position
+      const dragHandle = document.getElementById('add-session-drag-handle');
+      if (dragHandle) {
+        this.bindHandleSwipe(dragHandle, () => this.close());
+      }
 
       // Listen for custom event to open sheet
       if (!(window as any)._addSessionWindowListenerBound) {
@@ -1041,11 +1069,51 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const deltaY = this.currentY - this.startY;
       this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
       
-      if (deltaY > 150) {
+      if (deltaY > 120) {
         this.close();
       } else {
         this.sheet.style.transform = 'translateY(0)';
       }
+    }
+
+    bindHandleSwipe(handle: HTMLElement, onClose: () => void) {
+      let startY = 0;
+      let currentY = 0;
+      let dragging = false;
+      const sheet = handle.closest('.fixed') as HTMLElement | null;
+
+      handle.addEventListener('touchstart', (e: any) => {
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        dragging = true;
+        if (sheet) sheet.style.transition = 'none';
+      }, { passive: true });
+
+      handle.addEventListener('touchmove', (e: any) => {
+        if (!dragging) return;
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - startY;
+        if (deltaY > 0 && sheet) {
+          sheet.style.transform = `translateY(${deltaY}px)`;
+        }
+      }, { passive: true });
+
+      const onEnd = () => {
+        if (!dragging) return;
+        dragging = false;
+        const deltaY = currentY - startY;
+        if (sheet) {
+          sheet.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
+          if (deltaY > 80) {
+            onClose();
+          } else {
+            sheet.style.transform = 'translateY(0)';
+          }
+        }
+      };
+
+      handle.addEventListener('touchend', onEnd);
+      handle.addEventListener('touchcancel', onEnd);
     }
   }
 
