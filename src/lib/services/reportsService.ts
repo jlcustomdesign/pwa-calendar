@@ -53,7 +53,7 @@ export async function getTodayStats(date?: string) {
 // ── Statistici SĂPTĂMÂNALE (Luni - Vineri) ─────────────────────
 export async function getWeekStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = realNow.toLocalISOString();
+  const todayStr = toLocalISOString(realNow);
   const nowStr = realNow.toTimeString().slice(0, 5);
   
   const refDate = baseDate ? new Date(baseDate) : realNow;
@@ -67,8 +67,8 @@ export async function getWeekStats(baseDate?: string) {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
 
-  const startStr = monday.toLocalISOString();
-  const endStr = sunday.toLocalISOString();
+  const startStr = toLocalISOString(monday);
+  const endStr = toLocalISOString(sunday);
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
@@ -92,7 +92,7 @@ export async function getWeekStats(baseDate?: string) {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const dateStr = d.toLocalISOString();
+    const dateStr = toLocalISOString(d);
     byDay[dateStr] = { finalizate: 0, absente: 0, venit: 0 };
   }
 
@@ -127,7 +127,7 @@ export async function getWeekStats(baseDate?: string) {
   const chartData = labels.map((lbl, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const dateStr = d.toLocalISOString();
+    const dateStr = toLocalISOString(d);
     return { label: lbl, val: byDay[dateStr]?.venit || 0, dateStr };
   });
 
@@ -137,13 +137,13 @@ export async function getWeekStats(baseDate?: string) {
 // ── Statistici LUNARE ─────────────────────────────────────────
 export async function getMonthStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = realNow.toLocalISOString();
+  const todayStr = toLocalISOString(realNow);
   const nowStr = realNow.toTimeString().slice(0, 5);
 
   const refDate = baseDate ? new Date(baseDate) : realNow;
 
-  const startStr = new Date(refDate.getFullYear(), refDate.getMonth(), 1).toLocalISOString();
-  const endStr = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).toLocalISOString();
+  const startStr = toLocalISOString(new Date(refDate.getFullYear(), refDate.getMonth(), 1));
+  const endStr = toLocalISOString(new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0));
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
@@ -197,13 +197,13 @@ export async function getMonthStats(baseDate?: string) {
 // ── Statistici TRIMESTRIALE ───────────────────────────────────
 export async function getQuarterStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = realNow.toLocalISOString();
+  const todayStr = toLocalISOString(realNow);
   const nowStr = realNow.toTimeString().slice(0, 5);
 
   const refDate = baseDate ? new Date(baseDate) : realNow;
   const currentQuarter = Math.floor(refDate.getMonth() / 3);
-  const startStr = new Date(refDate.getFullYear(), currentQuarter * 3, 1).toLocalISOString();
-  const endStr = new Date(refDate.getFullYear(), currentQuarter * 3 + 3, 0).toLocalISOString();
+  const startStr = toLocalISOString(new Date(refDate.getFullYear(), currentQuarter * 3, 1));
+  const endStr = toLocalISOString(new Date(refDate.getFullYear(), currentQuarter * 3 + 3, 0));
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
@@ -257,12 +257,12 @@ export async function getQuarterStats(baseDate?: string) {
 // ── Statistici ANUALE ─────────────────────────────────────────
 export async function getYearStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = realNow.toLocalISOString();
+  const todayStr = toLocalISOString(realNow);
   const nowStr = realNow.toTimeString().slice(0, 5);
 
   const refDate = baseDate ? new Date(baseDate) : realNow;
-  const startStr = new Date(refDate.getFullYear(), 0, 1).toLocalISOString();
-  const endStr = new Date(refDate.getFullYear(), 12, 0).toLocalISOString();
+  const startStr = toLocalISOString(new Date(refDate.getFullYear(), 0, 1));
+  const endStr = toLocalISOString(new Date(refDate.getFullYear(), 12, 0));
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
