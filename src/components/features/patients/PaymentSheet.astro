@@ -202,6 +202,7 @@
           try {
             await addPayment(this.currentPatientId, parsed, false);
             window.dispatchEvent(new CustomEvent('patientsUpdated'));
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
             this.close();
           } catch (err: any) {
             (window as any).showToast('Eroare la adăugarea plății: ' + (err.message || err), 'error');
@@ -225,6 +226,7 @@
         }
         (window as any).showToast('Plata a fost marcată ca achitată integral.', 'success');
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
         this.close();
       } catch (err: any) {
         (window as any).showToast('Eroare la actualizarea plății: ' + (err.message || err), 'error');
@@ -237,6 +239,7 @@
         await resetPayments(this.currentPatientId);
         (window as any).showToast('Plățile pacientului au fost resetate.', 'info');
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
         this.close();
       } catch (err: any) {
         (window as any).showToast('Eroare la resetarea plății: ' + (err.message || err), 'error');

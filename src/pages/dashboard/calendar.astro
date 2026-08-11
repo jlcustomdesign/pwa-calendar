@@ -120,15 +120,19 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       const isPaid = restDePlata <= 0 || session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat';
 
       let paymentBadgeClass = '';
-      let displayPaymentLabel = session.paymentStatus || 'Neachitat';
+      let displayPaymentLabel = 'Status plată';
       if (session.paymentStatus === 'Neachitat') {
         paymentBadgeClass = 'bg-rose-600 text-white font-extrabold shadow-sm';
+        displayPaymentLabel = 'Neachitat';
       } else if (session.paymentStatus === 'Achitat parțial') {
         paymentBadgeClass = 'bg-amber-500 text-black font-extrabold shadow-sm';
         displayPaymentLabel = 'Parțial';
-      } else {
+      } else if (session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat') {
         paymentBadgeClass = 'bg-emerald-600 text-white font-extrabold shadow-sm';
         displayPaymentLabel = 'Achitat';
+      } else {
+        paymentBadgeClass = 'bg-black/20 text-black font-extrabold shadow-sm';
+        displayPaymentLabel = 'Status plată';
       }
 
       const driveLink = session.driveLink || '';

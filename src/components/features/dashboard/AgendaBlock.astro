@@ -182,15 +182,19 @@ import DailyProgress from './DailyProgress.astro';
       const isPaid = restDePlata <= 0 || session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat';
 
       let paymentBadgeClass = '';
-      let displayPaymentLabel = paymentStatus;
+      let displayPaymentLabel = 'Status plată';
       if (paymentStatus === 'Neachitat') {
         paymentBadgeClass = 'bg-rose-600 text-white font-extrabold shadow-sm';
+        displayPaymentLabel = 'Neachitat';
       } else if (paymentStatus === 'Achitat parțial') {
         paymentBadgeClass = 'bg-amber-500 text-black font-extrabold shadow-sm';
         displayPaymentLabel = 'Parțial';
-      } else {
+      } else if (paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat') {
         paymentBadgeClass = 'bg-emerald-600 text-white font-extrabold shadow-sm';
         displayPaymentLabel = 'Achitat';
+      } else {
+        paymentBadgeClass = 'bg-black/20 text-black font-extrabold shadow-sm';
+        displayPaymentLabel = 'Status plată';
       }
 
       const driveLink = session.driveLink || session.patientDriveLink || '';
