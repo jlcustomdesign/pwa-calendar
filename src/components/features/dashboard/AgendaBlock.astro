@@ -181,6 +181,8 @@ import DailyProgress from './DailyProgress.astro';
       const restDePlata = Math.max(0, (session.costTotal || 0) - (session.sumaIncasata || 0));
       const isPaid = restDePlata <= 0 || session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat';
 
+      const sumaIncasata = session.sumaIncasata || 0;
+
       let paymentBadgeClass = '';
       let displayPaymentLabel = 'Status plată';
       if (paymentStatus === 'Neachitat') {
@@ -188,7 +190,7 @@ import DailyProgress from './DailyProgress.astro';
         displayPaymentLabel = 'Neachitat';
       } else if (paymentStatus === 'Achitat parțial') {
         paymentBadgeClass = 'bg-amber-500 text-black font-extrabold shadow-sm';
-        displayPaymentLabel = 'Parțial';
+        displayPaymentLabel = `Plată parțială (${sumaIncasata} RON)`;
       } else if (paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat') {
         paymentBadgeClass = 'bg-emerald-600 text-white font-extrabold shadow-sm';
         displayPaymentLabel = 'Achitat';
@@ -260,24 +262,24 @@ import DailyProgress from './DailyProgress.astro';
                 ${subscriptionWarningDetails}
                 
                 <div class="px-6 pt-2 pb-2 space-y-3">
-                  <!-- Row 1: Time & Location Pill with Clock and Location Pin Icons (No 'la' prefix, no separator bar) -->
-                  <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-black/10 text-sm sm:text-base font-extrabold text-black">
-                    <span class="flex items-center gap-1.5 shrink-0">
-                      <svg class="w-4 h-4 opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <!-- Row 1: Pink Pill with White Text for Time & Location -->
+                  <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-rose-600 text-white text-sm sm:text-base font-extrabold shadow-sm">
+                    <span class="flex items-center gap-1.5 shrink-0 text-white">
+                      <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
-                      <span>${timeRangeText}</span>
+                      <span class="text-white">${timeRangeText}</span>
                     </span>
-                    <span class="flex items-center gap-1.5 shrink-0">
-                      <svg class="w-4 h-4 opacity-75 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span class="flex items-center gap-1.5 shrink-0 text-white">
+                      <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                       </svg>
-                      <span>${locationStr}</span>
+                      <span class="text-white">${locationStr}</span>
                     </span>
                   </div>
 
-                  <!-- Row 2: Payment Badge on Left + Icon-only Call/Folder Buttons on Right -->
+                  <!-- Row 2: Payment Badge on Left (shows partial amount if partial) + Icon-only Call/Folder Buttons on Right -->
                   <div class="flex items-center justify-between pt-0.5">
                     <button 
                       type="button"
@@ -308,8 +310,7 @@ import DailyProgress from './DailyProgress.astro';
 
                 ${(sessionStatus === 'programat' || sessionStatus === 'confirmat') && isPast ? `
                   <div class="px-6 pb-5 pt-2">
-                    <button type="button" class="w-full py-4 rounded-full bg-white hover:bg-neutral-50 text-brand-secondary font-black text-sm sm:text-base tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center gap-2 cursor-pointer border border-black/5" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
-                      <svg class="w-5 h-5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                    <button type="button" class="w-full py-4 rounded-full bg-white hover:bg-neutral-50 text-rose-600 font-black text-base sm:text-lg tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-black/5" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
                       <span>CONFIRMĂ ȘEDINȚA</span>
                     </button>
                   </div>
