@@ -8,9 +8,20 @@
   <!-- 1. STATISTICI ZILNICE (AZI)                              -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <section class="space-y-3">
-    <div class="flex items-baseline justify-between px-1">
-      <h2 class="text-xl sm:text-2xl font-black text-text-main">Azi</h2>
-      <span id="today-date-display" class="text-xl sm:text-2xl font-black text-text-main">--</span>
+    <div class="flex items-center justify-between px-1">
+      <h2 class="text-xl sm:text-2xl font-black text-text-main">Zi selectată</h2>
+      <div class="flex items-center gap-2">
+        <button type="button" id="prev-day-btn" class="p-2 rounded-full bg-surface-card shadow-sm border border-border-subtle/70 active:scale-95 transition-transform text-text-main hover:text-brand-secondary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <button type="button" id="today-date-display" class="text-lg sm:text-xl font-black text-text-main px-3 py-1 rounded-xl bg-surface-card shadow-sm border border-border-subtle/70 min-w-[10rem] text-center">
+          --
+        </button>
+        <input type="date" id="today-date-picker" class="sr-only" />
+        <button type="button" id="next-day-btn" class="p-2 rounded-full bg-surface-card shadow-sm border border-border-subtle/70 active:scale-95 transition-transform text-text-main hover:text-brand-secondary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+      </div>
     </div>
 
     <div class="grid grid-cols-3 gap-3">
@@ -96,10 +107,17 @@
     <div id="tab-week-content" class="space-y-3">
       <!-- Card Grafic Hașurat -->
       <div class="bg-surface-card rounded-[2.2rem] p-5 shadow-sm border border-border-subtle/70 space-y-4 relative overflow-hidden">
-        <div>
-          <div id="chart-subtitle" class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Evoluție săptămânală</div>
-          <div id="chart-active-value" class="text-2xl sm:text-3xl font-black text-text-main mt-0.5 transition-all">
-            0 <span class="text-sm font-sans font-black text-text-main">RON</span>
+        <div class="flex items-start justify-between">
+          <div>
+            <div id="chart-subtitle" class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Evoluție săptămânală</div>
+            <div id="chart-active-value" class="text-2xl sm:text-3xl font-black text-text-main mt-0.5 transition-all">
+              0 <span class="text-sm font-sans font-black text-text-main">RON</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Total perioadă</div>
+            <div id="chart-period-total" class="text-lg sm:text-xl font-black text-text-main mt-0.5">0 <span class="text-xs font-sans font-black text-text-main">RON</span></div>
+            <div id="chart-period-comparison" class="text-xs font-black mt-0.5 text-text-muted">--</div>
           </div>
         </div>
 
@@ -160,27 +178,21 @@
 
 <script>
   import { getTodayStats, getWeekStats, getMonthStats, getQuarterStats, getYearStats, getUnpaidPatients } from '../../../lib/services/reportsService';
+  import { toLocalISOString, parseLocalDate, formatDateRO } from '../../../utils/date';
 
   type TabType = 'week' | 'month' | 'quarter' | 'year';
   let activeTab: TabType = 'week';
   
   let currentBaseDate = new Date();
+  let currentDayDate = new Date();
   
-  const formatDateRO = (date: Date, showYear = false) => {
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = date.toLocaleDateString('ro-RO', { month: 'short' });
-    if (showYear) {
-      return `${day} ${month} ${date.getFullYear()}`;
-    }
-    return `${day} ${month}`;
-  };
-
   async function loadTodayStats() {
     try {
-      const today = await getTodayStats();
+      const dateStr = toLocalISOString(currentDayDate);
+      const today = await getTodayStats(dateStr);
       const todayDateDisplay = document.getElementById('today-date-display');
       if (todayDateDisplay) {
-        const d = new Date();
+        const d = currentDayDate;
         const dayNameCap = d.toLocaleDateString('ro-RO', { weekday: 'long' }).charAt(0).toUpperCase() + d.toLocaleDateString('ro-RO', { weekday: 'long' }).slice(1);
         const dayNum = d.getDate().toString().padStart(2, '0');
         const monthNameCap = d.toLocaleDateString('ro-RO', { month: 'long' }).charAt(0).toUpperCase() + d.toLocaleDateString('ro-RO', { month: 'long' }).slice(1);
@@ -200,9 +212,41 @@
     }
   }
 
+  function setupDayNavigation() {
+    const prevBtn = document.getElementById('prev-day-btn');
+    const nextBtn = document.getElementById('next-day-btn');
+    const displayBtn = document.getElementById('today-date-display');
+    const picker = document.getElementById('today-date-picker') as HTMLInputElement | null;
+
+    prevBtn?.addEventListener('click', () => {
+      currentDayDate.setDate(currentDayDate.getDate() - 1);
+      loadTodayStats();
+    });
+
+    nextBtn?.addEventListener('click', () => {
+      currentDayDate.setDate(currentDayDate.getDate() + 1);
+      loadTodayStats();
+    });
+
+    displayBtn?.addEventListener('click', () => {
+      if (picker) {
+        picker.value = toLocalISOString(currentDayDate);
+        picker.showPicker();
+      }
+    });
+
+    picker?.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.value) {
+        currentDayDate = parseLocalDate(target.value);
+        loadTodayStats();
+      }
+    });
+  }
+
   async function loadReportStats() {
     try {
-      const dateStr = currentBaseDate.toISOString().split('T')[0];
+      const dateStr = toLocalISOString(currentBaseDate);
       const titleEl = document.getElementById('report-title');
       const subtitleEl = document.getElementById('chart-subtitle');
       const dateRangeEl = document.getElementById('report-date-range');
@@ -238,11 +282,21 @@
         const totalPast = statData.finalizate + statData.absente;
         const prezenta = totalPast > 0 ? Math.round((statData.finalizate / totalPast) * 100) : 0;
         const anulari = totalPast > 0 ? Math.round((statData.absente / totalPast) * 100) : 0;
-        
+
         document.getElementById('week-active-time')!.textContent = `${prezenta}%`;
         document.getElementById('week-cancel-time')!.textContent = `${anulari}%`;
         document.getElementById('week-progress-bar')!.style.width = `${prezenta}%`;
         document.getElementById('week-cancel-bar')!.style.width = `${anulari}%`;
+
+        // Period comparison summary
+        const periodTotalEl = document.getElementById('chart-period-total');
+        const periodComparisonEl = document.getElementById('chart-period-comparison');
+        if (periodTotalEl && periodComparisonEl) {
+          const total = statData.venit || 0;
+          const avg = statData.chartData.length > 0 ? total / statData.chartData.length : 0;
+          periodTotalEl.innerHTML = `${Math.round(total)} <span class="text-xs font-sans font-black text-text-main">RON</span>`;
+          periodComparisonEl.textContent = `medie ${Math.round(avg)} RON`;
+        }
 
         // Load chart
         initInteractiveHatchChart(statData.chartData, statData.startStr, activeTab);
@@ -309,7 +363,7 @@
     });
 
     let activeBtnIdx = chartData.length - 1; // Default to last point if nothing else matches
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toLocalISOString(new Date());
     
     // Find the closest point that is today or past
     for (let i = chartData.length - 1; i >= 0; i--) {
@@ -360,22 +414,40 @@
       cy: p.y,
       left: `${(p.x / 350) * 100}%`,
       top: `${(p.y / 120) * 100}%`,
-      val: `${p.val} <span class="text-sm font-sans font-black text-text-main">RON</span>`
+      val: `${p.val} <span class="text-sm font-sans font-black text-text-main">RON</span>`,
+      valNumber: p.val
     }));
 
     dayBtns.forEach((btn, idx) => {
       btn.addEventListener('click', () => {
+        const item = chartData[idx];
+        const todayStr = toLocalISOString(new Date());
+        if (item?.dateStr && item.dateStr > todayStr) {
+          // Do not move indicator into the future
+          return;
+        }
+
         const coord = dayCoords[idx];
         if (coord) {
           dot.style.left = coord.left;
           dot.style.top = coord.top;
           dotGlow.style.left = coord.left;
           dotGlow.style.top = coord.top;
-          
+
           dot.classList.remove('hidden');
           dotGlow.classList.remove('hidden');
-          
+
           valueDisplay.innerHTML = coord.val;
+
+          const periodComparisonEl = document.getElementById('chart-period-comparison');
+          if (periodComparisonEl) {
+            const total = chartData.reduce((s, d) => s + d.val, 0);
+            const avg = chartData.length > 0 ? total / chartData.length : 0;
+            const diff = coord.valNumber - avg;
+            const pct = avg > 0 ? Math.round((diff / avg) * 100) : 0;
+            periodComparisonEl.textContent = `${pct >= 0 ? '+' : ''}${pct}% vs medie`;
+            periodComparisonEl.className = `text-xs font-black mt-0.5 ${pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+          }
 
           if (hatchClipRectNew) {
             hatchClipRectNew.setAttribute('width', (coord.cx + 5).toString());
@@ -416,7 +488,6 @@
         const newTab = target.dataset.tab as TabType;
         if (newTab !== activeTab) {
           activeTab = newTab;
-          currentBaseDate = new Date(); // Reset date when switching tabs
           
           tabBtns.forEach(b => {
             b.classList.remove('text-text-inverse');
@@ -465,6 +536,7 @@
 
     setupTabs();
     setupNavigation();
+    setupDayNavigation();
     await Promise.all([
       loadTodayStats(),
       loadReportStats()
@@ -476,6 +548,7 @@
       const container = document.getElementById('reports-tabs-container');
       if (container) {
         currentBaseDate = new Date();
+        currentDayDate = new Date();
         activeTab = 'week';
         
         // Setup initially

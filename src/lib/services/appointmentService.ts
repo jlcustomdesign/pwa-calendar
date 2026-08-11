@@ -48,6 +48,42 @@ export async function updateAppointment(id: string, updates: {
   }
 }
 
+// ── Schimbă pacienții între două programări (swap) ─────────────
+export async function swapAppointmentPatients(idA: string, idB: string) {
+  const [{ data: a, error: errA }, { data: b, error: errB }] = await Promise.all([
+    (supabase as any).from('programari').select('pacient_id').eq('id', idA).single(),
+    (supabase as any).from('programari').select('pacient_id').eq('id', idB).single(),
+  ]);
+
+  if (errA || errB || !a || !b) {
+    throw new Error('Eroare la citirea programărilor pentru schimb.');
+  }
+
+  const pacientA = a.pacient_id;
+  const pacientB = b.pacient_id;
+
+  try {
+    const { error: updA } = await (supabase as any)
+      .from('programari')
+      .update({ pacient_id: pacientB })
+      .eq('id', idA);
+    if (updA) throw updA;
+
+    const { error: updB } = await (supabase as any)
+      .from('programari')
+      .update({ pacient_id: pacientA })
+      .eq('id', idB);
+    if (updB) {
+      // Rollback best-effort
+      await (supabase as any).from('programari').update({ pacient_id: pacientA }).eq('id', idA);
+      throw updB;
+    }
+  } catch (err: any) {
+    console.error('swapAppointmentPatients error:', err, { idA, idB });
+    throw new Error('Eroare la schimbul pacienților: ' + (err.message || JSON.stringify(err)));
+  }
+}
+
 // ── Programări pentru o zi specifică (calendar zilnic) ────────
 export async function getAppointmentsByDate(date: string): Promise<Programare[]> {
   const { data, error } = await supabase

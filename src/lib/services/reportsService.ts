@@ -4,11 +4,12 @@
  */
 import { supabase } from '../supabase';
 import type { IstericSaptamanal } from '../database.types';
+import { toLocalISOString } from '../../utils/date';
 
 // ── Statistici pentru AZI ─────────────────────────────────────
 export async function getTodayStats(date?: string) {
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = toLocalISOString(now);
   const nowStr = now.toTimeString().slice(0, 5); // "HH:MM"
   const targetDate = date ?? todayStr;
 
@@ -52,7 +53,7 @@ export async function getTodayStats(date?: string) {
 // ── Statistici SĂPTĂMÂNALE (Luni - Vineri) ─────────────────────
 export async function getWeekStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = realNow.toISOString().split('T')[0];
+  const todayStr = realNow.toLocalISOString();
   const nowStr = realNow.toTimeString().slice(0, 5);
   
   const refDate = baseDate ? new Date(baseDate) : realNow;
@@ -66,8 +67,8 @@ export async function getWeekStats(baseDate?: string) {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
 
-  const startStr = monday.toISOString().split('T')[0];
-  const endStr = sunday.toISOString().split('T')[0];
+  const startStr = monday.toLocalISOString();
+  const endStr = sunday.toLocalISOString();
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
@@ -91,7 +92,7 @@ export async function getWeekStats(baseDate?: string) {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = d.toLocalISOString();
     byDay[dateStr] = { finalizate: 0, absente: 0, venit: 0 };
   }
 
@@ -126,7 +127,7 @@ export async function getWeekStats(baseDate?: string) {
   const chartData = labels.map((lbl, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = d.toLocalISOString();
     return { label: lbl, val: byDay[dateStr]?.venit || 0, dateStr };
   });
 
@@ -136,13 +137,13 @@ export async function getWeekStats(baseDate?: string) {
 // ── Statistici LUNARE ─────────────────────────────────────────
 export async function getMonthStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = realNow.toISOString().split('T')[0];
+  const todayStr = realNow.toLocalISOString();
   const nowStr = realNow.toTimeString().slice(0, 5);
 
   const refDate = baseDate ? new Date(baseDate) : realNow;
 
-  const startStr = new Date(refDate.getFullYear(), refDate.getMonth(), 1).toISOString().split('T')[0];
-  const endStr = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).toISOString().split('T')[0];
+  const startStr = new Date(refDate.getFullYear(), refDate.getMonth(), 1).toLocalISOString();
+  const endStr = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).toLocalISOString();
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
@@ -187,8 +188,7 @@ export async function getMonthStats(baseDate?: string) {
   
   const chartData = byPeriod.map((val, i) => {
     const d = new Date(refDate.getFullYear(), refDate.getMonth(), i * 8 + 1);
-    const localD = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-    return { label: `S${i+1}`, val, dateStr: localD.toISOString().split('T')[0] };
+    return { label: `S${i+1}`, val, dateStr: toLocalISOString(d) };
   });
 
   return { total, finalizate, absente, venit, chartData, startStr, endStr };
@@ -197,13 +197,13 @@ export async function getMonthStats(baseDate?: string) {
 // ── Statistici TRIMESTRIALE ───────────────────────────────────
 export async function getQuarterStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = realNow.toISOString().split('T')[0];
+  const todayStr = realNow.toLocalISOString();
   const nowStr = realNow.toTimeString().slice(0, 5);
 
   const refDate = baseDate ? new Date(baseDate) : realNow;
   const currentQuarter = Math.floor(refDate.getMonth() / 3);
-  const startStr = new Date(refDate.getFullYear(), currentQuarter * 3, 1).toISOString().split('T')[0];
-  const endStr = new Date(refDate.getFullYear(), currentQuarter * 3 + 3, 0).toISOString().split('T')[0];
+  const startStr = new Date(refDate.getFullYear(), currentQuarter * 3, 1).toLocalISOString();
+  const endStr = new Date(refDate.getFullYear(), currentQuarter * 3 + 3, 0).toLocalISOString();
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
@@ -248,8 +248,7 @@ export async function getQuarterStats(baseDate?: string) {
   const chartData = byMonth.map((val, i) => {
     const mIdx = currentQuarter * 3 + i;
     const d = new Date(refDate.getFullYear(), mIdx, 1);
-    const localD = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-    return { label: monthNames[mIdx], val, dateStr: localD.toISOString().split('T')[0] };
+    return { label: monthNames[mIdx], val, dateStr: toLocalISOString(d) };
   });
 
   return { total, finalizate, absente, venit, chartData, startStr, endStr };
@@ -258,12 +257,12 @@ export async function getQuarterStats(baseDate?: string) {
 // ── Statistici ANUALE ─────────────────────────────────────────
 export async function getYearStats(baseDate?: string) {
   const realNow = new Date();
-  const todayStr = realNow.toISOString().split('T')[0];
+  const todayStr = realNow.toLocalISOString();
   const nowStr = realNow.toTimeString().slice(0, 5);
 
   const refDate = baseDate ? new Date(baseDate) : realNow;
-  const startStr = new Date(refDate.getFullYear(), 0, 1).toISOString().split('T')[0];
-  const endStr = new Date(refDate.getFullYear(), 12, 0).toISOString().split('T')[0];
+  const startStr = new Date(refDate.getFullYear(), 0, 1).toLocalISOString();
+  const endStr = new Date(refDate.getFullYear(), 12, 0).toLocalISOString();
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
@@ -307,8 +306,7 @@ export async function getYearStats(baseDate?: string) {
   const initialLetters = ['I', 'F', 'M', 'A', 'M', 'I', 'I', 'A', 'S', 'O', 'N', 'D'];
   const chartData = byMonth.map((val, i) => {
     const d = new Date(refDate.getFullYear(), i, 1);
-    const localD = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-    return { label: initialLetters[i], val, dateStr: localD.toISOString().split('T')[0] };
+    return { label: initialLetters[i], val, dateStr: toLocalISOString(d) };
   });
 
   return { total, finalizate, absente, venit, chartData, startStr, endStr };

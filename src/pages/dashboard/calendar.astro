@@ -42,7 +42,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
   </style>
 
   <script>
-    import { getAppointmentsByDate, updateAppointment } from '../../lib/services/appointmentService';
+    import { getAppointmentsByDate, updateAppointment, swapAppointmentPatients } from '../../lib/services/appointmentService';
     import { getSettings } from '../../lib/services/settingsService';
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -357,7 +357,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       let ghostOffsetX = 0;
       let ghostOffsetY = 0;
       let suppressClick = false;
-      let dropTarget: { type: 'slot' | 'day'; el: HTMLElement; value: string } | null = null;
+      let dropTarget: { type: 'slot' | 'day'; el: HTMLElement; value: string; targetSessionId?: string } | null = null;
 
       function cancelPress() {
         clearTimeout(pressTimer);
@@ -423,7 +423,9 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
         if (slotEl && slotEl.closest('#timeline-slots-container')) {
           const slotTime = slotEl.getAttribute('data-slot-time');
           if (slotTime) {
-            dropTarget = { type: 'slot', el: slotEl, value: slotTime };
+            const targetCard = slotEl.querySelector('[data-session-id]') as HTMLElement | null;
+            const targetSessionId = targetCard?.getAttribute('data-session-id') || undefined;
+            dropTarget = { type: 'slot', el: slotEl, value: slotTime, targetSessionId };
             slotEl.style.outline = '2px dashed #0a0a0a';
             slotEl.style.outlineOffset = '-2px';
             slotEl.style.borderRadius = '1rem';
@@ -458,16 +460,24 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
         const origDate = card.getAttribute('data-session-date');
         if (!sessionId) return;
 
-        const updates: { ora?: string; data?: string } = {};
-        if (target.type === 'slot') {
-          if (target.value === origTime) return; // aceeași oră — nimic de făcut
-          updates.ora = target.value;
-        } else {
-          if (target.value === origDate) return; // aceeași zi — nimic de făcut
-          updates.data = target.value;
-        }
-
         try {
+          if (target.type === 'slot' && target.targetSessionId && target.targetSessionId !== sessionId) {
+            // Drop pe un slot ocupat → schimbă pacienții între programări
+            await swapAppointmentPatients(sessionId, target.targetSessionId);
+            (window as any).showToast('Pacienții au fost schimbați între ore.', 'success');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            return;
+          }
+
+          const updates: { ora?: string; data?: string } = {};
+          if (target.type === 'slot') {
+            if (target.value === origTime) return; // aceeași oră — nimic de făcut
+            updates.ora = target.value;
+          } else {
+            if (target.value === origDate) return; // aceeași zi — nimic de făcut
+            updates.data = target.value;
+          }
+
           await updateAppointment(sessionId, updates);
           (window as any).showToast('Programarea a fost mutată cu succes.', 'success');
           if (target.type === 'day') {
