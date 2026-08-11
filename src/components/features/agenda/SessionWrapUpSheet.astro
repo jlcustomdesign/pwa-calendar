@@ -9,14 +9,11 @@
     <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 cursor-grab active:cursor-grabbing" id="wrapup-drag-handle"></div>
 
     <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center mb-4">
       <div>
         <h2 class="text-2xl font-black tracking-tight text-text-main">Finalizează ședința</h2>
         <p class="text-text-muted font-bold text-sm mt-0.5" id="wrapup-subtitle">Confirmă detaliile și programează săptămâna viitoare</p>
       </div>
-      <button type="button" id="wrapup-close-btn" class="w-9 h-9 rounded-full bg-surface-base hover:bg-black/10 text-text-muted font-bold text-lg flex items-center justify-center transition-colors">
-        &times;
-      </button>
     </div>
 
     <!-- Patient & Session Summary Card -->
@@ -234,7 +231,9 @@
       }) as EventListener);
 
       this.backdrop?.addEventListener('click', () => this.close());
-      document.getElementById('wrapup-close-btn')?.addEventListener('click', () => this.close());
+
+      // Swipe-down to close main wrap-up sheet
+      this.bindSheetSwipe();
 
       // Handle Recurrence option selection
       const optionsContainer = document.getElementById('recurrence-options-container');
@@ -577,6 +576,47 @@
       });
     }
 
+    private bindSheetSwipe() {
+      const sheet = this.content;
+      const handle = document.getElementById('wrapup-drag-handle');
+      if (!sheet) return;
+
+      let startY = 0;
+      let isDragging = false;
+
+      const onStart = (clientY: number) => {
+        startY = clientY;
+        isDragging = true;
+      };
+      const onMove = (clientY: number) => {
+        if (!isDragging) return;
+        const deltaY = clientY - startY;
+        if (deltaY > 0) {
+          sheet.style.transition = 'none';
+          sheet.style.transform = `translateY(${deltaY}px)`;
+        }
+      };
+      const onEnd = (clientY: number) => {
+        if (!isDragging) return;
+        isDragging = false;
+        const deltaY = clientY - startY;
+        sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 120) {
+          this.close();
+        } else {
+          sheet.style.transform = 'translateY(0)';
+        }
+      };
+
+      handle?.addEventListener('touchstart', (e: any) => onStart(e.touches[0].clientY), { passive: true });
+      handle?.addEventListener('touchmove', (e: any) => onMove(e.touches[0].clientY), { passive: true });
+      handle?.addEventListener('touchend', (e: any) => onEnd(e.changedTouches[0].clientY), { passive: true });
+
+      sheet.addEventListener('touchstart', (e: any) => onStart(e.touches[0].clientY), { passive: true });
+      sheet.addEventListener('touchmove', (e: any) => onMove(e.touches[0].clientY), { passive: true });
+      sheet.addEventListener('touchend', (e: any) => onEnd(e.changedTouches[0].clientY), { passive: true });
+    }
+
     private renderTimeGrids() {
       const hoursGrid = document.getElementById('wrapup-time-hours-grid');
       const minutesGrid = document.getElementById('wrapup-time-minutes-grid');
@@ -642,6 +682,7 @@
     private open() {
       if (!this.sheet || !this.content || !this.backdrop) return;
       this.sheet.classList.remove('hidden');
+      this.content.style.transform = '';
       void this.sheet.offsetWidth;
       this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
@@ -652,6 +693,7 @@
       this.closeDatePicker();
       this.closeTimePicker();
       this.backdrop.classList.add('opacity-0');
+      this.content.style.transform = '';
       this.content.classList.add('translate-y-full');
       setTimeout(() => {
         if (this.sheet) this.sheet.classList.add('hidden');
