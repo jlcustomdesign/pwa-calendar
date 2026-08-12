@@ -1,6 +1,4 @@
--- One-time fix: recalculează sedinte_folosite pe baza programărilor finalizate.
--- Rulează acest script în SQL Editor din Supabase dacă contoarele sunt dezacordate.
-
+-- 1. Recalculate existing counters for used sessions (sedinte_folosite)
 UPDATE public.pacienti p
 SET sedinte_folosite = COALESCE(
   (
@@ -12,7 +10,7 @@ SET sedinte_folosite = COALESCE(
   0
 );
 
--- Actualizează și statusul abonamentului conform noilor valori
+-- 2. Update the subscription status (status_abonament) based on the newly calculated counters
 UPDATE public.pacienti p
 SET status_abonament = CASE
   WHEN p.sedinte_total > 0 AND p.sedinte_folosite >= p.sedinte_total THEN 'terminat'
@@ -20,3 +18,8 @@ SET status_abonament = CASE
   ELSE 'activ'
 END
 WHERE status_abonament NOT IN ('inactiv');
+
+-- 3. Verify if the auto-increment trigger exists
+SELECT trigger_name
+FROM information_schema.triggers
+WHERE trigger_name = 'trg_incrementeaza_sedinte';
