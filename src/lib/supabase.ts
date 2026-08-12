@@ -24,26 +24,32 @@ if (typeof window !== 'undefined') {
     const response = await originalFetch(...args);
     const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
 
-    if (
-      !redirecting &&
-      url.includes(supabaseUrl) &&
-      (response.status === 401 || response.status === 406)
-    ) {
-      redirecting = true;
-      // Logăm eroarea înainte de redirect, ca să apară în pagina de logs.
-      try {
-        const responseClone = response.clone();
-        const responseText = await responseClone.text();
-        captureFetchError(url, response.status, responseText.slice(0, 1000));
-      } catch {
-        captureFetchError(url, response.status);
+    if (url.includes(supabaseUrl)) {
+      // Logăm erorile de auth / conținut pentru pagina de jurnal.
+      if (response.status === 401 || response.status === 406) {
+        try {
+          const responseClone = response.clone();
+          const responseText = await responseClone.text();
+          captureFetchError(url, response.status, responseText.slice(0, 1000));
+        } catch {
+          captureFetchError(url, response.status);
+        }
       }
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        // ignore signOut errors
+
+      // Facem logout + redirect DOAR pe 401. 406 este de obicei o eroare de date
+      // (ex: settings gol / .single() fără rânduri), nu de autentificare.
+      if (
+        !redirecting &&
+        response.status === 401
+      ) {
+        redirecting = true;
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          // ignore signOut errors
+        }
+        window.location.href = '/login';
       }
-      window.location.href = '/login';
     }
 
     return response;
