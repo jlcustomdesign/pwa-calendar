@@ -39,6 +39,8 @@ import DailyProgress from './DailyProgress.astro';
   const _d = new Date();
   const todayStr = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
   let currentAgendaDate = todayStr;
+  let lastFetchedSessions: any[] = [];
+  const autoPromptedSessions = new Set<string>();
 
   window.addEventListener('calendarDateSelected', (e: any) => {
     const date = e.detail?.date;
@@ -103,6 +105,8 @@ import DailyProgress from './DailyProgress.astro';
     } catch (e) {
       console.error('Eroare citire agenda din DB:', e);
     }
+    
+    lastFetchedSessions = stored;
 
     // Calculate selected day's progress dynamically
     const daySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === currentAgendaDate);
@@ -213,7 +217,7 @@ import DailyProgress from './DailyProgress.astro';
         displayPaymentLabel = `${sumaIncasata} RON • Rest: ${restDePlata} RON`;
         paymentBadgeClass = 'bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-extrabold shadow-sm';
       } else if (isPaid || paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal)) {
-        displayPaymentLabel = 'Achitat ✓';
+        displayPaymentLabel = 'Achitat';
         paymentBadgeClass = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold shadow-sm';
       } else if (paymentStatus === 'Neachitat' || sumaIncasata === 0) {
         displayPaymentLabel = 'Neachitat';
@@ -341,8 +345,60 @@ import DailyProgress from './DailyProgress.astro';
     }).join('');
   }
 
-  document.addEventListener('DOMContentLoaded', renderAgendaBlock);
-  document.addEventListener('astro:page-load', renderAgendaBlock);
+  function checkAutoPromptAndProgress() {
+    if (currentAgendaDate !== todayStr) return;
+    
+    const now = new Date();
+    const nowStr = now.toTimeString().slice(0, 5);
+    
+    // We only trigger auto-prompt if there are active sessions that just ended
+    let shouldRender = false;
+
+    lastFetchedSessions.forEach((s: any) => {
+      const status = s.status || 'programat';
+      if (status === 'finalizat' || status === 'anulat' || status === 'absent') return;
+      
+      const timeStr = s.selectedTime || "08:00";
+      const cleanTimeStr = timeStr.substring(0, 5);
+      const timeParts = cleanTimeStr.split(':');
+      const startH = parseInt(timeParts[0] || "8", 10);
+      const startM = parseInt(timeParts[1] || "0", 10);
+      const totalStartMin = startH * 60 + startM;
+      const totalEndMin = totalStartMin + 50; // 50 min session
+      
+      const nowH = parseInt(nowStr.split(':')[0], 10);
+      const nowM = parseInt(nowStr.split(':')[1], 10);
+      const nowTotalMin = nowH * 60 + nowM;
+      
+      // Auto prompt if the session ended within the last 3 minutes and wasn't prompted yet
+      if (nowTotalMin >= totalEndMin && nowTotalMin - totalEndMin <= 3 && !autoPromptedSessions.has(s.id)) {
+        autoPromptedSessions.add(s.id);
+        if (typeof window.confirmSession === 'function') {
+          window.confirmSession(s.id);
+        }
+      }
+
+      // Check if we need to re-render UI because of time changes (ongoing vs past)
+      // If a session just crossed the end boundary, we should re-render to update UI
+      if (nowTotalMin === totalEndMin || nowTotalMin === totalStartMin) {
+        shouldRender = true;
+      }
+    });
+
+    if (shouldRender) {
+      renderAgendaBlock();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderAgendaBlock();
+    setInterval(checkAutoPromptAndProgress, 60000);
+  });
+  
+  document.addEventListener('astro:page-load', () => {
+    renderAgendaBlock();
+  });
+  
   window.addEventListener('sessionsUpdated', renderAgendaBlock);
   window.addEventListener('patientsUpdated', renderAgendaBlock);
 </script>
