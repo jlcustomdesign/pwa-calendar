@@ -10,6 +10,7 @@ export async function getSettings(): Promise<Settings> {
   const { data, error } = await (supabase as any)
     .from('settings')
     .select('*')
+    .limit(1)
     .single();
 
   if (error || !data) {
@@ -43,6 +44,7 @@ export async function saveSettings(updates: Partial<Settings>): Promise<Settings
   const { data: existing } = await (supabase as any)
     .from('settings')
     .select('id')
+    .limit(1)
     .single();
 
   if (!existing) throw new Error('Nu există rând de settings în baza de date.');
@@ -52,6 +54,7 @@ export async function saveSettings(updates: Partial<Settings>): Promise<Settings
     .update(updates)
     .eq('id', existing.id)
     .select()
+    .limit(1)
     .single();
 
   if (error) throw new Error('Eroare la salvarea setărilor: ' + error.message);
@@ -84,6 +87,7 @@ export async function getProfile() {
     .from('profiles')
     .select('*')
     .eq('id', user.id)
+    .limit(1)
     .single();
 
   if (error) throw new Error('Eroare la citirea profilului: ' + error.message);
