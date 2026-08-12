@@ -133,7 +133,8 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
         : '';
 
       const sumaIncasata = session.sumaIncasata || 0;
-      const restDePlata = Math.max(0, (session.costTotal || 0) - (session.sumaIncasata || 0));
+      const costTotal = session.costTotal || 0;
+      const restDePlata = Math.max(0, costTotal - sumaIncasata);
       const isPaid = restDePlata <= 0 || session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat';
 
       let paymentBadgeClass = 'bg-white hover:bg-neutral-50 text-black border border-black/5 font-extrabold shadow-sm';
