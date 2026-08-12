@@ -104,11 +104,6 @@
               0 <span class="text-sm font-sans font-black text-text-main">RON</span>
             </div>
           </div>
-          <div class="text-right">
-            <div class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Total perioadă</div>
-            <div id="chart-period-total" class="text-lg sm:text-xl font-black text-text-main mt-0.5">0 <span class="text-xs font-sans font-black text-text-main">RON</span></div>
-            <div id="chart-period-comparison" class="text-xs font-black mt-0.5 text-text-muted">--</div>
-          </div>
         </div>
 
         <div class="relative w-full h-36" id="chart-container">
@@ -428,14 +423,14 @@
         }
 
         // Load chart
-        initInteractiveHatchChart(statData.chartData, statData.startStr, activeTab);
+        initInteractiveHatchChart(statData.chartData, statData.startStr, activeTab, statData);
       }
     } catch (e) {
       console.error('Error loading report stats:', e);
     }
   }
 
-  function initInteractiveHatchChart(chartData: { label: string, val: number, dateStr?: string }[], startStr: string, periodType: TabType) {
+  function initInteractiveHatchChart(chartData: { label: string, val: number, dateStr?: string }[], startStr: string, periodType: TabType, statData?: any) {
     const container = document.getElementById('chart-x-labels');
     if (!container) return;
     
@@ -491,10 +486,14 @@
       return { x: xCoords[i], y, val };
     });
 
-    let activeBtnIdx = chartData.length - 1; // Default to last point if nothing else matches
+    if (valueDisplay) {
+      valueDisplay.innerHTML = `${statData ? statData.venit || 0 : 0} <span class="text-sm font-sans font-black text-text-main">RON</span>`;
+    }
+
+    let activeBtnIdx = -1;
     const todayStr = toLocalISOString(new Date());
     
-    // Find the closest point that is today or past
+    // Find the closest point that is today or past in this period
     for (let i = chartData.length - 1; i >= 0; i--) {
       const item = chartData[i];
       if (item && item.dateStr && item.dateStr <= todayStr) {
@@ -593,8 +592,11 @@
     });
 
     const newDayBtns = document.querySelectorAll('.day-btn');
-    if (newDayBtns[activeBtnIdx]) {
-      newDayBtns[activeBtnIdx].dispatchEvent(new Event('click'));
+    if (activeBtnIdx >= 0 && newDayBtns[activeBtnIdx]) {
+      (newDayBtns[activeBtnIdx] as HTMLElement).dispatchEvent(new Event('click'));
+    } else {
+      if (dot) dot.classList.add('hidden');
+      if (dotGlow) dotGlow.classList.add('hidden');
     }
   }
 

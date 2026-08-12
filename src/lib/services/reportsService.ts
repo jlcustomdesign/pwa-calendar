@@ -65,7 +65,7 @@ export async function getWeekStats(baseDate?: string) {
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('data, ora, status, pacient_id, pacienti(cost)')
+    .select('data, ora, status, pacient_id, pacienti(cost, sedinte_total)')
     .gte('data', startStr)
     .lte('data', endStr);
 
@@ -95,7 +95,11 @@ export async function getWeekStats(baseDate?: string) {
 
     if (isDone) {
       byDay[p.data].finalizate++;
-      byDay[p.data].venit += Number(p.pacienti?.cost || 0);
+      // Calculate cost per session = total cost / total sessions
+      const costTotal = Number(p.pacienti?.cost || 0);
+      const sedinteTotal = Number(p.pacienti?.sedinte_total || 1);
+      const costPerSedinta = sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal;
+      byDay[p.data].venit += costPerSedinta;
     }
     if (p.status === 'absent') {
       byDay[p.data].absente++;
@@ -144,7 +148,7 @@ export async function getMonthStats(baseDate?: string) {
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('data, ora, status, pacienti(cost)')
+    .select('data, ora, status, pacienti(cost, sedinte_total)')
     .gte('data', startStr)
     .lte('data', endStr);
 
@@ -166,9 +170,14 @@ export async function getMonthStats(baseDate?: string) {
   let venitPlati = platiList.reduce((sum, p) => sum + Number(p.suma || 0), 0);
   let venitSedinte = progList
     .filter(p => p.status === 'finalizat' || p.status === 'finalizata')
-    .reduce((sum, p) => sum + Number(p.pacienti?.cost || 0), 0);
+    .reduce((sum, p) => {
+      const costTotal = Number(p.pacienti?.cost || 0);
+      const sedinteTotal = Number(p.pacienti?.sedinte_total || 1);
+      const costPerSedinta = sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal;
+      return sum + costPerSedinta;
+    }, 0);
 
-  let venit = Math.max(venitPlati, venitSedinte);
+  let venit = venitPlati > 0 ? venitPlati : venitSedinte;
 
   const byPeriod = [0, 0, 0, 0];
   const itemsToDistribute = platiList.length > 0 ? platiList : progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata');
