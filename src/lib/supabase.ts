@@ -15,22 +15,18 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
 
-// ── Global fetch interceptor: redirect to login on auth failures ──
+// ── Global fetch interceptor: log Supabase errors for the logs page ──
+// Nu mai facem redirect automat aici — redirectul pe logout este gestionat
+// prin supabase.auth.onAuthStateChange în DashboardLayout. Interceptorul doar
+// capturează erorile 401/406 fără a deconecta utilizatorul.
 if (typeof window !== 'undefined') {
   const originalFetch = window.fetch;
-  let redirecting = false;
 
   window.fetch = async (...args) => {
     const response = await originalFetch(...args);
     const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
 
-    if (
-      !redirecting &&
-      url.includes(supabaseUrl) &&
-      (response.status === 401 || response.status === 406)
-    ) {
-      redirecting = true;
-      // Logăm eroarea înainte de redirect, ca să apară în pagina de logs.
+    if (url.includes(supabaseUrl) && (response.status === 401 || response.status === 406)) {
       try {
         const responseClone = response.clone();
         const responseText = await responseClone.text();
@@ -38,12 +34,6 @@ if (typeof window !== 'undefined') {
       } catch {
         captureFetchError(url, response.status);
       }
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        // ignore signOut errors
-      }
-      window.location.href = '/login';
     }
 
     return response;

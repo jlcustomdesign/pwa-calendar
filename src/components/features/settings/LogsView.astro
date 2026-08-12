@@ -17,6 +17,13 @@
     <div class="flex items-center gap-2 shrink-0">
       <button
         type="button"
+        id="btn-export-logs"
+        class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-brand-primary text-text-main hover:text-black font-bold text-sm transition-all active:scale-95 border border-border-subtle/60"
+      >
+        Exportă
+      </button>
+      <button
+        type="button"
         id="btn-test-error"
         class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-brand-primary text-text-main hover:text-black font-bold text-sm transition-all active:scale-95 border border-border-subtle/60"
       >
@@ -171,6 +178,35 @@
     clearBtn?.addEventListener('click', () => {
       clearLogs();
       render();
+    });
+
+    document.getElementById('btn-export-logs')?.addEventListener('click', async () => {
+      const logs = getLogs();
+      if (logs.length === 0) {
+        (window as any).showToast?.('Nu există erori de exportat.', 'info');
+        return;
+      }
+
+      const lines = logs.map((log, index) => {
+        const parts = [
+          `[${index + 1}] ${formatLogTimestamp(log.timestamp)} — ${log.type.toUpperCase()} (${log.source})`,
+          `Mesaj: ${log.message}`,
+          `Interpretare: ${log.interpretation}`,
+        ];
+        if (log.details) parts.push(`Detalii: ${log.details}`);
+        if (log.stack) parts.push(`Stack:\n${log.stack}`);
+        return parts.join('\n') + '\n' + '—'.repeat(40);
+      });
+
+      const header = `Jurnal erori Kineto Agenda — ${logs.length} înregistrări\nGenerat la: ${formatLogTimestamp(Date.now())}\n${'='.repeat(40)}`;
+      const text = [header, ...lines].join('\n\n');
+
+      try {
+        await navigator.clipboard.writeText(text);
+        (window as any).showToast?.('Logurile au fost copiate în clipboard.', 'success');
+      } catch {
+        (window as any).showToast?.('Nu s-a putut copia în clipboard.', 'error');
+      }
     });
 
     document.getElementById('btn-test-error')?.addEventListener('click', () => {

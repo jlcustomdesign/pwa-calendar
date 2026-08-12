@@ -5,30 +5,41 @@
 import { supabase } from '../supabase';
 import type { Settings } from '../database.types';
 
+const DEFAULT_SETTINGS: Settings = {
+  id: 'default',
+  therapist_name: 'Roxana',
+  work_start: '08:00',
+  work_end: '18:00',
+  lunch_start: '13:00',
+  lunch_end: '14:00',
+  session_duration: 50,
+  break_buffer: 10,
+  zile_lucratoare: [1, 2, 3, 4, 5],
+  default_price: 150,
+  default_total_sessions: 10,
+  reminder_threshold: 2,
+  whatsapp_template: 'Salut {nume}! Îți reamintim că mai ai {ramase} ședințe rămase. Te așteptăm cu drag!',
+  categories: ['Kinetoterapie', 'Masaj', 'Recuperare'],
+  updated_at: new Date().toISOString()
+} as Settings;
+
 // ── Citire settings ───────────────────────────────────────────
 export async function getSettings(): Promise<Settings> {
   const { data, error } = await (supabase as any)
     .from('settings')
     .select('*')
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    console.warn('getSettings warning:', error);
+  }
+
+  if (!data) {
     return {
-      id: 'default',
-      work_start: '08:00',
-      work_end: '18:00',
-      zile_lucratoare: [1, 2, 3, 4, 5],
-      lunch_start: '13:00',
-      lunch_end: '14:00',
-      session_duration: 50,
-      break_buffer: 10,
-      default_price: 150,
-      whatsapp_template: 'Salut {nume}! Îți reamintim că mai ai {ramase} ședințe rămase. Te așteptăm cu drag!',
-      categories: ['Kinetoterapie', 'Masaj', 'Recuperare'],
-      reminder_threshold: 2,
+      ...DEFAULT_SETTINGS,
       updated_at: new Date().toISOString()
-    } as Settings;
+    };
   }
 
   return {
@@ -38,26 +49,40 @@ export async function getSettings(): Promise<Settings> {
   };
 }
 
-// ── Salvare settings (UPDATE pe singurul rând existent) ────────
+// ── Salvare settings (UPDATE pe singurul rând existent, INSERT dacă lipsește) ────────
 export async function saveSettings(updates: Partial<Settings>): Promise<Settings> {
-  // Obținem ID-ul rândului singleton
+  // Obținem rândul singleton fără a da eroare dacă tabela e goală.
   const { data: existing } = await (supabase as any)
     .from('settings')
     .select('id')
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (!existing) throw new Error('Nu există rând de settings în baza de date.');
+  let data: any;
+  let error: any;
 
-  const { data, error } = await (supabase as any)
-    .from('settings')
-    .update(updates)
-    .eq('id', existing.id)
-    .select()
-    .limit(1)
-    .single();
+  if (!existing) {
+    // Tabela e goală: inserăm un rând nou cu defaults + updates.
+    const insertResult = await (supabase as any)
+      .from('settings')
+      .insert({ ...DEFAULT_SETTINGS, ...updates })
+      .select()
+      .maybeSingle();
+    data = insertResult.data;
+    error = insertResult.error;
+  } else {
+    const updateResult = await (supabase as any)
+      .from('settings')
+      .update(updates)
+      .eq('id', existing.id)
+      .select()
+      .maybeSingle();
+    data = updateResult.data;
+    error = updateResult.error;
+  }
 
   if (error) throw new Error('Eroare la salvarea setărilor: ' + error.message);
+  if (!data) throw new Error('Setările nu au putut fi salvate.');
   return data;
 }
 
@@ -88,8 +113,8 @@ export async function getProfile() {
     .select('*')
     .eq('id', user.id)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error('Eroare la citirea profilului: ' + error.message);
-  return { ...data, email: user.email };
+  return data ? { ...data, email: user.email } : null;
 }
