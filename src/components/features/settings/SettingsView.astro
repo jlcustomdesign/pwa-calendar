@@ -436,14 +436,6 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   async function initSubSectionLogic() {
-    // Oprire/blocare scroll pagină dacă este deschisă o sub-categorie
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('section')) {
-      lockBodyScroll();
-    } else {
-      unlockBodyScroll();
-    }
-
     // Load Settings din Supabase
     let settings: any = {};
     let profileData: any = {};
