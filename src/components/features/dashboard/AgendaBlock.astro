@@ -223,7 +223,7 @@ import DailyProgress from './DailyProgress.astro';
       const driveLink = session.driveLink || session.patientDriveLink || '';
 
       return `
-        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden mx-3">
+        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden mx-5">
           <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
             <div class="flex items-center gap-3">
               <button 
@@ -301,13 +301,13 @@ import DailyProgress from './DailyProgress.astro';
                   </div>
 
                   <!-- Row 2: Payment Badge on Left (Spacious px-6 padding) + Icon-only Call/Folder Buttons on Right -->
-                  <div class="flex items-center justify-between pt-0.5 gap-3">
+                  <div class="flex items-center justify-between pt-0.5 gap-4">
                     <button 
                       type="button"
-                      class="h-11 flex-1 min-w-0 flex items-center justify-center px-3 rounded-2xl ${paymentBadgeClass} hover:opacity-90 active:scale-95 transition-all text-sm sm:text-base font-black cursor-pointer shadow-sm" 
+                      class="h-11 flex items-center justify-center px-4 rounded-2xl ${paymentBadgeClass} hover:opacity-90 active:scale-95 transition-all text-sm sm:text-base font-black cursor-pointer shadow-sm" 
                       onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${session.patientId}' } }))"
                     >
-                      <span class="truncate">${displayPaymentLabel}</span>
+                      <span>${displayPaymentLabel}</span>
                     </button>
 
                     <div class="flex items-center gap-2 shrink-0">
