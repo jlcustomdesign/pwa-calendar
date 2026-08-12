@@ -73,12 +73,7 @@ import DailyProgress from './DailyProgress.astro';
         if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
           pStatus = 'Achitat integral';
         } else if (sumaIncasata > 0) {
-          const isFuture = a.data > todayStr;
-          if (!isFuture && (folosite <= sedintePlatite || sumaIncasata >= costPerSession)) {
-            pStatus = 'Achitat';
-          } else {
-            pStatus = 'Neachitat';
-          }
+          pStatus = 'Achitat parțial';
         } else if (a.pacienti?.status_plata) {
           pStatus = a.pacienti.status_plata;
         }

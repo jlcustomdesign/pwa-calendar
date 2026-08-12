@@ -3,7 +3,6 @@ import Dock from '../components/layout/Dock.astro';
 import PaymentSheet from '../components/features/patients/PaymentSheet.astro';
 import AddSessionSheet from '../components/features/agenda/AddSessionSheet.astro';
 import SessionWrapUpSheet from '../components/features/agenda/SessionWrapUpSheet.astro';
-import FrequencyPromptBanner from '../components/features/agenda/FrequencyPromptBanner.astro';
 import CustomToast from '../components/ui/CustomToast.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
@@ -46,7 +45,6 @@ const { title, hideDock = false } = Astro.props;
       <PaymentSheet transition:persist />
       <AddSessionSheet transition:persist />
       <SessionWrapUpSheet transition:persist />
-      <FrequencyPromptBanner transition:persist />
       <CustomToast transition:persist />
     </div>
 

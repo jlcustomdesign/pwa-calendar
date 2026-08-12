@@ -240,7 +240,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   import { getPatients, getPatient, addPatient, updatePatient } from '../../../lib/services/patientService';
-  import { createAppointment, updateAppointment, countPatientWeekAppointments } from '../../../lib/services/appointmentService';
+  import { createAppointment, updateAppointment } from '../../../lib/services/appointmentService';
 
   class AddSessionSheetManager {
     sheet: HTMLElement | null;
@@ -451,7 +451,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         try {
           const newPatientId = await addPatient({
             name: fullName, telefon, locatie,
-            plan: 'Subscription', cost, frecventa: '1/week', sedinte_total: sedinte
+            plan: 'Subscription', cost, sedinte_total: sedinte
           });
 
           // Notifică toate paginile
@@ -971,22 +971,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             ora: selectedTime,
           });
           (window as any).showToast('Programarea a fost salvată cu succes.', 'success');
-
-          // Prompt frecvență: pacientul are mai multe ședințe pe săptămână?
-          try {
-            const patient = this.patientsCache.find((p: any) => p.id === patientId);
-            const freq = parseInt(String(patient?.frecventa ?? ''), 10);
-            if (patient && !isNaN(freq) && freq > 1) {
-              const weekCount = await countPatientWeekAppointments(patientId, selectedDate);
-              if (weekCount < freq) {
-                window.dispatchEvent(new CustomEvent('showFrequencyPrompt', {
-                  detail: { patientId, patientName: patient.name, frequency: freq, count: weekCount, date: selectedDate }
-                }));
-              }
-            }
-          } catch (freqErr) {
-            console.error('Eroare verificare frecvență săptămânală:', freqErr);
-          }
         }
 
         window.dispatchEvent(new CustomEvent('sessionsUpdated'));

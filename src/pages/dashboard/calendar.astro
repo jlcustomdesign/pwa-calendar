@@ -140,8 +140,10 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       let displayPaymentLabel = 'Status plată';
       if (session.paymentStatus === 'Achitat parțial' || (sumaIncasata > 0 && restDePlata > 0)) {
         displayPaymentLabel = `Parțial ${sumaIncasata} RON (Rest ${restDePlata} RON)`;
+        paymentBadgeClass = 'bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-extrabold shadow-sm';
       } else if (session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal && isPaid)) {
         displayPaymentLabel = 'Achitat';
+        paymentBadgeClass = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold shadow-sm';
       } else if (session.paymentStatus === 'Neachitat') {
         displayPaymentLabel = 'Neachitat';
       } else {
@@ -287,12 +289,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
           if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
             pStatus = 'Achitat integral';
           } else if (sumaIncasata > 0) {
-            const isFuture = a.data > todayStr;
-            if (!isFuture && (folosite <= sedintePlatite || sumaIncasata >= costPerSession)) {
-              pStatus = 'Achitat';
-            } else {
-              pStatus = 'Neachitat';
-            }
+            pStatus = 'Achitat parțial';
           } else if (a.pacienti?.status_plata) {
             pStatus = a.pacienti.status_plata;
           }

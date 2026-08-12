@@ -64,36 +64,16 @@
         </div>
       </div>
 
-      <!-- Cost & Frequency -->
-      <div class="grid gap-4">
-        <div>
-          <label class="block text-sm font-extrabold text-black mb-2">Cost (RON)</label>
-          <input 
-            type="number" 
-            name="cost" 
-            id="patientCost" 
-            placeholder="ex: 150" 
-            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-extrabold text-black mb-2">Frecvență</label>
-          <div class="flex flex-col gap-3">
-            <div class="flex flex-wrap gap-2">
-              <button type="button" data-frequency="1 / săptămână" class="px-3 py-2 rounded-xl text-xs font-bold transition-all bg-black/5 text-black hover:bg-black/10">1 / săptămână</button>
-              <button type="button" data-frequency="2 / săptămână" class="px-3 py-2 rounded-xl text-xs font-bold transition-all bg-black/5 text-black hover:bg-black/10">2 / săptămână</button>
-              <button type="button" data-frequency="3 / săptămână" class="px-3 py-2 rounded-xl text-xs font-bold transition-all bg-black/5 text-black hover:bg-black/10">3 / săptămână</button>
-            </div>
-            <input 
-              type="text" 
-              name="frequency" 
-              id="patientFrequency" 
-              placeholder="Sau introdu personalizat (ex: 5 / săptămână)" 
-              value="1 / săptămână"
-              class="w-full px-4 py-2.5 rounded-xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary transition-all font-bold text-black text-sm"
-            />
-          </div>
-        </div>
+      <!-- Cost -->
+      <div>
+        <label class="block text-sm font-extrabold text-black mb-2">Cost (RON)</label>
+        <input 
+          type="number" 
+          name="cost" 
+          id="patientCost" 
+          placeholder="ex: 150" 
+          class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all"
+        />
       </div>
 
       <!-- Total Sessions -->
@@ -234,6 +214,7 @@
             (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = planVal;
           }
           this.updatePlanChips(planVal);
+          this.applyPlanDefaults(planVal);
         });
       });
 
@@ -248,25 +229,6 @@
           this.updateLocationChips(locVal);
         });
       });
-
-      // Bind Frequency Chips
-      const freqChips = document.querySelectorAll<HTMLButtonElement>('[data-frequency]');
-      freqChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          const freqVal = chip.dataset.frequency || '1 / săptămână';
-          if (this.form) {
-            (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = freqVal;
-          }
-          this.updateFrequencyChips(freqVal);
-        });
-      });
-
-      const freqInput = this.form?.querySelector('[name="frequency"]') as HTMLInputElement;
-      if (freqInput) {
-        freqInput.addEventListener('input', (e) => {
-          this.updateFrequencyChips((e.target as HTMLInputElement).value);
-        });
-      }
 
       // Bind Payment Chips
       const paymentChips = document.querySelectorAll<HTMLButtonElement>('[data-payment]');
@@ -338,28 +300,24 @@
       });
     }
 
-    updateFrequencyChips(selectedFreq: string) {
-      const clean = (s: string) => (s || '').toLowerCase().trim();
-      const normSelected = clean(selectedFreq);
+    private isOneTimePlan(plan: string) {
+      const clean = (s: string) => (s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const p = clean(plan);
+      return p.includes('sedinta') || p.includes('unica') || p.includes('one') || p.includes('single');
+    }
 
-      const freqChips = document.querySelectorAll<HTMLButtonElement>('[data-frequency]');
-      freqChips.forEach(chip => {
-        const chipFreq = clean(chip.dataset.frequency || '');
-        const isMatch = chipFreq === normSelected ||
-          (chipFreq.length > 0 && normSelected.length > 0 && chipFreq.charAt(0) === normSelected.charAt(0) && chipFreq.charAt(0) >= '1' && chipFreq.charAt(0) <= '9');
+    applyPlanDefaults(plan: string) {
+      const totalInput = this.form?.querySelector('[name="totalSessions"]') as HTMLInputElement | null;
+      if (!totalInput) return;
 
-        if (isMatch) {
-          chip.style.backgroundColor = '#ffc107';
-          chip.style.color = '#000000';
-          chip.classList.remove('bg-black/5');
-          chip.classList.add('shadow-sm', 'font-extrabold');
-        } else {
-          chip.style.backgroundColor = '';
-          chip.style.color = '';
-          chip.classList.add('bg-black/5', 'text-black');
-          chip.classList.remove('shadow-sm');
-        }
-      });
+      if (this.isOneTimePlan(plan)) {
+        totalInput.value = '1';
+        totalInput.disabled = true;
+        totalInput.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        totalInput.disabled = false;
+        totalInput.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
     }
 
     updatePaymentChips(selectedPayment: string) {
@@ -414,7 +372,6 @@
         locatie: (formData.get('location') as any) || 'Belaqva',
         cost: formData.get('cost') ? Number(formData.get('cost')) : 0,
         sedinte_total: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
-        frecventa: (formData.get('frequency') as string) || '1 / săptămână',
         achitat: formData.get('paymentStatus') === 'Achitat' || formData.get('paymentStatus') === 'Paid fully' || formData.get('paymentStatus') === 'Paid',
         drive_link: (formData.get('driveLink') as string) || '',
       };
@@ -475,19 +432,18 @@
           (this.form.querySelector('[name="location"]') as HTMLInputElement).value = patient.locatie || 'Belaqva';
           (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = patient.cost != null ? String(patient.cost) : '';
           (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = patient.sedinte_total != null ? String(patient.sedinte_total) : '';
-          (this.form.querySelector('[name="frequency"]') as HTMLInputElement).value = patient.frecventa || '1 / săptămână';
           (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = editPaymentStatus;
           (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.drive_link || '';
           this.updatePlanChips(patient.plan || 'Abonament');
           this.updateLocationChips(patient.locatie || 'Belaqva');
-          this.updateFrequencyChips(patient.frecventa || '1 / săptămână');
           this.updatePaymentChips(editPaymentStatus);
+          this.applyPlanDefaults(patient.plan || 'Abonament');
         } else if (this.form) {
           this.form.reset();
           this.updatePlanChips('Abonament');
           this.updateLocationChips('Belaqva');
-          this.updateFrequencyChips('1 / săptămână');
           this.updatePaymentChips('Neachitat');
+          this.applyPlanDefaults('Abonament');
         }
 
         this.open();

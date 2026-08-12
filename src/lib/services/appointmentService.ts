@@ -152,6 +152,25 @@ export async function createAppointment(input: {
 
   // Eroarea din trigger conține mesajul descriptiv în română
   if (error) throw new Error(error.message);
+
+  // Dacă pacientul are ședință unică și a consumat deja pachetul, resetăm contorul
+  // pentru noua ședință. Istoricul programărilor rămâne în DB, deci statisticile nu se pierd.
+  try {
+    const { data: p } = await (supabase as any)
+      .from('pacienti')
+      .select('plan, sedinte_folosite, sedinte_total')
+      .eq('id', input.pacient_id)
+      .single();
+    if (p && p.plan === 'One Time' && p.sedinte_folosite > 0 && p.sedinte_folosite >= (p.sedinte_total || 1)) {
+      await (supabase as any)
+        .from('pacienti')
+        .update({ sedinte_folosite: 0 })
+        .eq('id', input.pacient_id);
+    }
+  } catch (e) {
+    console.warn('createAppointment reset counter warning:', e);
+  }
+
   return data.id;
 }
 

@@ -95,7 +95,6 @@ export async function addPatient(input: {
   locatie:       'Belaqva' | 'Ghimbav';
   plan:          any;
   cost:          number;
-  frecventa:     string;
   sedinte_total: number;
   achitat?:      boolean;
   drive_link?:   string;
@@ -123,7 +122,6 @@ export async function addPatient(input: {
     locatie:       input.locatie,
     plan:          normalizePlan(input.plan),
     cost:          input.cost,
-    frecventa:     input.frecventa,
     sedinte_total: input.sedinte_total,
     achitat:       input.achitat ?? false,
     drive_link:    input.drive_link ?? null,
@@ -319,15 +317,14 @@ export async function exportPatientsCSV(): Promise<string> {
 
   // Secțiunea 1: PACIENȚI
   rows.push(['=== LISTA PACIENȚI ===']);
-  rows.push(['Nume Complet', 'Telefon', 'Locatie', 'Plan', 'Frecventa', 'Cost (RON)', 'Sedinte Total', 'Sedinte Folosite', 'Sedinte Ramase', 'Achitat', 'Status Abonament']);
-  
+  rows.push(['Nume Complet', 'Telefon', 'Locatie', 'Plan', 'Cost (RON)', 'Sedinte Total', 'Sedinte Folosite', 'Sedinte Ramase', 'Achitat', 'Status Abonament']);
+
   patients.forEach(p => {
     rows.push([
       p.name,
       p.telefon || '-',
       p.locatie || '-',
       p.plan || '-',
-      p.frecventa || '-',
       (p.cost || 0).toString(),
       (p.sedinte_total || 0).toString(),
       (p.sedinte_folosite || 0).toString(),
