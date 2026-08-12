@@ -14,13 +14,22 @@
         Erorile se sincronizează automat în Supabase când ești online.
       </p>
     </div>
-    <button
-      type="button"
-      id="btn-clear-logs"
-      class="shrink-0 px-4 py-2.5 rounded-full bg-surface-base hover:bg-rose-100 text-rose-600 font-bold text-sm transition-all active:scale-95 border border-border-subtle/60"
-    >
-      Șterge
-    </button>
+    <div class="flex items-center gap-2 shrink-0">
+      <button
+        type="button"
+        id="btn-test-error"
+        class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-brand-primary text-text-main hover:text-black font-bold text-sm transition-all active:scale-95 border border-border-subtle/60"
+      >
+        Eroare test
+      </button>
+      <button
+        type="button"
+        id="btn-clear-logs"
+        class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-rose-100 text-rose-600 font-bold text-sm transition-all active:scale-95 border border-border-subtle/60"
+      >
+        Șterge
+      </button>
+    </div>
   </div>
 
   <!-- Filtre rapide -->
@@ -49,7 +58,7 @@
 </section>
 
 <script>
-  import { getLogs, clearLogs, formatLogTimestamp, type LogEntry, type LogType } from '../../../lib/errorLogger';
+  import { getLogs, clearLogs, captureException, formatLogTimestamp, type LogEntry, type LogType } from '../../../lib/errorLogger';
 
   function initLogsView() {
     const listEl = document.getElementById('logs-list');
@@ -161,6 +170,14 @@
 
     clearBtn?.addEventListener('click', () => {
       clearLogs();
+      render();
+    });
+
+    document.getElementById('btn-test-error')?.addEventListener('click', () => {
+      // Generează o eroare de test deliberată pentru validarea loggerului.
+      captureException(new Error('Eroare de test generată manual din Setări → Jurnal erori'), 'test-button');
+      // Mai generăm și o eroare prin console.error pentru a testa ambele căi.
+      console.error('Test console.error:', { foo: 'bar', numar: 42 });
       render();
     });
 
