@@ -1,9 +1,10 @@
 /**
- * errorLogger.ts — Captură globală erori și jurnal local
+ * errorLogger.ts — Captură globală erori și jurnal local + sync Supabase
  *
- * Stochează ultimele N erori în localStorage (nu depinde de Supabase,
- * deci funcționează și când DB/auth pică). Include interpretări automate
- * pentru cele mai frecvente coduri și situații din aplicație.
+ * - Stochează erorile în localStorage pentru afișare imediată (funcționează și offline).
+ - Încearcă să le trimită automat în tabela `error_logs` din Supabase.
+ * - Dacă utilizatorul nu e logat sau DB-ul pică, le ține într-o coadă de sync
+ *   și le trimite când auth-ul revine.
  */
 
 export type LogType = 'error' | 'warning' | 'fetch' | 'rejection' | 'manual';
@@ -19,15 +20,23 @@ export interface LogEntry {
   interpretation: string; // explicație umană + ce să facă utilizatorul
 }
 
+interface PendingErrorLog {
+  type: LogType;
+  source: string;
+  message: string;
+  details?: string;
+  stack?: string;
+  interpretation: string;
+  created_at: string;
+}
+
 const STORAGE_KEY = 'kineto_error_logs_v1';
+const PENDING_SYNC_KEY = 'kineto_error_logs_pending_v1';
 const MAX_LOGS = 200;
+const MAX_PENDING = 500;
 
 function generateId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function nowIso(): string {
-  return new Date().toISOString();
 }
 
 /**
@@ -122,28 +131,143 @@ export function interpretError(err: unknown, context?: string): string {
 }
 
 /**
- * Adaugă o intrare în jurnal și păstrează doar ultimele MAX_LOGS.
+ * Citește logurile locale.
  */
-export function pushLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): LogEntry {
-  if (typeof window === 'undefined') {
-    // SSR: nu putem scrie în localStorage, dar returnăm intrarea ca să poată fi folosită în teste.
-    return { ...entry, id: generateId(), timestamp: Date.now() };
-  }
-
+function readLocalLogs(): LogEntry[] {
+  if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    const logs: LogEntry[] = raw ? JSON.parse(raw) : [];
-    const newEntry: LogEntry = { ...entry, id: generateId(), timestamp: Date.now() };
-    logs.unshift(newEntry);
-    while (logs.length > MAX_LOGS) logs.pop();
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
-    return newEntry;
-  } catch (e) {
-    // Dacă localStorage pică, nu vrem să cauzăm buclă de erori.
-    // eslint-disable-next-line no-console
-    console.warn('[errorLogger] Nu s-a putut salva logul:', e);
-    return { ...entry, id: generateId(), timestamp: Date.now() };
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
   }
+}
+
+/**
+ * Scrie logurile locale.
+ */
+function writeLocalLogs(logs: LogEntry[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+  } catch {
+    // ignore
+  }
+}
+
+/**
+* Citește coada de loguri care nu au putut fi trimise în Supabase.
+ */
+function readPending(): PendingErrorLog[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(PENDING_SYNC_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Scrie coada de loguri în așteptare.
+ */
+function writePending(pending: PendingErrorLog[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pending));
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Încearcă să insereze un log în Supabase.
+ * Returnează true dacă a reușit, false altfel.
+ */
+async function sendLogToSupabase(entry: LogEntry | PendingErrorLog): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    const { supabase } = await import('./supabase');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const createdAt = 'timestamp' in entry
+      ? new Date(entry.timestamp).toISOString()
+      : entry.created_at;
+
+    const { error } = await supabase.from('error_logs').insert({
+      user_id: user.id,
+      type: entry.type,
+      source: entry.source,
+      message: entry.message,
+      details: entry.details ?? null,
+      stack: entry.stack ?? null,
+      interpretation: entry.interpretation,
+      user_agent: navigator.userAgent,
+      created_at: createdAt,
+    });
+
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Adaugă o intrare în jurnal local și încearcă să o trimită în Supabase.
+ */
+export function pushLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): LogEntry {
+  const newEntry: LogEntry = { ...entry, id: generateId(), timestamp: Date.now() };
+
+  if (typeof window !== 'undefined') {
+    try {
+      const logs = readLocalLogs();
+      logs.unshift(newEntry);
+      while (logs.length > MAX_LOGS) logs.pop();
+      writeLocalLogs(logs);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[errorLogger] Nu s-a putut salva logul local:', e);
+    }
+
+    // Trimitem asincron în Supabase; dacă eșuează, intră în coadă.
+    sendLogToSupabase(newEntry).then((ok) => {
+      if (!ok) {
+        const pending = readPending();
+        pending.unshift({
+          type: newEntry.type,
+          source: newEntry.source,
+          message: newEntry.message,
+          details: newEntry.details,
+          stack: newEntry.stack,
+          interpretation: newEntry.interpretation,
+          created_at: new Date(newEntry.timestamp).toISOString(),
+        });
+        while (pending.length > MAX_PENDING) pending.pop();
+        writePending(pending);
+      }
+    });
+  }
+
+  return newEntry;
+}
+
+/**
+ * Trimite logurile din coada locală în Supabase.
+ * Apelată automat la login și la init.
+ */
+export async function syncPendingLogs(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  let pending = readPending();
+  if (pending.length === 0) return;
+
+  const failed: PendingErrorLog[] = [];
+  for (const entry of pending) {
+    const ok = await sendLogToSupabase(entry);
+    if (!ok) failed.push(entry);
+  }
+
+  writePending(failed);
 }
 
 /**
@@ -176,26 +300,20 @@ export function captureFetchError(url: string, status: number, responseText?: st
 }
 
 /**
- * Citește toate logurile stocate.
+ * Citește toate logurile stocate local (pentru afișare în UI).
  */
 export function getLogs(): LogEntry[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
-  }
+  return readLocalLogs();
 }
 
 /**
- * Șterge toate logurile.
+ * Șterge logurile locale. Nu șterge din Supabase.
  */
 export function clearLogs(): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(STORAGE_KEY);
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
@@ -232,7 +350,6 @@ export function initErrorLogger(): void {
     originalConsoleError.apply(console, args);
     try {
       const message = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
-      // Evităm loguri recursive ale loggerului însuși.
       if (message.includes('[errorLogger]')) return;
       pushLog({
         type: 'error',
@@ -244,4 +361,17 @@ export function initErrorLogger(): void {
       // ignore
     }
   };
+
+  // Încercăm să sincronizăm logurile din coadă și ascultăm schimbări de auth.
+  syncPendingLogs().catch(() => {/* ignore */});
+
+  import('./supabase').then(({ supabase }) => {
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        syncPendingLogs().catch(() => {/* ignore */});
+      }
+    });
+  }).catch(() => {
+    // ignore — va încerca din nou la următorul log
+  });
 }

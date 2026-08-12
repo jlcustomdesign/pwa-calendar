@@ -197,6 +197,37 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['plati']['Insert']>;
       };
 
+      // ── error_logs ────────────────────────────────────────────
+      error_logs: {
+        Row: {
+          id:             string;
+          user_id:        string | null;
+          type:           'error' | 'warning' | 'fetch' | 'rejection' | 'manual';
+          source:         string;
+          message:        string;
+          details:        string | null;
+          stack:          string | null;
+          interpretation: string;
+          user_agent:     string | null;
+          app_version:    string | null;
+          created_at:     string;
+        };
+        Insert: {
+          id?:             string;
+          user_id?:        string | null;
+          type?:           'error' | 'warning' | 'fetch' | 'rejection' | 'manual';
+          source:          string;
+          message:         string;
+          details?:        string | null;
+          stack?:          string | null;
+          interpretation:  string;
+          user_agent?:     string | null;
+          app_version?:    string | null;
+          created_at?:     string;
+        };
+        Update: Partial<Database['public']['Tables']['error_logs']['Insert']>;
+      };
+
     };
 
     Views: {
@@ -234,3 +265,5 @@ export type IstericSaptamanal = Database['public']['Tables']['istoric_saptamanal
 export type PacientView      = Database['public']['Views']['pacienti_view']['Row'];
 export type Plata            = Database['public']['Tables']['plati']['Row'];
 export type PlataInsert      = Database['public']['Tables']['plati']['Insert'];
+export type ErrorLog         = Database['public']['Tables']['error_logs']['Row'];
+export type ErrorLogInsert   = Database['public']['Tables']['error_logs']['Insert'];
