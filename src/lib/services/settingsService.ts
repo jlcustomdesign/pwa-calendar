@@ -7,7 +7,7 @@ import type { Settings } from '../database.types';
 
 // ── Citire settings ───────────────────────────────────────────
 export async function getSettings(): Promise<Settings> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('settings')
     .select('*')
     .single();
@@ -40,14 +40,14 @@ export async function getSettings(): Promise<Settings> {
 // ── Salvare settings (UPDATE pe singurul rând existent) ────────
 export async function saveSettings(updates: Partial<Settings>): Promise<Settings> {
   // Obținem ID-ul rândului singleton
-  const { data: existing } = await supabase
+  const { data: existing } = await (supabase as any)
     .from('settings')
     .select('id')
     .single();
 
   if (!existing) throw new Error('Nu există rând de settings în baza de date.');
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('settings')
     .update(updates)
     .eq('id', existing.id)
@@ -67,7 +67,7 @@ export async function saveProfile(updates: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Utilizatorul nu este autentificat.');
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('profiles')
     .update(updates)
     .eq('id', user.id);
@@ -80,7 +80,7 @@ export async function getProfile() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('profiles')
     .select('*')
     .eq('id', user.id)

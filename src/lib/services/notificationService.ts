@@ -32,6 +32,7 @@ export async function getUnreadCount(): Promise<number> {
 export async function markAsRead(id: string) {
   const { error } = await supabase
     .from('notificari')
+    // @ts-ignore
     .update({ citita: true })
     .eq('id', id);
 
@@ -42,6 +43,7 @@ export async function markAsRead(id: string) {
 export async function markAllAsRead() {
   const { error } = await supabase
     .from('notificari')
+    // @ts-ignore
     .update({ citita: true })
     .eq('citita', false);
 

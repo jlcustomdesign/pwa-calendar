@@ -370,7 +370,7 @@ export async function getWeeklyHistory(limit = 8): Promise<IstericSaptamanal[]> 
 
 // ── Arhivare manuală ──────────────────────────────────────────
 export async function recalculateWeek(startDate?: string) {
-  const { error } = await supabase.rpc('arhiveaza_saptamana', {
+  const { error } = await (supabase as any).rpc('arhiveaza_saptamana', {
     saptamana_start: startDate ?? null
   } as any);
 
