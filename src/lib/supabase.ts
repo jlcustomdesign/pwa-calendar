@@ -14,3 +14,30 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+
+// ── Global fetch interceptor: redirect to login on auth failures ──
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch;
+  let redirecting = false;
+
+  window.fetch = async (...args) => {
+    const response = await originalFetch(...args);
+    const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+
+    if (
+      !redirecting &&
+      url.includes(supabaseUrl) &&
+      (response.status === 401 || response.status === 406)
+    ) {
+      redirecting = true;
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore signOut errors
+      }
+      window.location.href = '/login';
+    }
+
+    return response;
+  };
+}
