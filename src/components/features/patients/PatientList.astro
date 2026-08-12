@@ -312,8 +312,8 @@
         let displayPaymentLabel = 'Status plată';
 
         if (paymentStatus === 'Achitat parțial' || (sumaIncasata > 0 && restDePlata > 0)) {
-          displayPaymentLabel = `<span class="leading-tight text-center"><span class="block">Parțial</span><span class="block text-[10px] opacity-80 font-bold">${sumaIncasata}/${costTotal} RON</span></span>`;
-          paymentBadgeClass = 'bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-extrabold shadow-sm';
+          displayPaymentLabel = `${sumaIncasata}/${costTotal} RON`;
+          paymentBadgeClass = 'bg-orange-100 hover:bg-orange-200 text-black border border-orange-300 font-extrabold shadow-sm';
         } else if (paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal)) {
           displayPaymentLabel = 'Achitat';
           paymentBadgeClass = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold shadow-sm';
