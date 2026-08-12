@@ -1,6 +1,7 @@
 ---
 // SettingsView.astro - Suportă Hub-ul de Navigare (iOS Settings Model) și sub-vizualizările dedicate
 import SettingsHub from './SettingsHub.astro';
+import LogsView from './LogsView.astro';
 
 const section = Astro.url.searchParams.get('section');
 
@@ -13,6 +14,7 @@ const sectionTitles: Record<string, { title: string; subtitle: string }> = {
   reminders: { title: "Reminder și mesaj", subtitle: "" },
   categories: { title: "Categorii pacienți", subtitle: "" },
   backup: { title: "Backup", subtitle: "" },
+  logs: { title: "Jurnal erori", subtitle: "" },
 };
 
 const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[section] : null;
@@ -365,16 +367,21 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
         </section>
       )}
 
+      <!-- 8. Jurnal erori -->
+      {section === 'logs' && <LogsView />}
+
       <!-- Buton de Salvare Unic pe toată lățimea cardului de sus ("Salvează") -->
-      <div class="pt-3">
-        <button
-          type="submit"
-          id="btn-save-settings"
-          class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all text-center cursor-pointer"
-        >
-          Salvează
-        </button>
-      </div>
+      {section !== 'logs' && (
+        <div class="pt-3">
+          <button
+            type="submit"
+            id="btn-save-settings"
+            class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all text-center cursor-pointer"
+          >
+            Salvează
+          </button>
+        </div>
+      )}
 
       <!-- Modal Custom de Selectare a Orei (24H Format, Fără AM/PM, Stil Aplicație) -->
       <div id="time-picker-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-200">
@@ -832,6 +839,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       e.preventDefault();
 
       const section = params.get('section');
+      if (section === 'logs') return;
 
       try {
         let savedSettings: any = null;

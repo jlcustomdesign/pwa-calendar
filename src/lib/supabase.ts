@@ -4,6 +4,7 @@
  */
 import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from './database.types';
+import { captureFetchError } from './errorLogger';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
@@ -29,6 +30,14 @@ if (typeof window !== 'undefined') {
       (response.status === 401 || response.status === 406)
     ) {
       redirecting = true;
+      // Logăm eroarea înainte de redirect, ca să apară în pagina de logs.
+      try {
+        const responseClone = response.clone();
+        const responseText = await responseClone.text();
+        captureFetchError(url, response.status, responseText.slice(0, 1000));
+      } catch {
+        captureFetchError(url, response.status);
+      }
       try {
         await supabase.auth.signOut();
       } catch {

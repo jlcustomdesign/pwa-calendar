@@ -50,6 +50,7 @@ const { title, hideDock = false } = Astro.props;
 
     <!-- Global Session Card Interactive Controller (Expand & Swipe-to-Edit/Delete) -->
     <script>
+      import { initErrorLogger } from '../lib/errorLogger';
       import { setPaymentStatus } from '../lib/services/patientService';
       import { getAppointment, deleteAppointment, cancelAppointment, markAbsent, reconcileSessionCounts } from '../lib/services/appointmentService';
 
@@ -191,6 +192,8 @@ const { title, hideDock = false } = Astro.props;
 
       // Initialize on load and page swaps
       if (typeof window !== 'undefined') {
+        initErrorLogger();
+
         if (!(window as any)._sessionCardControllerInitialized) {
           (window as any)._sessionCardControllerInitialized = true;
           setupSessionCardController();
