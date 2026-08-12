@@ -116,12 +116,13 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
       const isPast = currentCalendarDate < todayStr || (isToday && nowStr >= formattedEnd);
 
       // Icon-only status indicator for closed state
+      // Bifa verde apare DOAR după confirmare (status = finalizat), nu doar pentru că a trecut ora.
       let statusIcon = '';
       if (sessionStatus === 'absent') {
         statusIcon = `<svg class="w-6 h-6 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
       } else if (sessionStatus === 'anulat') {
         statusIcon = `<svg class="w-6 h-6 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
-      } else if (isPast || sessionStatus === 'finalizat') {
+      } else if (sessionStatus === 'finalizat') {
         statusIcon = `<svg class="w-6 h-6 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"/></svg>`;
       } else if (isOngoing) {
         statusIcon = `<svg class="w-7 h-7 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
