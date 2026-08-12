@@ -219,11 +219,14 @@
     private selectedMinute: string = '00';
 
     constructor() {
+      this.reconnect();
+      this.bindEvents();
+    }
+
+    reconnect() {
       this.sheet = document.getElementById('session-wrapup-sheet');
       this.backdrop = document.getElementById('session-wrapup-backdrop');
       this.content = document.getElementById('session-wrapup-content');
-
-      this.bindEvents();
     }
 
     private bindEvents() {
@@ -235,78 +238,102 @@
         }
       }) as EventListener);
 
-      this.backdrop?.addEventListener('click', () => this.close());
+      // Use document delegation so clicks keep working after Astro view transitions
+      // and even if the persisted sheet element is replaced.
+      document.addEventListener('click', (e) => this.handleDocumentClick(e));
 
       // Swipe-down to close main wrap-up sheet
       this.bindSheetSwipe();
 
-      // Calendar month navigation
-      document.getElementById('wrapup-cal-prev')?.addEventListener('click', () => {
-        this.pickerMonth.setMonth(this.pickerMonth.getMonth() - 1);
-        this.renderCustomCalendar();
-      });
-      document.getElementById('wrapup-cal-next')?.addEventListener('click', () => {
-        this.pickerMonth.setMonth(this.pickerMonth.getMonth() + 1);
-        this.renderCustomCalendar();
-      });
-
-      // Handle Recurrence option selection
-      const optionsContainer = document.getElementById('recurrence-options-container');
-      optionsContainer?.querySelectorAll<HTMLButtonElement>('[data-recurrence-option]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const opt = btn.getAttribute('data-recurrence-option') as 'same' | 'custom' | 'none';
-          this.setRecurrenceOption(opt);
-        });
-      });
-
-      // Renew package button
-      document.getElementById('btn-renew-package')?.addEventListener('click', async () => {
-        if (!this.currentAppointment?.pacient_id && !this.currentAppointment?.pacienti?.id) return;
-        const patientId = this.currentAppointment.pacient_id || this.currentAppointment.pacienti?.id;
-        try {
-          const patient = await getPatient(patientId);
-          const newTotal = (patient.sedinte_total || 10) + 10;
-          await updatePatient(patientId, { sedinte_total: newTotal });
-          (window as any).showToast(`Pachetul pacientului a fost extins la ${newTotal} ședințe!`, 'success');
-          
-          const alertEl = document.getElementById('wrapup-subscription-alert');
-          if (alertEl) alertEl.classList.add('hidden');
-          
-          const countEl = document.getElementById('wrapup-session-count');
-          if (countEl) countEl.textContent = `${patient.sedinte_folosite || 0} / ${newTotal}`;
-        } catch (err: any) {
-          (window as any).showToast('Eroare la extinderea pachetului: ' + (err?.message || err), 'error');
-        }
-      });
-
-      // Submit Confirm Wrap-Up
-      document.getElementById('btn-confirm-wrapup')?.addEventListener('click', () => {
-        this.handleConfirm();
-      });
-
-      // Custom date/time triggers
-      document.getElementById('wrapup-trigger-date')?.addEventListener('click', () => this.openDatePicker());
-      document.getElementById('wrapup-trigger-time')?.addEventListener('click', () => this.openTimePicker());
-
-      // Date picker controls
-      document.getElementById('wrapup-date-prev')?.addEventListener('click', () => {
-        this.pickerDate.setMonth(this.pickerDate.getMonth() - 1);
-        this.renderDatePicker();
-      });
-      document.getElementById('wrapup-date-next')?.addEventListener('click', () => {
-        this.pickerDate.setMonth(this.pickerDate.getMonth() + 1);
-        this.renderDatePicker();
-      });
-      document.getElementById('wrapup-date-close')?.addEventListener('click', () => this.closeDatePicker());
-      document.getElementById('wrapup-date-picker-overlay')?.addEventListener('click', () => this.closeDatePicker());
-
-      // Time picker controls
-      document.getElementById('wrapup-time-confirm')?.addEventListener('click', () => this.closeTimePicker());
-      document.getElementById('wrapup-time-picker-overlay')?.addEventListener('click', () => this.closeTimePicker());
-
       // Swipe-down to close pickers
       this.bindPickerSwipe('wrapup-date-picker-sheet', () => this.closeDatePicker());
       this.bindPickerSwipe('wrapup-time-picker-sheet', () => this.closeTimePicker());
+    }
+
+    private handleDocumentClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+
+      if (target.closest('#btn-confirm-wrapup')) {
+        e.stopPropagation();
+        this.handleConfirm();
+        return;
+      }
+
+      if (target.closest('#wrapup-close-btn')) {
+        e.stopPropagation();
+        this.close();
+        return;
+      }
+
+      const recurBtn = target.closest('[data-recurrence-option]') as HTMLElement | null;
+      if (recurBtn) {
+        const opt = recurBtn.getAttribute('data-recurrence-option') as 'same' | 'custom' | 'none';
+        this.setRecurrenceOption(opt);
+        return;
+      }
+
+      if (target.closest('#btn-renew-package')) {
+        e.stopPropagation();
+        this.handleRenewPackage();
+        return;
+      }
+
+      if (target.closest('#wrapup-trigger-date')) {
+        this.openDatePicker();
+        return;
+      }
+
+      if (target.closest('#wrapup-trigger-time')) {
+        this.openTimePicker();
+        return;
+      }
+
+      if (target.closest('#wrapup-date-prev')) {
+        this.pickerDate.setMonth(this.pickerDate.getMonth() - 1);
+        this.renderDatePicker();
+        return;
+      }
+
+      if (target.closest('#wrapup-date-next')) {
+        this.pickerDate.setMonth(this.pickerDate.getMonth() + 1);
+        this.renderDatePicker();
+        return;
+      }
+
+      if (target.closest('#wrapup-date-close') || target.closest('#wrapup-date-picker-overlay')) {
+        this.closeDatePicker();
+        return;
+      }
+
+      if (target.closest('#wrapup-time-confirm') || target.closest('#wrapup-time-picker-overlay')) {
+        this.closeTimePicker();
+        return;
+      }
+
+      if (target.closest('#session-wrapup-backdrop')) {
+        this.close();
+        return;
+      }
+    }
+
+    private async handleRenewPackage() {
+      if (!this.currentAppointment?.pacient_id && !this.currentAppointment?.pacienti?.id) return;
+      const patientId = this.currentAppointment.pacient_id || this.currentAppointment.pacienti?.id;
+      try {
+        const patient = await getPatient(patientId);
+        const newTotal = (patient.sedinte_total || 10) + 10;
+        await updatePatient(patientId, { sedinte_total: newTotal });
+        (window as any).showToast(`Pachetul pacientului a fost extins la ${newTotal} ședințe!`, 'success');
+
+        const alertEl = document.getElementById('wrapup-subscription-alert');
+        if (alertEl) alertEl.classList.add('hidden');
+
+        const countEl = document.getElementById('wrapup-session-count');
+        if (countEl) countEl.textContent = `${patient.sedinte_folosite || 0} / ${newTotal}`;
+      } catch (err: any) {
+        (window as any).showToast('Eroare la extinderea pachetului: ' + (err?.message || err), 'error');
+      }
     }
 
     private async initView() {
@@ -781,6 +808,7 @@
     }
 
     private open() {
+      this.reconnect();
       if (!this.sheet || !this.content || !this.backdrop) return;
       this.sheet.classList.remove('hidden');
       this.content.style.transform = '';
@@ -791,6 +819,7 @@
     }
 
     private close() {
+      this.reconnect();
       if (!this.sheet || !this.content || !this.backdrop) return;
       this.closeDatePicker();
       this.closeTimePicker();
@@ -799,19 +828,23 @@
       this.content.classList.add('translate-y-full');
       unlockBodyScroll();
       setTimeout(() => {
+        this.reconnect();
         if (this.sheet) this.sheet.classList.add('hidden');
         this.currentAppointment = null;
       }, 500);
     }
   }
 
-  let globalWrapUpManager: WrapUpSheetManager | null = null;
+  (window as any).__wrapUpManager = (window as any).__wrapUpManager || null;
 
   document.addEventListener('astro:page-load', () => {
     if (!document.getElementById('session-wrapup-sheet')) return;
 
-    if (!globalWrapUpManager) {
-      globalWrapUpManager = new WrapUpSheetManager();
+    const mgr = (window as any).__wrapUpManager as WrapUpSheetManager | null;
+    if (mgr) {
+      mgr.reconnect();
+    } else {
+      (window as any).__wrapUpManager = new WrapUpSheetManager();
     }
   });
 </script>
