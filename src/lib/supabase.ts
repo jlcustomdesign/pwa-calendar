@@ -1,19 +1,18 @@
 /**
- * supabase.ts — Client singleton Supabase
- * Importă din orice componentă sau serviciu:
- *   import { supabase } from '../lib/supabase';
+ * supabase.ts — Browser client singleton (SSR-safe import)
+ * Folosit în componentele client-side (.astro <script>, service files imported client-side).
  */
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from './database.types';
 
-const supabaseUrl  = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseKey  = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('❌ Lipsesc variabilele de mediu Supabase. Verifică fișierul .env');
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+export const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
 
 // ── Global fetch interceptor: redirect to login on auth failures ──
 if (typeof window !== 'undefined') {
