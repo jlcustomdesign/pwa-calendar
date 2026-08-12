@@ -305,3 +305,31 @@ export async function countPatientWeekAppointments(patientId: string, dateStr: s
   if (error) throw new Error('Eroare la numărarea programărilor săptămânale: ' + error.message);
   return count ?? 0;
 }
+
+// ── Recalculează sedinte_folosite pentru toți pacienții pe baza programărilor finalizate ──
+// Folosit o singură dată la load pentru a corecta contoarele dezacordate din cauza bug-urilor vechi.
+export async function reconcileSessionCounts(): Promise<void> {
+  try {
+    const { data: patients, error: patientsErr } = await (supabase as any)
+      .from('pacienti')
+      .select('id');
+    if (patientsErr || !patients) return;
+
+    for (const p of patients as { id: string }[]) {
+      const { count, error } = await (supabase as any)
+        .from('programari')
+        .select('id', { count: 'exact', head: true })
+        .eq('pacient_id', p.id)
+        .eq('status', 'finalizat');
+
+      if (error) continue;
+      const finalizate = count ?? 0;
+      await (supabase as any)
+        .from('pacienti')
+        .update({ sedinte_folosite: finalizate })
+        .eq('id', p.id);
+    }
+  } catch (e) {
+    console.warn('reconcileSessionCounts error:', e);
+  }
+}
