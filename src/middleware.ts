@@ -4,11 +4,10 @@ const PUBLIC_ROUTES = ['/login', '/signup', '/api/auth'];
 const DASHBOARD_ROUTES = ['/dashboard'];
 
 function hasSupabaseAuthCookie(cookies: any): boolean {
-  // @supabase/ssr stores the session in a cookie whose name starts with "sb-"
-  // and ends with "-auth-token". We do a cheap presence check here so the
-  // middleware is fast for prerendered dashboard pages.
+  // @supabase/ssr stores session cookies with names like sb-<ref>-auth-token.
+  // Be permissive: any cookie that looks like it came from Supabase auth.
   const allCookies = cookies.headers?.get?.('cookie') || '';
-  return /sb-[^=]+-auth-token/.test(allCookies);
+  return /sb-[^=]+-auth-token/.test(allCookies) || allCookies.includes('sb-access-token') || allCookies.includes('sb-refresh-token');
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
