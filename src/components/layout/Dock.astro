@@ -42,7 +42,6 @@ const navItems = [
     return (
       <a
         href={item.path}
-        data-astro-prefetch="hover"
         data-dock-item
         data-astro-prefetch="load"
         data-active={isActive ? "true" : "false"}
@@ -141,15 +140,23 @@ const navItems = [
     // Initial paint with animation so the dock slides in naturally
     updateDockActiveState(true);
 
-    // Clicking a dock item moves the pill instantly (no waiting for route load)
     dockNav?.querySelectorAll('[data-dock-item]').forEach((item) => {
-      item.addEventListener('click', (e) => {
+      const handleDockTap = (e: Event) => {
         const target = e.currentTarget as HTMLElement;
-        // Reset all items then mark clicked one active immediately
+        const href = target.getAttribute('href');
         dockNav.querySelectorAll('[data-dock-item]').forEach((i) => setItemVisualState(i as HTMLElement, false));
         setItemVisualState(target, true);
         movePillTo(target, true);
-      });
+
+        if (href && window.location.pathname !== href) {
+          import('astro:transitions/client').then(({ navigate }) => {
+            navigate(href);
+          }).catch(() => {});
+        }
+      };
+
+      item.addEventListener('touchstart', handleDockTap, { passive: true });
+      item.addEventListener('click', handleDockTap);
     });
 
     // After the new page is swapped in, just reconcile state without animating
