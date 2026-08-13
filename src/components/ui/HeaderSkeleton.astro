@@ -1,0 +1,25 @@
+---
+// HeaderSkeleton.astro — simple title skeleton shown while a page swaps in
+---
+
+<div id="page-header-skeleton" class="px-2 pt-2 pb-1">
+  <div class="h-12 sm:h-16 w-48 rounded-3xl bg-surface-card shadow-sm animate-pulse"></div>
+</div>
+
+<script>
+  (function hideHeaderSkeleton() {
+    const skeleton = document.getElementById('page-header-skeleton');
+    if (!skeleton) return;
+
+    let hidden = false;
+    function doHide() {
+      if (hidden) return;
+      hidden = true;
+      skeleton.style.opacity = '0';
+      setTimeout(() => skeleton.remove(), 200);
+    }
+
+    document.addEventListener('astro:after-swap', doHide, { once: true });
+    document.addEventListener('DOMContentLoaded', doHide, { once: true });
+  })();
+</script>

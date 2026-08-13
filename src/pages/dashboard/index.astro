@@ -1,16 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import DashboardOverview from '../../components/features/dashboard/DashboardOverview.astro';
-import BlobBackground from '../../components/ui/BlobBackground.astro';
+
+// Cache the shell of the dashboard page privately so switching tabs feels instant.
+Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidate');
 ---
 
 <DashboardLayout title="Overview">
   <div class="relative min-h-[100dvh]">
-    <BlobBackground positions={[
-      { top: '-5rem', left: '-4rem' },
-      { top: '55%', right: '-3.5rem' },
-      { bottom: '-2rem', left: '-3.5rem' }
-    ]} />
     <section class="relative z-10 space-y-6">
       <DashboardOverview />
     </section>
