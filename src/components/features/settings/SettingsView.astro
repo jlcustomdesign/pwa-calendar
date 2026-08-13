@@ -57,7 +57,19 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
   )}
 
   {section && (
-    <form id="settings-form" class="space-y-6" onsubmit="event.preventDefault();">
+    <!-- Skeleton shown while settings load -->
+    <div id="settings-skeleton" class="space-y-6">
+      <div class="h-14 rounded-[2.5rem] bg-black/5 animate-pulse"></div>
+      <div class="space-y-3">
+        <div class="h-16 rounded-2xl bg-black/5 animate-pulse"></div>
+        <div class="h-16 rounded-2xl bg-black/5 animate-pulse"></div>
+        <div class="h-16 rounded-2xl bg-black/5 animate-pulse"></div>
+        <div class="h-16 rounded-2xl bg-black/5 animate-pulse"></div>
+      </div>
+      <div class="h-14 rounded-full bg-black/5 animate-pulse"></div>
+    </div>
+
+    <form id="settings-form" class="space-y-6 hidden" onsubmit="event.preventDefault();">
 
       <!-- 1. Formular Profil Personal (Stil iOS Row List cu Padding Generos) -->
       {section === 'profile' && (
@@ -436,6 +448,9 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   async function initSubSectionLogic() {
+    const skeleton = document.getElementById('settings-skeleton');
+    const settingsForm = document.getElementById('settings-form');
+
     // Load Settings din Supabase
     let settings: any = {};
     let profileData: any = {};
@@ -445,6 +460,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     } catch (e) {
       console.error('Eroare la încărcarea setărilor:', e);
     }
+
+    // Hide skeleton and show form once data is ready
+    if (skeleton) skeleton.classList.add('hidden');
+    if (settingsForm) settingsForm.classList.remove('hidden');
 
     // Toast Notification helper
     const toast = document.getElementById('settings-toast');
