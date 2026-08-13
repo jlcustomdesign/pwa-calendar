@@ -199,6 +199,12 @@
   
   let currentBaseDate = new Date();
   let currentDayDate = new Date();
+
+  // Muta sheet-ul in body pentru a nu fi limitat de containerele parinte
+  const sheet = document.getElementById('day-picker-sheet');
+  if (sheet) {
+    document.body.appendChild(sheet);
+  }
   
   async function loadTodayStats() {
     try {
