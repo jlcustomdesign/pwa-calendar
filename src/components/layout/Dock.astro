@@ -131,24 +131,33 @@ const navItems = [
     }
   }
 
-  function initDock() {
+  function initDockOnce() {
+    if ((window as any).__kinetoDockInitialized) return;
+    (window as any).__kinetoDockInitialized = true;
+
     const dockNav = document.getElementById('dock-nav');
 
-    // Initial paint with animation
+    // Initial paint with animation so the dock slides in naturally
     updateDockActiveState(true);
 
-    // Clicking a dock item moves the pill instantly before the browser navigates
+    // Clicking a dock item moves the pill instantly (no waiting for route load)
     dockNav?.querySelectorAll('[data-dock-item]').forEach((item) => {
       item.addEventListener('click', (e) => {
         const target = e.currentTarget as HTMLElement;
+        // Reset all items then mark clicked one active immediately
         dockNav.querySelectorAll('[data-dock-item]').forEach((i) => setItemVisualState(i as HTMLElement, false));
         setItemVisualState(target, true);
         movePillTo(target, true);
       });
     });
 
+    // After the new page is swapped in, just reconcile state without animating
+    document.addEventListener('astro:after-swap', () => updateDockActiveState(false));
+    // On full page load, reconcile (usually redundant because click already moved it)
+    document.addEventListener('astro:page-load', () => updateDockActiveState(false));
     window.addEventListener('resize', () => updateDockActiveState(false));
   }
 
-  document.addEventListener('DOMContentLoaded', initDock);
+  document.addEventListener('DOMContentLoaded', initDockOnce);
+  document.addEventListener('astro:page-load', initDockOnce);
 </script>
