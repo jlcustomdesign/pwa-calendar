@@ -195,7 +195,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     </button>
   </div>
 </div>
-<div id="add-session-time-overlay" class="fixed inset-0 bg-black/40 z-[115] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm"></div>
+<div id="add-session-time-overlay" class="fixed inset-0 bg-black/50 z-[115] opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
 <!-- Custom Date Picker Sheet -->
 <div 
@@ -233,7 +233,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     </button>
   </div>
 </div>
-<div id="custom-date-picker-overlay" class="fixed inset-0 bg-black/40 z-[105] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm"></div>
+<div id="custom-date-picker-overlay" class="fixed inset-0 bg-black/50 z-[105] opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
 <script>
   import { getSettings } from '../../../utils/settings';
@@ -417,7 +417,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       document.querySelectorAll('.session-sheet-overlay').forEach(o => o.remove());
 
       this.overlay = document.createElement('div');
-      this.overlay.className = 'session-sheet-overlay fixed inset-0 bg-black/40 z-[90] opacity-0 pointer-events-none transition-opacity duration-500 backdrop-blur-sm';
+      this.overlay.className = 'session-sheet-overlay fixed inset-0 bg-black/50 z-[90] opacity-0 pointer-events-none transition-opacity duration-300';
       document.body.appendChild(this.overlay);
 
       this.overlay.addEventListener('click', () => this.close());
