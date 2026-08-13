@@ -4,6 +4,7 @@ import PaymentSheet from '../components/features/patients/PaymentSheet.astro';
 import AddSessionSheet from '../components/features/agenda/AddSessionSheet.astro';
 import SessionWrapUpSheet from '../components/features/agenda/SessionWrapUpSheet.astro';
 import CustomToast from '../components/ui/CustomToast.astro';
+import PageSkeleton from '../components/ui/PageSkeleton.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
@@ -39,6 +40,10 @@ const { title, hideDock = false } = Astro.props;
     <div class="min-h-[100dvh] w-full flex flex-col">
       <!-- Main Content Container -->
       <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pt-[max(1.25rem,env(safe-area-inset-top))] sm:pt-[max(2rem,env(safe-area-inset-top))] pb-32 relative">
+        <!-- Global page-transition skeleton: shown instantly while the next view is prepared -->
+        <div id="page-transition-loader" class="hidden absolute inset-0 z-30 bg-surface-base" aria-hidden="true">
+          <PageSkeleton />
+        </div>
         
         <slot />
       </main>
@@ -197,6 +202,28 @@ const { title, hideDock = false } = Astro.props;
       // Initialize on load and page swaps
       if (typeof window !== 'undefined') {
         initErrorLogger();
+
+        // ── Instant page-transition skeleton loader ─────────────────────────
+        (function setupTransitionLoader() {
+          const loader = document.getElementById('page-transition-loader');
+          if (!loader) return;
+
+          function showLoader() {
+            loader.classList.remove('hidden');
+          }
+          function hideLoader() {
+            loader.classList.add('hidden');
+          }
+
+          // Show skeleton the instant a navigation starts
+          document.addEventListener('astro:before-preparation', showLoader);
+          // Hide once the new page content has been swapped in
+          document.addEventListener('astro:after-swap', hideLoader);
+          document.addEventListener('astro:page-load', hideLoader);
+
+          // Safety: hide loader if user hits back/forward and no swap fires
+          window.addEventListener('popstate', hideLoader);
+        })();
 
         // Detectare logout real (nu erori de rețea tranzitorii) și redirect la login.
         import('../lib/supabase').then(({ supabase }) => {
