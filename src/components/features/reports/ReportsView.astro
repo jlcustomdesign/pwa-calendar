@@ -736,29 +736,35 @@
     setReportsLoading(false);
   }
 
-  if (!(window as any)._reportsNavSetup) {
-    document.addEventListener('astro:page-load', () => {
-      const container = document.getElementById('reports-tabs-container');
-      if (container) {
-        currentBaseDate = new Date();
-        currentDayDate = new Date();
-        activeTab = 'week';
-        
-        // Setup initially
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        tabBtns.forEach(b => {
-          if (b.getAttribute('data-tab') === activeTab) {
-            b.classList.remove('text-text-muted', 'hover:text-text-main');
-            b.classList.add('text-text-inverse');
-          } else {
-            b.classList.remove('text-text-inverse');
-            b.classList.add('text-text-muted', 'hover:text-text-main');
-          }
-        });
+  function bootReports() {
+    const container = document.getElementById('reports-tabs-container');
+    if (!container) return;
+    currentBaseDate = new Date();
+    currentDayDate = new Date();
+    activeTab = 'week';
 
-        initReportsView();
+    // Setup initially
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(b => {
+      if (b.getAttribute('data-tab') === activeTab) {
+        b.classList.remove('text-text-muted', 'hover:text-text-main');
+        b.classList.add('text-text-inverse');
+      } else {
+        b.classList.remove('text-text-inverse');
+        b.classList.add('text-text-muted', 'hover:text-text-main');
       }
     });
+
+    initReportsView();
+  }
+
+  if (!(window as any)._reportsNavSetup) {
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      bootReports();
+    } else {
+      document.addEventListener('DOMContentLoaded', bootReports);
+    }
+    document.addEventListener('astro:page-load', bootReports);
 
     // Actualizare automată statistici la orice acțiune din aplicație
     window.addEventListener('sessionsUpdated', () => {
@@ -782,4 +788,14 @@
 
     (window as any)._reportsNavSetup = true;
   }
+
+  // Safety: never let the reports skeleton block the UI
+  setTimeout(() => {
+    const skeleton = document.getElementById('reports-skeleton');
+    const content = document.getElementById('reports-content');
+    if (skeleton && content && content.classList.contains('hidden')) {
+      skeleton.classList.add('hidden');
+      content.classList.remove('hidden');
+    }
+  }, 4000);
 </script>

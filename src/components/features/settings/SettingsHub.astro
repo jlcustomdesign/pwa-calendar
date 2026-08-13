@@ -197,6 +197,9 @@
       } else {
         document.addEventListener('DOMContentLoaded', doHide, { once: true });
       }
+
+      // Safety: never let the settings hub skeleton block the UI
+      setTimeout(doHide, 3000);
     })();
   </script>
 </div>

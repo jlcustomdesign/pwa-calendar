@@ -25,5 +25,8 @@
     } else {
       document.addEventListener('DOMContentLoaded', doHide, { once: true });
     }
+
+    // Safety: never let the header skeleton block the UI
+    setTimeout(doHide, 3000);
   })();
 </script>

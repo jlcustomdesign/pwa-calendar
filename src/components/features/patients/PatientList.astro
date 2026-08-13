@@ -540,7 +540,7 @@
   }
 
   let globalPatientListManager: PatientListManager | null = null;
-  document.addEventListener('astro:page-load', () => {
+  function bootPatientList() {
     if (!document.getElementById('patient-list-container')) return;
     
     if (!globalPatientListManager) {
@@ -550,5 +550,22 @@
       globalPatientListManager.bindLocalEvents();
       globalPatientListManager.render();
     }
-  });
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    bootPatientList();
+  } else {
+    document.addEventListener('DOMContentLoaded', bootPatientList);
+  }
+  document.addEventListener('astro:page-load', bootPatientList);
+
+  // Safety: never let the patient list skeleton block the UI
+  setTimeout(() => {
+    const skeleton = document.getElementById('patient-list-skeleton');
+    const container = document.getElementById('patient-list-container');
+    if (skeleton && container && container.classList.contains('hidden')) {
+      skeleton.classList.add('hidden');
+      container.classList.remove('hidden');
+    }
+  }, 4000);
 </script>

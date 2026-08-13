@@ -585,9 +585,22 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
     }
   }
 
-  document.addEventListener("DOMContentLoaded", initCalendarAnimation);
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initCalendarAnimation();
+  } else {
+    document.addEventListener("DOMContentLoaded", initCalendarAnimation);
+  }
   document.addEventListener("astro:page-load", initCalendarAnimation);
   document.addEventListener("astro:after-swap", initCalendarAnimation);
+
+  // Safety: never let the calendar skeleton block the UI
+  setTimeout(() => {
+    const calendarSkeleton = document.getElementById('calendar-skeleton');
+    if (calendarSkeleton) {
+      calendarSkeleton.style.opacity = '0';
+      setTimeout(() => calendarSkeleton.remove(), 200);
+    }
+  }, 4000);
 </script>
 
 <style>

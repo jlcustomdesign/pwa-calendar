@@ -1011,6 +1011,20 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     }
   }
 
-  document.addEventListener('DOMContentLoaded', initSubSectionLogic);
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initSubSectionLogic();
+  } else {
+    document.addEventListener('DOMContentLoaded', initSubSectionLogic);
+  }
   document.addEventListener('astro:page-load', initSubSectionLogic);
+
+  // Safety: never let the settings skeleton block the UI
+  setTimeout(() => {
+    const skeleton = document.getElementById('settings-skeleton');
+    const form = document.getElementById('settings-form');
+    if (skeleton && form && form.classList.contains('hidden')) {
+      skeleton.classList.add('hidden');
+      form.classList.remove('hidden');
+    }
+  }, 4000);
 </script>
