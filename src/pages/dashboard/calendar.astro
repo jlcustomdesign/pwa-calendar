@@ -1,6 +1,4 @@
 ---
-export const prerender = true;
-
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import WeeklyCalendarCard from '../../components/features/dashboard/WeeklyCalendarCard.astro';
 import AddEventBanner from '../../components/features/dashboard/AddEventBanner.astro';
@@ -27,20 +25,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
     <section class="mt-6">
       <h3 class="text-xl font-extrabold text-black tracking-tight mb-4 px-2">Timeline</h3>
       
-      <div id="timeline-skeleton" class="flex flex-col gap-3">
-        {[1, 2, 3, 4, 5].map(() => (
-          <div class="relative flex items-stretch gap-4 min-h-[4.5rem] animate-pulse">
-            <div class="w-14 shrink-0 flex flex-col items-center justify-center pt-1 space-y-2">
-              <div class="h-6 w-8 rounded bg-black/10"></div>
-              <div class="h-3 w-6 rounded bg-black/10"></div>
-            </div>
-            <div class="flex-1 min-w-0 pb-2">
-              <div class="w-full h-16 rounded-2xl bg-black/10"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div id="timeline-slots-container" class="hidden flex flex-col gap-3">
+      <div id="timeline-slots-container" class="flex flex-col gap-3">
         <!-- Rendered dynamically by JS -->
       </div>
     </section>
@@ -284,11 +269,7 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
 
     async function renderTimeline() {
       const container = document.getElementById('timeline-slots-container');
-      const skeleton = document.getElementById('timeline-skeleton');
       if (!container) return;
-
-      if (skeleton) skeleton.classList.remove('hidden');
-      container.classList.add('hidden');
 
       let settings: any = {};
       let storedSessions: any[] = [];
@@ -387,9 +368,6 @@ import BlobBackground from '../../components/ui/BlobBackground.astro';
           </div>
         `;
       }).join('');
-
-      if (skeleton) skeleton.classList.add('hidden');
-      container.classList.remove('hidden');
     }
 
     window.addEventListener('sessionsUpdated', renderTimeline);
