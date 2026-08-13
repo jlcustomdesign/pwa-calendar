@@ -64,13 +64,15 @@ const { title, hideDock = false } = Astro.props;
         <slot />
       </main>
 
-      <!-- Persistent Floating Icon Dock & Sheets -->
+      <!-- Persistent Floating Icon Dock -->
       {!hideDock && <Dock transition:persist />}
-      <PaymentSheet transition:persist />
-      <AddSessionSheet transition:persist />
-      <SessionWrapUpSheet transition:persist />
-      <CustomToast transition:persist />
     </div>
+
+    <!-- Sheets / Toasts live outside the content wrapper so their dynamic overlays share the root stacking context -->
+    <PaymentSheet transition:persist />
+    <AddSessionSheet transition:persist />
+    <SessionWrapUpSheet transition:persist />
+    <CustomToast transition:persist />
 
     <!-- Global Session Card Interactive Controller (Expand & Swipe-to-Edit/Delete) -->
     <script>

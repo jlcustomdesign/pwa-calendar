@@ -3,13 +3,6 @@
 ---
 
 <div class="space-y-4 relative">
-  <!-- Skeleton overlay: hidden the moment the real menu is painted -->
-  <div id="settings-hub-skeleton" class="absolute inset-0 z-10 space-y-4 bg-surface-base transition-opacity duration-200">
-    {[1, 2, 3, 4, 5, 6, 7, 8].map(() => (
-      <div class="h-[72px] rounded-full bg-black/10 animate-pulse"></div>
-    ))}
-  </div>
-
   <!-- 1. Card Profil Principal -->
   <a
     href="/dashboard/settings?section=profile"
@@ -176,27 +169,4 @@
     </button>
   </div>
 
-  <script>
-    (function hideSettingsHubSkeleton() {
-      const skeleton = document.getElementById('settings-hub-skeleton');
-      if (!skeleton) return;
-
-      function doHide() {
-        skeleton.style.display = 'none';
-        setTimeout(() => skeleton.remove(), 300);
-      }
-
-      // Keep the skeleton visible until the page has actually swapped in,
-      // so users never see an empty settings menu during navigation.
-      document.addEventListener('astro:after-swap', doHide, { once: true });
-      if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        doHide();
-      } else {
-        document.addEventListener('DOMContentLoaded', doHide, { once: true });
-      }
-
-      // Safety: never let the settings hub skeleton block the UI
-      setTimeout(doHide, 3000);
-    })();
-  </script>
 </div>
