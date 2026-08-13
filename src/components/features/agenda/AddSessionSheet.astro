@@ -23,6 +23,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 <div 
   id="add-session-sheet" 
   class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden hidden"
+  style="display: none;"
 >
   <!-- Swipe handle -->
   <div id="add-session-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -117,7 +118,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 <!-- Custom Time Picker Sheet (Stil Bottom Sheet identic cu Calendar) -->
 <div 
   id="add-session-time-modal" 
-  class="fixed inset-x-0 bottom-0 z-[120] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden space-y-4"
+  class="fixed inset-x-0 bottom-0 z-[120] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden space-y-4 hidden"
+  style="display: none;"
 >
   <!-- Swipe handle -->
   <div id="time-modal-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-2 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -157,7 +159,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 <!-- Custom Date Picker Sheet -->
 <div 
   id="custom-date-picker-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[110] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
+  class="fixed inset-x-0 bottom-0 z-[110] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden hidden"
+  style="display: none;"
 >
   <!-- Swipe handle -->
   <div id="date-picker-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -576,6 +579,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       }
       this.renderDatePicker();
       if (this.datePickerSheet && this.datePickerOverlay) {
+        this.datePickerSheet.classList.remove('hidden');
+        this.datePickerSheet.style.display = '';
+        this.datePickerSheet.classList.add('translate-y-full');
+        void this.datePickerSheet.offsetWidth;
         this.datePickerSheet.classList.remove('translate-y-full');
         this.datePickerOverlay.classList.remove('opacity-0', 'pointer-events-none');
       }
@@ -586,6 +593,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         this.datePickerSheet.style.transform = '';
         this.datePickerSheet.classList.add('translate-y-full');
         this.datePickerOverlay.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+          this.datePickerSheet?.classList.add('hidden');
+          if (this.datePickerSheet) this.datePickerSheet.style.display = 'none';
+        }, 500);
       }
     }
 
@@ -658,14 +669,18 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const parts = currentVal.split(':');
       this.selectedCustomHour = parts[0] || '08';
       this.selectedCustomMinute = parts[1] || '00';
-      
+
       const hd = document.getElementById('session-hour-display');
       const md = document.getElementById('session-minute-display');
       if (hd) hd.textContent = this.selectedCustomHour;
       if (md) md.textContent = this.selectedCustomMinute;
 
       this.renderTimeGrids();
-      
+
+      modal.classList.remove('hidden');
+      (modal as HTMLElement).style.display = '';
+      modal.classList.add('translate-y-full');
+      void modal.offsetWidth;
       modal.classList.remove('translate-y-full');
       overlay?.classList.remove('opacity-0', 'pointer-events-none');
     }
@@ -730,6 +745,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         modal.style.transform = '';
         modal.classList.add('translate-y-full');
         overlay?.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+          modal.classList.add('hidden');
+          modal.style.display = 'none';
+        }, 500);
       };
 
       if (btnOpen) {
@@ -1012,6 +1031,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       if (!this.sheet || !this.overlay) return;
       // Ensure the sheet is in the layout before animating (prevents flash on load)
       this.sheet.classList.remove('hidden');
+      this.sheet.style.display = '';
       void this.sheet.offsetWidth;
       // Reset any inline transform from drag and set closed state
       this.sheet.style.transform = '';
@@ -1037,8 +1057,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       if (dock) dock.style.display = '';
       unlockBodyScroll();
 
-      // Reset form
+      // Reset form and fully hide sheet after animation
       setTimeout(() => {
+        this.sheet?.classList.add('hidden');
+        if (this.sheet) this.sheet.style.display = 'none';
         this.form?.reset();
         const subscriptionWarning = document.getElementById('patient-subscription-warning');
         if (subscriptionWarning) subscriptionWarning.classList.add('hidden');

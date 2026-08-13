@@ -2,7 +2,7 @@
 // SessionWrapUpSheet.astro — Pop-up inteligent la confirmarea unei ședințe
 ---
 
-<div id="session-wrapup-sheet" class="fixed inset-0 z-[120] pointer-events-none hidden">
+<div id="session-wrapup-sheet" class="fixed inset-0 z-[120] pointer-events-none hidden" style="display: none;">
   <div id="session-wrapup-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
   
   <div id="session-wrapup-content" class="absolute bottom-0 left-0 right-0 bg-surface-card rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto border-t border-transparent">
@@ -823,6 +823,7 @@
       this.reconnect();
       if (!this.sheet || !this.content || !this.backdrop) return;
       this.sheet.classList.remove('hidden');
+      this.sheet.style.display = '';
       this.content.style.transform = '';
       void this.sheet.offsetWidth;
       this.backdrop.classList.remove('opacity-0');
@@ -845,7 +846,10 @@
       unlockBodyScroll();
       setTimeout(() => {
         this.reconnect();
-        if (this.sheet) this.sheet.classList.add('hidden');
+        if (this.sheet) {
+          this.sheet.classList.add('hidden');
+          this.sheet.style.display = 'none';
+        }
         this.currentAppointment = null;
       }, 500);
     }
