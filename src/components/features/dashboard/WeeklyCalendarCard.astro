@@ -179,7 +179,7 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
   </div>
 
   <!-- Horizontal Scroll Container with Strict Snapping -->
-  <div id="calendar-strip" class="relative overflow-hidden flex flex-row w-[calc(100%+3rem)] -mx-6 px-6 pt-32 -mt-32 transition-all no-scrollbar closed-mode">
+  <div id="calendar-strip" class="relative overflow-hidden flex flex-row w-[calc(100%+3rem)] -mx-6 px-6 pt-32 -mt-32 transition-all closed-mode">
     
     {allMonths.map((month) => (
       <div 
@@ -591,14 +591,6 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
 </script>
 
 <style>
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
   .week-section {
     height: 4.5rem;
     opacity: 1;

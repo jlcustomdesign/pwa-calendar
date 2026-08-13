@@ -47,13 +47,15 @@ const { title, hideDock = false } = Astro.props;
   </head>
   <body class="min-h-[100dvh] w-full font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden bg-surface-base">
     <div class="min-h-[100dvh] w-full flex flex-col">
-      <!-- Main Content Container -->
-      <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pt-[max(1.25rem,env(safe-area-inset-top))] sm:pt-[max(2rem,env(safe-area-inset-top))] pb-32 relative">
-        <!-- Global page-transition skeleton: shown instantly while the next view is prepared -->
-        <div id="page-transition-loader" class="hidden absolute inset-0 z-30 bg-surface-base" aria-hidden="true">
+      <!-- Global page-transition skeleton: fixed full-screen overlay -->
+      <div id="page-transition-loader" class="hidden fixed inset-0 z-[60] bg-surface-base" aria-hidden="true">
+        <div class="w-full max-w-3xl mx-auto px-3 sm:px-8 pt-[max(1.25rem,env(safe-area-inset-top))] sm:pt-[max(2rem,env(safe-area-inset-top))]">
           <PageSkeleton />
         </div>
-        
+      </div>
+
+      <!-- Main Content Container -->
+      <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pb-32 relative">
         <slot />
       </main>
 
@@ -223,11 +225,24 @@ const { title, hideDock = false } = Astro.props;
             loader.classList.add('hidden');
           }
 
-          // Show skeleton the instant a navigation starts
+          // Astro ClientRouter lifecycle events
           document.addEventListener('astro:before-preparation', showLoader);
-          // Hide once the new page content has been swapped in
+          document.addEventListener('astro:before-swap', showLoader);
           document.addEventListener('astro:after-swap', hideLoader);
           document.addEventListener('astro:page-load', hideLoader);
+
+          // Fallback: intercept clicks on internal links so the skeleton appears
+          // instantly even if Astro's lifecycle events are delayed.
+          document.addEventListener('click', (e) => {
+            const target = e.target as HTMLElement;
+            const anchor = target.closest('a') as HTMLAnchorElement | null;
+            if (!anchor) return;
+            const href = anchor.getAttribute('href');
+            if (!href) return;
+            if (href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+            if (anchor.hasAttribute('download')) return;
+            showLoader();
+          }, true);
 
           // Safety: hide loader if user hits back/forward and no swap fires
           window.addEventListener('popstate', hideLoader);

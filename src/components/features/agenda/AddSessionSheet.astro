@@ -27,7 +27,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   <!-- Swipe handle -->
   <div id="add-session-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
-  <div class="flex-1 overflow-y-auto no-scrollbar px-1 pb-28">
+  <div class="flex-1 overflow-y-auto px-1 pb-28">
     <h3 id="sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-8">Programare nouă</h3>
 
     <form id="add-session-form" class="space-y-7">
@@ -52,7 +52,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
         <div id="patient-list" class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] mt-4 px-2" style="grid-template-rows: 0fr;">
           <div class="overflow-hidden">
-            <div id="patient-list-inner" class="flex flex-col gap-3 pt-2 pb-2 overflow-y-auto max-h-[40vh] no-scrollbar">
+            <div id="patient-list-inner" class="flex flex-col gap-3 pt-2 pb-2 overflow-y-auto max-h-[40vh]">
               <!-- Populated by JS -->
             </div>
           </div>
@@ -223,7 +223,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   </div>
 
   <!-- Days grid -->
-  <div id="date-picker-grid" class="grid grid-cols-7 gap-1 flex-1 overflow-y-auto no-scrollbar">
+  <div id="date-picker-grid" class="grid grid-cols-7 gap-1 flex-1 overflow-y-auto">
     <!-- Populated by JS -->
   </div>
 
@@ -1283,13 +1283,4 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   });
 </script>
 
-<style>
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-</style>
 

@@ -9,7 +9,7 @@
   <!-- Swipe handle -->
   <div id="add-patient-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
-  <div class="flex-1 overflow-y-auto no-scrollbar px-2 pt-2 pb-28">
+  <div class="flex-1 overflow-y-auto px-2 pt-2 pb-28">
     <h3 id="patient-sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-8">Pacient nou</h3>
 
     <form id="add-patient-form" class="space-y-7">
@@ -590,12 +590,3 @@
   document.addEventListener('astro:page-load', initPatientSheet);
 </script>
 
-<style>
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-</style>

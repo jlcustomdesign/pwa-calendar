@@ -680,10 +680,13 @@
       });
     });
 
-    setTimeout(() => {
-      const initialBtn = document.querySelector(`[data-tab="${activeTab}"]`) as HTMLElement;
-      if (initialBtn) updatePill(initialBtn);
-    }, 50);
+    // Position the active pill as soon as the DOM is laid out.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const initialBtn = document.querySelector(`[data-tab="${activeTab}"]`) as HTMLElement;
+        if (initialBtn) updatePill(initialBtn);
+      });
+    });
   }
 
   function setupNavigation() {
