@@ -16,7 +16,7 @@ const { title, hideDock = false } = Astro.props;
 ---
 
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-surface-base">
+<html lang="en" class="min-h-[100dvh] bg-surface-base" transition:animate="none">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -35,10 +35,10 @@ const { title, hideDock = false } = Astro.props;
     <title>{title} | Kineto Agenda</title>
     <ClientRouter />
   </head>
-  <body class="min-h-[100dvh] font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden bg-surface-base pt-[env(safe-area-inset-top)]">
-    <div class="min-h-[100dvh] flex flex-col">
+  <body class="min-h-[100dvh] w-full font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden bg-surface-base">
+    <div class="min-h-[100dvh] w-full flex flex-col">
       <!-- Main Content Container -->
-      <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pt-5 sm:pt-8 pb-32 relative">
+      <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pt-[max(1.25rem,env(safe-area-inset-top))] sm:pt-[max(2rem,env(safe-area-inset-top))] pb-32 relative">
         
         <slot />
       </main>
