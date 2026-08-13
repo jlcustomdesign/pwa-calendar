@@ -48,6 +48,15 @@ if (typeof window !== 'undefined') {
       }
     }
 
+    // If the server redirects a dashboard page to /login, follow it immediately
+    // so the user is not left on a broken page after the session expires.
+    if (!url.includes(supabaseUrl) && response.status === 302) {
+      const location = response.headers.get('location');
+      if (location && (location === '/login' || location.startsWith('/login'))) {
+        window.location.href = '/login';
+      }
+    }
+
     return response;
   };
 }
