@@ -252,7 +252,7 @@ import DailyProgress from './DailyProgress.astro';
       const driveLink = session.driveLink || session.patientDriveLink || '';
 
       return `
-        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden mx-0 sm:mx-4">
+        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden mx-1 md:mx-5">
           <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
             <div class="flex items-center gap-3">
               <button 
@@ -260,7 +260,7 @@ import DailyProgress from './DailyProgress.astro';
                 class="w-12 h-12 rounded-full bg-white shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-black/5"
                 onclick="window.editSession('${session.id}'); event.stopPropagation();"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 012-2h11a2 2 0 012 2v5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.89 1.12l-2.843.712a.75.75 0 01-.904-.903l.71-2.842a4.5 4.5 0 011.12-1.89L16.862 4.487z"></path><path d="M19.5 7.125L16.862 4.487"></path></svg>
               </button>
               <button 
                 type="button" 

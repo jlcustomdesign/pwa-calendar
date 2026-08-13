@@ -149,6 +149,29 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
           </div>
 
+          <!-- Card Separat: Permisiune Notificări Sistem -->
+          <div class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm border border-border-subtle/50">
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-full bg-brand-primary/20 text-text-main font-black flex items-center justify-center shrink-0">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-base font-extrabold text-text-main">Permisiune notificări</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                id="notification-permission-btn"
+                class="px-4 py-2.5 rounded-full font-extrabold text-sm transition-all duration-200 active:scale-95 flex items-center gap-2 border border-border-subtle/60 shadow-sm"
+              >
+                <span id="notification-btn-label">Permite</span>
+              </button>
+            </div>
+          </div>
+
         </section>
       )}
 
@@ -927,6 +950,65 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
         console.error(err);
       }
     });
+    // Notificări System/Browser permission handler
+    const notifBtn = document.getElementById('notification-permission-btn');
+    const notifStatusText = document.getElementById('notification-status-text');
+    const notifBtnLabel = document.getElementById('notification-btn-label');
+
+    if (notifBtn && notifBtnLabel) {
+      function updateNotificationStatusUI() {
+        if (!('Notification' in window)) {
+          if (notifStatusText) {
+            notifStatusText.textContent = 'Nesuportate pe acest browser';
+            notifStatusText.className = 'text-xs font-bold text-text-muted';
+          }
+          notifBtnLabel.textContent = 'Nesuportat';
+          notifBtn.className = 'px-4 py-2 rounded-full font-extrabold text-sm bg-neutral-200 text-neutral-500 border border-neutral-300 shadow-sm pointer-events-none';
+          return;
+        }
+
+        const perm = Notification.permission;
+        if (perm === 'granted') {
+          if (notifStatusText) {
+            notifStatusText.textContent = 'Permise (Active)';
+            notifStatusText.className = 'text-xs font-bold text-emerald-600';
+          }
+          notifBtnLabel.textContent = 'Permise';
+          notifBtn.className = 'px-4 py-2 rounded-full font-extrabold text-sm bg-emerald-100 text-emerald-700 border border-emerald-300 shadow-sm';
+        } else if (perm === 'denied') {
+          if (notifStatusText) {
+            notifStatusText.textContent = 'Blocate în browser';
+            notifStatusText.className = 'text-xs font-bold text-rose-600';
+          }
+          notifBtnLabel.textContent = 'Blocate';
+          notifBtn.className = 'px-4 py-2 rounded-full font-extrabold text-sm bg-rose-100 text-rose-700 border border-rose-300 shadow-sm active:scale-95 cursor-pointer';
+        } else {
+          if (notifStatusText) {
+            notifStatusText.textContent = 'Neautorizate';
+            notifStatusText.className = 'text-xs font-bold text-amber-600';
+          }
+          notifBtnLabel.textContent = 'Activează';
+          notifBtn.className = 'px-4 py-2 rounded-full font-extrabold text-sm bg-brand-primary text-black hover:brightness-105 shadow-sm active:scale-95 cursor-pointer';
+        }
+      }
+
+      updateNotificationStatusUI();
+
+      notifBtn.addEventListener('click', async () => {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') {
+          const res = await Notification.requestPermission();
+          updateNotificationStatusUI();
+          if (res === 'granted') {
+            showToast('Notificările au fost permise cu succes!');
+          }
+        } else if (Notification.permission === 'denied') {
+          alert('Notificările sunt blocate din setările browser-ului. Te rugăm să le permiți din setările site-ului (apăsând pe iconița de lacăt din stânga adresei web).');
+        } else if (Notification.permission === 'granted') {
+          showToast('Notificările sunt deja active!');
+        }
+      });
+    }
   }
 
   document.addEventListener('DOMContentLoaded', initSubSectionLogic);
