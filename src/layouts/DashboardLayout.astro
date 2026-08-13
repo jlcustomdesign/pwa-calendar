@@ -365,6 +365,29 @@ const { title, hideDock = false } = Astro.props;
             console.warn('Auto reconcile session counts failed:', e);
           }
         })();
+
+        // ── Service Worker registration for PWA updates ─────────────────────
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js').then((registration) => {
+            // Listen for updates; when a new SW is waiting, force it to activate
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker?.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            });
+          }).catch(() => {});
+
+          // Refresh the page once the new service worker takes control
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+          });
+        }
       }
     </script>
   </body>

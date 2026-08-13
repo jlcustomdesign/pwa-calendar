@@ -155,8 +155,22 @@
     </div>
   </a>
 
-  <!-- 9. Deconectare (Logout) -->
-  <div class="pt-5 flex justify-center">
+  <!-- 9. Resetare cache și actualizare -->
+  <div class="pt-2 flex justify-center">
+    <button
+      type="button"
+      id="btn-clear-cache"
+      class="inline-flex items-center gap-3 px-7 py-3.5 rounded-full text-brand-secondary hover:bg-brand-secondary/10 font-extrabold text-base sm:text-lg transition-all active:scale-95 cursor-pointer border border-brand-secondary/25"
+    >
+      <svg class="w-6 h-6 stroke-[2.3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      <span>Resetare cache și actualizare</span>
+    </button>
+  </div>
+
+  <!-- 10. Deconectare (Logout) -->
+  <div class="pt-3 flex justify-center">
     <button
       type="button"
       id="btn-logout"
@@ -170,3 +184,52 @@
   </div>
 
 </div>
+
+<script>
+  import { logout } from '../../../lib/services/authService';
+
+  function initSettingsHub() {
+    const logoutBtn = document.getElementById('btn-logout');
+    logoutBtn?.addEventListener('click', async () => {
+      try {
+        await logout();
+        window.location.href = '/login';
+      } catch (e) {
+        window.location.href = '/login';
+      }
+    });
+
+    const clearCacheBtn = document.getElementById('btn-clear-cache');
+    clearCacheBtn?.addEventListener('click', async () => {
+      try {
+        // 1. Unregister service workers
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((r) => r.unregister()));
+        }
+        // 2. Clear caches
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+        // 3. Clear localStorage except critical auth data
+        const authToken = localStorage.getItem('sb-dlklegayibhgnrxnqapm-auth-token');
+        localStorage.clear();
+        if (authToken) {
+          localStorage.setItem('sb-dlklegayibhgnrxnqapm-auth-token', authToken);
+        }
+      } catch (e) {
+        console.error('Eroare la ștergerea cache-ului:', e);
+      } finally {
+        window.location.reload();
+      }
+    });
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initSettingsHub();
+  } else {
+    document.addEventListener('DOMContentLoaded', initSettingsHub);
+  }
+  document.addEventListener('astro:page-load', initSettingsHub);
+</script>

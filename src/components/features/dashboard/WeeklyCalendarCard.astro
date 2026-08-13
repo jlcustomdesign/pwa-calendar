@@ -150,8 +150,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${r
     </div>
 
     <div class="flex items-center justify-between">
-      <span id="header-date-suffix" class="text-xl sm:text-2xl font-black text-black tracking-tight">{initialDateNumMonthYear}</span>
-      <span id="calendar-month-year" class="hidden text-sm font-black text-brand-secondary transition-all"></span>
+      <div class="flex flex-col">
+        <span id="header-date-suffix" class="text-xl sm:text-2xl font-black text-black tracking-tight">{initialDateNumMonthYear}</span>
+        <span id="calendar-month-year" class="hidden text-sm font-black text-brand-secondary transition-all"></span>
+      </div>
 
       <div id="live-clock-container" class="text-2xl sm:text-3xl font-black text-black tracking-tight leading-none">
         <span id="live-clock" class="tabular-nums">--:--</span>
