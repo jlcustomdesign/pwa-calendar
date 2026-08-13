@@ -23,6 +23,15 @@ import DailyProgress from './DailyProgress.astro';
 
   <!-- Skeleton loading state -->
   <div id="agenda-skeleton" class="flex flex-col gap-4 pb-2">
+    <!-- Daily progress -->
+    <div class="space-y-2 mb-2 px-2">
+      <div class="flex items-center justify-between">
+        <div class="h-4 w-28 rounded bg-black/5 animate-pulse"></div>
+        <div class="h-4 w-20 rounded bg-black/5 animate-pulse"></div>
+      </div>
+      <div class="h-3 w-full rounded-full bg-black/5 animate-pulse"></div>
+    </div>
+    <!-- Session cards -->
     {[1, 2, 3].map(() => (
       <div class="h-[110px] rounded-[2.5rem] bg-black/5 animate-pulse"></div>
     ))}

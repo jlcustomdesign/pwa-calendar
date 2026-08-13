@@ -66,6 +66,19 @@
 
 <!-- Skeleton loading state -->
 <div id="patient-list-skeleton" class="space-y-4 pb-32 overflow-x-hidden">
+  <!-- Search bar + Add button -->
+  <div class="flex gap-3">
+    <div class="h-[56px] flex-1 rounded-full bg-black/5 animate-pulse"></div>
+    <div class="h-[56px] w-[56px] rounded-full bg-black/5 animate-pulse"></div>
+  </div>
+  <!-- Filter pills -->
+  <div class="flex gap-2 overflow-hidden">
+    <div class="h-10 w-20 rounded-full bg-black/5 animate-pulse"></div>
+    <div class="h-10 w-24 rounded-full bg-black/5 animate-pulse"></div>
+    <div class="h-10 w-20 rounded-full bg-black/5 animate-pulse"></div>
+    <div class="h-10 w-24 rounded-full bg-black/5 animate-pulse"></div>
+  </div>
+  <!-- Patient cards -->
   {[1, 2, 3, 4].map(() => (
     <div class="h-[140px] rounded-[2.5rem] bg-black/5 animate-pulse"></div>
   ))}
@@ -463,7 +476,7 @@
         let currentX = 0;
         let isSwiping = false;
         let isOpen = false;
-        const MAX_SWIPE = -140;
+        const MAX_SWIPE = -160;
         const SWIPE_THRESHOLD = -60;
 
         card.addEventListener('touchstart', (e: any) => {

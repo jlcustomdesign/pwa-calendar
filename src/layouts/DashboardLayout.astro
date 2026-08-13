@@ -67,9 +67,10 @@ const { title, hideDock = false } = Astro.props;
         const SWIPE_THRESHOLD = -60;
 
         function getMaxSwipe(surface: HTMLElement | null): number {
-          if (!surface) return -140;
+          if (!surface) return -200;
+          // Patient list has 2 action buttons; agenda/calendar cards have 3
           if (surface.closest('#patient-list-container')) return -140;
-          return -140;
+          return -200;
         }
 
         function handleSwipeStart(surface: HTMLElement, clientX: number) {
