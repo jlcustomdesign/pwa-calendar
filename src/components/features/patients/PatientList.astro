@@ -64,26 +64,6 @@
   <!-- Populated by JS -->
 </div>
 
-<!-- Skeleton loading state -->
-<div id="patient-list-skeleton" class="space-y-4 pb-32 overflow-x-hidden">
-  <!-- Search bar + Add button -->
-  <div class="flex gap-3">
-    <div class="h-[56px] flex-1 rounded-full bg-black/5 animate-pulse"></div>
-    <div class="h-[56px] w-[56px] rounded-full bg-black/5 animate-pulse"></div>
-  </div>
-  <!-- Filter pills -->
-  <div class="flex gap-2 overflow-hidden">
-    <div class="h-10 w-20 rounded-full bg-black/5 animate-pulse"></div>
-    <div class="h-10 w-24 rounded-full bg-black/5 animate-pulse"></div>
-    <div class="h-10 w-20 rounded-full bg-black/5 animate-pulse"></div>
-    <div class="h-10 w-24 rounded-full bg-black/5 animate-pulse"></div>
-  </div>
-  <!-- Patient cards -->
-  {[1, 2, 3, 4].map(() => (
-    <div class="h-[140px] rounded-[2.5rem] bg-black/5 animate-pulse"></div>
-  ))}
-</div>
-
 <!-- Empty State Template -->
 <template id="patient-empty-state">
   <div class="p-8 text-center bg-surface-card rounded-2xl border border-dashed border-black/10">
@@ -246,22 +226,8 @@
       }));
     }
 
-    setPatientLoading(loading: boolean) {
-      const skeleton = document.getElementById('patient-list-skeleton');
-      const container = document.getElementById('patient-list-container');
-      if (!skeleton || !container) return;
-      if (loading) {
-        skeleton.classList.remove('hidden');
-        container.classList.add('hidden');
-      } else {
-        skeleton.classList.add('hidden');
-        container.classList.remove('hidden');
-      }
-    }
-
     async render() {
       if (!this.container) return;
-      this.setPatientLoading(true);
 
       let patients: any[] = [];
       try {
@@ -272,11 +238,8 @@
         });
       } catch (e) {
         console.error('Eroare citire pacienti:', e);
-        this.setPatientLoading(false);
         return;
       }
-
-      this.setPatientLoading(false);
 
       if (patients.length === 0) {
         const template = document.getElementById('patient-empty-state') as HTMLTemplateElement;
@@ -559,13 +522,4 @@
   }
   document.addEventListener('astro:page-load', bootPatientList);
 
-  // Safety: never let the patient list skeleton block the UI
-  setTimeout(() => {
-    const skeleton = document.getElementById('patient-list-skeleton');
-    const container = document.getElementById('patient-list-container');
-    if (skeleton && container && container.classList.contains('hidden')) {
-      skeleton.style.display = 'none';
-      container.classList.remove('hidden');
-    }
-  }, 4000);
 </script>

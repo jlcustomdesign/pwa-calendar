@@ -318,13 +318,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const patientList = document.getElementById('patient-list');
       const patientListInner = document.getElementById('patient-list-inner');
       if (patientListInner) {
-        patientListInner.innerHTML = `
-          <div class="flex flex-col gap-3 animate-pulse">
-            <div class="h-16 rounded-[1.5rem] bg-black/5"></div>
-            <div class="h-16 rounded-[1.5rem] bg-black/5"></div>
-            <div class="h-16 rounded-[1.5rem] bg-black/5"></div>
-          </div>
-        `;
+        patientListInner.innerHTML = '<div class="p-4 text-center text-sm font-bold text-text-muted">Se încarcă pacienții…</div>';
 
         let rawPatients: any[] = [];
         try {

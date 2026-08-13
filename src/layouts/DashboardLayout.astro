@@ -4,6 +4,7 @@ import PaymentSheet from '../components/features/patients/PaymentSheet.astro';
 import AddSessionSheet from '../components/features/agenda/AddSessionSheet.astro';
 import SessionWrapUpSheet from '../components/features/agenda/SessionWrapUpSheet.astro';
 import CustomToast from '../components/ui/CustomToast.astro';
+import AddPatientSheet from '../components/features/patients/AddPatientSheet.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
@@ -71,6 +72,7 @@ const { title, hideDock = false } = Astro.props;
     <!-- Sheets / Toasts live outside the content wrapper so their dynamic overlays share the root stacking context -->
     <PaymentSheet transition:persist />
     <AddSessionSheet transition:persist />
+    <AddPatientSheet transition:persist />
     <SessionWrapUpSheet transition:persist />
     <CustomToast transition:persist />
 

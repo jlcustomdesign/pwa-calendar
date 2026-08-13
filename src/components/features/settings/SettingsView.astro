@@ -57,37 +57,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
   )}
 
   {section && (
-    <!-- Skeleton shown while settings load -->
-    <div id="settings-skeleton" class="space-y-6">
-      <!-- Back header skeleton -->
-      <div class="h-14 rounded-full bg-surface-card shadow-sm border border-border-subtle/50 animate-pulse"></div>
-      <!-- Form card skeleton -->
-      <div class="bg-surface-card rounded-[2.5rem] p-4 sm:p-6 shadow-sm border border-border-subtle/50 space-y-4 animate-pulse">
-        <div class="flex items-center justify-between px-4 py-4">
-          <div class="h-4 w-20 rounded bg-black/10"></div>
-          <div class="h-4 w-32 rounded bg-black/10"></div>
-        </div>
-        <div class="border-t border-border-subtle/50"></div>
-        <div class="flex items-center justify-between px-4 py-4">
-          <div class="h-4 w-24 rounded bg-black/10"></div>
-          <div class="h-4 w-28 rounded bg-black/10"></div>
-        </div>
-        <div class="border-t border-border-subtle/50"></div>
-        <div class="flex items-center justify-between px-4 py-4">
-          <div class="h-4 w-16 rounded bg-black/10"></div>
-          <div class="h-4 w-36 rounded bg-black/10"></div>
-        </div>
-        <div class="border-t border-border-subtle/50"></div>
-        <div class="flex items-center justify-between px-4 py-4">
-          <div class="h-4 w-28 rounded bg-black/10"></div>
-          <div class="h-4 w-24 rounded bg-black/10"></div>
-        </div>
-      </div>
-      <!-- Save button skeleton -->
-      <div class="h-14 rounded-full bg-black/10 animate-pulse"></div>
-    </div>
-
-    <form id="settings-form" class="space-y-6 hidden" onsubmit="event.preventDefault();">
+    <form id="settings-form" class="space-y-6" onsubmit="event.preventDefault();">
 
       <!-- 1. Formular Profil Personal (Stil iOS Row List cu Padding Generos) -->
       {section === 'profile' && (
@@ -489,7 +459,6 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   async function initSubSectionLogic() {
-    const skeleton = document.getElementById('settings-skeleton');
     const settingsForm = document.getElementById('settings-form');
 
     // Load Settings din Supabase
@@ -501,10 +470,6 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     } catch (e) {
       console.error('Eroare la încărcarea setărilor:', e);
     }
-
-    // Hide skeleton and show form once data is ready
-    if (skeleton) skeleton.classList.add('hidden');
-    if (settingsForm) settingsForm.classList.remove('hidden');
 
     // Toast Notification helper
     const toast = document.getElementById('settings-toast');
@@ -1018,13 +983,4 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
   }
   document.addEventListener('astro:page-load', initSubSectionLogic);
 
-  // Safety: never let the settings skeleton block the UI
-  setTimeout(() => {
-    const skeleton = document.getElementById('settings-skeleton');
-    const form = document.getElementById('settings-form');
-    if (skeleton && form && form.classList.contains('hidden')) {
-      skeleton.style.display = 'none';
-      form.classList.remove('hidden');
-    }
-  }, 4000);
 </script>

@@ -421,13 +421,4 @@ import DailyProgress from './DailyProgress.astro';
   window.addEventListener('sessionsUpdated', renderAgendaBlock);
   window.addEventListener('patientsUpdated', renderAgendaBlock);
 
-  // Safety: never let the agenda skeleton block the UI
-  setTimeout(() => {
-    const skeleton = document.getElementById('agenda-skeleton');
-    const list = document.getElementById('agenda-sessions-list');
-    if (skeleton && list && list.style.display === 'none') {
-      skeleton.style.display = 'none';
-      list.style.display = 'flex';
-    }
-  }, 4000);
 </script>
