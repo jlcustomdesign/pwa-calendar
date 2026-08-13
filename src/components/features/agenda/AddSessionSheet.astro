@@ -22,7 +22,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
 <div 
   id="add-session-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
+  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden hidden"
 >
   <!-- Swipe handle -->
   <div id="add-session-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -58,7 +58,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           </div>
         </div>
 
-        <div id="patient-subscription-warning" class="hidden mt-3 px-4 py-3 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black leading-snug uppercase tracking-wider text-center border border-black/5 shadow-md">
+        <div id="patient-subscription-warning" class="hidden mt-3 px-4 py-3 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black leading-snug uppercase tracking-wider text-center border border-transparent shadow-md">
           Abonament terminat
         </div>
 
@@ -123,12 +123,12 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   <div id="time-modal-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-2 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
   <!-- Modal Header -->
-  <div class="flex items-center justify-between pb-2 border-b border-border-subtle/40 px-1">
+  <div class="flex items-center justify-between pb-2 border-b border-transparent px-1">
     <h3 class="text-xl font-black text-text-main font-sans tracking-tight">Alege ora</h3>
   </div>
 
   <!-- 24H Time Preview Display -->
-  <div class="flex items-center justify-center gap-3 py-3.5 bg-surface-base/80 rounded-2xl border border-border-subtle/60 shadow-inner text-text-main font-black text-4xl font-sans tracking-tight">
+  <div class="flex items-center justify-center gap-3 py-3.5 bg-surface-base/80 rounded-2xl border border-transparent shadow-inner text-text-main font-black text-4xl font-sans tracking-tight">
     <span id="session-hour-display">08</span>
     <span class="text-text-muted/60">:</span>
     <span id="session-minute-display">00</span>
@@ -402,10 +402,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       minChips.forEach(chip => {
         if (chip.dataset.minChip === minStr) {
           chip.classList.add('bg-black', 'text-white', 'border-black');
-          chip.classList.remove('bg-white', 'text-black', 'border-black/5');
+          chip.classList.remove('bg-white', 'text-black', 'border-transparent');
         } else {
           chip.classList.remove('bg-black', 'text-white', 'border-black');
-          chip.classList.add('bg-white', 'text-black', 'border-black/5');
+          chip.classList.add('bg-white', 'text-black', 'border-transparent');
         }
       });
     }
@@ -1010,6 +1010,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
     open() {
       if (!this.sheet || !this.overlay) return;
+      // Ensure the sheet is in the layout before animating (prevents flash on load)
+      this.sheet.classList.remove('hidden');
+      void this.sheet.offsetWidth;
       // Reset any inline transform from drag and set closed state
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');

@@ -18,21 +18,21 @@
       <button
         type="button"
         id="btn-export-logs"
-        class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-brand-primary text-text-main hover:text-black font-bold text-sm transition-all active:scale-95 border border-border-subtle/60"
+        class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-brand-primary text-text-main hover:text-black font-bold text-sm transition-all active:scale-95 border border-transparent"
       >
         Exportă
       </button>
       <button
         type="button"
         id="btn-test-error"
-        class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-brand-primary text-text-main hover:text-black font-bold text-sm transition-all active:scale-95 border border-border-subtle/60"
+        class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-brand-primary text-text-main hover:text-black font-bold text-sm transition-all active:scale-95 border border-transparent"
       >
         Eroare test
       </button>
       <button
         type="button"
         id="btn-clear-logs"
-        class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-rose-100 text-rose-600 font-bold text-sm transition-all active:scale-95 border border-border-subtle/60"
+        class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-rose-100 text-rose-600 font-bold text-sm transition-all active:scale-95 border border-transparent"
       >
         Șterge
       </button>
@@ -42,9 +42,9 @@
   <!-- Filtre rapide -->
   <div id="logs-filter" class="flex flex-wrap gap-2">
     <button type="button" data-filter="all" class="px-4 py-2 rounded-full text-sm font-bold transition-all bg-brand-secondary text-white">Toate</button>
-    <button type="button" data-filter="error" class="px-4 py-2 rounded-full text-sm font-bold transition-all bg-surface-base text-text-main border border-border-subtle/60">Erori</button>
-    <button type="button" data-filter="fetch" class="px-4 py-2 rounded-full text-sm font-bold transition-all bg-surface-base text-text-main border border-border-subtle/60">Rețea</button>
-    <button type="button" data-filter="warning" class="px-4 py-2 rounded-full text-sm font-bold transition-all bg-surface-base text-text-main border border-border-subtle/60">Avertismente</button>
+    <button type="button" data-filter="error" class="px-4 py-2 rounded-full text-sm font-bold transition-all bg-surface-base text-text-main border border-transparent">Erori</button>
+    <button type="button" data-filter="fetch" class="px-4 py-2 rounded-full text-sm font-bold transition-all bg-surface-base text-text-main border border-transparent">Rețea</button>
+    <button type="button" data-filter="warning" class="px-4 py-2 rounded-full text-sm font-bold transition-all bg-surface-base text-text-main border border-transparent">Avertismente</button>
   </div>
 
   <!-- Lista de loguri -->
@@ -53,7 +53,7 @@
   </div>
 
   <!-- Empty state -->
-  <div id="logs-empty" class="hidden bg-surface-card rounded-[2rem] p-8 text-center border border-border-subtle/50">
+  <div id="logs-empty" class="hidden bg-surface-card rounded-[2rem] p-8 text-center border border-transparent">
     <div class="w-14 h-14 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3">
       <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
@@ -104,7 +104,7 @@
 
       emptyEl.classList.add('hidden');
       listEl.innerHTML = logs.map((log) => `
-        <article class="bg-surface-card rounded-[1.75rem] p-4 sm:p-5 border border-border-subtle/50 shadow-sm break-words">
+        <article class="bg-surface-card rounded-[1.75rem] p-4 sm:p-5 border border-transparent shadow-sm break-words">
           <div class="flex items-start justify-between gap-3 mb-3">
             <div class="flex items-center gap-2.5 flex-wrap">
               <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${typeClasses[log.type] || 'bg-surface-base text-text-muted'}">
@@ -123,7 +123,7 @@
               <p class="text-sm sm:text-base font-bold text-text-main whitespace-pre-wrap">${escapeHtml(log.message)}</p>
             </div>
 
-            <div class="bg-brand-primary/10 rounded-2xl p-3.5 border border-brand-primary/20">
+            <div class="bg-brand-primary/10 rounded-2xl p-3.5 border border-transparent">
               <p class="text-xs font-black uppercase tracking-wider text-text-muted mb-1">Interpretare</p>
               <p class="text-sm font-bold text-text-main">${escapeHtml(log.interpretation)}</p>
             </div>
@@ -168,7 +168,7 @@
           const active = b === btn;
           b.className = active
             ? 'px-4 py-2 rounded-full text-sm font-bold transition-all bg-brand-secondary text-white'
-            : 'px-4 py-2 rounded-full text-sm font-bold transition-all bg-surface-base text-text-main border border-border-subtle/60';
+            : 'px-4 py-2 rounded-full text-sm font-bold transition-all bg-surface-base text-text-main border border-transparent';
         });
 
         render();

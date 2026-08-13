@@ -4,7 +4,7 @@ import { NAV_ITEMS } from '../../lib/constants';
 const currentPath = Astro.url.pathname;
 ---
 
-<nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-card border-t border-border-subtle pb-[env(safe-area-inset-bottom)] shadow-lg">
+<nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-card border-t border-transparent pb-[env(safe-area-inset-bottom)] shadow-lg">
   <div class="flex items-center justify-around h-16 px-1">
     {NAV_ITEMS.map((item) => {
       const isActive = currentPath === item.path || (item.path !== '/dashboard' && currentPath.startsWith(item.path));

@@ -2,7 +2,7 @@
 import { NAV_ITEMS, ROUTES } from '../../lib/constants';
 ---
 
-<aside class="hidden md:flex w-64 bg-surface-card border-r border-border-subtle p-4 flex-col justify-between shrink-0">
+<aside class="hidden md:flex w-64 bg-surface-card border-r border-transparent p-4 flex-col justify-between shrink-0">
   <div>
     <div class="flex items-center gap-2 mb-8 px-2">
       <div class="w-10 h-10 rounded-xl bg-brand-primary flex items-center justify-center text-text-inverse font-bold text-lg shadow-sm">
@@ -24,7 +24,7 @@ import { NAV_ITEMS, ROUTES } from '../../lib/constants';
       ))}
     </nav>
   </div>
-  <div class="pt-4 border-t border-border-subtle px-2">
+  <div class="pt-4 border-t border-transparent px-2">
     <a href={ROUTES.LOGIN} class="flex items-center min-h-[44px] px-2 text-sm text-text-muted hover:text-state-danger active:scale-95 transition-all">
       Sign Out
     </a>

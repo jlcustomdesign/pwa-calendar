@@ -4,7 +4,7 @@
 
 <div 
   id="add-patient-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[90vh] overflow-hidden"
+  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[90vh] overflow-hidden hidden"
 >
   <!-- Swipe handle -->
   <div id="add-patient-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -25,7 +25,7 @@
             id="patientName" 
             required
             placeholder="ex: Alexandru Popa" 
-            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all"
+            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
           />
         </div>
 
@@ -36,7 +36,7 @@
             name="phone" 
             id="patientPhone" 
             placeholder="ex: 0740 123 456" 
-            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all"
+            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
           />
         </div>
       </div>
@@ -72,7 +72,7 @@
           name="cost" 
           id="patientCost" 
           placeholder="ex: 150" 
-          class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all"
+          class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
         />
       </div>
 
@@ -84,7 +84,7 @@
           name="totalSessions" 
           id="patientTotalSessions" 
           placeholder="e.g. 10" 
-          class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
+          class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
         />
       </div>
 
@@ -107,7 +107,7 @@
             id="patientPartialAmount" 
             min="1"
             placeholder="ex: 50" 
-            class="w-full px-6 py-3 rounded-full bg-black/5 border border-transparent text-base font-extrabold text-black focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all"
+            class="w-full px-6 py-3 rounded-full bg-black/5 border border-transparent text-base font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
           />
         </div>
       </div>
@@ -122,7 +122,7 @@
             name="driveLink" 
             id="patientDriveLink" 
             placeholder="https://drive.google.com/..." 
-            class="w-full pl-11 pr-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black text-sm"
+            class="w-full pl-11 pr-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black text-sm"
           />
         </div>
       </div>
@@ -509,6 +509,9 @@
 
     open() {
       if (!this.sheet || !this.overlay) return;
+      // Ensure the sheet is in the layout before animating (prevents flash on load)
+      this.sheet.classList.remove('hidden');
+      void this.sheet.offsetWidth;
       this.sheet.classList.remove('translate-y-full');
       this.overlay.classList.remove('opacity-0', 'pointer-events-none');
       const dock = document.getElementById('persistent-dock');
