@@ -562,13 +562,22 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
 
   }
 
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    initCalendarAnimation();
-  } else {
-    document.addEventListener("DOMContentLoaded", initCalendarAnimation);
+  function bootCalendar() {
+    // Wait for the layout to settle before measuring/animating the calendar.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        initCalendarAnimation();
+      });
+    });
   }
-  document.addEventListener("astro:page-load", initCalendarAnimation);
-  document.addEventListener("astro:after-swap", initCalendarAnimation);
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    bootCalendar();
+  } else {
+    document.addEventListener("DOMContentLoaded", bootCalendar);
+  }
+  document.addEventListener("astro:page-load", bootCalendar);
+  document.addEventListener("astro:after-swap", bootCalendar);
 
 </script>
 
