@@ -162,9 +162,9 @@
 </div>
 
 <!-- Custom Date Picker Popup (floating, smaller, no native calendar UI) -->
-<div id="day-picker-sheet" class="fixed inset-0 z-[100] pointer-events-none hidden">
-  <div id="day-picker-overlay" class="absolute inset-0 bg-black/20 opacity-0 pointer-events-none transition-opacity duration-200"></div>
-  <div id="day-picker-content" class="fixed w-[19rem] bg-surface-card rounded-[1.75rem] p-4 shadow-2xl pointer-events-auto transform scale-95 opacity-0 transition-all duration-200 ease-out origin-top-left border border-border-subtle/70">
+<div id="day-picker-sheet" class="fixed inset-0 w-screen h-screen h-[100dvh] z-[9999] pointer-events-none hidden">
+  <div id="day-picker-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-200"></div>
+  <div id="day-picker-content" class="fixed w-[19rem] bg-surface-card rounded-[1.75rem] p-4 shadow-2xl pointer-events-auto transform scale-95 opacity-0 transition-all duration-200 ease-out origin-top-left border border-border-subtle/70 z-[10000]">
     <div class="flex items-center justify-between mb-3">
       <button type="button" id="day-picker-prev-month" class="p-1.5 rounded-full bg-surface-base active:scale-95 transition-transform text-text-main hover:text-brand-secondary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
@@ -250,9 +250,19 @@
     const trigger = document.getElementById('today-date-display');
     if (!sheet || !overlay || !content) return;
 
+    if (sheet.parentElement !== document.body) {
+      document.body.appendChild(sheet);
+    }
+
     const rect = trigger?.getBoundingClientRect();
     if (rect) {
-      content.style.left = `${rect.left}px`;
+      const screenWidth = window.innerWidth;
+      const contentWidth = 304; // 19rem = 304px
+      let leftPos = rect.left;
+      if (leftPos + contentWidth > screenWidth - 16) {
+        leftPos = Math.max(16, screenWidth - contentWidth - 16);
+      }
+      content.style.left = `${leftPos}px`;
       content.style.top = `${rect.bottom + 8}px`;
     }
 
@@ -264,7 +274,7 @@
     void sheet.offsetWidth;
     lockBodyScroll();
     overlay.classList.remove('opacity-0', 'pointer-events-none');
-    overlay.classList.add('pointer-events-auto');
+    overlay.classList.add('pointer-events-auto', 'opacity-100');
 
     content.classList.remove('scale-95', 'opacity-0');
     content.classList.add('scale-100', 'opacity-100');
@@ -488,7 +498,7 @@
     const xCoords = Array.from({length: pointsCount}, (_, i) => 15 + i * step);
 
     const points = chartVals.map((val, i) => {
-      const y = minY - (val / maxVal) * (minY - maxY);
+      const y = val === 0 ? minY : (minY - (val / maxVal) * (minY - maxY));
       return { x: xCoords[i], y, val };
     });
 
@@ -496,25 +506,16 @@
       valueDisplay.innerHTML = `${statData ? statData.venit || 0 : 0} <span class="text-sm font-sans font-black text-text-main">RON</span>`;
     }
 
-    let activeBtnIdx = -1;
-    const todayStr = toLocalISOString(new Date());
-    
-    // Find the closest point that is today or past in this period
-    for (let i = chartData.length - 1; i >= 0; i--) {
-      const item = chartData[i];
-      if (item && item.dateStr && item.dateStr <= todayStr) {
-        activeBtnIdx = i;
-        break;
-      }
-    }
+    const isAllZero = chartVals.every(v => v === 0);
 
-    const activePoints = points.slice(0, activeBtnIdx + 1);
-
-    if (activePoints.length === 0) {
-      // Nothing to draw
-    } else if (activePoints.length === 1) {
-      // Draw a horizontal flat line from left edge to the point
-      const p = activePoints[0];
+    if (isAllZero || points.length === 0) {
+      const strokePath = `M 15,115 L 335,115`;
+      const fillPath = `M 15,115 L 335,115 Z`;
+      if (pathStroke) pathStroke.setAttribute('d', strokePath);
+      if (pathGradient) pathGradient.setAttribute('d', fillPath);
+      if (pathHatch) pathHatch.setAttribute('d', fillPath);
+    } else if (points.length === 1) {
+      const p = points[0];
       const strokePath = `M 0,${p.y} L ${p.x},${p.y}`;
       const fillPath = `M 0,115 L 0,${p.y} L ${p.x},${p.y} L ${p.x},115 Z`;
       
@@ -522,26 +523,22 @@
       if (pathGradient) pathGradient.setAttribute('d', fillPath);
       if (pathHatch) pathHatch.setAttribute('d', fillPath);
     } else {
-      let strokePath = `M ${activePoints[0].x},${activePoints[0].y}`;
-      for(let i=0; i<activePoints.length - 1; i++) {
-        const p1 = activePoints[i];
-        const p2 = activePoints[i+1];
+      let strokePath = `M ${points[0].x},${points[0].y}`;
+      for(let i=0; i<points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i+1];
         const cx1 = p1.x + (p2.x - p1.x) / 2;
         const cy1 = p1.y;
         const cx2 = p1.x + (p2.x - p1.x) / 2;
         const cy2 = p2.y;
         strokePath += ` C ${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}`;
       }
-      const fillPath = strokePath + ` L ${activePoints[activePoints.length - 1].x},115 L ${activePoints[0].x},115 Z`;
+      const fillPath = strokePath + ` L ${points[points.length - 1].x},115 L ${points[0].x},115 Z`;
       
       if (pathStroke) pathStroke.setAttribute('d', strokePath);
       if (pathGradient) pathGradient.setAttribute('d', fillPath);
       if (pathHatch) pathHatch.setAttribute('d', fillPath);
     }
-
-    // We will clip the chart dynamically based on the clicked point
-    // The initial clipping is handled by the click event triggered at the end of this function
-
 
     const dayCoords = points.map(p => ({
       cx: p.x,
@@ -554,13 +551,6 @@
 
     dayBtns.forEach((btn, idx) => {
       btn.addEventListener('click', () => {
-        const item = chartData[idx];
-        const todayStr = toLocalISOString(new Date());
-        if (item?.dateStr && item.dateStr > todayStr) {
-          // Do not move indicator into the future
-          return;
-        }
-
         const coord = dayCoords[idx];
         if (coord) {
           dot.style.left = coord.left;
@@ -596,6 +586,25 @@
         }
       });
     });
+
+    let activeBtnIdx = -1;
+    const todayStr = toLocalISOString(new Date());
+    
+    for (let i = chartData.length - 1; i >= 0; i--) {
+      const item = chartData[i];
+      if (item && item.dateStr && item.dateStr <= todayStr) {
+        activeBtnIdx = i;
+        break;
+      }
+    }
+
+    if (activeBtnIdx < 0 && chartData.length > 0) {
+      if (chartData[0]?.dateStr && chartData[0].dateStr > todayStr) {
+        activeBtnIdx = 0;
+      } else {
+        activeBtnIdx = chartData.length - 1;
+      }
+    }
 
     const newDayBtns = document.querySelectorAll('.day-btn');
     if (activeBtnIdx >= 0 && newDayBtns[activeBtnIdx]) {
