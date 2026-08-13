@@ -47,14 +47,14 @@ const { title, hideDock = false } = Astro.props;
     </div>
   </head>
   <body class="min-h-[100dvh] w-full font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden !bg-transparent">
-    <!-- Global full-bleed blob background — covers the notch area on iOS -->
-    <BlobBackground positions={[
-      { top: '-6rem', left: '-4rem' },
-      { top: '38%', right: '-3.5rem' },
-      { bottom: '-2rem', left: '-3.5rem' }
-    ]} />
-
     <div class="min-h-[100dvh] w-full flex flex-col relative z-10">
+      <!-- Blob background follows the scrollable content instead of staying locked to the viewport -->
+      <BlobBackground positions={[
+        { top: '-6rem', left: '-4rem' },
+        { top: '38%', right: '-3.5rem' },
+        { bottom: '-2rem', left: '-3.5rem' }
+      ]} />
+
       <!-- Global page-transition skeleton: fixed full-screen overlay -->
       <div id="page-transition-loader" class="hidden fixed inset-0 z-[60] bg-surface-base/95" aria-hidden="true">
         <div class="w-full max-w-3xl mx-auto px-3 sm:px-8 pt-[max(1.25rem,env(safe-area-inset-top))] sm:pt-[max(2rem,env(safe-area-inset-top))]">
@@ -229,11 +229,21 @@ const { title, hideDock = false } = Astro.props;
           const loader = document.getElementById('page-transition-loader');
           if (!loader) return;
 
+          let safetyTimer: number | null = null;
+
           function showLoader() {
             loader.classList.remove('hidden');
+            if (safetyTimer) window.clearTimeout(safetyTimer);
+            safetyTimer = window.setTimeout(() => {
+              loader.classList.add('hidden');
+            }, 3000);
           }
           function hideLoader() {
             loader.classList.add('hidden');
+            if (safetyTimer) {
+              window.clearTimeout(safetyTimer);
+              safetyTimer = null;
+            }
           }
 
           // Astro ClientRouter lifecycle events
