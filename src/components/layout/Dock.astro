@@ -72,11 +72,40 @@ const navItems = [
     }
   }
 
+  function movePillTo(item: HTMLElement, animate: boolean = true) {
+    const activePill = document.getElementById('dock-active-pill');
+    if (!activePill) return;
+
+    activePill.style.transition = animate
+      ? 'transform 450ms cubic-bezier(0.34, 1.36, 0.64, 1), width 450ms cubic-bezier(0.34, 1.36, 0.64, 1), opacity 300ms ease'
+      : 'none';
+    activePill.style.opacity = '1';
+    activePill.style.width = `${item.offsetWidth}px`;
+    activePill.style.transform = `translate(${item.offsetLeft}px, -50%)`;
+  }
+
+  function setItemVisualState(item: HTMLElement, isActive: boolean) {
+    const isHome = item.getAttribute('data-id') === 'home';
+
+    if (isActive) {
+      item.classList.remove('text-brand-primary', 'hover:opacity-80');
+      item.classList.add('text-black');
+    } else {
+      item.classList.remove('text-black');
+      item.classList.add('text-brand-primary', 'hover:opacity-80');
+    }
+
+    const svg = item.querySelector('svg');
+    if (svg) {
+      const strokeWidth = (isHome || isActive) ? '2.5' : '1.75';
+      svg.setAttribute('stroke-width', strokeWidth);
+    }
+  }
+
   function updateDockActiveState(animate: boolean = true) {
     updateDockVisibility();
     const dockNav = document.getElementById('dock-nav');
-    const activePill = document.getElementById('dock-active-pill');
-    if (!dockNav || !activePill) return;
+    if (!dockNav) return;
 
     const currentPath = window.location.pathname;
     const items = dockNav.querySelectorAll('[data-dock-item]');
@@ -84,26 +113,12 @@ const navItems = [
 
     items.forEach((item) => {
       const href = item.getAttribute('href') || '';
-      const isHome = item.getAttribute('data-id') === 'home';
       const isActive = currentPath === href || (href !== '/dashboard' && currentPath.startsWith(href));
 
       if (isActive) {
         activeItem = item as HTMLElement;
       }
-
-      if (isActive) {
-        item.classList.remove('text-brand-primary', 'hover:opacity-80');
-        item.classList.add('text-black');
-      } else {
-        item.classList.remove('text-black');
-        item.classList.add('text-brand-primary', 'hover:opacity-80');
-      }
-
-      const svg = item.querySelector('svg');
-      if (svg) {
-        const strokeWidth = (isHome || isActive) ? '2.5' : '1.75';
-        svg.setAttribute('stroke-width', strokeWidth);
-      }
+      setItemVisualState(item as HTMLElement, isActive);
     });
 
     if (!activeItem && items.length > 0) {
@@ -111,13 +126,7 @@ const navItems = [
     }
 
     if (activeItem) {
-      const itemWidth = activeItem.offsetWidth;
-      const itemLeft = activeItem.offsetLeft;
-
-      activePill.style.transition = animate ? 'transform 450ms cubic-bezier(0.34, 1.36, 0.64, 1), width 450ms cubic-bezier(0.34, 1.36, 0.64, 1), opacity 300ms ease' : 'none';
-      activePill.style.opacity = '1';
-      activePill.style.width = `${itemWidth}px`;
-      activePill.style.transform = `translate(${itemLeft}px, -50%)`;
+      movePillTo(activeItem, animate);
     }
   }
 
@@ -125,13 +134,26 @@ const navItems = [
     if ((window as any).__kinetoDockInitialized) return;
     (window as any).__kinetoDockInitialized = true;
 
-    // Initial paint without animation so the dock appears in its final state
-    updateDockActiveState(false);
+    const dockNav = document.getElementById('dock-nav');
 
-    // Update fără re-inițializare completă la fiecare navigare.
-    // after-swap = instant update, page-load = animated transition
+    // Initial paint with animation so the dock slides in naturally
+    updateDockActiveState(true);
+
+    // Clicking a dock item moves the pill instantly (no waiting for route load)
+    dockNav?.querySelectorAll('[data-dock-item]').forEach((item) => {
+      item.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        // Reset all items then mark clicked one active immediately
+        dockNav.querySelectorAll('[data-dock-item]').forEach((i) => setItemVisualState(i as HTMLElement, false));
+        setItemVisualState(target, true);
+        movePillTo(target, true);
+      });
+    });
+
+    // After the new page is swapped in, just reconcile state without animating
     document.addEventListener('astro:after-swap', () => updateDockActiveState(false));
-    document.addEventListener('astro:page-load', () => updateDockActiveState(true));
+    // On full page load, reconcile (usually redundant because click already moved it)
+    document.addEventListener('astro:page-load', () => updateDockActiveState(false));
     window.addEventListener('resize', () => updateDockActiveState(false));
   }
 
