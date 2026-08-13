@@ -47,14 +47,14 @@ const { title, hideDock = false } = Astro.props;
     </div>
   </head>
   <body class="min-h-[100dvh] w-full font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden bg-transparent">
-    <!-- Global full-bleed background — covers the notch area and every page -->
-    <BlobBackground positions={[
-      { top: '-6rem', left: '-4rem' },
-      { top: '38%', right: '-3.5rem' },
-      { bottom: '-2rem', left: '-3.5rem' }
-    ]} />
+    <div class="min-h-[100dvh] w-full flex flex-col relative z-10 bg-surface-base">
+      <!-- Global full-bleed background — covers the notch area and every page -->
+      <BlobBackground positions={[
+        { top: '-6rem', left: '-4rem' },
+        { top: '38%', right: '-3.5rem' },
+        { bottom: '-2rem', left: '-3.5rem' }
+      ]} />
 
-    <div class="min-h-[100dvh] w-full flex flex-col relative z-10">
       <!-- Global page-transition skeleton: fixed full-screen overlay -->
       <div id="page-transition-loader" class="hidden fixed inset-0 z-[60] bg-surface-base/95 backdrop-blur-sm" aria-hidden="true">
         <div class="w-full max-w-3xl mx-auto px-3 sm:px-8 pt-[max(1.25rem,env(safe-area-inset-top))] sm:pt-[max(2rem,env(safe-area-inset-top))]">
@@ -63,7 +63,7 @@ const { title, hideDock = false } = Astro.props;
       </div>
 
       <!-- Main Content Container -->
-      <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pb-32 relative">
+      <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pb-32 relative z-10">
         <slot />
       </main>
 

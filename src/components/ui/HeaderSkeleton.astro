@@ -20,6 +20,10 @@
     }
 
     document.addEventListener('astro:after-swap', doHide, { once: true });
-    document.addEventListener('DOMContentLoaded', doHide, { once: true });
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      doHide();
+    } else {
+      document.addEventListener('DOMContentLoaded', doHide, { once: true });
+    }
   })();
 </script>
