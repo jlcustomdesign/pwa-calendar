@@ -75,6 +75,12 @@ export function interpretError(err: unknown, context?: string): string {
   const full = msg + ' ' + ctx;
 
   // --- Autentificare / autorizare ---
+  if (msg.includes('jwt issued at future') || msg.includes('iat')) {
+    return 'Tokenul JWT a fost emis cu o dată din viitor. De obicei înseamnă că ceasul dispozitivului tău este înaintea serverului Supabase. Verifică și setează ora dispozitivului pe „automată”, apoi reîncarcă aplicația.';
+  }
+  if (msg.includes('jwt expired') || msg.includes('token has expired')) {
+    return 'Sesiunea a expirat. Deloghează-te și loghează-te din nou pentru un token nou.';
+  }
   if (full.includes('401') || msg.includes('unauthorized') || msg.includes('jwt') || msg.includes('auth')) {
     return 'Sesiunea de autentificare a expirat sau tokenul este invalid. Încearcă să te deloghezi și să te reconectezi. Dacă persistă, verifică dacă contul are dreptul să acceseze această resursă.';
   }
