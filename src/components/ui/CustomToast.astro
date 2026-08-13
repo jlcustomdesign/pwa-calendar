@@ -6,7 +6,7 @@
 </div>
 
 <!-- Custom Confirmation Modal -->
-<div id="confirm-modal-overlay" class="fixed inset-0 z-[99999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 pt-[calc(1rem+env(safe-area-inset-top))] opacity-0 pointer-events-none transition-all duration-300">
+<div id="confirm-modal-overlay" data-sheet-root class="fixed inset-0 z-[99999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 pt-[calc(1rem+env(safe-area-inset-top))] opacity-0 pointer-events-none transition-all duration-300">
   <div id="confirm-modal-card" class="bg-surface-card w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl scale-95 transition-all duration-300 border border-black/10 flex flex-col gap-5">
     <div class="flex items-center gap-3">
       <div id="confirm-modal-icon" class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
@@ -127,6 +127,7 @@
     if (msgEl) msgEl.textContent = message;
 
     lockBodyScroll();
+    overlay.dataset.open = 'true';
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     card.classList.remove('scale-95');
 
@@ -135,6 +136,7 @@
         unlockBodyScroll();
         overlay.classList.add('opacity-0', 'pointer-events-none');
         card.classList.add('scale-95');
+        overlay.dataset.open = 'false';
         okBtn?.removeEventListener('click', handleOk);
         cancelBtn?.removeEventListener('click', handleCancel);
         overlay.removeEventListener('click', handleOverlay);

@@ -154,7 +154,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     </button>
   </div>
 </div>
-<div id="add-session-time-overlay" class="fixed inset-0 bg-black/50 z-[115] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<div id="add-session-time-overlay" data-sheet-root class="fixed inset-0 bg-black/50 z-[115] opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
 <!-- Custom Date Picker Sheet -->
 <div 
@@ -193,7 +193,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     </button>
   </div>
 </div>
-<div id="custom-date-picker-overlay" class="fixed inset-0 bg-black/50 z-[105] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<div id="custom-date-picker-overlay" data-sheet-root class="fixed inset-0 bg-black/50 z-[105] opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
 <script>
   import { getSettings } from '../../../utils/settings';
@@ -580,6 +580,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.renderDatePicker();
       if (this.datePickerSheet && this.datePickerOverlay) {
         this.datePickerSheet.dataset.open = 'true';
+        this.datePickerOverlay.dataset.open = 'true';
         this.datePickerSheet.classList.add('translate-y-full');
         void this.datePickerSheet.offsetWidth;
         this.datePickerSheet.classList.remove('translate-y-full');
@@ -594,6 +595,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         this.datePickerOverlay.classList.add('opacity-0', 'pointer-events-none');
         setTimeout(() => {
           if (this.datePickerSheet) this.datePickerSheet.dataset.open = 'false';
+          if (this.datePickerOverlay) this.datePickerOverlay.dataset.open = 'false';
         }, 500);
       }
     }
@@ -676,6 +678,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.renderTimeGrids();
 
       modal.dataset.open = 'true';
+      if (overlay) overlay.dataset.open = 'true';
       modal.classList.add('translate-y-full');
       void modal.offsetWidth;
       modal.classList.remove('translate-y-full');
@@ -744,6 +747,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         overlay?.classList.add('opacity-0', 'pointer-events-none');
         setTimeout(() => {
           modal.dataset.open = 'false';
+          if (overlay) overlay.dataset.open = 'false';
         }, 500);
       };
 

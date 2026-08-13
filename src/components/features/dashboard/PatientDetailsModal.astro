@@ -4,6 +4,7 @@
 
 <div 
   id="patient-details-modal" 
+  data-sheet-root
   class="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none"
 >
   <!-- Backdrop -->
@@ -88,6 +89,8 @@
             sheet.classList.remove('translate-y-full');
             sheet.classList.add('translate-y-0');
           }
+
+          modal.dataset.open = 'true';
         }
       });
     });
@@ -207,6 +210,8 @@
     unlockBodyScroll();
     const dock = document.getElementById('persistent-dock');
     if (dock) dock.style.display = '';
+
+    modal.dataset.open = 'false';
 
     const sheet = modal.querySelector('.modal-sheet') as HTMLElement | null;
     if (sheet) {

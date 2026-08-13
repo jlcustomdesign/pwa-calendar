@@ -25,6 +25,15 @@ const { title, hideDock = false } = Astro.props;
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Critical FOUC guard: hide every bottom-sheet/popup root before any CSS/JS runs.
+         This must be inline in <head> so hosted builds never flash sheets on first paint. -->
+    <style>
+      [data-sheet-root]:not([data-open="true"]) {
+        display: none !important;
+      }
+    </style>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
 
