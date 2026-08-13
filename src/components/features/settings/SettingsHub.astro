@@ -181,12 +181,9 @@
       const skeleton = document.getElementById('settings-hub-skeleton');
       if (!skeleton) return;
 
-      let hidden = false;
       function doHide() {
-        if (hidden) return;
-        hidden = true;
-        skeleton.style.opacity = '0';
-        setTimeout(() => skeleton.remove(), 200);
+        skeleton.classList.add('hidden');
+        setTimeout(() => skeleton.remove(), 300);
       }
 
       // Keep the skeleton visible until the page has actually swapped in,

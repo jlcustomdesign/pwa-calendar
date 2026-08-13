@@ -580,8 +580,8 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
     // Hide skeleton once the real calendar UI is painted and positioned
     const calendarSkeleton = document.getElementById('calendar-skeleton');
     if (calendarSkeleton) {
-      calendarSkeleton.style.opacity = '0';
-      setTimeout(() => calendarSkeleton.remove(), 200);
+      calendarSkeleton.classList.add('hidden');
+      setTimeout(() => calendarSkeleton.remove(), 300);
     }
   }
 
@@ -597,8 +597,8 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
   setTimeout(() => {
     const calendarSkeleton = document.getElementById('calendar-skeleton');
     if (calendarSkeleton) {
-      calendarSkeleton.style.opacity = '0';
-      setTimeout(() => calendarSkeleton.remove(), 200);
+      calendarSkeleton.classList.add('hidden');
+      setTimeout(() => calendarSkeleton.remove(), 300);
     }
   }, 4000);
 </script>

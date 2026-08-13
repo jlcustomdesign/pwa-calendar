@@ -33,11 +33,6 @@
     width: 100%;
     min-height: 100dvh;
     background-color: rgb(var(--color-surface-base));
-    background-image: url('/blob-bg.svg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
   }
