@@ -59,6 +59,8 @@ const navItems = [
 </div>
 
 <script>
+  // Dock persistent — se inițializează o singură dată, iar la navigare doar se
+  // updatează starea activă și poziția pill-ului, fără re-animare dublă.
   function updateDockVisibility() {
     const dock = document.getElementById('persistent-dock');
     if (!dock) return;
@@ -70,7 +72,7 @@ const navItems = [
     }
   }
 
-  function initDockAnimation() {
+  function updateDockActiveState() {
     updateDockVisibility();
     const dockNav = document.getElementById('dock-nav');
     const activePill = document.getElementById('dock-active-pill');
@@ -84,12 +86,11 @@ const navItems = [
       const href = item.getAttribute('href') || '';
       const isHome = item.getAttribute('data-id') === 'home';
       const isActive = currentPath === href || (href !== '/dashboard' && currentPath.startsWith(href));
-      
+
       if (isActive) {
         activeItem = item as HTMLElement;
       }
-      
-      // Update styling dynamically due to transition:persist
+
       if (isActive) {
         item.classList.remove('text-brand-primary', 'hover:opacity-80');
         item.classList.add('text-black');
@@ -97,8 +98,7 @@ const navItems = [
         item.classList.remove('text-black');
         item.classList.add('text-brand-primary', 'hover:opacity-80');
       }
-      
-      // Update SVG stroke-width dynamically
+
       const svg = item.querySelector('svg');
       if (svg) {
         const strokeWidth = (isHome || isActive) ? '2.5' : '1.75';
@@ -120,7 +120,18 @@ const navItems = [
     }
   }
 
-  document.addEventListener('DOMContentLoaded', initDockAnimation);
-  document.addEventListener('astro:page-load', initDockAnimation);
-  document.addEventListener('astro:after-swap', initDockAnimation);
+  function initDockOnce() {
+    if ((window as any).__kinetoDockInitialized) return;
+    (window as any).__kinetoDockInitialized = true;
+
+    updateDockActiveState();
+
+    // Update fără re-inițializare completă la fiecare navigare.
+    document.addEventListener('astro:page-load', updateDockActiveState);
+    document.addEventListener('astro:after-swap', updateDockActiveState);
+    window.addEventListener('resize', updateDockActiveState);
+  }
+
+  document.addEventListener('DOMContentLoaded', initDockOnce);
+  document.addEventListener('astro:page-load', initDockOnce);
 </script>
