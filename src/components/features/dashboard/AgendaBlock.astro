@@ -56,6 +56,18 @@ import DailyProgress from './DailyProgress.astro';
     const list = document.getElementById('agenda-sessions-list');
     if (!list) return;
 
+    // Render instant cache first to prevent mobile delay
+    const cacheKey = `kineto_agenda_cache_${currentAgendaDate}`;
+    try {
+      const rawCache = localStorage.getItem(cacheKey);
+      if (rawCache && list.children.length === 0) {
+        const cachedSessions = JSON.parse(rawCache);
+        if (Array.isArray(cachedSessions) && cachedSessions.length > 0) {
+          drawAgendaSessionsList(list, cachedSessions);
+        }
+      }
+    } catch (e) {}
+
     const now = new Date();
     const nowStr = now.toTimeString().slice(0, 5);
     const isToday = currentAgendaDate === todayStr;
@@ -102,6 +114,11 @@ import DailyProgress from './DailyProgress.astro';
     }
     
     lastFetchedSessions = stored;
+    try {
+      if (stored.length > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify(stored));
+      }
+    } catch (e) {}
 
     // Calculate selected day's progress dynamically
     const daySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === currentAgendaDate);

@@ -621,8 +621,14 @@
 
     function updatePill(target: HTMLElement) {
       if (!activePill) return;
-      const width = target.offsetWidth;
-      const left = target.offsetLeft;
+      let width = target.offsetWidth;
+      let left = target.offsetLeft;
+      if (width === 0) {
+        requestAnimationFrame(() => {
+          if (target && target.offsetWidth > 0) updatePill(target);
+        });
+        return;
+      }
       activePill.style.opacity = '1';
       activePill.style.width = `${width}px`;
       activePill.style.transform = `translate(${left}px, -50%)`;

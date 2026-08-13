@@ -196,6 +196,9 @@ const { title, hideDock = false } = Astro.props;
       // Initialize on load and page swaps
       if (typeof window !== 'undefined') {
         initErrorLogger();
+        import('../lib/services/sessionNotifier').then(({ initSessionNotifier }) => {
+          initSessionNotifier();
+        }).catch(() => {});
 
         // Detectare logout real (nu erori de rețea tranzitorii) și redirect la login.
         import('../lib/supabase').then(({ supabase }) => {
