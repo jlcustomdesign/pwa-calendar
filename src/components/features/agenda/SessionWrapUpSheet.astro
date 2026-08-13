@@ -19,16 +19,30 @@
       </button>
     </div>
     <!-- Patient & Session Summary Card (Lean & Essential) -->
-    <div class="mb-5 bg-neutral-100/90 p-4 rounded-2xl border border-neutral-200/80 flex items-center justify-between">
-      <div>
-        <div class="font-black text-neutral-900 text-base sm:text-lg" id="wrapup-patient-name">Se încarcă…</div>
-        <div class="text-neutral-900 font-extrabold text-sm sm:text-base mt-1" id="wrapup-session-details">
-          Ședința de azi • 08:00
+    <div class="mb-5 bg-neutral-100/90 p-4 rounded-2xl border border-neutral-200/80 relative">
+      <!-- Skeleton -->
+      <div id="wrapup-summary-skeleton" class="flex items-center justify-between animate-pulse">
+        <div class="space-y-2">
+          <div class="h-5 w-40 rounded bg-black/10"></div>
+          <div class="h-4 w-32 rounded bg-black/10"></div>
+        </div>
+        <div class="text-right space-y-2">
+          <div class="h-3 w-16 rounded bg-black/10 ml-auto"></div>
+          <div class="h-5 w-12 rounded bg-black/10 ml-auto"></div>
         </div>
       </div>
-      <div class="text-right">
-        <div class="text-[11px] font-black uppercase tracking-wider text-neutral-800">Ședințe</div>
-        <div class="text-base font-black text-rose-600 leading-tight" id="wrapup-session-count">-- / --</div>
+      <!-- Content -->
+      <div id="wrapup-summary-content" class="hidden flex items-center justify-between">
+        <div>
+          <div class="font-black text-neutral-900 text-base sm:text-lg" id="wrapup-patient-name">Se încarcă…</div>
+          <div class="text-neutral-900 font-extrabold text-sm sm:text-base mt-1" id="wrapup-session-details">
+            Ședința de azi • 08:00
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-[11px] font-black uppercase tracking-wider text-neutral-800">Ședințe</div>
+          <div class="text-base font-black text-rose-600 leading-tight" id="wrapup-session-count">-- / --</div>
+        </div>
       </div>
     </div>
 
@@ -338,6 +352,11 @@
     }
 
     private async initView() {
+      const skeleton = document.getElementById('wrapup-summary-skeleton');
+      const content = document.getElementById('wrapup-summary-content');
+      if (skeleton) skeleton.classList.remove('hidden');
+      if (content) content.classList.add('hidden');
+
       if (!this.currentAppointment) return;
 
       const appt = this.currentAppointment;
@@ -408,6 +427,10 @@
         btnConfirm.disabled = false;
         btnConfirm.textContent = 'Confirmă ședința';
       }
+
+      // Show real content, hide skeleton
+      if (skeleton) skeleton.classList.add('hidden');
+      if (content) content.classList.remove('hidden');
     }
 
     private updateCustomTimeValue() {
