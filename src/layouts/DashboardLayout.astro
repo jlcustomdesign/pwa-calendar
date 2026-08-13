@@ -46,7 +46,7 @@ const { title, hideDock = false } = Astro.props;
       <a href="/dashboard/settings" data-astro-prefetch="load">Setări</a>
     </div>
   </head>
-  <body class="min-h-[100dvh] w-full font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden bg-transparent">
+  <body class="min-h-[100dvh] w-full font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden !bg-transparent">
     <!-- Global full-bleed blob background — covers the notch area on iOS -->
     <BlobBackground positions={[
       { top: '-6rem', left: '-4rem' },
