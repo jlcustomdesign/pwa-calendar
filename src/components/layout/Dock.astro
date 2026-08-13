@@ -53,6 +53,9 @@ const navItems = [
         }`}
       >
         <Fragment set:html={iconHtml} />
+        {item.id === 'layers' && (
+          <span id="patients-notification-dot" class="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500 hidden"></span>
+        )}
       </a>
     );
   })}
@@ -131,6 +134,23 @@ const navItems = [
     }
   }
 
+  async function updatePatientNotificationDot() {
+    const dot = document.getElementById('patients-notification-dot');
+    if (!dot) return;
+    try {
+      const { getPatients } = await import('../../lib/services/patientService');
+      const patients = await getPatients();
+      const hasExpired = patients.some((p: any) => {
+        const total = p.sedinte_total ?? 0;
+        const used = p.sedinte_folosite ?? 0;
+        return total > 0 && used >= total;
+      });
+      dot.classList.toggle('hidden', !hasExpired);
+    } catch {
+      dot.classList.add('hidden');
+    }
+  }
+
   function initDockOnce() {
     if ((window as any).__kinetoDockInitialized) return;
     (window as any).__kinetoDockInitialized = true;
@@ -139,6 +159,9 @@ const navItems = [
 
     // Initial paint with animation so the dock slides in naturally
     updateDockActiveState(true);
+    updatePatientNotificationDot();
+
+    window.addEventListener('patientsUpdated', updatePatientNotificationDot);
 
     dockNav?.querySelectorAll('[data-dock-item]').forEach((item) => {
       const handleDockTap = (e: Event) => {

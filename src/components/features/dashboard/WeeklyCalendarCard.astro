@@ -130,8 +130,8 @@ if (activeDayObj) {
 
 const rawWeekday = initialDate.toLocaleDateString('ro-RO', { weekday: 'long' });
 const initialDayName = rawWeekday ? (rawWeekday.charAt(0).toUpperCase() + rawWeekday.slice(1)) : 'Luni';
-const rawMonthName = initialDate.toLocaleDateString('ro-RO', { month: 'long' });
-const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${initialDate.getFullYear()}`;
+const rawMonthName = initialDate.toLocaleDateString('ro-RO', { month: 'short' });
+const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${rawMonthName} ${initialDate.getFullYear()}`;
 ---
 
 <div id="calendar-card" class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none closed-mode relative" data-expanded="false">
@@ -150,10 +150,8 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
     </div>
 
     <div class="flex items-center justify-between">
-      <div class="flex flex-col">
-        <span id="header-date-suffix" class="text-xl sm:text-2xl font-black text-black tracking-tight">{initialDateNumMonthYear}</span>
-        <span id="calendar-month-year" class="text-sm font-black text-brand-secondary transition-all"></span>
-      </div>
+      <span id="header-date-suffix" class="text-xl sm:text-2xl font-black text-black tracking-tight">{initialDateNumMonthYear}</span>
+      <span id="calendar-month-year" class="hidden text-sm font-black text-brand-secondary transition-all"></span>
 
       <div id="live-clock-container" class="text-2xl sm:text-3xl font-black text-black tracking-tight leading-none">
         <span id="live-clock" class="tabular-nums">--:--</span>
@@ -398,10 +396,10 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
         if (!isNaN(dateObj.getTime())) {
           const fullDay = dateObj.toLocaleDateString('ro-RO', { weekday: 'long' });
           const capitalizedDay = fullDay.charAt(0).toUpperCase() + fullDay.slice(1);
-          const monthName = dateObj.toLocaleDateString('ro-RO', { month: 'long' });
+          const monthName = dateObj.toLocaleDateString('ro-RO', { month: 'short' });
 
           if (dayNameEl) dayNameEl.textContent = capitalizedDay;
-          if (dateSuffixEl) dateSuffixEl.textContent = `${dateNum} ${monthName} ${yearNum}`;
+          if (dateSuffixEl) dateSuffixEl.textContent = `${capitalizedDay}, ${dateNum} ${monthName} ${yearNum}`;
         }
       }
     }
@@ -449,6 +447,7 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
       }
 
       const activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
+      const monthYearLabel = document.getElementById("calendar-month-year");
       
       if (isExpanded) {
          card.classList.remove("closed-mode");
@@ -459,6 +458,8 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
          
          const allWeeks = document.querySelectorAll(".week-section");
          allWeeks.forEach(w => w.classList.remove("collapsed-week"));
+
+         if (monthYearLabel) monthYearLabel.classList.remove("hidden");
       } else {
          card.classList.remove("expanded-mode");
          card.classList.add("closed-mode");
@@ -472,6 +473,8 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
                 w.classList.add("collapsed-week");
             }
          });
+         
+         if (monthYearLabel) monthYearLabel.classList.add("hidden");
          
          if (activeBtn) {
             const monthSection = activeBtn.closest('.month-section') as HTMLElement;
