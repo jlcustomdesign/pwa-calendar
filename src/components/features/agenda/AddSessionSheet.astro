@@ -1139,6 +1139,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = 'none';
       lockBodyScroll();
 
       // Remove closed state on the next frame so the browser actually animates
@@ -1153,6 +1155,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = '';
       unlockBodyScroll();
 
       // Reset form

@@ -511,6 +511,8 @@
       if (!this.sheet || !this.overlay) return;
       this.sheet.classList.remove('translate-y-full');
       this.overlay.classList.remove('opacity-0', 'pointer-events-none');
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = 'none';
       lockBodyScroll();
     }
 
@@ -519,6 +521,8 @@
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = '';
       unlockBodyScroll();
       setTimeout(() => this.form?.reset(), 500);
     }

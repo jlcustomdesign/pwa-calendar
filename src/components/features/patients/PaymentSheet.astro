@@ -409,12 +409,16 @@
       // fading a parent wrapper would disable the backdrop-blur mid-animation
       this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = 'none';
       lockBodyScroll();
     }
 
     private close() {
       if (!this.sheet || !this.content || !this.backdrop || !this.isOpen) return;
       this.isOpen = false;
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = '';
       unlockBodyScroll();
 
       // Clear any inline drag styles so the class-based transition takes over

@@ -846,6 +846,8 @@
       void this.sheet.offsetWidth;
       this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = 'none';
       lockBodyScroll();
     }
 
@@ -857,6 +859,8 @@
       this.backdrop.classList.add('opacity-0');
       this.content.style.transform = '';
       this.content.classList.add('translate-y-full');
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = '';
       unlockBodyScroll();
       setTimeout(() => {
         this.reconnect();

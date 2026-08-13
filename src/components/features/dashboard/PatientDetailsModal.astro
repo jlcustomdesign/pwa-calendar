@@ -72,6 +72,8 @@
         const modal = document.getElementById(modalId);
         if (modal) {
           lockBodyScroll();
+          const dock = document.getElementById('persistent-dock');
+          if (dock) dock.style.display = 'none';
 
           // Show modal — fade the backdrop element itself so the blur
           // animates gradually (same pattern as the other sheets)
@@ -203,6 +205,8 @@
 
   function closeModalSheet(modal: HTMLElement) {
     unlockBodyScroll();
+    const dock = document.getElementById('persistent-dock');
+    if (dock) dock.style.display = '';
 
     const sheet = modal.querySelector('.modal-sheet') as HTMLElement | null;
     if (sheet) {
