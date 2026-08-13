@@ -194,9 +194,9 @@ import DailyProgress from './DailyProgress.astro';
         statusIcon = `<svg class="w-7 h-7 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
       }
 
-      // Subscription warning shown only in open state
+      // Subscription warning shown only in open state (placed at the bottom of details)
       const subscriptionWarningDetails = session.subscriptionDone
-        ? `<div class="px-6 pb-3"><button type="button" class="w-full py-2.5 px-4 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black uppercase tracking-wider text-center shadow-md border border-black/5 hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>REÎNNOIEȘTE PACHETUL</span></button></div>`
+        ? `<div class="px-6 pt-2 pb-5"><button type="button" class="w-full py-3 px-4 rounded-2xl bg-amber-500 text-white text-xs sm:text-sm font-black uppercase tracking-wider text-center shadow-md hover:bg-amber-600 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>REÎNNOIEȘTE PACHETUL</span></button></div>`
         : '';
 
       const restDePlata = Math.max(0, (session.costTotal || 0) - (session.sumaIncasata || 0));
@@ -280,8 +280,6 @@ import DailyProgress from './DailyProgress.astro';
 
             <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
               <div class="overflow-hidden relative z-20">
-                ${subscriptionWarningDetails}
-                
                 <div class="px-6 pt-2 pb-2 space-y-3">
                   <!-- Row 1: White Pill with Black Text & Icons for Time & Location -->
                   <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white text-black text-sm sm:text-base font-extrabold shadow-sm border border-black/5">
@@ -333,6 +331,7 @@ import DailyProgress from './DailyProgress.astro';
                     </button>
                   </div>
                 ` : ''}
+                ${subscriptionWarningDetails}
               </div>
             </div>
           </div>
