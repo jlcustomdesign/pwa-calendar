@@ -2,7 +2,22 @@
 // ReportsView.astro — Statistici Utile & Pragmatice
 ---
 
-<div id="reports-content" class="space-y-7">
+<div id="reports-content" class="space-y-7 relative">
+
+  <!-- Skeleton loader: shown only while fetching from DB -->
+  <div id="reports-skeleton" class="absolute inset-0 z-10 space-y-7 bg-surface-base transition-opacity duration-200">
+    <div class="grid grid-cols-3 gap-3">
+      <div class="h-28 rounded-[2.2rem] bg-black/10 animate-pulse"></div>
+      <div class="h-28 rounded-[2.2rem] bg-black/10 animate-pulse"></div>
+      <div class="h-28 rounded-[2.2rem] bg-black/10 animate-pulse"></div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="h-28 rounded-[2.2rem] bg-black/10 animate-pulse"></div>
+      <div class="h-28 rounded-[2.2rem] bg-black/10 animate-pulse"></div>
+    </div>
+    <div class="h-80 rounded-[2.2rem] bg-black/10 animate-pulse"></div>
+    <div class="h-40 rounded-[2.2rem] bg-black/10 animate-pulse"></div>
+  </div>
 
   <!-- ═══════════════════════════════════════════════════════ -->
   <!-- 1. STATISTICI ZILNICE                                    -->
@@ -97,55 +112,58 @@
     <div id="tab-week-content" class="space-y-3">
       <!-- Card Grafic Hașurat -->
       <div class="bg-surface-card rounded-[2.2rem] p-5 shadow-sm border border-transparent space-y-4 relative overflow-hidden">
-        <div class="flex items-start justify-between">
-          <div>
-            <div id="chart-subtitle" class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Evoluție săptămânală</div>
-            <div id="chart-active-value" class="text-2xl sm:text-3xl font-black text-text-main mt-0.5 transition-all">
-              0 <span class="text-sm font-sans font-black text-text-main">RON</span>
-            </div>
-            <div id="chart-period-comparison" class="text-xs font-black mt-0.5 text-text-muted">--</div>
-          </div>
-          <div class="text-right">
-            <div class="text-[10px] font-black uppercase tracking-wider text-text-muted">Total perioadă</div>
-            <div id="chart-period-total" class="text-lg sm:text-xl font-black text-text-main">
-              0 <span class="text-xs font-sans font-black text-text-main">RON</span>
-            </div>
+        <div>
+          <div id="chart-subtitle" class="text-xs font-extrabold uppercase tracking-wider text-text-muted">Evoluție săptămânală</div>
+          <div id="chart-active-value" class="text-2xl sm:text-3xl font-black text-text-main mt-0.5 transition-all">
+            0 <span class="text-sm font-sans font-black text-text-main">RON</span>
           </div>
         </div>
 
-        <div class="relative w-full h-36" id="chart-container">
-          <svg viewBox="0 0 350 120" class="w-full h-full overflow-visible" preserveAspectRatio="none" id="reports-svg">
-            <defs>
-              <pattern id="hatch-pattern" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-                <line x1="0" y1="0" x2="0" y2="8" stroke="rgb(var(--color-text-main))" stroke-width="1.5" opacity="0.25" />
-              </pattern>
+        <div class="flex items-stretch gap-2">
+          <!-- Y-axis anchors -->
+          <div class="flex flex-col justify-between text-[10px] font-black text-text-muted text-right py-1 w-10 shrink-0" id="chart-y-labels">
+            <span id="chart-y-max">--</span>
+            <span id="chart-y-mid">--</span>
+            <span>0</span>
+          </div>
 
-              <linearGradient id="soft-bg-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="rgb(var(--color-brand-primary))" stop-opacity="0.2" />
-                <stop offset="100%" stop-color="rgb(var(--color-surface-card))" stop-opacity="0.0" />
-              </linearGradient>
+          <!-- Graph area -->
+          <div class="relative flex-1 h-36" id="chart-container">
+            <svg viewBox="0 0 350 120" class="w-full h-full overflow-visible" preserveAspectRatio="none" id="reports-svg">
+              <defs>
+                <pattern id="hatch-pattern" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                  <line x1="0" y1="0" x2="0" y2="8" stroke="rgb(var(--color-text-main))" stroke-width="1.5" opacity="0.25" />
+                </pattern>
 
-              <clipPath id="hatch-clip">
-                <rect id="hatch-clip-rect" x="0" y="0" width="350" height="120" style="transition: width 300ms ease;" />
-              </clipPath>
-            </defs>
+                <linearGradient id="soft-bg-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="rgb(var(--color-brand-primary))" stop-opacity="0.2" />
+                  <stop offset="100%" stop-color="rgb(var(--color-surface-card))" stop-opacity="0.0" />
+                </linearGradient>
+              </defs>
 
-            <path id="chart-path-gradient" fill="url(#soft-bg-gradient)" d="" />
-            <path id="chart-path-hatch" fill="url(#hatch-pattern)" d="" />
-            <path id="chart-path-stroke" fill="none" stroke="rgb(var(--color-text-main))" stroke-width="3" stroke-linecap="round" d="" />
-          </svg>
-          
-          <div id="pink-dot-glow" class="absolute bg-brand-secondary rounded-full opacity-30 transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 20px; height: 20px; z-index: 20;"></div>
-          <div id="pink-dot" class="absolute bg-brand-secondary rounded-full border-[2.5px] border-white shadow-md transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 14px; height: 14px; z-index: 21;"></div>
+              <path id="chart-path-gradient" fill="url(#soft-bg-gradient)" d="" />
+              <path id="chart-path-hatch" fill="url(#hatch-pattern)" d="" />
+              <path id="chart-path-stroke" fill="none" stroke="rgb(var(--color-text-main))" stroke-width="3" stroke-linecap="round" d="" />
+            </svg>
+
+            <div id="pink-dot-glow" class="absolute bg-brand-secondary rounded-full opacity-30 transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 20px; height: 20px; z-index: 20;"></div>
+            <div id="pink-dot" class="absolute bg-brand-secondary rounded-full border-[2.5px] border-white shadow-md transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 14px; height: 14px; z-index: 21;"></div>
+          </div>
         </div>
 
         <div class="flex items-center justify-between px-2 text-xl sm:text-2xl font-black text-text-main" id="chart-x-labels">
           <!-- Dynamic labels generated in JS -->
         </div>
 
-        <!-- Evoluție săptămânală cap-coadă -->
-        <div id="chart-weekly-evolution" class="space-y-2 pt-2">
-          <!-- Dynamic list generated in JS -->
+        <!-- Total perioadă + Evoluție cap-coadă -->
+        <div class="space-y-3 pt-1">
+          <div class="flex items-center justify-between px-4 py-3 rounded-2xl bg-surface-base">
+            <span class="text-sm font-black text-text-muted">Total perioadă</span>
+            <span id="chart-period-total" class="text-lg sm:text-xl font-black text-text-main">0 <span class="text-xs font-sans font-black text-text-main">RON</span></span>
+          </div>
+          <div id="chart-weekly-evolution" class="space-y-2">
+            <!-- Dynamic list generated in JS -->
+          </div>
         </div>
       </div>
 
@@ -440,14 +458,11 @@
         document.getElementById('week-progress-bar')!.style.width = `${prezenta}%`;
         document.getElementById('week-cancel-bar')!.style.width = `${anulari}%`;
 
-        // Period comparison summary
+        // Total perioadă
         const periodTotalEl = document.getElementById('chart-period-total');
-        const periodComparisonEl = document.getElementById('chart-period-comparison');
-        if (periodTotalEl && periodComparisonEl) {
+        if (periodTotalEl) {
           const total = statData.venit || 0;
-          const avg = statData.chartData.length > 0 ? total / statData.chartData.length : 0;
           periodTotalEl.innerHTML = `${Math.round(total)} <span class="text-xs font-sans font-black text-text-main">RON</span>`;
-          periodComparisonEl.textContent = `medie ${Math.round(avg)} RON`;
         }
 
         // Load chart
@@ -486,7 +501,24 @@
     if (!svg || !dot || !dotGlow || !valueDisplay || dayBtns.length === 0) return;
 
     const chartVals = chartData.map(d => d.val);
-    const maxVal = Math.max(...chartVals, 100);
+    const rawMax = Math.max(...chartVals, 100);
+
+    function niceAnchor(max: number) {
+      if (max <= 0) return 100;
+      if (max <= 10) return 10;
+      if (max <= 100) return Math.ceil(max / 10) * 10;
+      if (max <= 1000) return Math.ceil(max / 100) * 100;
+      return Math.ceil(max / 500) * 500;
+    }
+
+    const yMax = niceAnchor(rawMax);
+    const yMid = Math.round(yMax / 2);
+    const yAxisMax = document.getElementById('chart-y-max');
+    const yAxisMid = document.getElementById('chart-y-mid');
+    if (yAxisMax) yAxisMax.textContent = `${yMax}`;
+    if (yAxisMid) yAxisMid.textContent = `${yMid}`;
+
+    const maxVal = yMax;
     const minY = 115;
     const maxY = 15;
     const pointsCount = chartVals.length;
@@ -580,16 +612,6 @@
           dotGlow.classList.remove('hidden');
 
           valueDisplay.innerHTML = coord.val;
-
-          const periodComparisonEl = document.getElementById('chart-period-comparison');
-          if (periodComparisonEl) {
-            const total = chartData.reduce((s, d) => s + d.val, 0);
-            const avg = chartData.length > 0 ? total / chartData.length : 0;
-            const diff = coord.valNumber - avg;
-            const pct = avg > 0 ? Math.round((diff / avg) * 100) : 0;
-            periodComparisonEl.textContent = `${pct >= 0 ? '+' : ''}${pct}% vs medie`;
-            periodComparisonEl.className = `text-xs font-black mt-0.5 ${pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
-          }
 
           document.querySelectorAll('.day-btn').forEach(b => {
             b.classList.remove('text-brand-secondary', 'font-black');
@@ -716,6 +738,9 @@
     const container = document.getElementById('reports-tabs-container');
     if (!container) return; // Not on this page
 
+    const skeleton = document.getElementById('reports-skeleton');
+    if (skeleton) skeleton.classList.remove('hidden');
+
     setupTabs();
     setupNavigation();
     setupDayNavigation();
@@ -724,6 +749,11 @@
       loadTodayStats(),
       loadReportStats()
     ]);
+
+    if (skeleton) {
+      skeleton.classList.add('opacity-0');
+      setTimeout(() => skeleton.classList.add('hidden'), 200);
+    }
   }
 
   function bootReports() {

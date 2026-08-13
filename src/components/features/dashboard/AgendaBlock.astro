@@ -20,6 +20,13 @@ import DailyProgress from './DailyProgress.astro';
   <div id="agenda-sessions-list" class="flex flex-col gap-4 pb-2">
     <!-- Populated by JS -->
   </div>
+
+  <!-- Skeleton loader: shown only while fetching from DB -->
+  <div id="agenda-skeleton" class="hidden flex flex-col gap-4 pb-2">
+    <div class="h-24 rounded-[2rem] bg-black/10 animate-pulse"></div>
+    <div class="h-24 rounded-[2rem] bg-black/10 animate-pulse"></div>
+    <div class="h-24 rounded-[2rem] bg-black/10 animate-pulse"></div>
+  </div>
 </div>
 <script>
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
@@ -54,19 +61,32 @@ import DailyProgress from './DailyProgress.astro';
 
   async function renderAgendaBlock() {
     const list = document.getElementById('agenda-sessions-list');
+    const skeleton = document.getElementById('agenda-skeleton');
     if (!list) return;
 
     // Render instant cache first to prevent mobile delay
     const cacheKey = `kineto_agenda_cache_${currentAgendaDate}`;
+    let usedCache = false;
     try {
       const rawCache = localStorage.getItem(cacheKey);
       if (rawCache && list.children.length === 0) {
         const cachedSessions = JSON.parse(rawCache);
         if (Array.isArray(cachedSessions) && cachedSessions.length > 0) {
           drawAgendaSessionsList(list, cachedSessions);
+          usedCache = true;
         }
       }
     } catch (e) {}
+
+    // Show skeleton only while fetching from DB (hide cached content temporarily if no cache)
+    if (skeleton) {
+      if (!usedCache) {
+        list.classList.add('hidden');
+        skeleton.classList.remove('hidden');
+      } else {
+        skeleton.classList.add('hidden');
+      }
+    }
 
     const now = new Date();
     const nowStr = now.toTimeString().slice(0, 5);
@@ -112,7 +132,11 @@ import DailyProgress from './DailyProgress.astro';
     } catch (e) {
       console.error('Eroare citire agenda din DB:', e);
     }
-    
+
+    // Hide skeleton and reveal list after DB fetch completes
+    if (skeleton) skeleton.classList.add('hidden');
+    list.classList.remove('hidden');
+
     lastFetchedSessions = stored;
     try {
       if (stored.length > 0) {
