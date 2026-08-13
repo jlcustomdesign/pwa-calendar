@@ -6,6 +6,18 @@ import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from './database.types';
 import { captureFetchError } from './errorLogger';
 
+// Polyfill WebSocket pentru Node.js < 22 (Astro dev server / SSR).
+// @supabase/realtime-js are nevoie de WebSocket global; în Node 20 lipsește.
+if (typeof globalThis !== 'undefined' && typeof (globalThis as any).WebSocket === 'undefined' && typeof window === 'undefined') {
+  try {
+    const wsModule = await import('ws');
+    const WS = (wsModule as any).default || (wsModule as any).WebSocket || wsModule;
+    (globalThis as any).WebSocket = WS;
+  } catch {
+    // ignore — vor fi erori doar dacă se încearcă realtime pe server
+  }
+}
+
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
