@@ -212,6 +212,9 @@ const { title, hideDock = false } = Astro.props;
       // Initialize on load and page swaps
       if (typeof window !== 'undefined') {
         initErrorLogger();
+        import('../lib/services/sessionNotifier').then(({ initSessionNotifier }) => {
+          initSessionNotifier();
+        }).catch(() => {});
 
         // ── Instant page-transition skeleton loader ─────────────────────────
         (function setupTransitionLoader() {

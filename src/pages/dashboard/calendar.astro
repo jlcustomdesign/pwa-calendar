@@ -137,7 +137,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       let paymentBadgeClass = 'bg-white hover:bg-neutral-50 text-black border border-black/5 font-extrabold shadow-sm';
       let displayPaymentLabel = 'Status plată';
       if (session.paymentStatus === 'Achitat parțial' || (sumaIncasata > 0 && restDePlata > 0)) {
-        displayPaymentLabel = `Parțial ${sumaIncasata} RON (Rest ${restDePlata} RON)`;
+        displayPaymentLabel = `${sumaIncasata}/${costTotal} RON`;
         paymentBadgeClass = 'bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-extrabold shadow-sm';
       } else if (session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal && isPaid)) {
         displayPaymentLabel = 'Achitat';

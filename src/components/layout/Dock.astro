@@ -42,6 +42,7 @@ const navItems = [
     return (
       <a
         href={item.path}
+        data-astro-prefetch="hover"
         data-dock-item
         data-astro-prefetch="load"
         data-active={isActive ? "true" : "false"}

@@ -20,22 +20,6 @@ import DailyProgress from './DailyProgress.astro';
   <div id="agenda-sessions-list" class="flex flex-col gap-4 pb-2">
     <!-- Populated by JS -->
   </div>
-
-  <!-- Skeleton loading state -->
-  <div id="agenda-skeleton" class="flex flex-col gap-4 pb-2">
-    <!-- Daily progress -->
-    <div class="space-y-2 mb-2 px-2">
-      <div class="flex items-center justify-between">
-        <div class="h-4 w-28 rounded bg-black/5 animate-pulse"></div>
-        <div class="h-4 w-20 rounded bg-black/5 animate-pulse"></div>
-      </div>
-      <div class="h-3 w-full rounded-full bg-black/5 animate-pulse"></div>
-    </div>
-    <!-- Session cards -->
-    {[1, 2, 3].map(() => (
-      <div class="h-[110px] rounded-[2.5rem] bg-black/5 animate-pulse"></div>
-    ))}
-  </div>
 </div>
 <script>
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
@@ -68,18 +52,21 @@ import DailyProgress from './DailyProgress.astro';
   });
 
 
-  function setAgendaLoading(loading: boolean) {
-    const list = document.getElementById('agenda-sessions-list');
-    const skeleton = document.getElementById('agenda-skeleton');
-    if (list) list.style.display = loading ? 'none' : 'flex';
-    if (skeleton) skeleton.style.display = loading ? 'flex' : 'none';
-  }
-
   async function renderAgendaBlock() {
     const list = document.getElementById('agenda-sessions-list');
     if (!list) return;
 
-    setAgendaLoading(true);
+    // Render instant cache first to prevent mobile delay
+    const cacheKey = `kineto_agenda_cache_${currentAgendaDate}`;
+    try {
+      const rawCache = localStorage.getItem(cacheKey);
+      if (rawCache && list.children.length === 0) {
+        const cachedSessions = JSON.parse(rawCache);
+        if (Array.isArray(cachedSessions) && cachedSessions.length > 0) {
+          drawAgendaSessionsList(list, cachedSessions);
+        }
+      }
+    } catch (e) {}
 
     const now = new Date();
     const nowStr = now.toTimeString().slice(0, 5);
@@ -124,13 +111,14 @@ import DailyProgress from './DailyProgress.astro';
       }));
     } catch (e) {
       console.error('Eroare citire agenda din DB:', e);
-      setAgendaLoading(false);
-      list.innerHTML = `<p class="text-sm font-bold text-text-muted text-center py-4">Nu s-au putut încărca ședințele.</p>`;
-      return;
     }
-
-    setAgendaLoading(false);
+    
     lastFetchedSessions = stored;
+    try {
+      if (stored.length > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify(stored));
+      }
+    } catch (e) {}
 
     // Calculate selected day's progress dynamically
     const daySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === currentAgendaDate);
@@ -223,9 +211,9 @@ import DailyProgress from './DailyProgress.astro';
         statusIcon = `<svg class="w-7 h-7 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
       }
 
-      // Subscription warning shown only in open state (placed at the bottom of details)
+      // Subscription warning shown only in open state
       const subscriptionWarningDetails = session.subscriptionDone
-        ? `<div class="px-6 pt-2 pb-5"><button type="button" class="w-full py-3 px-4 rounded-2xl bg-amber-500 text-white text-xs sm:text-sm font-black uppercase tracking-wider text-center shadow-md hover:bg-amber-600 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>REÎNNOIEȘTE PACHETUL</span></button></div>`
+        ? `<div class="px-6 pb-3"><button type="button" class="w-full py-2.5 px-4 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black uppercase tracking-wider text-center shadow-md border border-black/5 hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>REÎNNOIEȘTE PACHETUL</span></button></div>`
         : '';
 
       const restDePlata = Math.max(0, (session.costTotal || 0) - (session.sumaIncasata || 0));
@@ -309,6 +297,8 @@ import DailyProgress from './DailyProgress.astro';
 
             <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
               <div class="overflow-hidden relative z-20">
+                ${subscriptionWarningDetails}
+                
                 <div class="px-6 pt-2 pb-2 space-y-3">
                   <!-- Row 1: White Pill with Black Text & Icons for Time & Location -->
                   <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white text-black text-sm sm:text-base font-extrabold shadow-sm border border-black/5">
@@ -360,7 +350,6 @@ import DailyProgress from './DailyProgress.astro';
                     </button>
                   </div>
                 ` : ''}
-                ${subscriptionWarningDetails}
               </div>
             </div>
           </div>
@@ -414,16 +403,10 @@ import DailyProgress from './DailyProgress.astro';
     }
   }
 
-  function bootAgenda() {
+  document.addEventListener('DOMContentLoaded', () => {
     renderAgendaBlock();
     setInterval(checkAutoPromptAndProgress, 60000);
-  }
-
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    bootAgenda();
-  } else {
-    document.addEventListener('DOMContentLoaded', bootAgenda);
-  }
+  });
   
   document.addEventListener('astro:page-load', () => {
     renderAgendaBlock();
@@ -431,14 +414,4 @@ import DailyProgress from './DailyProgress.astro';
   
   window.addEventListener('sessionsUpdated', renderAgendaBlock);
   window.addEventListener('patientsUpdated', renderAgendaBlock);
-
-  // Safety: never let the agenda skeleton block the UI
-  setTimeout(() => {
-    const skeleton = document.getElementById('agenda-skeleton');
-    const list = document.getElementById('agenda-sessions-list');
-    if (skeleton && list && list.style.display === 'none') {
-      skeleton.style.display = 'none';
-      list.style.display = 'flex';
-    }
-  }, 4000);
 </script>

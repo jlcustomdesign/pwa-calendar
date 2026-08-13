@@ -23,30 +23,54 @@ const DEFAULT_SETTINGS: Settings = {
   updated_at: new Date().toISOString()
 } as Settings;
 
-// ── Citire settings ───────────────────────────────────────────
+// ── Citire settings (cu cache local instant pentru 0ms delay pe mobil) ──
 export async function getSettings(): Promise<Settings> {
-  const { data, error } = await (supabase as any)
-    .from('settings')
-    .select('*')
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.warn('getSettings warning:', error);
+  let cached: Settings | null = null;
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('kineto_settings_cache');
+      if (raw) cached = JSON.parse(raw);
+    } catch (e) {}
   }
 
-  if (!data) {
-    return {
-      ...DEFAULT_SETTINGS,
-      updated_at: new Date().toISOString()
+  try {
+    const { data, error } = await (supabase as any)
+      .from('settings')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('getSettings warning:', error);
+      if (cached) return cached;
+    }
+
+    if (!data) {
+      const fallback = cached || {
+        ...DEFAULT_SETTINGS,
+        updated_at: new Date().toISOString()
+      };
+      return fallback;
+    }
+
+    const result = {
+      ...data,
+      work_start: data.work_start || '08:00',
+      work_end: data.work_end || '18:00',
     };
-  }
 
-  return {
-    ...data,
-    work_start: data.work_start || '08:00',
-    work_end: data.work_end || '18:00',
-  };
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('kineto_settings_cache', JSON.stringify(result));
+      } catch (e) {}
+    }
+
+    return result;
+  } catch (err) {
+    console.error('getSettings error:', err);
+    if (cached) return cached;
+    return DEFAULT_SETTINGS;
+  }
 }
 
 // ── Salvare settings (UPDATE pe singurul rând existent, INSERT dacă lipsește) ────────
@@ -83,6 +107,13 @@ export async function saveSettings(updates: Partial<Settings>): Promise<Settings
 
   if (error) throw new Error('Eroare la salvarea setărilor: ' + error.message);
   if (!data) throw new Error('Setările nu au putut fi salvate.');
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('kineto_settings_cache', JSON.stringify(data));
+    } catch (e) {}
+  }
+
   return data;
 }
 
