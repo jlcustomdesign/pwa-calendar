@@ -2,7 +2,7 @@
 // SessionWrapUpSheet.astro — Pop-up inteligent la confirmarea unei ședințe
 ---
 
-<div id="session-wrapup-sheet" class="fixed inset-0 z-[120] pointer-events-none hidden" style="display: none;">
+<div id="session-wrapup-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
   <div id="session-wrapup-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
   
   <div id="session-wrapup-content" class="absolute bottom-0 left-0 right-0 bg-surface-card rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto border-t border-transparent">
@@ -139,6 +139,7 @@
   <!-- Custom Date Picker Sheet -->
   <div 
     id="wrapup-date-picker-sheet" 
+    data-sheet-root
     class="fixed inset-x-0 bottom-0 z-[130] bg-surface-card rounded-t-[2rem] p-4 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden pointer-events-auto"
   >
     <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -168,6 +169,7 @@
   <!-- Custom Time Picker Sheet -->
   <div 
     id="wrapup-time-picker-sheet" 
+    data-sheet-root
     class="fixed inset-x-0 bottom-0 z-[130] bg-surface-card rounded-t-[2.5rem] p-5 shadow-2xl transition-transform duration-500 translate-y-full will-change-transform flex flex-col max-h-[85vh] overflow-hidden space-y-4 pointer-events-auto"
   >
     <div class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-2 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -590,6 +592,9 @@
         this.pickerDate = parsed;
       }
       this.renderDatePicker();
+      sheet.dataset.open = 'true';
+      sheet.classList.add('translate-y-full');
+      void sheet.offsetWidth;
       sheet.classList.remove('translate-y-full');
       overlay.classList.remove('opacity-0', 'pointer-events-none');
     }
@@ -601,6 +606,9 @@
       sheet.style.transform = '';
       sheet.classList.add('translate-y-full');
       overlay.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        sheet.dataset.open = 'false';
+      }, 500);
     }
 
     private renderDatePicker() {
@@ -675,6 +683,9 @@
       if (minuteEl) minuteEl.textContent = this.selectedMinute;
 
       this.renderTimeGrids();
+      sheet.dataset.open = 'true';
+      sheet.classList.add('translate-y-full');
+      void sheet.offsetWidth;
       sheet.classList.remove('translate-y-full');
       overlay.classList.remove('opacity-0', 'pointer-events-none');
     }
@@ -688,6 +699,9 @@
       sheet.style.transform = '';
       sheet.classList.add('translate-y-full');
       overlay.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        sheet.dataset.open = 'false';
+      }, 500);
     }
 
     private bindPickerSwipe(sheetId: string, onClose: () => void) {
@@ -822,8 +836,7 @@
     private open() {
       this.reconnect();
       if (!this.sheet || !this.content || !this.backdrop) return;
-      this.sheet.classList.remove('hidden');
-      this.sheet.style.display = '';
+      this.sheet.dataset.open = 'true';
       this.content.style.transform = '';
       void this.sheet.offsetWidth;
       this.backdrop.classList.remove('opacity-0');
@@ -847,8 +860,7 @@
       setTimeout(() => {
         this.reconnect();
         if (this.sheet) {
-          this.sheet.classList.add('hidden');
-          this.sheet.style.display = 'none';
+          this.sheet.dataset.open = 'false';
         }
         this.currentAppointment = null;
       }, 500);

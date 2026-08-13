@@ -4,8 +4,8 @@
 
 <div 
   id="add-patient-sheet" 
-  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[90vh] overflow-hidden hidden"
-  style="display: none;"
+  data-sheet-root
+  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[90vh] overflow-hidden"
 >
   <!-- Swipe handle -->
   <div id="add-patient-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -511,8 +511,7 @@
     open() {
       if (!this.sheet || !this.overlay) return;
       // Ensure the sheet is in the layout before animating (prevents flash on load)
-      this.sheet.classList.remove('hidden');
-      this.sheet.style.display = '';
+      this.sheet.dataset.open = 'true';
       void this.sheet.offsetWidth;
       this.sheet.classList.remove('translate-y-full');
       this.overlay.classList.remove('opacity-0', 'pointer-events-none');
@@ -530,8 +529,7 @@
       if (dock) dock.style.display = '';
       unlockBodyScroll();
       setTimeout(() => {
-        this.sheet?.classList.add('hidden');
-        if (this.sheet) this.sheet.style.display = 'none';
+        if (this.sheet) this.sheet.dataset.open = 'false';
         this.form?.reset();
       }, 500);
     }

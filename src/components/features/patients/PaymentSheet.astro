@@ -1,6 +1,6 @@
 ---
 ---
-<div id="payment-sheet" class="fixed inset-0 z-50 pointer-events-none hidden" style="display: none;">
+<div id="payment-sheet" data-sheet-root class="fixed inset-0 z-50 pointer-events-none">
   <div id="payment-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
   <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]">
     <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8 cursor-grab active:cursor-grabbing" id="payment-drag-handle"></div>
@@ -386,8 +386,7 @@
       this.isOpen = true;
       this.loadPatientFinancials();
 
-      this.sheet.classList.remove('hidden');
-      this.sheet.style.display = '';
+      this.sheet.dataset.open = 'true';
       // Trigger reflow
       void this.sheet.offsetWidth;
 
@@ -421,8 +420,7 @@
 
       setTimeout(() => {
         if (!this.isOpen && this.sheet) {
-          this.sheet.classList.add('hidden');
-          this.sheet.style.display = 'none';
+          this.sheet.dataset.open = 'false';
           this.currentPatientId = null;
           this.resetView(); // reset to default options when closed
         }

@@ -192,7 +192,7 @@
 </div>
 
 <!-- Custom Date Picker Popup (floating, smaller, no native calendar UI) -->
-<div id="day-picker-sheet" class="fixed inset-0 w-screen h-screen h-[100dvh] z-[9999] pointer-events-none hidden">
+<div id="day-picker-sheet" data-sheet-root class="fixed inset-0 w-screen h-screen h-[100dvh] z-[9999] pointer-events-none">
   <div id="day-picker-overlay" class="fixed inset-0 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-200"></div>
   <div id="day-picker-content" class="fixed w-[19rem] bg-surface-card rounded-[1.75rem] p-4 shadow-2xl pointer-events-auto transform scale-95 opacity-0 transition-all duration-200 ease-out origin-top-left border border-transparent z-[10000]">
     <div class="flex items-center justify-between mb-3">
@@ -299,7 +299,7 @@
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
 
-    sheet.classList.remove('hidden');
+    sheet.dataset.open = 'true';
     sheet.classList.add('pointer-events-auto');
     void sheet.offsetWidth;
     lockBodyScroll();
@@ -322,7 +322,7 @@
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
     setTimeout(() => {
-      sheet.classList.add('hidden');
+      sheet.dataset.open = 'false';
       sheet.classList.remove('pointer-events-auto');
     }, 200);
   }

@@ -50,4 +50,10 @@
   input, select, textarea {
     font-size: 16px !important;
   }
+
+  /* Sheet FOUC guard: hide all bottom-sheet roots until JS explicitly opens them.
+     This prevents the hosted build from flashing popups during the first frames. */
+  [data-sheet-root]:not([data-open="true"]) {
+    display: none !important;
+  }
 }
