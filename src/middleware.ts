@@ -3,10 +3,10 @@ import { defineMiddleware } from 'astro:middleware';
 const PUBLIC_ROUTES = ['/login', '/signup', '/api/auth'];
 const DASHBOARD_ROUTES = ['/dashboard'];
 
-function hasSupabaseAuthCookie(cookies: any): boolean {
+function hasSupabaseAuthCookie(request: Request): boolean {
   // @supabase/ssr stores session cookies with names like sb-<ref>-auth-token.
   // Be permissive: any cookie that looks like it came from Supabase auth.
-  const allCookies = cookies.headers?.get?.('cookie') || '';
+  const allCookies = request.headers.get('cookie') || '';
   return /sb-[^=]+-auth-token/.test(allCookies) || allCookies.includes('sb-access-token') || allCookies.includes('sb-refresh-token');
 }
 
@@ -28,7 +28,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // pages fast while still blocking users with no session cookie.
   const isDashboard = DASHBOARD_ROUTES.some(route => url.pathname.startsWith(route));
   if (isDashboard) {
-    if (!hasSupabaseAuthCookie(cookies)) {
+    if (!hasSupabaseAuthCookie(request)) {
       return redirect('/login');
     }
     return next();
