@@ -401,6 +401,13 @@
 
       // Default option reset to "same"
       this.setRecurrenceOption('same');
+
+      // Reset submit button state so it works on every open
+      const btnConfirm = document.getElementById('btn-confirm-wrapup') as HTMLButtonElement | null;
+      if (btnConfirm) {
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = 'Confirmă ședința';
+      }
     }
 
     private updateCustomTimeValue() {
