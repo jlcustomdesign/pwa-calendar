@@ -134,7 +134,24 @@ const rawMonthName = initialDate.toLocaleDateString('ro-RO', { month: 'long' });
 const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${initialDate.getFullYear()}`;
 ---
 
-<div id="calendar-card" class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none closed-mode" data-expanded="false">
+<div id="calendar-card" class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none closed-mode relative" data-expanded="false">
+  <!-- Calendar skeleton overlay -->
+  <div id="calendar-skeleton" class="absolute inset-0 z-20 bg-surface-card rounded-[2.5rem] p-6 flex flex-col justify-between transition-opacity duration-200 pointer-events-none">
+    <div class="flex items-center justify-between">
+      <div class="h-8 w-40 rounded-2xl bg-black/10 animate-pulse"></div>
+      <div class="h-11 w-11 rounded-full bg-black/10 animate-pulse"></div>
+    </div>
+    <div class="flex items-center justify-between">
+      <div class="h-6 w-56 rounded-xl bg-black/10 animate-pulse"></div>
+      <div class="h-8 w-20 rounded-xl bg-black/10 animate-pulse"></div>
+    </div>
+    <div class="flex items-center justify-between gap-2 pt-4">
+      {[1, 2, 3, 4, 5].map(() => (
+        <div class="h-16 flex-1 rounded-full bg-black/10 animate-pulse"></div>
+      ))}
+    </div>
+  </div>
+
   <div class="flex flex-col gap-2 mb-6 relative z-10">
     <div class="flex items-center justify-between">
       <div class="flex items-baseline gap-1 text-2xl sm:text-3xl font-black tracking-tight">
@@ -559,6 +576,13 @@ const initialDateNumMonthYear = `${initialDate.getDate()} ${rawMonthName} ${init
     
     // Initial label set
     updateMonthYearLabel();
+
+    // Hide skeleton once the real calendar UI is painted and positioned
+    const calendarSkeleton = document.getElementById('calendar-skeleton');
+    if (calendarSkeleton) {
+      calendarSkeleton.style.opacity = '0';
+      setTimeout(() => calendarSkeleton.remove(), 200);
+    }
   }
 
   document.addEventListener("DOMContentLoaded", initCalendarAnimation);

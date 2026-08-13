@@ -7,4 +7,11 @@ export default defineConfig({
   output: 'server',
   adapter: vercel(),
   integrations: [tailwind()],
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: 'load',
+  },
+  experimental: {
+    clientPrerender: true,
+  },
 });

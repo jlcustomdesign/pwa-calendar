@@ -2,7 +2,13 @@
 // SettingsHub.astro - Meniu principal cu carduri capsule ultra-curate (fără subtitluri)
 ---
 
-<div class="space-y-4">
+<div class="space-y-4 relative">
+  <!-- Skeleton overlay: hidden the moment the real menu is painted -->
+  <div id="settings-hub-skeleton" class="absolute inset-0 z-10 space-y-4 bg-surface-base transition-opacity duration-200">
+    {[1, 2, 3, 4, 5, 6, 7, 8].map(() => (
+      <div class="h-[72px] rounded-full bg-black/10 animate-pulse"></div>
+    ))}
+  </div>
 
   <!-- 1. Card Profil Principal -->
   <a
@@ -170,4 +176,14 @@
     </button>
   </div>
 
+  <script>
+    (function hideSettingsHubSkeleton() {
+      const skeleton = document.getElementById('settings-hub-skeleton');
+      if (!skeleton) return;
+      requestAnimationFrame(() => {
+        skeleton.style.opacity = '0';
+        setTimeout(() => skeleton.remove(), 200);
+      });
+    })();
+  </script>
 </div>

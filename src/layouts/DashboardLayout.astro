@@ -35,6 +35,15 @@ const { title, hideDock = false } = Astro.props;
 
     <title>{title} | Kineto Agenda</title>
     <ClientRouter />
+    <!-- Force Astro to prefetch every dashboard page as soon as the app boots,
+         so tapping a dock icon never waits for the network. -->
+    <div aria-hidden="true" class="hidden">
+      <a href="/dashboard" data-astro-prefetch="load">Overview</a>
+      <a href="/dashboard/calendar" data-astro-prefetch="load">Calendar</a>
+      <a href="/dashboard/patients" data-astro-prefetch="load">Pacienți</a>
+      <a href="/dashboard/reports" data-astro-prefetch="load">Rapoarte</a>
+      <a href="/dashboard/settings" data-astro-prefetch="load">Setări</a>
+    </div>
   </head>
   <body class="min-h-[100dvh] w-full font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden bg-surface-base">
     <div class="min-h-[100dvh] w-full flex flex-col">
@@ -223,6 +232,34 @@ const { title, hideDock = false } = Astro.props;
 
           // Safety: hide loader if user hits back/forward and no swap fires
           window.addEventListener('popstate', hideLoader);
+        })();
+
+        // ── Eagerly warm the browser cache for every dashboard page ──────────
+        // This makes ClientRouter navigation truly instant: the HTML is already
+        // in the HTTP cache before the user taps a dock icon.
+        (function warmDashboardCache() {
+          if ((window as any).__kinetoDashboardCacheWarmed) return;
+          (window as any).__kinetoDashboardCacheWarmed = true;
+
+          const pages = [
+            '/dashboard',
+            '/dashboard/calendar',
+            '/dashboard/patients',
+            '/dashboard/reports',
+            '/dashboard/settings'
+          ];
+
+          function fetchPage(path: string) {
+            fetch(path, { credentials: 'same-origin', cache: 'default' })
+              .catch(() => { /* ignore network/cache errors */ });
+          }
+
+          // Preload after the current page is fully interactive
+          if (document.readyState === 'complete') {
+            pages.forEach(fetchPage);
+          } else {
+            window.addEventListener('load', () => pages.forEach(fetchPage), { once: true });
+          }
         })();
 
         // Detectare logout real (nu erori de rețea tranzitorii) și redirect la login.
