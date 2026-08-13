@@ -135,26 +135,20 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${r
 ---
 
 <div id="calendar-card" class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none closed-mode relative" data-expanded="false">
-  <div class="flex flex-col gap-2 mb-6 relative z-10">
+  <div class="flex flex-col gap-1 mb-6 relative z-10">
     <div class="flex items-center justify-between">
-      <div class="flex items-baseline gap-1 text-2xl sm:text-3xl font-black tracking-tight">
-        <span id="header-day-name" class="text-brand-secondary font-black">{initialDayName}</span>
-        <span class="text-brand-secondary font-black">,</span>
+      <span id="header-date-suffix" class="text-xl sm:text-2xl font-black text-black tracking-tight">{initialDateNumMonthYear}</span>
+      <div class="flex items-center gap-2 shrink-0">
+        <span id="calendar-month-year" class="hidden text-sm font-black text-brand-secondary transition-all"></span>
+        <button id="calendar-expand-btn" aria-label="Comută vizualizarea lunii" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm z-30">
+          <svg class="w-5 h-5 transition-transform duration-500 ease-in-out" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
       </div>
-
-      <button id="calendar-expand-btn" aria-label="Comută vizualizarea lunii" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm z-30">
-        <svg class="w-5 h-5 transition-transform duration-500 ease-in-out" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
     </div>
 
-    <div class="flex items-center justify-between">
-      <div class="flex flex-col">
-        <span id="header-date-suffix" class="text-xl sm:text-2xl font-black text-black tracking-tight">{initialDateNumMonthYear}</span>
-        <span id="calendar-month-year" class="hidden text-sm font-black text-brand-secondary transition-all"></span>
-      </div>
-
+    <div class="flex items-center justify-end">
       <div id="live-clock-container" class="text-2xl sm:text-3xl font-black text-black tracking-tight leading-none">
         <span id="live-clock" class="tabular-nums">--:--</span>
       </div>
@@ -382,7 +376,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${r
     }
 
     function updateSelectedLabel(button: HTMLButtonElement) {
-      const dayNameEl = document.getElementById("header-day-name");
       const dateSuffixEl = document.getElementById("header-date-suffix");
 
       const y = button.getAttribute("data-year");
@@ -400,7 +393,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${r
           const capitalizedDay = fullDay.charAt(0).toUpperCase() + fullDay.slice(1);
           const monthName = dateObj.toLocaleDateString('ro-RO', { month: 'short' });
 
-          if (dayNameEl) dayNameEl.textContent = capitalizedDay;
           if (dateSuffixEl) dateSuffixEl.textContent = `${capitalizedDay}, ${dateNum} ${monthName} ${yearNum}`;
         }
       }
