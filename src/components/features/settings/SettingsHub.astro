@@ -182,7 +182,7 @@
       if (!skeleton) return;
 
       function doHide() {
-        skeleton.classList.add('hidden');
+        skeleton.style.display = 'none';
         setTimeout(() => skeleton.remove(), 300);
       }
 

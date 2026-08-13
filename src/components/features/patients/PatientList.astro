@@ -564,7 +564,7 @@
     const skeleton = document.getElementById('patient-list-skeleton');
     const container = document.getElementById('patient-list-container');
     if (skeleton && container && container.classList.contains('hidden')) {
-      skeleton.classList.add('hidden');
+      skeleton.style.display = 'none';
       container.classList.remove('hidden');
     }
   }, 4000);

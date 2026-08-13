@@ -800,7 +800,7 @@
     const skeleton = document.getElementById('reports-skeleton');
     const content = document.getElementById('reports-content');
     if (skeleton && content && content.classList.contains('hidden')) {
-      skeleton.classList.add('hidden');
+      skeleton.style.display = 'none';
       content.classList.remove('hidden');
     }
   }, 4000);

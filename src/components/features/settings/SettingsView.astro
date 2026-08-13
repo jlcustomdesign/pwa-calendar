@@ -1023,7 +1023,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const skeleton = document.getElementById('settings-skeleton');
     const form = document.getElementById('settings-form');
     if (skeleton && form && form.classList.contains('hidden')) {
-      skeleton.classList.add('hidden');
+      skeleton.style.display = 'none';
       form.classList.remove('hidden');
     }
   }, 4000);

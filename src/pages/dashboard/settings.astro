@@ -1,7 +1,6 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import SettingsView from '../../components/features/settings/SettingsView.astro';
-import BlobBackground from '../../components/ui/BlobBackground.astro';
 
 // Cache the shell of the dashboard page privately so switching tabs feels instant.
 Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidate');
@@ -9,12 +8,6 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
 <DashboardLayout title="Setări">
   <div class="space-y-6 pb-24 relative min-h-[100dvh]">
-    <BlobBackground positions={[
-      { top: '-5rem', right: '-4rem' },
-      { top: '50%', left: '-4rem' },
-      { bottom: '-2rem', right: '-3rem' }
-    ]} />
-
     <!-- Header Setări (Mai Mare: text-5xl sm:text-6xl font-black) -->
     <header class="px-2 relative z-10 pt-2">
       <h1 class="text-5xl sm:text-6xl font-black tracking-tight text-text-main">Setări</h1>
