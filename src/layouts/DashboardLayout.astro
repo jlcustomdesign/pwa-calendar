@@ -23,7 +23,7 @@ const { title, hideDock = false } = Astro.props;
     <meta name="theme-color" content="#eae9e4" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
 
@@ -35,8 +35,8 @@ const { title, hideDock = false } = Astro.props;
     <title>{title} | Kineto Agenda</title>
     <ClientRouter />
   </head>
-  <body class="h-full font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden">
-    <div class="min-h-full flex flex-col">
+  <body class="min-h-[100dvh] font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden bg-surface-base">
+    <div class="min-h-[100dvh] flex flex-col">
       <!-- Main Content Container -->
       <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pt-5 sm:pt-8 pb-32 relative">
         

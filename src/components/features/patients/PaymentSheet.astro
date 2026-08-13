@@ -14,21 +14,32 @@
 
     <!-- Patient Financial Summary Card (Matches Handwritten Sketch: Name, Cost, Achitat, Rest) -->
     <div id="payment-summary-box" class="mb-6 bg-neutral-100/90 p-5 rounded-2xl border border-neutral-200/80 space-y-1.5 shadow-sm">
-      <div class="font-black text-neutral-900 text-lg tracking-tight" id="payment-patient-name">Se încarcă…</div>
-      
-      <div class="text-sm sm:text-base font-semibold text-neutral-700 flex items-center gap-1.5">
-        <span>Cost abonament:</span>
-        <strong class="font-black text-neutral-900" id="payment-total-cost">0 RON</strong>
+      <!-- Skeleton shown while financial data loads -->
+      <div id="payment-summary-skeleton" class="space-y-3 animate-pulse">
+        <div class="h-6 w-3/4 rounded bg-black/10"></div>
+        <div class="h-4 w-1/2 rounded bg-black/10"></div>
+        <div class="h-4 w-2/3 rounded bg-black/10"></div>
+        <div class="h-4 w-1/2 rounded bg-black/10"></div>
       </div>
-      
-      <div class="text-sm sm:text-base font-semibold text-neutral-700 flex items-center gap-1.5">
-        <span>Achitat:</span>
-        <strong class="font-black text-emerald-700" id="payment-total-paid">0 RON</strong>
-      </div>
-      
-      <div class="text-sm sm:text-base font-semibold text-neutral-700 flex items-center gap-1.5">
-        <span>Rest:</span>
-        <strong class="font-black text-rose-600" id="payment-remaining-due">0 RON</strong>
+
+      <!-- Real content -->
+      <div id="payment-summary-content">
+        <div class="font-black text-neutral-900 text-lg tracking-tight" id="payment-patient-name">Se încarcă…</div>
+        
+        <div class="text-sm sm:text-base font-semibold text-neutral-700 flex items-center gap-1.5">
+          <span>Cost abonament:</span>
+          <strong class="font-black text-neutral-900" id="payment-total-cost">0 RON</strong>
+        </div>
+        
+        <div class="text-sm sm:text-base font-semibold text-neutral-700 flex items-center gap-1.5">
+          <span>Achitat:</span>
+          <strong class="font-black text-emerald-700" id="payment-total-paid">0 RON</strong>
+        </div>
+        
+        <div class="text-sm sm:text-base font-semibold text-neutral-700 flex items-center gap-1.5">
+          <span>Rest:</span>
+          <strong class="font-black text-rose-600" id="payment-remaining-due">0 RON</strong>
+        </div>
       </div>
     </div>
 
@@ -346,6 +357,11 @@
 
     private async loadPatientFinancials() {
       if (!this.currentPatientId) return;
+      const skeleton = document.getElementById('payment-summary-skeleton');
+      const content = document.getElementById('payment-summary-content');
+      if (skeleton) skeleton.classList.remove('hidden');
+      if (content) content.classList.add('hidden');
+
       try {
         const patient = await getPatient(this.currentPatientId);
         const totalPaid = await getPatientPayments(this.currentPatientId);
@@ -374,6 +390,9 @@
         }
       } catch (e) {
         console.error('Eroare la citirea datelor financiare ale pacientului:', e);
+      } finally {
+        if (skeleton) skeleton.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
       }
     }
 
