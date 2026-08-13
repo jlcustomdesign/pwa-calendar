@@ -200,11 +200,6 @@ const { title, hideDock = false } = Astro.props;
 
         // Detectare logout real (nu erori de rețea tranzitorii) și redirect la login.
         import('../lib/supabase').then(({ supabase }) => {
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-              window.location.href = '/login';
-            }
-          });
           supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_OUT') {
               window.location.href = '/login';
