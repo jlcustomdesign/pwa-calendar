@@ -1,0 +1,13 @@
+---
+// Skeleton.astro — componentă reutilizabilă pentru starea de încărcare
+interface Props {
+  class?: string;
+  height?: string;
+  width?: string;
+  rounded?: string;
+}
+
+const { class: className = '', height = 'h-4', width = 'w-full', rounded = 'rounded-xl' } = Astro.props;
+---
+
+<div class={`animate-pulse bg-black/10 ${height} ${width} ${rounded} ${className}`}></div>

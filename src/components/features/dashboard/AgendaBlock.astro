@@ -20,6 +20,13 @@ import DailyProgress from './DailyProgress.astro';
   <div id="agenda-sessions-list" class="flex flex-col gap-4 pb-2">
     <!-- Populated by JS -->
   </div>
+
+  <!-- Skeleton loading state -->
+  <div id="agenda-skeleton" class="flex flex-col gap-4 pb-2">
+    {[1, 2, 3].map(() => (
+      <div class="h-[110px] rounded-[2.5rem] bg-black/5 animate-pulse"></div>
+    ))}
+  </div>
 </div>
 <script>
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
@@ -52,9 +59,18 @@ import DailyProgress from './DailyProgress.astro';
   });
 
 
+  function setAgendaLoading(loading: boolean) {
+    const list = document.getElementById('agenda-sessions-list');
+    const skeleton = document.getElementById('agenda-skeleton');
+    if (list) list.style.display = loading ? 'none' : 'flex';
+    if (skeleton) skeleton.style.display = loading ? 'flex' : 'none';
+  }
+
   async function renderAgendaBlock() {
     const list = document.getElementById('agenda-sessions-list');
     if (!list) return;
+
+    setAgendaLoading(true);
 
     const now = new Date();
     const nowStr = now.toTimeString().slice(0, 5);
@@ -99,8 +115,12 @@ import DailyProgress from './DailyProgress.astro';
       }));
     } catch (e) {
       console.error('Eroare citire agenda din DB:', e);
+      setAgendaLoading(false);
+      list.innerHTML = `<p class="text-sm font-bold text-text-muted text-center py-4">Nu s-au putut încărca ședințele.</p>`;
+      return;
     }
-    
+
+    setAgendaLoading(false);
     lastFetchedSessions = stored;
 
     // Calculate selected day's progress dynamically

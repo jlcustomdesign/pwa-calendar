@@ -64,6 +64,13 @@
   <!-- Populated by JS -->
 </div>
 
+<!-- Skeleton loading state -->
+<div id="patient-list-skeleton" class="space-y-4 pb-32 overflow-x-hidden">
+  {[1, 2, 3, 4].map(() => (
+    <div class="h-[140px] rounded-[2.5rem] bg-black/5 animate-pulse"></div>
+  ))}
+</div>
+
 <!-- Empty State Template -->
 <template id="patient-empty-state">
   <div class="p-8 text-center bg-surface-card rounded-2xl border border-dashed border-black/10">
@@ -226,8 +233,22 @@
       }));
     }
 
+    setPatientLoading(loading: boolean) {
+      const skeleton = document.getElementById('patient-list-skeleton');
+      const container = document.getElementById('patient-list-container');
+      if (!skeleton || !container) return;
+      if (loading) {
+        skeleton.classList.remove('hidden');
+        container.classList.add('hidden');
+      } else {
+        skeleton.classList.add('hidden');
+        container.classList.remove('hidden');
+      }
+    }
+
     async render() {
       if (!this.container) return;
+      this.setPatientLoading(true);
 
       let patients: any[] = [];
       try {
@@ -238,7 +259,11 @@
         });
       } catch (e) {
         console.error('Eroare citire pacienti:', e);
+        this.setPatientLoading(false);
+        return;
       }
+
+      this.setPatientLoading(false);
 
       if (patients.length === 0) {
         const template = document.getElementById('patient-empty-state') as HTMLTemplateElement;

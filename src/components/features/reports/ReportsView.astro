@@ -2,7 +2,23 @@
 // ReportsView.astro — Statistici Utile & Pragmatice
 ---
 
-<div class="space-y-7">
+<div id="reports-skeleton" class="space-y-7">
+  <div class="flex items-center justify-start px-1">
+    <div class="h-10 w-40 rounded-2xl bg-black/10 animate-pulse"></div>
+  </div>
+  <div class="grid grid-cols-3 gap-3">
+    <div class="h-28 rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md bg-black/10 animate-pulse"></div>
+    <div class="h-28 rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md bg-black/10 animate-pulse"></div>
+    <div class="h-28 rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md bg-black/10 animate-pulse"></div>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div class="h-28 rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md bg-black/10 animate-pulse"></div>
+    <div class="h-28 rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md bg-black/10 animate-pulse"></div>
+  </div>
+  <div class="h-80 rounded-[2.2rem] bg-black/10 animate-pulse"></div>
+</div>
+
+<div id="reports-content" class="space-y-7 hidden">
 
   <!-- ═══════════════════════════════════════════════════════ -->
   <!-- 1. STATISTICI ZILNICE                                    -->
@@ -667,10 +683,24 @@
     });
   }
 
+  function setReportsLoading(loading: boolean) {
+    const skeleton = document.getElementById('reports-skeleton');
+    const content = document.getElementById('reports-content');
+    if (!skeleton || !content) return;
+    if (loading) {
+      skeleton.classList.remove('hidden');
+      content.classList.add('hidden');
+    } else {
+      skeleton.classList.add('hidden');
+      content.classList.remove('hidden');
+    }
+  }
+
   async function initReportsView() {
     const container = document.getElementById('reports-tabs-container');
     if (!container) return; // Not on this page
 
+    setReportsLoading(true);
     setupTabs();
     setupNavigation();
     setupDayNavigation();
@@ -679,6 +709,7 @@
       loadTodayStats(),
       loadReportStats()
     ]);
+    setReportsLoading(false);
   }
 
   if (!(window as any)._reportsNavSetup) {
