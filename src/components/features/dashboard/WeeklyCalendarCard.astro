@@ -131,11 +131,11 @@ if (activeDayObj) {
 const rawWeekday = initialDate.toLocaleDateString('ro-RO', { weekday: 'long' });
 const initialDayName = rawWeekday ? (rawWeekday.charAt(0).toUpperCase() + rawWeekday.slice(1)) : 'Luni';
 const rawMonthName = initialDate.toLocaleDateString('ro-RO', { month: 'long' });
-const shortMonthName = rawMonthName ? (rawMonthName.charAt(0).toUpperCase() + rawMonthName.slice(1, 4)) : '';
-const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${shortMonthName}`;
+const fullMonthName = rawMonthName ? (rawMonthName.charAt(0).toUpperCase() + rawMonthName.slice(1)) : '';
+const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${fullMonthName}`;
 ---
 
-<div id="calendar-card" class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none closed-mode relative" data-expanded="false">
+<div id="calendar-card" class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none closed-mode relative border border-black/10" data-expanded="false">
   <div class="flex flex-col gap-1 mb-6 relative z-10">
     <div class="flex items-center justify-between">
       <span id="header-date-suffix" class="text-xl sm:text-2xl font-black text-black tracking-tight">{initialDateNumMonthYear}</span>
@@ -377,18 +377,14 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${s
           const fullDay = dateObj.toLocaleDateString('ro-RO', { weekday: 'long' });
           const capitalizedDay = fullDay.charAt(0).toUpperCase() + fullDay.slice(1);
           const fullMonth = dateObj.toLocaleDateString('ro-RO', { month: 'long' });
-          const shortMonth = fullMonth ? (fullMonth.charAt(0).toUpperCase() + fullMonth.slice(1, 4)) : '';
+          const fullMonthCapitalized = fullMonth ? (fullMonth.charAt(0).toUpperCase() + fullMonth.slice(1)) : '';
 
           if (dateSuffixEl) {
-            if (isExpanded) {
-              dateSuffixEl.textContent = `${capitalizedDay}, ${dateNum}`;
-            } else {
-              dateSuffixEl.textContent = `${capitalizedDay}, ${dateNum} ${shortMonth}`;
-            }
+            dateSuffixEl.textContent = `${capitalizedDay}, ${dateNum} ${fullMonthCapitalized}`;
           }
 
           if (monthYearLabel && isExpanded) {
-            monthYearLabel.textContent = `${fullMonth.charAt(0).toUpperCase() + fullMonth.slice(1)} ${yearNum}`;
+            monthYearLabel.textContent = `${fullMonthCapitalized} ${yearNum}`;
           }
         }
       }
