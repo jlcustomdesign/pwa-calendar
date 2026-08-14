@@ -124,139 +124,7 @@ const { title, hideDock = false } = Astro.props;
       }
 
       function setupSessionCardController() {
-        let activeSurface: HTMLElement | null = null;
-        let startX = 0;
-        let currentX = 0;
-        let isSwiping = false;
-        let isOpen = false;
-        let wasSwiping = false;
-        const SWIPE_THRESHOLD = -60;
-
-        function getMaxSwipe(surface: HTMLElement | null): number {
-          if (!surface) return -205;
-          if (surface.closest('#patient-list-container')) return -140;
-          return -205;
-        }
-
-        function handleSwipeStart(surface: HTMLElement, clientX: number) {
-          if ((window as any)._sessionDragActive) return; // drag & drop activ — nu interfera
-          activeSurface = surface;
-          startX = clientX;
-          currentX = startX;
-          isSwiping = true;
-          wasSwiping = false;
-          const maxSwipe = getMaxSwipe(surface);
-          isOpen = surface.style.transform.includes(`${maxSwipe}px`);
-          surface.style.transition = 'none';
-        }
-
-        function handleSwipeMove(clientX: number) {
-          if (!isSwiping || !activeSurface) return;
-          currentX = clientX;
-          const diffX = currentX - startX;
-
-          if (Math.abs(diffX) > 8) {
-            wasSwiping = true;
-          }
-
-          const maxSwipe = getMaxSwipe(activeSurface);
-          let targetX = isOpen ? maxSwipe + diffX : diffX;
-          if (targetX > 0) targetX = 0;
-          if (targetX < maxSwipe - 20) targetX = maxSwipe - 20;
-
-          activeSurface.style.transform = `translateX(${targetX}px)`;
-        }
-
-        function handleSwipeEnd() {
-          if (!isSwiping || !activeSurface) return;
-          isSwiping = false;
-          activeSurface.style.transition = 'transform 300ms cubic-bezier(0.32, 0.72, 0, 1)';
-
-          const diffX = currentX - startX;
-          const maxSwipe = getMaxSwipe(activeSurface);
-
-          if (!isOpen && diffX < SWIPE_THRESHOLD) {
-            isOpen = true;
-            activeSurface.style.transform = `translateX(${maxSwipe}px)`;
-          } else if (isOpen && diffX > -SWIPE_THRESHOLD) {
-            isOpen = false;
-            activeSurface.style.transform = 'translateX(0px)';
-          } else {
-            activeSurface.style.transform = isOpen ? `translateX(${maxSwipe}px)` : 'translateX(0px)';
-          }
-
-          setTimeout(() => {
-            wasSwiping = false;
-          }, 100);
-
-          activeSurface = null;
-        }
-
-        // Details expand toggle
-        document.addEventListener('click', (e) => {
-          if (wasSwiping) return;
-          const target = e.target as HTMLElement;
-          const summary = target.closest('.card-summary');
-          if (!summary) return;
-
-          // Don't toggle if clicking buttons
-          if (target.closest('button') || target.closest('a')) return;
-
-          const card = summary.closest('session-card') || summary.closest('.group');
-          if (!card) return;
-
-          const details = card.querySelector('.card-details') as HTMLElement;
-          const icon = card.querySelector('.expand-icon') as HTMLElement | null;
-
-          if (details) {
-            const isCurrentlyExpanded = details.style.gridTemplateRows === '1fr';
-            details.style.gridTemplateRows = isCurrentlyExpanded ? '0fr' : '1fr';
-            if (icon) icon.style.transform = isCurrentlyExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
-          }
-        });
-
-        // Touch events
-        document.addEventListener('touchstart', (e: TouchEvent) => {
-          const target = e.target as HTMLElement;
-          const surface = target.closest('.swipe-surface') as HTMLElement;
-          if (surface && !target.closest('button') && !target.closest('a')) {
-            handleSwipeStart(surface, e.touches[0].clientX);
-          }
-        }, { passive: true });
-
-        document.addEventListener('touchmove', (e: TouchEvent) => {
-          if (isSwiping) {
-            handleSwipeMove(e.touches[0].clientX);
-          }
-        }, { passive: true });
-
-        document.addEventListener('touchend', () => {
-          handleSwipeEnd();
-        });
-
-        // Mouse drag events for Desktop mouse interaction
-        let isMouseDown = false;
-        document.addEventListener('mousedown', (e: MouseEvent) => {
-          const target = e.target as HTMLElement;
-          const surface = target.closest('.swipe-surface') as HTMLElement;
-          if (surface && !target.closest('button') && !target.closest('a')) {
-            isMouseDown = true;
-            handleSwipeStart(surface, e.clientX);
-          }
-        });
-
-        document.addEventListener('mousemove', (e: MouseEvent) => {
-          if (isMouseDown && isSwiping) {
-            handleSwipeMove(e.clientX);
-          }
-        });
-
-        document.addEventListener('mouseup', () => {
-          if (isMouseDown) {
-            isMouseDown = false;
-            handleSwipeEnd();
-          }
-        });
+        // Global swipe logic was removed from here because it conflicted with individual card swipe listeners in SessionCard.astro and PatientList.astro.
       }
 
       // Initialize on load and page swaps
@@ -416,7 +284,8 @@ const { title, hideDock = false } = Astro.props;
         };
 
         // Confirmă o sesiune trecută direct din card
-        (window as any).confirmSession = async (sessionId: string) => {
+        (window as any).confirmSession = async (input: string | HTMLElement) => {
+          const sessionId = resolveSessionId(input);
           if (!sessionId) return;
           try {
             const appointment = await getAppointment(sessionId);
@@ -431,27 +300,7 @@ const { title, hideDock = false } = Astro.props;
 
         // ── Service Worker registration for PWA updates ─────────────────────
         if ('serviceWorker' in navigator) {
-          const hadController = !!navigator.serviceWorker.controller;
-
-          navigator.serviceWorker.register('/sw.js').then((registration) => {
-            // Listen for updates; when a new SW is waiting, force it to activate
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              newWorker?.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  newWorker.postMessage({ type: 'SKIP_WAITING' });
-                }
-              });
-            });
-          }).catch(() => {});
-
-          // Refresh the page only when an existing service worker gets updated (not on first load)
-          let refreshing = false;
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing || !hadController) return;
-            refreshing = true;
-            window.location.reload();
-          });
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
         }
       }
     </script>

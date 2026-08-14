@@ -198,6 +198,7 @@
   import { completeSession, createAppointment } from '../../../lib/services/appointmentService';
   import { getPatient, resetPatientSubscription } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { toLocalISOString } from '../../../utils/date';
 
   class WrapUpSheetManager {
     private sheet: HTMLElement | null;
@@ -345,16 +346,16 @@
       const appt = this.currentAppointment;
       const patientName = appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : (appt.patientName || 'Pacient');
       const timeStr = appt.ora || appt.selectedTime || '08:00';
-      const dateStr = appt.data || appt.selectedDate || new Date().toISOString().split('T')[0];
+      const dateStr = appt.data || appt.selectedDate || toLocalISOString(new Date());
 
       const cleanTime = (timeStr || '08:00').substring(0, 5);
 
-      // Calculate next week date (+7 days)
+      // Calculate next week date (+7 days) safely with toLocalISOString
       const currentDateObj = new Date(dateStr + 'T00:00:00');
       const nextWeekObj = new Date(currentDateObj);
       nextWeekObj.setDate(nextWeekObj.getDate() + 7);
 
-      this.nextWeekDateStr = nextWeekObj.toISOString().split('T')[0];
+      this.nextWeekDateStr = toLocalISOString(nextWeekObj);
       const dayName = nextWeekObj.toLocaleDateString('ro-RO', { weekday: 'long' });
       this.nextWeekDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
@@ -461,9 +462,6 @@
 
       const appt = this.currentAppointment;
       const patientId = appt.pacient_id || appt.pacienti?.id;
-      const folosite = (appt.pacienti?.sedinte_folosite ?? 0) + 1;
-      const total = appt.pacienti?.sedinte_total || 10;
-      const isSubscriptionDone = folosite >= total;
 
       try {
         // 1. Confirm current session
@@ -482,14 +480,31 @@
           window.dispatchEvent(new CustomEvent('patientsUpdated'));
         }
 
+        // Fetch fresh patient info to get updated session count after completeSession
+        let freshPatient: any = null;
+        try {
+          if (patientId) {
+            freshPatient = await getPatient(patientId);
+          }
+        } catch (e) {
+          console.warn('Could not fetch fresh patient:', e);
+        }
+
+        const folosite = freshPatient ? freshPatient.sedinte_folosite : ((appt.pacienti?.sedinte_folosite ?? 0) + 1);
+        const total = freshPatient ? freshPatient.sedinte_total : (appt.pacienti?.sedinte_total || 10);
+        const isSubscriptionDone = folosite >= total;
+
         // 2. Check if subscription is complete and user wants to schedule next week
         if (isSubscriptionDone && this.selectedRecurrence !== 'none') {
           const targetDate = this.selectedRecurrence === 'same' ? this.nextWeekDateStr : (this.customDate || this.nextWeekDateStr);
           const targetTime = this.selectedRecurrence === 'same' ? (appt.ora || appt.selectedTime || '08:00') : (this.customTime || '08:00');
           const locatie = (appt.location || appt.pacienti?.locatie || 'Belaqva') as 'Belaqva' | 'Ghimbav';
-          const patientName = appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : (appt.patientName || 'Pacient');
+          const patientName = freshPatient ? freshPatient.name : (appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : (appt.patientName || 'Pacient'));
 
-          // Open RenewalSheet on top of wrap-up sheet
+          // Close wrapup sheet cleanly so it doesn't linger behind RenewalSheet
+          this.close();
+
+          // Open RenewalSheet on top
           window.dispatchEvent(new CustomEvent('openRenewalSheet', {
             detail: {
               patientId,
