@@ -326,6 +326,63 @@ export async function getPatientPayments(id: string): Promise<number> {
   return localTotal;
 }
 
+export interface PaymentHistoryItem {
+  id?: string;
+  suma: number;
+  data_platii: string;
+  descriere?: string;
+}
+
+export async function getPatientPaymentHistoryDetails(id: string): Promise<PaymentHistoryItem[]> {
+  const history: PaymentHistoryItem[] = [];
+
+  try {
+    const { data, error } = await (supabase as any)
+      .from('plati')
+      .select('id, suma, data_platii, created_at')
+      .eq('pacient_id', id)
+      .order('data_platii', { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      data.forEach((p: any) => {
+        history.push({
+          id: p.id,
+          suma: Number(p.suma || 0),
+          data_platii: p.data_platii || (p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+          descriere: 'Plată pachet ședințe'
+        });
+      });
+    }
+  } catch (e) {
+    console.warn('Eroare citire istoric plăți Supabase:', e);
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const key = `kineto_plati_${id}`;
+      const existingStr = localStorage.getItem(key);
+      if (existingStr) {
+        const arr = JSON.parse(existingStr);
+        arr.forEach((item: any) => {
+          const itemDate = item.timestamp ? new Date(item.timestamp).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+          const exists = history.some(h => h.suma === item.suma && h.data_platii === itemDate);
+          if (!exists) {
+            history.push({
+              suma: Number(item.suma || 0),
+              data_platii: itemDate,
+              descriere: 'Plată parțială locală'
+            });
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Eroare citire plăți local:', e);
+    }
+  }
+
+  return history;
+}
+
 
 // ── Resetează/Șterge toate plățile pacientului ─────────────────
 export async function resetPayments(id: string) {

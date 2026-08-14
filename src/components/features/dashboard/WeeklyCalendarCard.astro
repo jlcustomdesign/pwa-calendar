@@ -200,7 +200,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                     {item.date}
                   </span>
                   {item.isToday && (
-                    <span class={`absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none z-20 ${item.active ? 'bg-black' : 'bg-brand-primary'}`}></span>
+                    <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
                   )}
                 </button>
               ) : (
@@ -361,6 +361,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           dSpan.classList.remove("text-black");
           dSpan.classList.add("text-text-main");
         }
+
+        const tDot = el.querySelector<HTMLElement>(".today-dot");
+        if (tDot) {
+          tDot.classList.remove("opacity-0", "z-0", "scale-50");
+          tDot.classList.add("opacity-100", "z-20", "scale-100");
+        }
       });
     }
 
@@ -406,6 +412,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       if (targetDSpan) {
         targetDSpan.classList.add("text-black");
         targetDSpan.classList.remove("text-text-main");
+      }
+
+      const tDot = button.querySelector<HTMLElement>(".today-dot");
+      if (tDot) {
+        tDot.classList.remove("opacity-100", "z-20", "scale-100");
+        tDot.classList.add("opacity-0", "z-0", "scale-50");
       }
       
       const allWeeks = document.querySelectorAll(".week-section");

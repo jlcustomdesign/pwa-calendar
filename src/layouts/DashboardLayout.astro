@@ -431,6 +431,8 @@ const { title, hideDock = false } = Astro.props;
 
         // ── Service Worker registration for PWA updates ─────────────────────
         if ('serviceWorker' in navigator) {
+          const hadController = !!navigator.serviceWorker.controller;
+
           navigator.serviceWorker.register('/sw.js').then((registration) => {
             // Listen for updates; when a new SW is waiting, force it to activate
             registration.addEventListener('updatefound', () => {
@@ -443,10 +445,10 @@ const { title, hideDock = false } = Astro.props;
             });
           }).catch(() => {});
 
-          // Refresh the page once the new service worker takes control
+          // Refresh the page only when an existing service worker gets updated (not on first load)
           let refreshing = false;
           navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
+            if (refreshing || !hadController) return;
             refreshing = true;
             window.location.reload();
           });

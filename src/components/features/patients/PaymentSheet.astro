@@ -12,25 +12,37 @@
       </div>
     </div>
 
-    <!-- Patient Financial Summary Card (Matches Handwritten Sketch: Name, Cost, Achitat, Rest) -->
-    <div id="payment-summary-box" class="mb-6 bg-neutral-100/90 p-5 rounded-2xl border border-transparent space-y-1.5 shadow-sm">
-      <!-- Real content -->
+    <!-- Patient Financial Summary Card (Name, Cost, Achitat, Rest, Status Curent & Istoric Plăți) -->
+    <div id="payment-summary-box" class="mb-5 bg-neutral-100/90 p-5 rounded-2xl border border-black/5 space-y-3 shadow-sm">
       <div id="payment-summary-content">
-        <div class="font-black text-neutral-900 text-lg tracking-tight" id="payment-patient-name">Se încarcă…</div>
-        
-        <div class="text-sm sm:text-base font-semibold text-neutral-700 flex items-center gap-1.5">
-          <span>Cost abonament:</span>
-          <strong class="font-black text-neutral-900" id="payment-total-cost">0 RON</strong>
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <div class="font-black text-neutral-900 text-lg tracking-tight" id="payment-patient-name">Se încarcă…</div>
+          <div id="payment-current-status-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-200 text-neutral-800">
+            -
+          </div>
         </div>
         
-        <div class="text-sm sm:text-base font-semibold text-neutral-700 flex items-center gap-1.5">
-          <span>Achitat:</span>
-          <strong class="font-black text-emerald-700" id="payment-total-paid">0 RON</strong>
+        <div class="grid grid-cols-3 gap-2 pt-1 border-t border-black/5 text-center">
+          <div class="p-2 rounded-xl bg-white border border-black/5">
+            <span class="block text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Cost Total</span>
+            <strong class="font-black text-neutral-900 text-sm" id="payment-total-cost">0 RON</strong>
+          </div>
+          <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-200/50">
+            <span class="block text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Achitat</span>
+            <strong class="font-black text-emerald-700 text-sm" id="payment-total-paid">0 RON</strong>
+          </div>
+          <div class="p-2 rounded-xl bg-rose-50 border border-rose-200/50">
+            <span class="block text-[11px] font-bold text-rose-800 uppercase tracking-wider">Rest</span>
+            <strong class="font-black text-rose-600 text-sm" id="payment-remaining-due">0 RON</strong>
+          </div>
         </div>
-        
-        <div class="text-sm sm:text-base font-semibold text-neutral-700 flex items-center gap-1.5">
-          <span>Rest:</span>
-          <strong class="font-black text-rose-600" id="payment-remaining-due">0 RON</strong>
+      </div>
+
+      <!-- Payment History List -->
+      <div class="pt-2 border-t border-black/5">
+        <label class="block text-xs font-black uppercase tracking-wider text-neutral-500 mb-2">Istoric Tranzacții / Plăți:</label>
+        <div id="payment-history-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+          <div class="text-xs font-semibold text-neutral-400 py-2 text-center">Se încarcă istoricul…</div>
         </div>
       </div>
     </div>
@@ -87,7 +99,7 @@
 </div>
 
 <script>
-  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments } from '../../../lib/services/patientService';
+  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPaymentHistoryDetails } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class PaymentSheetManager {
@@ -358,11 +370,23 @@
         const isFullyPaid = patient.achitat === true || statusPlata === 'Achitat integral' || statusPlata === 'Achitat' || (cost > 0 && totalPaid >= cost);
         const remaining = isFullyPaid ? 0 : Math.max(0, cost - totalPaid);
 
+        let displayStatusLabel = 'Neachitat';
+        let statusBadgeClass = 'bg-rose-100 text-rose-800 border border-rose-200';
+
+        if (isFullyPaid) {
+          displayStatusLabel = 'Achitat integral';
+          statusBadgeClass = 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+        } else if (totalPaid > 0) {
+          displayStatusLabel = 'Achitat parțial';
+          statusBadgeClass = 'bg-amber-100 text-amber-900 border border-amber-200';
+        }
+
         const nameEl = document.getElementById('payment-patient-name');
         const totalCostEl = document.getElementById('payment-total-cost');
         const totalPaidEl = document.getElementById('payment-total-paid');
         const remainingDueEl = document.getElementById('payment-remaining-due');
-        const customHintEl = document.getElementById('custom-remaining-bold');
+        const statusBadgeEl = document.getElementById('payment-current-status-badge');
+        const historyListEl = document.getElementById('payment-history-list');
 
         if (nameEl) nameEl.textContent = patient.name;
         if (totalCostEl) totalCostEl.textContent = `${cost} RON`;
@@ -373,8 +397,42 @@
             ? 'font-black text-rose-600' 
             : 'font-black text-emerald-600';
         }
-        if (customHintEl) {
-          customHintEl.textContent = `${remaining} RON`;
+        if (statusBadgeEl) {
+          statusBadgeEl.textContent = displayStatusLabel;
+          statusBadgeEl.className = `px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${statusBadgeClass}`;
+        }
+
+        // Fetch & render payment transaction history
+        if (historyListEl) {
+          try {
+            const historyItems = await getPatientPaymentHistoryDetails(this.currentPatientId);
+            if (historyItems.length === 0) {
+              historyListEl.innerHTML = `
+                <div class="p-3 rounded-xl bg-white border border-black/5 text-center text-xs font-bold text-neutral-500">
+                  Nicio plată înregistrată încă.
+                </div>
+              `;
+            } else {
+              historyListEl.innerHTML = historyItems.map(item => {
+                const dateStr = item.data_platii || 'Dată necunoscută';
+                const desc = item.descriere || 'Plată ședințe';
+                return `
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-white border border-black/5 text-xs">
+                    <div>
+                      <span class="block font-extrabold text-neutral-900">${desc}</span>
+                      <span class="block font-medium text-neutral-500 text-[11px]">${dateStr}</span>
+                    </div>
+                    <div class="text-right">
+                      <span class="block font-black text-emerald-700">+${item.suma} RON</span>
+                      <span class="block text-[10px] font-bold uppercase text-neutral-400">Înregistrat</span>
+                    </div>
+                  </div>
+                `;
+              }).join('');
+            }
+          } catch (e) {
+            historyListEl.innerHTML = `<div class="text-xs font-bold text-rose-500 text-center py-2">Eroare la citirea istoricului.</div>`;
+          }
         }
       } catch (e) {
         console.error('Eroare la citirea datelor financiare ale pacientului:', e);
