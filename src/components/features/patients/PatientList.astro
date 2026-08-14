@@ -212,12 +212,23 @@
 
     async deletePatient(id: string) {
       try {
+        const cardWrapper = this.container?.querySelector(`[data-patient-id="${id}"]`) as HTMLElement | null;
+        if (cardWrapper) {
+          cardWrapper.style.transition = 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)';
+          cardWrapper.style.opacity = '0';
+          cardWrapper.style.maxHeight = '0px';
+          cardWrapper.style.transform = 'scale(0.95)';
+          cardWrapper.style.marginBottom = '0px';
+          cardWrapper.style.overflow = 'hidden';
+          setTimeout(() => cardWrapper.remove(), 300);
+        }
+
         await deletePatientDB(id);
         (window as any).showToast('Pacientul a fost șters cu succes.', 'success');
-        this.render();
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
       } catch (err: any) {
         (window as any).showToast('Eroare la ștergerea pacientului: ' + err.message, 'error');
+        this.render();
       }
     }
 
@@ -244,7 +255,7 @@
       if (!this.container) return;
 
       const skeleton = document.getElementById('patient-list-skeleton');
-      if (skeleton) {
+      if (skeleton && this.container.children.length === 0) {
         this.container.classList.add('hidden');
         skeleton.classList.remove('hidden');
       }
@@ -303,6 +314,7 @@
 
         const cardWrapper = document.createElement('div');
         cardWrapper.className = 'block relative rounded-[2.5rem] shadow-sm overflow-hidden mb-4 mx-0 sm:mx-4';
+        cardWrapper.setAttribute('data-patient-id', patient.id);
 
         // Action Background (History / Edit / Delete)
         const actionsBg = document.createElement('div');

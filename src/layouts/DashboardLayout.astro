@@ -430,11 +430,24 @@ const { title, hideDock = false } = Astro.props;
           const confirmed = await (window as any).showConfirm('Ștergere programare', 'Sigur vrei să ștergi această programare?');
           if (!confirmed) return;
           try {
+            // Animate card removal optimistically offscreen
+            const cardEl = (typeof input !== 'string' ? input.closest('session-card, .swipe-surface') : document.querySelector(`[data-session-id="${sessionId}"]`)) as HTMLElement | null;
+            if (cardEl) {
+              const wrapper = (cardEl.closest('.relative, session-card') as HTMLElement) || cardEl;
+              wrapper.style.transition = 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)';
+              wrapper.style.opacity = '0';
+              wrapper.style.maxHeight = '0px';
+              wrapper.style.transform = 'scale(0.95)';
+              wrapper.style.overflow = 'hidden';
+              setTimeout(() => wrapper.remove(), 300);
+            }
+
             await deleteAppointment(sessionId);
             window.dispatchEvent(new CustomEvent('sessionsUpdated'));
             (window as any).showToast('Programarea a fost ștearsă cu succes.', 'success');
           } catch (err: any) {
             (window as any).showToast('Eroare la ștergerea programării: ' + (err.message || err), 'error');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
           }
         };
 

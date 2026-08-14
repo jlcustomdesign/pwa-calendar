@@ -373,14 +373,10 @@
       }
     } catch (e) {}
 
-    // Show skeleton only while fetching from DB
-    if (skeleton) {
-      if (!usedCache) {
-        list.classList.add('hidden');
-        skeleton.classList.remove('hidden');
-      } else {
-        skeleton.classList.add('hidden');
-      }
+    // Show skeleton only on initial cold load when list is empty
+    if (skeleton && list.children.length === 0 && !usedCache) {
+      list.classList.add('hidden');
+      skeleton.classList.remove('hidden');
     }
 
     const now = new Date();
