@@ -480,15 +480,13 @@
           }
         });
 
-        // Swipe logic (Touch + Mouse) - 2-Stage Snap:
-        // Stage 1 (half swipe, -70px): reveals ONLY Delete button
-        // Stage 2 (full swipe, -210px): reveals ALL 3 buttons (Delete, Edit, History)
+        // Swipe logic (Touch + Mouse) - Single slide reveals ALL 3 action buttons
         let startX = 0;
         let startY = 0;
         let isSwiping = false;
+        let isOpen = false;
         let currentTranslateX = 0;
-        const HALF_SWIPE = -70;  // Stage 1: reveals Delete button
-        const FULL_SWIPE = -210; // Stage 2: reveals all 3 buttons
+        const FULL_SWIPE = -210; // Reveals all 3 buttons in 1 smooth slide
 
         const onStart = (clientX: number, clientY: number) => {
           startX = clientX;
@@ -506,7 +504,7 @@
             cardWrapper.dataset.wasSwiping = 'true';
           }
 
-          let targetX = currentTranslateX + diffX;
+          let targetX = isOpen ? FULL_SWIPE + diffX : diffX;
           if (targetX > 0) targetX = 0;
           if (targetX < FULL_SWIPE - 20) targetX = FULL_SWIPE - 20;
           
@@ -523,18 +521,18 @@
           const matrix = new WebKitCSSMatrix(style.transform);
           const currentX = matrix.m41;
 
-          if (currentX < -140) {
-            // Full swipe -> reveal everything (-210px)
+          // Single threshold: swipe left past -35px snaps to reveal ALL buttons directly
+          if (!isOpen && currentX < -35) {
+            isOpen = true;
             currentTranslateX = FULL_SWIPE;
             card.style.transform = `translateX(${FULL_SWIPE}px)`;
-          } else if (currentX < -30) {
-            // Half swipe -> reveal Delete button only (-70px)
-            currentTranslateX = HALF_SWIPE;
-            card.style.transform = `translateX(${HALF_SWIPE}px)`;
-          } else {
-            // Close card (0px)
+          } else if (isOpen && currentX > -175) {
+            isOpen = false;
             currentTranslateX = 0;
             card.style.transform = 'translateX(0px)';
+          } else {
+            card.style.transform = isOpen ? `translateX(${FULL_SWIPE}px)` : 'translateX(0px)';
+            currentTranslateX = isOpen ? FULL_SWIPE : 0;
           }
         };
 

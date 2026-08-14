@@ -198,8 +198,7 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
         let isDragging = false;
         let isHorizontalSwipe = false;
         let currentX = 0;
-        // 2-Stage Snap: Stage 1 (-70px) reveals Delete, Stage 2 (-200px) reveals all buttons
-        const HALF_SWIPE = -70;
+        // Single continuous slide - reveals all action buttons in 1 gesture
         const FULL_SWIPE = -200; 
 
         const onStart = (clientX: number, clientY: number, e: Event) => {
@@ -230,7 +229,7 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
 
           if (e.cancelable) e.preventDefault(); // Prevent scrolling while swiping horizontally
 
-          let targetX = currentX + diffX;
+          let targetX = isSwiped ? FULL_SWIPE + diffX : diffX;
           
           // Resistance at the ends
           if (targetX > 0) targetX = targetX * 0.2;
@@ -258,8 +257,8 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
           const matrix = new WebKitCSSMatrix(style.transform);
           const renderedX = matrix.m41;
 
-          if (renderedX < -130) {
-            // Full swipe -> reveal all 3 buttons (-200px)
+          if (!isSwiped && renderedX < -35) {
+            // Snap open to reveal all buttons
             currentX = FULL_SWIPE;
             isSwiped = true;
             if (isExpanded) {
@@ -267,14 +266,12 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
               if (details) details.style.gridTemplateRows = '0fr';
               if (icon) icon.style.transform = 'rotate(0deg)';
             }
-          } else if (renderedX < -30) {
-            // Half swipe -> reveal Delete button only (-70px)
-            currentX = HALF_SWIPE;
-            isSwiped = true;
-          } else {
-            // Close card (0px)
+          } else if (isSwiped && renderedX > -165) {
+            // Snap closed
             currentX = 0;
             isSwiped = false;
+          } else {
+            currentX = isSwiped ? FULL_SWIPE : 0;
           }
 
           surface.style.transform = `translateX(${currentX}px)`;
