@@ -199,7 +199,7 @@
 
 <script>
   import { completeSession, createAppointment } from '../../../lib/services/appointmentService';
-  import { getPatient, updatePatient } from '../../../lib/services/patientService';
+  import { getPatient, resetPatientSubscription } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class WrapUpSheetManager {
@@ -328,17 +328,21 @@
       const patientId = this.currentAppointment.pacient_id || this.currentAppointment.pacienti?.id;
       try {
         const patient = await getPatient(patientId);
-        const newTotal = (patient.sedinte_total || 10) + 10;
-        await updatePatient(patientId, { sedinte_total: newTotal });
-        (window as any).showToast(`Pachetul pacientului a fost extins la ${newTotal} ședințe!`, 'success');
+        const defaultTotal = (patient.sedinte_total || 10) + 10;
+        const input = window.prompt('Câte ședințe are noul abonament?', String(defaultTotal));
+        const newTotal = input ? parseInt(input, 10) : defaultTotal;
+        if (!newTotal || newTotal <= 0 || Number.isNaN(newTotal)) return;
+
+        await resetPatientSubscription(patientId, newTotal);
+        (window as any).showToast(`Pachetul pacientului a fost reînnoit la ${newTotal} ședințe!`, 'success');
 
         const alertEl = document.getElementById('wrapup-subscription-alert');
         if (alertEl) alertEl.classList.add('hidden');
 
         const countEl = document.getElementById('wrapup-session-count');
-        if (countEl) countEl.textContent = `${patient.sedinte_folosite || 0} / ${newTotal}`;
+        if (countEl) countEl.textContent = `0 / ${newTotal}`;
       } catch (err: any) {
-        (window as any).showToast('Eroare la extinderea pachetului: ' + (err?.message || err), 'error');
+        (window as any).showToast('Eroare la reînnoirea pachetului: ' + (err?.message || err), 'error');
       }
     }
 

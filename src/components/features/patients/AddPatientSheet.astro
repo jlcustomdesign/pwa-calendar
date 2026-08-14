@@ -343,10 +343,10 @@
 
       if (this.isOneTimePlan(plan)) {
         totalInput.value = '1';
-        totalInput.disabled = true;
+        totalInput.readOnly = true;
         totalInput.classList.add('opacity-50', 'cursor-not-allowed');
       } else {
-        totalInput.disabled = false;
+        totalInput.readOnly = false;
         totalInput.classList.remove('opacity-50', 'cursor-not-allowed');
       }
     }

@@ -61,7 +61,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
   <script>
     import { getAppointmentsByDate, updateAppointment, swapAppointmentPatients } from '../../lib/services/appointmentService';
     import { getSettings } from '../../lib/services/settingsService';
-    import { getPatientPayments, resetPatientSubscription } from '../../lib/services/patientService';
+    import { getPatientPayments, renewWithPrompt, dismissRenewalNotification, isRenewalDismissed } from '../../lib/services/patientService';
 
     const todayStr = new Date().toISOString().split('T')[0];
     let currentCalendarDate = todayStr;
@@ -69,13 +69,19 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
     (window as any).renewSubscription = async (patientId: string, totalSessions: number) => {
       try {
-        await resetPatientSubscription(patientId, totalSessions);
+        await renewWithPrompt(patientId, totalSessions);
         (window as any).showToast?.('Abonamentul a fost reînnoit! Ședințele au fost reluate de la 0.', 'success');
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
         window.dispatchEvent(new CustomEvent('sessionsUpdated'));
       } catch (err: any) {
         (window as any).showToast?.('Eroare la reînnoire: ' + (err?.message || err), 'error');
       }
+    };
+
+    (window as any).dismissSubscriptionWarning = (patientId: string) => {
+      dismissRenewalNotification(patientId);
+      window.dispatchEvent(new CustomEvent('patientsUpdated'));
+      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
     };
 
     window.addEventListener('calendarDateSelected', (e: any) => {
@@ -145,8 +151,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         statusIcon = `<svg class="w-7 h-7 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
       }
 
-      const subscriptionWarningDetails = session.subscriptionDone
-        ? `<div class="pb-3"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>ABONAMENT TERMINAT — REÎNNOIEȘTE (0/${session.totalSessions || 10})</span></button></div>`
+      const subscriptionWarningDetails = session.subscriptionDone && !isRenewalDismissed(session.patientId)
+        ? `<div class="pb-3 space-y-2"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>ABONAMENT TERMINAT — REÎNNOIEȘTE (0/${session.totalSessions || 10})</span></button><button type="button" class="w-full py-3 px-6 rounded-2xl bg-surface-base text-text-muted text-xs sm:text-sm font-black uppercase tracking-wider text-center border border-transparent hover:opacity-80 active:scale-95 transition-all cursor-pointer" onclick="event.stopPropagation(); window.dismissSubscriptionWarning('${session.patientId}')"><span>NU REÎNNOIA</span></button></div>`
         : '';
 
       const sumaIncasata = session.sumaIncasata || 0;

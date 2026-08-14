@@ -226,18 +226,53 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
 // ── Reînnoire / Resetare pachet pacient (reia ședințele de la 0) ──
 export async function resetPatientSubscription(id: string, newTotalSessions?: number): Promise<void> {
   const current = await getPatient(id);
-  const addedTotal = newTotalSessions ?? (current.sedinte_total || 10);
-  // Extindem abonamentul cu un nou pachet, păstrând istoricul ședințelor vechi ca finalizate.
-  // Astfel, după o eventuală reconectare/cache-clear, contorul nu va mai reveni la „terminat”.
+  const nextTotal = newTotalSessions ?? (current.sedinte_total || 10);
+  // Reînnoirea înseamnă un pachet nou: resetăm contorul de ședințe folosite la 0
+  // și setăm noul total. Istoricul programărilor rămâne în DB.
   const { error } = await (supabase as any)
     .from('pacienti')
     .update({
-      sedinte_total: (current.sedinte_total || 0) + addedTotal,
+      sedinte_total: nextTotal,
+      sedinte_folosite: 0,
       status_abonament: 'activ'
     })
     .eq('id', id);
 
   if (error) throw new Error('Eroare la reînnoirea abonamentului: ' + error.message);
+}
+
+const DISMISSED_RENEWALS_KEY = 'kineto_dismissed_renewals';
+
+export function isRenewalDismissed(patientId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const dismissed = JSON.parse(localStorage.getItem(DISMISSED_RENEWALS_KEY) || '[]');
+    return Array.isArray(dismissed) && dismissed.includes(patientId);
+  } catch {
+    return false;
+  }
+}
+
+export function dismissRenewalNotification(patientId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const dismissed = JSON.parse(localStorage.getItem(DISMISSED_RENEWALS_KEY) || '[]');
+    if (!Array.isArray(dismissed)) return;
+    if (!dismissed.includes(patientId)) {
+      dismissed.push(patientId);
+      localStorage.setItem(DISMISSED_RENEWALS_KEY, JSON.stringify(dismissed));
+    }
+  } catch {}
+}
+
+export async function renewWithPrompt(patientId: string, currentTotal: number): Promise<void> {
+  const defaultTotal = currentTotal + 10;
+  const input = typeof window !== 'undefined'
+    ? window.prompt('Câte ședințe are noul abonament?', String(defaultTotal))
+    : null;
+  const newTotal = input ? parseInt(input, 10) : defaultTotal;
+  if (!newTotal || newTotal <= 0 || Number.isNaN(newTotal)) return;
+  await resetPatientSubscription(patientId, newTotal);
 }
 
 // ── Obținere plăți pacient (Local + Supabase Hybrid) ───────────

@@ -30,17 +30,23 @@ import DailyProgress from './DailyProgress.astro';
 </div>
 <script>
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
-  import { getPatientPayments, resetPatientSubscription } from '../../../lib/services/patientService';
+  import { getPatientPayments, renewWithPrompt, dismissRenewalNotification, isRenewalDismissed } from '../../../lib/services/patientService';
 
   (window as any).renewSubscription = (window as any).renewSubscription || (async (patientId: string, totalSessions: number) => {
     try {
-      await resetPatientSubscription(patientId, totalSessions);
+      await renewWithPrompt(patientId, totalSessions);
       (window as any).showToast?.('Abonamentul a fost reînnoit! Ședințele au fost reluate de la 0.', 'success');
       window.dispatchEvent(new CustomEvent('patientsUpdated'));
       window.dispatchEvent(new CustomEvent('sessionsUpdated'));
     } catch (err: any) {
       (window as any).showToast?.('Eroare la reînnoire: ' + (err?.message || err), 'error');
     }
+  });
+
+  (window as any).dismissSubscriptionWarning = (window as any).dismissSubscriptionWarning || ((patientId: string) => {
+    dismissRenewalNotification(patientId);
+    window.dispatchEvent(new CustomEvent('patientsUpdated'));
+    window.dispatchEvent(new CustomEvent('sessionsUpdated'));
   });
 
   const _d = new Date();
@@ -236,8 +242,8 @@ import DailyProgress from './DailyProgress.astro';
       }
 
       // Subscription warning shown only in open state
-      const subscriptionWarningDetails = session.subscriptionDone
-        ? `<div class="pb-3"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>REÎNNOIEȘTE PACHETUL</span></button></div>`
+      const subscriptionWarningDetails = session.subscriptionDone && !isRenewalDismissed(session.patientId)
+        ? `<div class="pb-3 space-y-2"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>REÎNNOIEȘTE PACHETUL</span></button><button type="button" class="w-full py-3 px-6 rounded-2xl bg-surface-base text-text-muted text-xs sm:text-sm font-black uppercase tracking-wider text-center border border-transparent hover:opacity-80 active:scale-95 transition-all cursor-pointer" onclick="event.stopPropagation(); window.dismissSubscriptionWarning('${session.patientId}')"><span>NU REÎNNOIA</span></button></div>`
         : '';
 
       const restDePlata = Math.max(0, (session.costTotal || 0) - (session.sumaIncasata || 0));
