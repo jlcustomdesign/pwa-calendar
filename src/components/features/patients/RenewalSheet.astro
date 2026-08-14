@@ -67,6 +67,42 @@
       </div>
     </div>
 
+    <!-- Cost and Payment Mode Selection -->
+    <div class="mb-6 space-y-2">
+      <label class="block text-xs font-black uppercase tracking-wider text-text-muted">Cost nou (RON) și Mod de plată:</label>
+      <div class="space-y-3">
+        <div class="relative flex items-center">
+          <input 
+            type="number" 
+            id="renewal-cost-input" 
+            placeholder="Cost pachet nou (ex: 500)" 
+            class="w-full bg-neutral-100 border border-transparent rounded-2xl py-4 pl-4 pr-16 text-lg font-black text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-primary transition-all"
+          />
+          <span class="absolute right-4 text-sm font-bold text-neutral-500 pointer-events-none">RON</span>
+        </div>
+
+        <!-- Custom Payment Option Pills -->
+        <div class="grid grid-cols-2 gap-2.5 p-1.5 bg-neutral-100 rounded-2xl border border-black/5" id="renewal-payment-mode-container">
+          <button 
+            type="button" 
+            data-mode="later" 
+            class="renewal-payment-btn py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 bg-white text-neutral-900 shadow-md border border-black/5 active:scale-95 cursor-pointer"
+          >
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0 shadow-xs"></span>
+            <span>Plătește mai târziu</span>
+          </button>
+          <button 
+            type="button" 
+            data-mode="now" 
+            class="renewal-payment-btn py-3 px-3 rounded-xl font-bold text-xs sm:text-sm text-neutral-500 hover:text-neutral-900 transition-all flex items-center justify-center gap-2 border border-transparent active:scale-95 cursor-pointer"
+          >
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 opacity-40"></span>
+            <span>Achitat integral</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Action Buttons -->
     <div class="pt-2">
       <button 
@@ -89,6 +125,8 @@
     private backdrop: HTMLElement | null = null;
     private content: HTMLElement | null = null;
     private customInput: HTMLInputElement | null = null;
+    private costInput: HTMLInputElement | null = null;
+    private selectedPaymentMode: 'later' | 'now' = 'later';
     private currentPatientId: string | null = null;
     private selectedSessions: number = 10;
     private isOpen: boolean = false;
@@ -103,6 +141,7 @@
       this.backdrop = document.getElementById('renewal-backdrop');
       this.content = document.getElementById('renewal-content');
       this.customInput = document.getElementById('renewal-custom-input') as HTMLInputElement;
+      this.costInput = document.getElementById('renewal-cost-input') as HTMLInputElement;
     }
 
     private bindEvents() {
@@ -131,6 +170,13 @@
           return;
         }
 
+        const payBtn = target.closest('.renewal-payment-btn') as HTMLElement;
+        if (payBtn) {
+          const mode = (payBtn.dataset.mode || 'later') as 'later' | 'now';
+          this.setPaymentMode(mode);
+          return;
+        }
+
         if (target.closest('#btn-confirm-renewal')) {
           this.handleConfirm();
           return;
@@ -147,6 +193,22 @@
 
       this.bindDragHandle();
       this.bindContentSwipe();
+    }
+
+    private setPaymentMode(mode: 'later' | 'now') {
+      this.selectedPaymentMode = mode;
+      const buttons = document.querySelectorAll<HTMLElement>('.renewal-payment-btn');
+      buttons.forEach(btn => {
+        const bMode = btn.dataset.mode;
+        const dot = btn.querySelector('span:first-child');
+        if (bMode === mode) {
+          btn.className = 'renewal-payment-btn py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 bg-white text-neutral-900 shadow-md border border-black/5 active:scale-95 cursor-pointer';
+          if (dot) dot.classList.remove('opacity-40');
+        } else {
+          btn.className = 'renewal-payment-btn py-3 px-3 rounded-xl font-bold text-xs sm:text-sm text-neutral-500 hover:text-neutral-900 transition-all flex items-center justify-center gap-2 border border-transparent active:scale-95 cursor-pointer';
+          if (dot) dot.classList.add('opacity-40');
+        }
+      });
     }
 
     private selectPackage(count: number) {
@@ -236,6 +298,12 @@
         currentY = startY;
         startX = e.touches[0].clientX;
         dragEngaged = false;
+
+        const target = e.target as HTMLElement;
+        const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'LABEL'].includes(target.tagName);
+        if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
+          return;
+        }
       }, { passive: true });
 
       content.addEventListener('touchmove', (e: TouchEvent) => {
@@ -286,6 +354,14 @@
         return;
       }
 
+      const newCost = parseInt(this.costInput?.value || '0', 10);
+      if (isNaN(newCost) || newCost <= 0) {
+        (window as any).showToast?.('Introdu un cost valid mai mare de 0.', 'warning');
+        return;
+      }
+
+      const addPaymentNow = this.selectedPaymentMode === 'now';
+
       const btn = document.getElementById('btn-confirm-renewal') as HTMLButtonElement | null;
       if (btn) {
         btn.disabled = true;
@@ -293,8 +369,8 @@
       }
 
       try {
-        await resetPatientSubscription(this.currentPatientId, count);
-        (window as any).showToast?.(`Abonamentul a fost reînnoit la ${count} ședințe (0/${count} efectuate).`, 'success');
+        await resetPatientSubscription(this.currentPatientId, count, newCost, addPaymentNow);
+        (window as any).showToast?.(`Abonamentul a fost reînnoit la ${count} ședințe.`, 'success');
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
         window.dispatchEvent(new CustomEvent('sessionsUpdated'));
         this.close();
@@ -313,6 +389,8 @@
       if (!this.sheet || !this.backdrop || !this.content) return;
       this.isOpen = true;
       this.selectPackage(this.selectedSessions);
+      if (this.costInput) this.costInput.value = '';
+      this.setPaymentMode('later');
       this.sheet.dataset.open = 'true';
       void this.sheet.offsetWidth;
 

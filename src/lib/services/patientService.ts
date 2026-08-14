@@ -224,9 +224,10 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
 }
 
 // ── Reînnoire / Resetare pachet pacient (reia ședințele de la 0) ──
-export async function resetPatientSubscription(id: string, newTotalSessions?: number): Promise<void> {
+export async function resetPatientSubscription(id: string, newTotalSessions?: number, newCostTotal: number = 0, addPaymentNow: boolean = false): Promise<void> {
   const current = await getPatient(id);
   const nextTotal = newTotalSessions ?? (current.sedinte_total || 10);
+  const nextCost = (current.cost || 0) + newCostTotal;
   // Reînnoirea înseamnă un pachet nou: resetăm contorul de ședințe folosite la 0
   // și setăm noul total. Istoricul programărilor rămâne în DB.
   const { error } = await (supabase as any)
@@ -234,11 +235,18 @@ export async function resetPatientSubscription(id: string, newTotalSessions?: nu
     .update({
       sedinte_total: nextTotal,
       sedinte_folosite: 0,
-      status_abonament: 'activ'
+      cost: nextCost,
+      status_abonament: 'activ',
+      achitat: false
     })
     .eq('id', id);
 
   if (error) throw new Error('Eroare la reînnoirea abonamentului: ' + error.message);
+  
+  if (addPaymentNow && newCostTotal > 0) {
+    await addPayment(id, newCostTotal, false);
+  }
+  
   clearRenewalDismissal(id);
 }
 

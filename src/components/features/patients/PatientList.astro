@@ -308,7 +308,10 @@
         const actionsBg = document.createElement('div');
         actionsBg.className = 'absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0';
         actionsBg.innerHTML = `
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <button type="button" class="history-btn w-12 h-12 rounded-full bg-sky-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform border border-transparent" title="Istoric Plăți">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </button>
             <button type="button" class="edit-btn w-12 h-12 rounded-full bg-white shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-transparent" title="Editează pacientul">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.89 1.12l-2.843.712a.75.75 0 01-.904-.903l.71-2.842a4.5 4.5 0 011.12-1.89L16.862 4.487z"></path><path d="M19.5 7.125L16.862 4.487"></path></svg>
             </button>
@@ -445,6 +448,12 @@
           this.editPatient(patient);
         });
 
+        const historyBtn = actionsBg.querySelector('.history-btn');
+        historyBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: patient.id } }));
+        });
+
         const deleteBtn = actionsBg.querySelector('.delete-btn');
         deleteBtn?.addEventListener('click', async (e) => {
           e.preventDefault();
@@ -476,7 +485,7 @@
         let currentX = 0;
         let isSwiping = false;
         let isOpen = false;
-        const MAX_SWIPE = -160;
+        const MAX_SWIPE = -220;
         const SWIPE_THRESHOLD = -60;
 
         card.addEventListener('touchstart', (e: any) => {

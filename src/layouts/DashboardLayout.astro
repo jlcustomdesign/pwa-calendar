@@ -91,7 +91,7 @@ const { title, hideDock = false } = Astro.props;
     <script>
       import { initErrorLogger } from '../lib/errorLogger';
       import { setPaymentStatus } from '../lib/services/patientService';
-      import { getAppointment, deleteAppointment, cancelAppointment, markAbsent, reconcileSessionCounts } from '../lib/services/appointmentService';
+      import { getAppointment, deleteAppointment, cancelAppointment, markAbsent } from '../lib/services/appointmentService';
 
       // Prevent horizontal swipe navigation inside the PWA (Safari/Chrome back/forward gestures)
       function preventHorizontalSwipeNavigation() {
@@ -428,19 +428,6 @@ const { title, hideDock = false } = Astro.props;
           }
         };
 
-        // Auto-reconcile session counters once per device/browser.
-        // Old bugs left sedinte_folosite out of sync; this recomputes it from finalized appointments.
-        (async () => {
-          if (localStorage.getItem('kineto_session_counts_reconciled_v2')) return;
-          try {
-            await reconcileSessionCounts();
-            localStorage.setItem('kineto_session_counts_reconciled_v2', '1');
-            window.dispatchEvent(new CustomEvent('patientsUpdated'));
-            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-          } catch (e) {
-            console.warn('Auto reconcile session counts failed:', e);
-          }
-        })();
 
         // ── Service Worker registration for PWA updates ─────────────────────
         if ('serviceWorker' in navigator) {

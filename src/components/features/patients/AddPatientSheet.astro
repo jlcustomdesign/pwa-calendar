@@ -514,6 +514,8 @@
     open() {
       if (!this.sheet || !this.overlay) return;
       // Ensure the sheet is in the layout before animating (prevents flash on load)
+      // Lock max-height in pixels to prevent jumping when iOS keyboard resizes the viewport
+      this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;
       this.sheet.dataset.open = 'true';
       void this.sheet.offsetWidth;
       this.sheet.classList.remove('translate-y-full');
@@ -542,6 +544,15 @@
       this.currentY = this.startY;
       this.startX = e.touches[0].clientX;
       this.dragEngaged = false;
+      
+      // If an input is focused OR the user is tapping on an input, prevent sheet dragging to avoid jumps
+      const target = e.target as HTMLElement;
+      const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'LABEL'].includes(target.tagName);
+      if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
+        this.scrollAtTop = false;
+        return;
+      }
+
       // Only allow sheet drag when the scrollable form is at the top,
       // otherwise the gesture should scroll the form instead
       const scrollArea = this.sheet?.querySelector('.overflow-y-auto');

@@ -165,23 +165,7 @@ export async function createAppointment(input: {
   // Eroarea din trigger conține mesajul descriptiv în română
   if (error) throw new Error(error.message);
 
-  // Dacă pacientul are ședință unică și a consumat deja pachetul, resetăm contorul
-  // pentru noua ședință. Istoricul programărilor rămâne în DB, deci statisticile nu se pierd.
-  try {
-    const { data: p } = await (supabase as any)
-      .from('pacienti')
-      .select('id, plan, sedinte_folosite, sedinte_total')
-      .eq('id', input.pacient_id)
-      .maybeSingle();
-    if (p && p.plan === 'One Time' && (p.sedinte_folosite ?? 0) >= (p.sedinte_total || 1)) {
-      await (supabase as any)
-        .from('pacienti')
-        .update({ sedinte_folosite: 0 })
-        .eq('id', input.pacient_id);
-    }
-  } catch (e) {
-    console.warn('createAppointment reset counter warning:', e);
-  }
+    // Hack eliminated to prevent 0/1 display and allow UI to show renewal button properly.
 
   return data.id;
 }
@@ -306,30 +290,3 @@ export async function countPatientWeekAppointments(patientId: string, dateStr: s
   return count ?? 0;
 }
 
-// ── Recalculează sedinte_folosite pentru toți pacienții pe baza programărilor finalizate ──
-// Folosit o singură dată la load pentru a corecta contoarele dezacordate din cauza bug-urilor vechi.
-export async function reconcileSessionCounts(): Promise<void> {
-  try {
-    const { data: patients, error: patientsErr } = await (supabase as any)
-      .from('pacienti')
-      .select('id');
-    if (patientsErr || !patients) return;
-
-    for (const p of patients as { id: string }[]) {
-      const { count, error } = await (supabase as any)
-        .from('programari')
-        .select('id', { count: 'exact', head: true })
-        .eq('pacient_id', p.id)
-        .eq('status', 'finalizat');
-
-      if (error) continue;
-      const finalizate = count ?? 0;
-      await (supabase as any)
-        .from('pacienti')
-        .update({ sedinte_folosite: finalizate })
-        .eq('id', p.id);
-    }
-  } catch (e) {
-    console.warn('reconcileSessionCounts error:', e);
-  }
-}

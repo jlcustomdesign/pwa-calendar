@@ -399,8 +399,9 @@
         }
       }
 
-      // Default option reset to "same"
-      this.setRecurrenceOption('same');
+      // Default option reset
+      const isOneTime = appt.pacienti?.plan === 'One Time';
+      this.setRecurrenceOption((isOneTime || folosite >= total) ? 'none' : 'same');
 
       // Reset submit button state so it works on every open
       const btnConfirm = document.getElementById('btn-confirm-wrapup') as HTMLButtonElement | null;
@@ -538,36 +539,48 @@
 
       try {
         // 1. Confirm current session
-        await completeSession(appt.id);
+        let sessionCompleted = false;
+        try {
+          await completeSession(appt.id);
+          sessionCompleted = true;
+          (window as any).showToast('Ședința a fost marcată ca efectuată!', 'success');
+        } catch (err: any) {
+          throw new Error('Eroare la finalizare: ' + (err?.message || err));
+        }
+
+        // Event must be dispatched if session completed, even if next steps fail
+        if (sessionCompleted) {
+          window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+          window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        }
 
         // 2. Schedule next week session if selected
         if (this.selectedRecurrence === 'same') {
           const timeStr = appt.ora || appt.selectedTime || '08:00';
+          const locatie = appt.location || appt.pacienti?.locatie || 'Belaqva';
           await createAppointment({
             pacient_id: patientId,
             data: this.nextWeekDateStr,
             ora: timeStr,
+            locatie: locatie as 'Belaqva' | 'Ghimbav',
           });
-          (window as any).showToast(`Ședința a fost marcată ca efectuată și s-a programat automat ${this.nextWeekDayName} viitoare la ${timeStr}!`, 'success');
+          (window as any).showToast(`S-a programat automat ${this.nextWeekDayName} viitoare la ${timeStr}!`, 'success');
         } else if (this.selectedRecurrence === 'custom') {
           const targetDate = this.customDate || this.nextWeekDateStr;
           const targetTime = this.customTime || '08:00';
-
+          const locatie = appt.location || appt.pacienti?.locatie || 'Belaqva';
           await createAppointment({
             pacient_id: patientId,
             data: targetDate,
             ora: targetTime,
+            locatie: locatie as 'Belaqva' | 'Ghimbav',
           });
-          (window as any).showToast(`Ședința a fost marcată ca efectuată și noua programare a fost creată pe ${targetDate} la ${targetTime}!`, 'success');
-        } else {
-          (window as any).showToast('Ședința a fost marcată ca efectuată cu succes!', 'success');
+          (window as any).showToast(`Noua programare a fost creată pe ${targetDate} la ${targetTime}!`, 'success');
         }
 
-        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-        window.dispatchEvent(new CustomEvent('patientsUpdated'));
         this.close();
       } catch (err: any) {
-        (window as any).showToast('Eroare la procesare: ' + (err?.message || err), 'error');
+        (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
       } finally {
         if (btnConfirm) {
           btnConfirm.disabled = false;
@@ -734,6 +747,10 @@
       let isDragging = false;
 
       const onStart = (clientY: number) => {
+        // If an input is focused, prevent sheet dragging to avoid jumps while typing
+        if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+          return;
+        }
         startY = clientY;
         isDragging = true;
       };
@@ -831,6 +848,7 @@
     private open() {
       this.reconnect();
       if (!this.sheet || !this.content || !this.backdrop) return;
+      this.content.style.maxHeight = `${window.innerHeight * 0.9}px`;
       this.sheet.dataset.open = 'true';
       this.content.style.transform = '';
       void this.sheet.offsetWidth;

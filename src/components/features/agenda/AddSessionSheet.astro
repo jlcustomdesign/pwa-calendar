@@ -851,20 +851,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           });
           (window as any).showToast('Programarea a fost modificată cu succes.', 'success');
         } else {
-          // Dacă pacientul are pachetul terminat, extindem automat pachetul ÎNAINTE de a crea noua programare
-          try {
-            const patient = await getPatient(patientId);
-            const folosite = patient?.sedinte_folosite ?? 0;
-            const totalSess = patient?.sedinte_total ?? 0;
-            if (totalSess > 0 && folosite >= totalSess) {
-              const addition = totalSess === 1 ? 1 : 10;
-              await updatePatient(patientId, { sedinte_total: totalSess + addition });
-              window.dispatchEvent(new CustomEvent('patientsUpdated'));
-            }
-          } catch (extErr) {
-            console.error('Eroare extindere pachet:', extErr);
-          }
-
           await createAppointment({
             pacient_id: patientId,
             data: selectedDate,
@@ -1030,6 +1016,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     open() {
       if (!this.sheet || !this.overlay) return;
       // Ensure the sheet is in the layout before animating (prevents flash on load)
+      this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;
       this.sheet.dataset.open = 'true';
       void this.sheet.offsetWidth;
       // Reset any inline transform from drag and set closed state
@@ -1070,6 +1057,13 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.currentY = this.startY;
       this.startX = e.touches[0].clientX;
       this.dragEngaged = false;
+
+      // If an input is focused, prevent sheet dragging to avoid jumps while typing
+      if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+        this.scrollAtTop = false;
+        return;
+      }
+
       // Only allow sheet drag when the scrollable form is at the top,
       // otherwise the gesture should scroll the form instead
       const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
