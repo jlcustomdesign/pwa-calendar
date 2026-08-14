@@ -266,7 +266,7 @@ export function dismissRenewalNotification(patientId: string): void {
 }
 
 export async function renewWithPrompt(patientId: string, currentTotal: number): Promise<void> {
-  const defaultTotal = currentTotal + 10;
+  const defaultTotal = 10;
   const input = typeof window !== 'undefined'
     ? window.prompt('Câte ședințe are noul abonament?', String(defaultTotal))
     : null;

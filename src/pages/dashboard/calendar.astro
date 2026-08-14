@@ -654,8 +654,16 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         else cancelPress();
       });
 
-      // Blochează scroll-ul paginii doar cât timp drag-ul e activ
+      // Blochează scroll-ul paginii cât timp e activ un potențial drag pe card.
       document.addEventListener('touchmove', (e: TouchEvent) => {
+        if (activePointerId !== null && sourceCard) {
+          const touch = e.touches[0];
+          const dx = touch.clientX - startX;
+          const dy = touch.clientY - startY;
+          if (Math.hypot(dx, dy) <= MOVE_CANCEL_PX && e.cancelable) {
+            e.preventDefault();
+          }
+        }
         if (dragging && e.cancelable) e.preventDefault();
       }, { passive: false });
 

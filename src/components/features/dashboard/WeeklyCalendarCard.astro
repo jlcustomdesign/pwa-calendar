@@ -203,8 +203,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                   <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
                     {item.date}
                   </span>
-                  {item.isToday && !item.active && (
-                    <span class="absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-brand-primary pointer-events-none z-20"></span>
+                  {item.isToday && (
+                    <span class={`absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none z-20 ${item.active ? 'bg-black' : 'bg-brand-primary'}`}></span>
                   )}
                 </button>
               ) : (

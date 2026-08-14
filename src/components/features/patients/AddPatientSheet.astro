@@ -186,19 +186,22 @@
         let currentY = 0;
         let dragging = false;
         dragHandle.addEventListener('touchstart', (e: any) => {
+          e.stopPropagation();
           startY = e.touches[0].clientY;
           currentY = startY;
           dragging = true;
           if (this.sheet) this.sheet.style.transition = 'none';
-        }, { passive: true });
+        }, { passive: false });
         dragHandle.addEventListener('touchmove', (e: any) => {
+          e.stopPropagation();
           if (!dragging) return;
           currentY = e.touches[0].clientY;
           const deltaY = currentY - startY;
           if (deltaY > 0 && this.sheet) {
+            if (e.cancelable) e.preventDefault();
             this.sheet.style.transform = `translateY(${deltaY}px)`;
           }
-        }, { passive: true });
+        }, { passive: false });
         const onEnd = () => {
           if (!dragging) return;
           dragging = false;
