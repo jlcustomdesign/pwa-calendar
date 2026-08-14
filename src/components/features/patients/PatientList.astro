@@ -325,7 +325,7 @@
         
         const planName = patient.plan === 'Subscription' || patient.plan === 'Abonament' ? 'Abonament' : (patient.plan === 'One Time' ? 'Ședință' : (patient.plan || 'Fără plan'));
 
-        const subscriptionDone = totalSessions > 0 && attendanceCount > 0 && attendanceCount >= totalSessions;
+        const subscriptionDone = totalSessions > 0 && attendanceCount >= totalSessions;
         const displayCount = subscriptionDone ? totalSessions : attendanceCount;
         progressPercentage = subscriptionDone ? 100 : (totalSessions > 0 ? Math.min(100, Math.round((attendanceCount / totalSessions) * 100)) : 0);
         const progressBarFill = isGhimbav ? 'bg-brand-primary' : 'bg-brand-secondary';
@@ -342,12 +342,12 @@
           paymentBadgeBgClass = 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200/60';
         }
 
-        const subscriptionWarningHtml = subscriptionDone && !isRenewalDismissed(patient.id)
-          ? `<div class='pt-2 pb-5 space-y-2'><button type='button' class='w-full py-4 px-6 rounded-2xl bg-amber-500 text-white text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md hover:bg-amber-600 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions})'><span>REÎNNOIEȘTE PACHETUL (${displayCount}/${totalSessions})</span></button><button type='button' class='w-full py-3 px-6 rounded-2xl bg-surface-base text-text-muted text-xs sm:text-sm font-black uppercase tracking-wider text-center border border-transparent hover:opacity-80 active:scale-95 transition-all cursor-pointer' onclick='event.stopPropagation(); window.dismissSubscriptionWarning("${patient.id}")'><span>NU REÎNNOIA</span></button></div>`
+        const subscriptionWarningHtml = subscriptionDone
+          ? `<div class='pt-2 pb-5 space-y-2'><button type='button' class='w-full py-4 px-6 rounded-2xl bg-amber-400 hover:bg-amber-500 text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-lg border border-black/10 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${patient.name?.replace(/'/g, "\\'") || ""}")'><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg><span>REÎNNOIEȘTE PACHETUL (${displayCount}/${totalSessions})</span></button></div>`
           : '';
 
-        const notificationBellHtml = subscriptionDone && !isRenewalDismissed(patient.id)
-          ? `<div class='shrink-0 w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-md' title='Abonament terminat'><svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'/></svg></div>`
+        const notificationBellHtml = subscriptionDone
+          ? `<button type='button' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${patient.name?.replace(/'/g, "\\'") || ""}")' class='shrink-0 px-2.5 py-1 rounded-full bg-amber-400 text-black text-xs font-black uppercase tracking-wider shadow-sm active:scale-95 transition-all animate-pulse' title='Abonament terminat - Reînnoiește'>Reînnoiește</button>`
           : '';
 
         card.innerHTML = `
