@@ -127,14 +127,16 @@ const { title, hideDock = false } = Astro.props;
         let activeSurface: HTMLElement | null = null;
         let startX = 0;
         let startY = 0;
+        let currentX = 0;
         let isSwiping = false;
         let isHorizontalSwipe = false;
         let isOpen = false;
+        let wasSwiping = false;
 
         function getMaxSwipe(surface: HTMLElement | null): number {
-          if (!surface) return -200;
+          if (!surface) return -205;
           if (surface.closest('#patient-list-container')) return -210;
-          return -200;
+          return -205;
         }
 
         function handleSwipeStart(surface: HTMLElement, clientX: number, clientY: number) {
@@ -142,12 +144,12 @@ const { title, hideDock = false } = Astro.props;
           activeSurface = surface;
           startX = clientX;
           startY = clientY;
+          currentX = startX;
           isSwiping = true;
           isHorizontalSwipe = false;
+          wasSwiping = false;
           const maxSwipe = getMaxSwipe(surface);
-          const style = window.getComputedStyle(surface);
-          const matrix = new WebKitCSSMatrix(style.transform);
-          isOpen = matrix.m41 < -50;
+          isOpen = surface.style.transform.includes(`${maxSwipe}px`);
           surface.style.transition = 'none';
         }
 
@@ -159,6 +161,7 @@ const { title, hideDock = false } = Astro.props;
           if (!isHorizontalSwipe && (Math.abs(diffX) > 8 || Math.abs(diffY) > 8)) {
             if (Math.abs(diffX) > Math.abs(diffY)) {
               isHorizontalSwipe = true;
+              wasSwiping = true;
               const wrapper = activeSurface.closest('session-card, .relative') as HTMLElement | null;
               if (wrapper) wrapper.dataset.wasSwiping = 'true';
             } else {
@@ -170,6 +173,7 @@ const { title, hideDock = false } = Astro.props;
           if (!isHorizontalSwipe) return;
           if (e && e.cancelable) e.preventDefault();
 
+          currentX = clientX;
           const maxSwipe = getMaxSwipe(activeSurface);
           let targetX = isOpen ? maxSwipe + diffX : diffX;
           if (targetX > 0) targetX = targetX * 0.2;
@@ -181,14 +185,12 @@ const { title, hideDock = false } = Astro.props;
         function handleSwipeEnd() {
           if (!isSwiping || !activeSurface) return;
           isSwiping = false;
-          activeSurface.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+          activeSurface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
 
           const maxSwipe = getMaxSwipe(activeSurface);
-          const style = window.getComputedStyle(activeSurface);
-          const matrix = new WebKitCSSMatrix(style.transform);
-          const currentXPos = matrix.m41;
+          const diffX = currentX - startX;
 
-          if (!isOpen && currentXPos < -35) {
+          if (!isOpen && diffX < -50) {
             isOpen = true;
             activeSurface.style.transform = `translateX(${maxSwipe}px)`;
             const cardRoot = activeSurface.closest('session-card, .swipe-surface') as HTMLElement | null;
@@ -198,7 +200,7 @@ const { title, hideDock = false } = Astro.props;
               if (details) details.style.gridTemplateRows = '0fr';
               if (icon) icon.style.transform = 'rotate(0deg)';
             }
-          } else if (isOpen && currentXPos > maxSwipe + 35) {
+          } else if (isOpen && diffX > 50) {
             isOpen = false;
             activeSurface.style.transform = 'translateX(0px)';
           } else {
@@ -207,18 +209,54 @@ const { title, hideDock = false } = Astro.props;
 
           const targetSurface = activeSurface;
           setTimeout(() => {
+            wasSwiping = false;
             const wrapper = targetSurface.closest('session-card, .relative') as HTMLElement | null;
             if (wrapper) wrapper.dataset.wasSwiping = 'false';
-          }, 50);
+          }, 100);
 
           activeSurface = null;
         }
 
-        // Global Event Delegation for touch and mouse
+        // Details expand toggle
+        document.addEventListener('click', (e) => {
+          if (wasSwiping) return;
+          const target = e.target as HTMLElement;
+          const summary = target.closest('.card-summary') as HTMLElement | null;
+          if (!summary) return;
+
+          // Don't toggle if clicking buttons
+          if (target.closest('button, a, input, select')) return;
+
+          const card = summary.closest('session-card, .relative') as HTMLElement | null;
+          if (!card) return;
+
+          // Check if card surface is currently swiped out
+          const surface = (card.classList.contains('swipe-surface') ? card : card.querySelector('.swipe-surface')) as HTMLElement | null;
+          if (surface) {
+            const style = window.getComputedStyle(surface);
+            const matrix = new WebKitCSSMatrix(style.transform);
+            if (Math.abs(matrix.m41) > 20) {
+              surface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+              surface.style.transform = 'translateX(0px)';
+              return;
+            }
+          }
+
+          const details = card.querySelector('.card-details') as HTMLElement | null;
+          const icon = card.querySelector('.expand-icon') as HTMLElement | null;
+
+          if (details) {
+            const isCurrentlyExpanded = details.style.gridTemplateRows === '1fr';
+            details.style.gridTemplateRows = isCurrentlyExpanded ? '0fr' : '1fr';
+            if (icon) icon.style.transform = isCurrentlyExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+          }
+        });
+
+        // Touch events
         document.addEventListener('touchstart', (e: TouchEvent) => {
           const target = e.target as HTMLElement;
           const surface = target.closest('.swipe-surface') as HTMLElement | null;
-          if (surface) {
+          if (surface && !target.closest('button, a, input, select')) {
             handleSwipeStart(surface, e.touches[0].clientX, e.touches[0].clientY);
           }
         }, { passive: true });
@@ -233,12 +271,12 @@ const { title, hideDock = false } = Astro.props;
           if (isSwiping) handleSwipeEnd();
         }, { passive: true });
 
+        // Mouse drag events for Desktop mouse interaction
         let isMouseDown = false;
         document.addEventListener('mousedown', (e: MouseEvent) => {
           const target = e.target as HTMLElement;
-          if (target.closest('button, a, input, select')) return;
           const surface = target.closest('.swipe-surface') as HTMLElement | null;
-          if (surface) {
+          if (surface && !target.closest('button, a, input, select')) {
             isMouseDown = true;
             handleSwipeStart(surface, e.clientX, e.clientY);
           }
@@ -254,47 +292,6 @@ const { title, hideDock = false } = Astro.props;
           if (isMouseDown) {
             isMouseDown = false;
             handleSwipeEnd();
-          }
-        });
-
-        // Global Event Delegation for Card Summary Click (Expand/Collapse)
-        document.addEventListener('click', (e: MouseEvent) => {
-          const target = e.target as HTMLElement;
-          const summary = target.closest('.card-summary') as HTMLElement | null;
-          if (!summary) return;
-
-          // Don't expand if click was inside an action button inside card
-          if (target.closest('button, a, input')) return;
-
-          const cardRoot = summary.closest('session-card, .swipe-surface') as HTMLElement | null;
-          if (!cardRoot) return;
-
-          // Don't expand if card was swiping
-          const wrapper = cardRoot.closest('session-card, .relative') as HTMLElement | null;
-          if (wrapper && wrapper.dataset.wasSwiping === 'true') return;
-
-          // Check if card surface is currently swiped out
-          const surface = (cardRoot.classList.contains('swipe-surface') ? cardRoot : cardRoot.querySelector('.swipe-surface')) as HTMLElement | null;
-          if (surface) {
-            const style = window.getComputedStyle(surface);
-            const matrix = new WebKitCSSMatrix(style.transform);
-            if (Math.abs(matrix.m41) > 20) {
-              // Reset swipe to 0 on tap instead of expanding
-              surface.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-              surface.style.transform = 'translateX(0px)';
-              return;
-            }
-          }
-
-          // Toggle expand/collapse
-          const details = cardRoot.querySelector('.card-details') as HTMLElement | null;
-          const icon = cardRoot.querySelector('.expand-icon') as HTMLElement | null;
-          if (details) {
-            const isExpanded = details.style.gridTemplateRows === '1fr';
-            details.style.gridTemplateRows = isExpanded ? '0fr' : '1fr';
-            if (icon) {
-              icon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
-            }
           }
         });
       }
