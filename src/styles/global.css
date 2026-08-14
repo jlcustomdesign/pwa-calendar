@@ -35,6 +35,7 @@
     background-color: rgb(var(--color-surface-base));
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+    overscroll-behavior-x: none;
   }
 
   /* Hide scrollbars everywhere while keeping scrolling functional */

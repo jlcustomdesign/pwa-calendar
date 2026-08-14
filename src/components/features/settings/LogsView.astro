@@ -120,18 +120,18 @@
           <div class="space-y-3">
             <div>
               <p class="text-xs font-black uppercase tracking-wider text-text-muted mb-1">Mesaj</p>
-              <p class="text-sm sm:text-base font-bold text-text-main whitespace-pre-wrap">${escapeHtml(log.message)}</p>
+              <p class="text-sm sm:text-base font-bold text-text-main break-words">${escapeHtml(log.message)}</p>
             </div>
 
             <div class="bg-brand-primary/10 rounded-2xl p-3.5 border border-transparent">
               <p class="text-xs font-black uppercase tracking-wider text-text-muted mb-1">Interpretare</p>
-              <p class="text-sm font-bold text-text-main">${escapeHtml(log.interpretation)}</p>
+              <p class="text-sm font-bold text-text-main break-words">${escapeHtml(log.interpretation)}</p>
             </div>
 
             ${log.details ? `
               <div>
                 <p class="text-xs font-black uppercase tracking-wider text-text-muted mb-1">Detalii complete</p>
-                <pre class="text-xs font-mono text-text-main bg-surface-base rounded-xl p-3 overflow-x-auto whitespace-pre-wrap">${escapeHtml(log.details)}</pre>
+                <pre class="text-xs font-mono text-text-main bg-surface-base rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-words">${escapeHtml(log.details)}</pre>
               </div>
             ` : ''}
 
