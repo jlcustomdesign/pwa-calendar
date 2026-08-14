@@ -179,7 +179,7 @@
       <span id="wrapup-time-minute">00</span>
     </div>
     <div>
-      <div class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1 py-2" id="wrapup-time-hours-grid"></div>
+      <div class="grid grid-cols-4 gap-2 py-2" id="wrapup-time-hours-grid"></div>
     </div>
     <div class="space-y-1.5 pt-1">
       <div class="text-xs font-extrabold text-text-muted font-sans uppercase tracking-wider">Minute</div>
@@ -329,17 +329,14 @@
       const patientName = this.currentAppointment.pacienti ? `${this.currentAppointment.pacienti.prenume || ''} ${this.currentAppointment.pacienti.nume || ''}`.trim() : this.currentAppointment.patientName;
       const total = this.currentAppointment.pacienti?.sedinte_total || 10;
       
-      this.close();
-
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('openRenewalSheet', {
-          detail: {
-            patientId,
-            currentTotal: total,
-            patientName
-          }
-        }));
-      }, 250);
+      // Open RenewalSheet on top of the current confirm card
+      window.dispatchEvent(new CustomEvent('openRenewalSheet', {
+        detail: {
+          patientId,
+          currentTotal: total,
+          patientName
+        }
+      }));
     }
 
     private async initView() {
@@ -492,23 +489,20 @@
           const locatie = (appt.location || appt.pacienti?.locatie || 'Belaqva') as 'Belaqva' | 'Ghimbav';
           const patientName = appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : (appt.patientName || 'Pacient');
 
-          this.close();
-
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('openRenewalSheet', {
-              detail: {
-                patientId,
-                currentTotal: total,
-                patientName,
-                pendingAppointment: {
-                  data: targetDate,
-                  ora: targetTime,
-                  locatie: locatie
-                }
+          // Open RenewalSheet on top of wrap-up sheet
+          window.dispatchEvent(new CustomEvent('openRenewalSheet', {
+            detail: {
+              patientId,
+              currentTotal: total,
+              patientName,
+              pendingAppointment: {
+                data: targetDate,
+                ora: targetTime,
+                locatie: locatie
               }
-            }));
-            (window as any).showToast('Abonament completat! Reînnoiește pachetul pentru a confirma programarea viitoare.', 'warning');
-          }, 250);
+            }
+          }));
+          (window as any).showToast('Abonament completat! Reînnoiește pachetul pentru a confirma programarea viitoare.', 'warning');
 
           return;
         }

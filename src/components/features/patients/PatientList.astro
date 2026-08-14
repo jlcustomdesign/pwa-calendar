@@ -486,7 +486,7 @@
         let currentX = 0;
         let isSwiping = false;
         let isOpen = false;
-        const MAX_SWIPE = -190;
+        const MAX_SWIPE = -240;
         const SWIPE_THRESHOLD = -40;
 
         card.addEventListener('touchstart', (e: any) => {
@@ -511,7 +511,7 @@
 
           let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
           if (targetX > 0) targetX = 0;
-          if (targetX < MAX_SWIPE - 20) targetX = MAX_SWIPE - 20;
+          if (targetX < MAX_SWIPE - 30) targetX = MAX_SWIPE - 30;
           
           card.style.transform = `translateX(${targetX}px)`;
         }, { passive: true });

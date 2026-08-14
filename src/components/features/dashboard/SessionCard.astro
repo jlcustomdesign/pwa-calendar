@@ -187,7 +187,7 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
         let isSwiping = false;
         let isOpen = false;
         const SWIPE_THRESHOLD = -60;
-        const MAX_SWIPE = -230;
+        const MAX_SWIPE = -260;
 
         const onStart = (clientX: number) => {
           startX = clientX;
@@ -208,7 +208,7 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
 
           let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
           if (targetX > 0) targetX = 0;
-          if (targetX < MAX_SWIPE - 20) targetX = MAX_SWIPE - 20;
+          if (targetX < MAX_SWIPE - 30) targetX = MAX_SWIPE - 30;
           
           surface.style.transform = `translateX(${targetX}px)`;
         };
