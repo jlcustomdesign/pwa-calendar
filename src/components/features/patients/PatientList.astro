@@ -486,7 +486,7 @@
         let isSwiping = false;
         let isOpen = false;
         let currentTranslateX = 0;
-        const MAX_SWIPE = -230; // Fully exposes all 3 action buttons in 1 slide
+        const MAX_SWIPE = -200; // All 3 buttons (180px) fully visible in one single slide
 
         const onStart = (clientX: number, clientY: number) => {
           startX = clientX;
@@ -507,7 +507,7 @@
 
           let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
           if (targetX > 0) targetX = 0;
-          if (targetX < MAX_SWIPE - 25) targetX = MAX_SWIPE - 25;
+          if (targetX < MAX_SWIPE - 20) targetX = MAX_SWIPE - 20;
           
           currentTranslateX = targetX;
           card.style.transform = `translateX(${targetX}px)`;
@@ -516,14 +516,14 @@
         const onEnd = () => {
           if (!isSwiping) return;
           isSwiping = false;
-          card.style.transition = 'transform 250ms cubic-bezier(0.32, 0.72, 0, 1)';
+          card.style.transition = 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)';
 
-          // Snap to open on first slide if swiped left past -35px, or close if swiped right
-          if (!isOpen && currentTranslateX < -35) {
+          // Snap to open on first slide if swiped left past -30px, or close if swiped right
+          if (!isOpen && currentTranslateX < -30) {
             isOpen = true;
             currentTranslateX = MAX_SWIPE;
             card.style.transform = `translateX(${MAX_SWIPE}px)`;
-          } else if (isOpen && currentTranslateX > MAX_SWIPE + 35) {
+          } else if (isOpen && currentTranslateX > -150) {
             isOpen = false;
             currentTranslateX = 0;
             card.style.transform = 'translateX(0px)';

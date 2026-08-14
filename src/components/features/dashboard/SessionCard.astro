@@ -186,7 +186,7 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
         let isSwiping = false;
         let isOpen = false;
         let currentTranslateX = 0;
-        const MAX_SWIPE = -230;
+        const MAX_SWIPE = -200;
 
         const onStart = (clientX: number) => {
           startX = clientX;
@@ -205,7 +205,7 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
 
           let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
           if (targetX > 0) targetX = 0;
-          if (targetX < MAX_SWIPE - 25) targetX = MAX_SWIPE - 25;
+          if (targetX < MAX_SWIPE - 20) targetX = MAX_SWIPE - 20;
           
           currentTranslateX = targetX;
           surface.style.transform = `translateX(${targetX}px)`;
@@ -214,13 +214,13 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
         const onEnd = () => {
           if (!isSwiping) return;
           isSwiping = false;
-          surface.style.transition = 'transform 250ms cubic-bezier(0.32, 0.72, 0, 1)';
+          surface.style.transition = 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)';
           
-          if (!isOpen && currentTranslateX < -35) {
+          if (!isOpen && currentTranslateX < -30) {
             isOpen = true;
             currentTranslateX = MAX_SWIPE;
             surface.style.transform = `translateX(${MAX_SWIPE}px)`;
-          } else if (isOpen && currentTranslateX > MAX_SWIPE + 35) {
+          } else if (isOpen && currentTranslateX > -150) {
             isOpen = false;
             currentTranslateX = 0;
             surface.style.transform = 'translateX(0px)';
