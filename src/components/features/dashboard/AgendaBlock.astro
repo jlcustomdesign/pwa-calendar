@@ -1,10 +1,10 @@
----
-import SessionCard from './SessionCard.astro';
-import DailyProgress from './DailyProgress.astro';
----
-
 <div class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm">
   
+  <!-- Home Page Action Notifications Banner (Renewals & Overdue Alerts) -->
+  <div id="home-action-notifications" class="hidden mb-6 space-y-3">
+    <!-- Injected dynamically by JS -->
+  </div>
+
   <div id="daily-progress-container" class="space-y-2 mb-6 px-2">
     <div class="flex items-center justify-between text-sm font-medium">
       <span class="text-text-main font-semibold">Progres Zilnic</span>
@@ -30,17 +30,10 @@ import DailyProgress from './DailyProgress.astro';
 </div>
 <script>
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
-  import { getPatientPayments, renewWithPrompt, dismissRenewalNotification, isRenewalDismissed } from '../../../lib/services/patientService';
+  import { getPatients, getPatientPayments, renewWithPrompt, dismissRenewalNotification, isRenewalDismissed } from '../../../lib/services/patientService';
 
-  (window as any).renewSubscription = (window as any).renewSubscription || (async (patientId: string, totalSessions: number) => {
-    try {
-      await renewWithPrompt(patientId, totalSessions);
-      (window as any).showToast?.('Abonamentul a fost reînnoit! Ședințele au fost reluate de la 0.', 'success');
-      window.dispatchEvent(new CustomEvent('patientsUpdated'));
-      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-    } catch (err: any) {
-      (window as any).showToast?.('Eroare la reînnoire: ' + (err?.message || err), 'error');
-    }
+  (window as any).renewSubscription = (window as any).renewSubscription || ((patientId: string, totalSessions: number, patientName?: string) => {
+    renewWithPrompt(patientId, totalSessions, patientName);
   });
 
   (window as any).dismissSubscriptionWarning = (window as any).dismissSubscriptionWarning || ((patientId: string) => {
@@ -65,107 +58,60 @@ import DailyProgress from './DailyProgress.astro';
   });
 
 
-  async function renderAgendaBlock() {
-    const list = document.getElementById('agenda-sessions-list');
-    const skeleton = document.getElementById('agenda-skeleton');
-    if (!list) return;
+  async function checkActionNotifications() {
+    const banner = document.getElementById('home-action-notifications');
+    if (!banner) return;
 
-    // Render instant cache first to prevent mobile delay
-    const cacheKey = `kineto_agenda_cache_${currentAgendaDate}`;
-    let usedCache = false;
     try {
-      const rawCache = localStorage.getItem(cacheKey);
-      if (rawCache && list.children.length === 0) {
-        const cachedSessions = JSON.parse(rawCache);
-        if (Array.isArray(cachedSessions) && cachedSessions.length > 0) {
-          drawAgendaSessionsList(list, cachedSessions);
-          usedCache = true;
-        }
-      }
-    } catch (e) {}
+      const allPatients = await getPatients({ inactivi: false });
+      const needsRenewal = allPatients.filter(p => {
+        const total = p.sedinte_total || 10;
+        const folosite = p.sedinte_folosite ?? 0;
+        return total > 0 && folosite >= total && !isRenewalDismissed(p.id);
+      });
 
-    // Show skeleton only while fetching from DB (hide cached content temporarily if no cache)
-    if (skeleton) {
-      if (!usedCache) {
-        list.classList.add('hidden');
-        skeleton.classList.remove('hidden');
-      } else {
-        skeleton.classList.add('hidden');
+      if (needsRenewal.length === 0) {
+        banner.innerHTML = '';
+        banner.classList.add('hidden');
+        return;
       }
+
+      banner.classList.remove('hidden');
+      banner.innerHTML = `
+        <div class="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-between gap-3 shadow-sm">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-amber-500 text-black flex items-center justify-center font-black shrink-0 shadow-sm">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-sm font-extrabold text-neutral-900 leading-tight">
+                ${needsRenewal.length === 1 ? `Pacientul <strong>${needsRenewal[0].name}</strong> necesită reînnoire` : `${needsRenewal.length} pacienți au abonamentul completat`}
+              </h4>
+              <p class="text-xs font-bold text-neutral-600 truncate mt-0.5">
+                ${needsRenewal.length === 1 ? 'Atinge pentru a alege noul pachet de ședințe' : needsRenewal.map(p => p.name).join(', ')}
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            onclick="${needsRenewal.length === 1 ? `window.renewSubscription('${needsRenewal[0].id}', ${needsRenewal[0].sedinte_total || 10}, '${needsRenewal[0].name.replace(/'/g, "\\'")}')` : `window.location.href='/dashboard/patients'`}"
+            class="px-3.5 py-2 rounded-xl bg-brand-primary font-black text-xs text-black shadow-sm hover:brightness-105 active:scale-95 transition-all shrink-0 cursor-pointer"
+          >
+            ${needsRenewal.length === 1 ? 'Reînnoiește' : 'Vezi pacienți'}
+          </button>
+        </div>
+      `;
+    } catch (e) {
+      console.warn('Eroare verificare notificari home:', e);
     }
+  }
 
+  function drawAgendaSessionsList(list: HTMLElement, sessions: any[]) {
     const now = new Date();
     const nowStr = now.toTimeString().slice(0, 5);
     const isToday = currentAgendaDate === todayStr;
-    let stored: any[] = [];
-    try {
-      const appts = await getAppointmentsByDate(currentAgendaDate);
-      stored = await Promise.all(appts.map(async (a: any) => {
-        const sumaIncasata = await getPatientPayments(a.pacient_id);
-        const costTotal = Number(a.pacienti?.cost || 0);
-        const folosite = a.pacienti?.sedinte_folosite ?? 0;
-        const totalSess = a.pacienti?.sedinte_total || 10;
-        const sedinteRamase = Math.max(0, totalSess - folosite);
-        const costPerSession = totalSess > 0 ? (costTotal / totalSess) : costTotal;
-        const sedintePlatite = costPerSession > 0 ? Math.floor(sumaIncasata / costPerSession) : 0;
 
-        let pStatus = 'Neachitat';
-        if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
-          pStatus = 'Achitat integral';
-        } else if (sumaIncasata > 0) {
-          pStatus = 'Achitat parțial';
-        } else if (a.pacienti?.status_plata) {
-          pStatus = a.pacienti.status_plata;
-        }
-
-        return {
-          id: a.id,
-          patientId: a.pacient_id,
-          patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
-          selectedTime: a.ora,
-          selectedDate: a.data,
-          location: a.pacienti?.locatie || 'Belaqva',
-          attendanceCount: folosite,
-          totalSessions: totalSess,
-          remainingSessions: sedinteRamase,
-          subscriptionDone: totalSess > 0 && folosite > 0 && folosite >= totalSess,
-          status: a.status || 'programat',
-          paymentStatus: pStatus,
-          costTotal,
-          sumaIncasata
-        };
-      }));
-    } catch (e) {
-      console.error('Eroare citire agenda din DB:', e);
-    }
-
-    // Hide skeleton and reveal list after DB fetch completes
-    if (skeleton) skeleton.classList.add('hidden');
-    list.classList.remove('hidden');
-
-    lastFetchedSessions = stored;
-    try {
-      if (stored.length > 0) {
-        localStorage.setItem(cacheKey, JSON.stringify(stored));
-      }
-    } catch (e) {}
-
-    // Calculate selected day's progress dynamically
-    const daySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === currentAgendaDate);
-    const totalToday = daySessions.length;
-    const completedToday = daySessions.filter((s: any) => {
-      if (currentAgendaDate < todayStr) return true;
-      if (currentAgendaDate > todayStr) return false;
-      return (s.selectedTime || s.time || "00:00") <= nowStr;
-    }).length;
-    const todayProgressPct = totalToday > 0 ? Math.min(100, Math.round((completedToday / totalToday) * 100)) : 0;
-
-    const progressText = document.getElementById('daily-progress-text');
-    const progressBar = document.getElementById('daily-progress-bar');
-    if (progressText) progressText.textContent = `${completedToday} din ${totalToday} ședințe`;
-    if (progressBar) progressBar.style.width = `${todayProgressPct}%`;
-
-    if (stored.length === 0) {
+    if (sessions.length === 0) {
       const emptyDay = currentAgendaDate === todayStr ? 'azi' : 'această zi';
       list.innerHTML = `<p class="text-sm font-bold text-text-muted text-center py-4">Nicio ședință programată pentru ${emptyDay}.</p>`;
       return;
@@ -181,12 +127,12 @@ import DailyProgress from './DailyProgress.astro';
       const isOngoing = isToday && nowStr >= timeStr && nowStr < endTime;
       const isPast = currentAgendaDate < todayStr || (isToday && nowStr >= endTime);
 
-      if (isOngoing) return 0; // Ongoing comes first
-      if (!isPast) return 1;   // Upcoming comes second
-      return 2;                // Past comes at bottom
+      if (isOngoing) return 0;
+      if (!isPast) return 1;
+      return 2;
     };
 
-    const sorted = [...stored].sort((a: any, b: any) => {
+    const sorted = [...sessions].sort((a: any, b: any) => {
       const catA = getSessionCategory(a);
       const catB = getSessionCategory(b);
       if (catA !== catB) return catA - catB;
@@ -199,10 +145,8 @@ import DailyProgress from './DailyProgress.astro';
       const locationStr = session.location || "Belaqva";
       const isGhimbav = locationStr.toLowerCase() === "ghimbav";
       const cardClasses = isGhimbav ? "bg-brand-secondary text-white" : "bg-brand-primary text-black";
-      const gradientColors = isGhimbav ? "from-white/30 to-white" : "from-black/30 to-black";
       const count = session.attendanceCount ?? 0;
       const totalSess = session.totalSessions || 10;
-      const remainingSessions = session.remainingSessions ?? Math.max(0, totalSess - count);
       const isTerminat = session.subscriptionDone || (totalSess > 0 && count > 0 && count >= totalSess);
       const displayCount = isTerminat ? totalSess : count;
       const progressPercentage = isTerminat ? 100 : (totalSess > 0 ? Math.min(100, Math.round((count / totalSess) * 100)) : 0);
@@ -216,7 +160,7 @@ import DailyProgress from './DailyProgress.astro';
       const startH = parseInt(timeParts[0] || "8", 10);
       const startM = parseInt(timeParts[1] || "0", 10);
       const totalStartMin = startH * 60 + startM;
-      const totalEndMin = totalStartMin + 50; // 50 min session duration
+      const totalEndMin = totalStartMin + 50;
       const endH = Math.floor(totalEndMin / 60);
       const endM = totalEndMin % 60;
       const formattedStart = `${startH}:${startM.toString().padStart(2, '0')}`;
@@ -225,11 +169,8 @@ import DailyProgress from './DailyProgress.astro';
 
       const sessionStatus = session.status || 'programat';
       const isOngoing = isToday && nowStr >= cleanTimeStr && nowStr < `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-      const isPast = currentAgendaDate < todayStr || (isToday && nowStr >= `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
       const paymentStatus = session.paymentStatus || 'Neachitat';
 
-      // Icon-only status indicator for closed state
-      // Bifa verde apare DOAR după confirmare (status = finalizat), nu doar pentru că a trecut ora.
       let statusIcon = '';
       if (sessionStatus === 'absent') {
         statusIcon = `<svg class="w-6 h-6 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
@@ -241,9 +182,8 @@ import DailyProgress from './DailyProgress.astro';
         statusIcon = `<svg class="w-7 h-7 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
       }
 
-      // Subscription warning shown only in open state
       const subscriptionWarningDetails = session.subscriptionDone && !isRenewalDismissed(session.patientId)
-        ? `<div class="pb-3 space-y-2"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>REÎNNOIEȘTE PACHETUL</span></button><button type="button" class="w-full py-3 px-6 rounded-2xl bg-surface-base text-text-muted text-xs sm:text-sm font-black uppercase tracking-wider text-center border border-transparent hover:opacity-80 active:scale-95 transition-all cursor-pointer" onclick="event.stopPropagation(); window.dismissSubscriptionWarning('${session.patientId}')"><span>NU REÎNNOIA</span></button></div>`
+        ? `<div class="pb-3 space-y-2"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10}, '${session.patientName?.replace(/'/g, "\\'") || ''}')"><span>REÎNNOIEȘTE PACHETUL</span></button><button type="button" class="w-full py-3 px-6 rounded-2xl bg-surface-base text-text-muted text-xs sm:text-sm font-black uppercase tracking-wider text-center border border-transparent hover:opacity-80 active:scale-95 transition-all cursor-pointer" onclick="event.stopPropagation(); window.dismissSubscriptionWarning('${session.patientId}')"><span>NU REÎNNOIA</span></button></div>`
         : '';
 
       const restDePlata = Math.max(0, (session.costTotal || 0) - (session.sumaIncasata || 0));
@@ -256,7 +196,6 @@ import DailyProgress from './DailyProgress.astro';
       let displayPaymentLabel = 'Status plată';
 
       if (sumaIncasata > 0 && restDePlata > 0) {
-        // Plată parțială — doar suma/total
         displayPaymentLabel = `${sumaIncasata}/${costTotal} RON`;
         paymentBadgeClass = 'bg-orange-100 hover:bg-orange-200 text-black border border-transparent font-extrabold shadow-sm';
       } else if (isPaid || paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal)) {
@@ -270,7 +209,7 @@ import DailyProgress from './DailyProgress.astro';
       const driveLink = session.driveLink || session.patientDriveLink || '';
 
       return `
-        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden mx-1 md:mx-5">
+        <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden mx-1 md:mx-5" data-session-id="${session.id}">
           <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
             <div class="flex items-center gap-3">
               <button 
@@ -347,7 +286,7 @@ import DailyProgress from './DailyProgress.astro';
                     </span>
                   </div>
 
-                  <!-- Row 2: Payment Badge on Left (Spacious px-6 padding) + Icon-only Call/Folder Buttons on Right -->
+                  <!-- Row 2: Payment Badge on Left + Icon-only Call/Folder Buttons on Right -->
                   <div class="flex items-center justify-between pt-0.5 gap-4">
                     <button 
                       type="button"
@@ -375,7 +314,7 @@ import DailyProgress from './DailyProgress.astro';
 
                 ${sessionStatus !== 'finalizat' && sessionStatus !== 'anulat' && sessionStatus !== 'absent' ? `
                   <div class="px-6 pb-5 pt-2">
-                    <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary hover:opacity-90' : 'bg-brand-secondary hover:opacity-90'} text-black font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
+                    <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary hover:opacity-90' : 'bg-brand-secondary hover:opacity-90'} text-black font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent" onclick="event.stopPropagation(); if (typeof window.confirmSession === 'function') { window.confirmSession('${session.id}'); }">
                       <span>CONFIRMĂ ȘEDINȚA</span>
                     </button>
                   </div>
@@ -386,6 +325,110 @@ import DailyProgress from './DailyProgress.astro';
         </session-card>
       `;
     }).join('');
+  }
+
+  async function renderAgendaBlock() {
+    checkActionNotifications();
+    const list = document.getElementById('agenda-sessions-list');
+    const skeleton = document.getElementById('agenda-skeleton');
+    if (!list) return;
+
+    // Render instant cache first to prevent mobile delay
+    const cacheKey = `kineto_agenda_cache_${currentAgendaDate}`;
+    let usedCache = false;
+    try {
+      const rawCache = localStorage.getItem(cacheKey);
+      if (rawCache && list.children.length === 0) {
+        const cachedSessions = JSON.parse(rawCache);
+        if (Array.isArray(cachedSessions) && cachedSessions.length > 0) {
+          drawAgendaSessionsList(list, cachedSessions);
+          usedCache = true;
+        }
+      }
+    } catch (e) {}
+
+    // Show skeleton only while fetching from DB
+    if (skeleton) {
+      if (!usedCache) {
+        list.classList.add('hidden');
+        skeleton.classList.remove('hidden');
+      } else {
+        skeleton.classList.add('hidden');
+      }
+    }
+
+    const now = new Date();
+    const nowStr = now.toTimeString().slice(0, 5);
+    const isToday = currentAgendaDate === todayStr;
+    let stored: any[] = [];
+    try {
+      const appts = await getAppointmentsByDate(currentAgendaDate);
+      stored = await Promise.all(appts.map(async (a: any) => {
+        const sumaIncasata = await getPatientPayments(a.pacient_id);
+        const costTotal = Number(a.pacienti?.cost || 0);
+        const folosite = a.pacienti?.sedinte_folosite ?? 0;
+        const totalSess = a.pacienti?.sedinte_total || 10;
+        const sedinteRamase = Math.max(0, totalSess - folosite);
+        const costPerSession = totalSess > 0 ? (costTotal / totalSess) : costTotal;
+
+        let pStatus = 'Neachitat';
+        if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
+          pStatus = 'Achitat integral';
+        } else if (sumaIncasata > 0) {
+          pStatus = 'Achitat parțial';
+        } else if (a.pacienti?.status_plata) {
+          pStatus = a.pacienti.status_plata;
+        }
+
+        return {
+          id: a.id,
+          patientId: a.pacient_id,
+          patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
+          patientPhone: a.pacienti?.telefon || '',
+          driveLink: a.pacienti?.drive_link || '',
+          selectedTime: a.ora,
+          selectedDate: a.data,
+          location: a.pacienti?.locatie || 'Belaqva',
+          attendanceCount: folosite,
+          totalSessions: totalSess,
+          remainingSessions: sedinteRamase,
+          subscriptionDone: totalSess > 0 && folosite > 0 && folosite >= totalSess,
+          status: a.status || 'programat',
+          paymentStatus: pStatus,
+          costTotal,
+          sumaIncasata
+        };
+      }));
+    } catch (e) {
+      console.error('Eroare citire agenda din DB:', e);
+    }
+
+    if (skeleton) skeleton.classList.add('hidden');
+    list.classList.remove('hidden');
+
+    lastFetchedSessions = stored;
+    try {
+      if (stored.length > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify(stored));
+      }
+    } catch (e) {}
+
+    // Calculate selected day's progress dynamically
+    const daySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === currentAgendaDate);
+    const totalToday = daySessions.length;
+    const completedToday = daySessions.filter((s: any) => {
+      if (currentAgendaDate < todayStr) return true;
+      if (currentAgendaDate > todayStr) return false;
+      return (s.selectedTime || s.time || "00:00") <= nowStr;
+    }).length;
+    const todayProgressPct = totalToday > 0 ? Math.min(100, Math.round((completedToday / totalToday) * 100)) : 0;
+
+    const progressText = document.getElementById('daily-progress-text');
+    const progressBar = document.getElementById('daily-progress-bar');
+    if (progressText) progressText.textContent = `${completedToday} din ${totalToday} ședințe`;
+    if (progressBar) progressBar.style.width = `${todayProgressPct}%`;
+
+    drawAgendaSessionsList(list, stored);
   }
 
   function checkAutoPromptAndProgress() {
@@ -416,13 +459,12 @@ import DailyProgress from './DailyProgress.astro';
       // Auto prompt if the session ended within the last 3 minutes and wasn't prompted yet
       if (nowTotalMin >= totalEndMin && nowTotalMin - totalEndMin <= 3 && !autoPromptedSessions.has(s.id)) {
         autoPromptedSessions.add(s.id);
-        if (typeof window.confirmSession === 'function') {
-          window.confirmSession(s.id);
+        if (typeof (window as any).confirmSession === 'function') {
+          (window as any).confirmSession(s.id);
         }
       }
 
       // Check if we need to re-render UI because of time changes (ongoing vs past)
-      // If a session just crossed the end boundary, we should re-render to update UI
       if (nowTotalMin === totalEndMin || nowTotalMin === totalStartMin) {
         shouldRender = true;
       }

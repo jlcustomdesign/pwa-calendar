@@ -265,14 +265,16 @@ export function dismissRenewalNotification(patientId: string): void {
   } catch {}
 }
 
-export async function renewWithPrompt(patientId: string, currentTotal: number): Promise<void> {
-  const defaultTotal = 10;
-  const input = typeof window !== 'undefined'
-    ? window.prompt('Câte ședințe are noul abonament?', String(defaultTotal))
-    : null;
-  const newTotal = input ? parseInt(input, 10) : defaultTotal;
-  if (!newTotal || newTotal <= 0 || Number.isNaN(newTotal)) return;
-  await resetPatientSubscription(patientId, newTotal);
+export async function renewWithPrompt(patientId: string, currentTotal: number, patientName?: string): Promise<void> {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('openRenewalSheet', {
+      detail: {
+        patientId,
+        currentTotal: currentTotal || 10,
+        patientName
+      }
+    }));
+  }
 }
 
 // ── Obținere plăți pacient (Local + Supabase Hybrid) ───────────

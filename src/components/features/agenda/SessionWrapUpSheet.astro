@@ -326,24 +326,15 @@
     private async handleRenewPackage() {
       if (!this.currentAppointment?.pacient_id && !this.currentAppointment?.pacienti?.id) return;
       const patientId = this.currentAppointment.pacient_id || this.currentAppointment.pacienti?.id;
-      try {
-        const patient = await getPatient(patientId);
-        const defaultTotal = 10;
-        const input = window.prompt('Câte ședințe are noul abonament?', String(defaultTotal));
-        const newTotal = input ? parseInt(input, 10) : defaultTotal;
-        if (!newTotal || newTotal <= 0 || Number.isNaN(newTotal)) return;
-
-        await resetPatientSubscription(patientId, newTotal);
-        (window as any).showToast(`Pachetul pacientului a fost reînnoit la ${newTotal} ședințe!`, 'success');
-
-        const alertEl = document.getElementById('wrapup-subscription-alert');
-        if (alertEl) alertEl.classList.add('hidden');
-
-        const countEl = document.getElementById('wrapup-session-count');
-        if (countEl) countEl.textContent = `0 / ${newTotal}`;
-      } catch (err: any) {
-        (window as any).showToast('Eroare la reînnoirea pachetului: ' + (err?.message || err), 'error');
-      }
+      const patientName = this.currentAppointment.pacienti ? `${this.currentAppointment.pacienti.prenume || ''} ${this.currentAppointment.pacienti.nume || ''}`.trim() : this.currentAppointment.patientName;
+      const total = this.currentAppointment.pacienti?.sedinte_total || 10;
+      window.dispatchEvent(new CustomEvent('openRenewalSheet', {
+        detail: {
+          patientId,
+          currentTotal: total,
+          patientName
+        }
+      }));
     }
 
     private async initView() {

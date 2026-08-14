@@ -1,0 +1,356 @@
+---
+// RenewalSheet.astro — Bottom sheet custom pentru reînnoirea pachetelor de ședințe
+---
+
+<div id="renewal-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
+  <div id="renewal-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
+  
+  <div id="renewal-content" class="absolute bottom-0 left-0 right-0 bg-surface-card rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto border-t border-transparent">
+    <!-- Drag handle (Works anywhere, top or scrolled) -->
+    <div class="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-6 cursor-grab active:cursor-grabbing" id="renewal-drag-handle"></div>
+
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-xl sm:text-2xl font-black tracking-tight text-text-main">Reînnoire abonament</h2>
+        <p class="text-text-muted font-bold text-sm mt-0.5" id="renewal-patient-name">Selectează noul pachet de ședințe</p>
+      </div>
+      <button type="button" id="renewal-close-btn" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 font-bold text-base flex items-center justify-center transition-colors">
+        &times;
+      </button>
+    </div>
+
+    <!-- Info Card -->
+    <div class="mb-5 bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-brand-primary flex items-center justify-center text-black font-black shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        </div>
+        <div>
+          <p class="text-xs sm:text-sm font-extrabold text-neutral-900 leading-snug">Contorul de ședințe va fi reluat de la 0</p>
+          <p class="text-[11px] font-bold text-neutral-600 mt-0.5">Istoricul programărilor trecute rămâne salvat în siguranță.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Package Quick Selection -->
+    <div class="space-y-3 mb-6">
+      <label class="block text-xs font-black uppercase tracking-wider text-text-muted">Alege pachetul:</label>
+      <div class="grid grid-cols-3 gap-2.5" id="renewal-packages-grid">
+        <button type="button" data-sessions="5" class="renewal-pkg-btn p-3.5 rounded-2xl bg-neutral-100 font-extrabold text-neutral-900 text-sm hover:bg-brand-primary/20 border border-transparent transition-all active:scale-95 text-center">
+          <span class="block text-lg font-black">5</span>
+          <span class="text-xs font-bold text-neutral-600">ședințe</span>
+        </button>
+        <button type="button" data-sessions="10" class="renewal-pkg-btn p-3.5 rounded-2xl bg-brand-primary font-extrabold text-black text-sm border-2 border-black/10 shadow-sm transition-all active:scale-95 text-center">
+          <span class="block text-lg font-black">10</span>
+          <span class="text-xs font-bold text-black/80">ședințe</span>
+        </button>
+        <button type="button" data-sessions="12" class="renewal-pkg-btn p-3.5 rounded-2xl bg-neutral-100 font-extrabold text-neutral-900 text-sm hover:bg-brand-primary/20 border border-transparent transition-all active:scale-95 text-center">
+          <span class="block text-lg font-black">12</span>
+          <span class="text-xs font-bold text-neutral-600">ședințe</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom Number Input Option -->
+    <div class="mb-6 space-y-2">
+      <label for="renewal-custom-input" class="block text-xs font-black uppercase tracking-wider text-text-muted">Sau introdu alt număr:</label>
+      <div class="relative flex items-center">
+        <input 
+          type="number" 
+          id="renewal-custom-input" 
+          min="1" 
+          max="100" 
+          value="10" 
+          class="w-full bg-neutral-100 border border-transparent rounded-2xl py-4 pl-4 pr-24 text-lg font-black text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-primary transition-all"
+        />
+        <span class="absolute right-4 text-sm font-bold text-neutral-500 pointer-events-none">ședințe</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="pt-2">
+      <button 
+        type="button" 
+        id="btn-confirm-renewal" 
+        class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-lg shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
+      >
+        <span>Confirmă reînnoirea</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { resetPatientSubscription, getPatient } from '../../../lib/services/patientService';
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+
+  class RenewalSheetManager {
+    private sheet: HTMLElement | null = null;
+    private backdrop: HTMLElement | null = null;
+    private content: HTMLElement | null = null;
+    private customInput: HTMLInputElement | null = null;
+    private currentPatientId: string | null = null;
+    private selectedSessions: number = 10;
+    private isOpen: boolean = false;
+
+    constructor() {
+      this.reconnect();
+      this.bindEvents();
+    }
+
+    reconnect() {
+      this.sheet = document.getElementById('renewal-sheet');
+      this.backdrop = document.getElementById('renewal-backdrop');
+      this.content = document.getElementById('renewal-content');
+      this.customInput = document.getElementById('renewal-custom-input') as HTMLInputElement;
+    }
+
+    private bindEvents() {
+      window.addEventListener('openRenewalSheet', ((e: CustomEvent) => {
+        if (e.detail?.patientId) {
+          this.currentPatientId = e.detail.patientId;
+          this.selectedSessions = e.detail.currentTotal || 10;
+          this.loadPatientInfo(e.detail.patientName);
+          this.open();
+        }
+      }) as EventListener);
+
+      document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (!target) return;
+
+        if (target.closest('#renewal-close-btn') || target.closest('#renewal-backdrop')) {
+          this.close();
+          return;
+        }
+
+        const pkgBtn = target.closest('.renewal-pkg-btn') as HTMLElement;
+        if (pkgBtn) {
+          const count = parseInt(pkgBtn.dataset.sessions || '10', 10);
+          this.selectPackage(count);
+          return;
+        }
+
+        if (target.closest('#btn-confirm-renewal')) {
+          this.handleConfirm();
+          return;
+        }
+      });
+
+      this.customInput?.addEventListener('input', () => {
+        const val = parseInt(this.customInput?.value || '0', 10);
+        if (val > 0) {
+          this.selectedSessions = val;
+          this.updatePackageButtons(val);
+        }
+      });
+
+      this.bindDragHandle();
+      this.bindContentSwipe();
+    }
+
+    private selectPackage(count: number) {
+      this.selectedSessions = count;
+      if (this.customInput) {
+        this.customInput.value = String(count);
+      }
+      this.updatePackageButtons(count);
+    }
+
+    private updatePackageButtons(count: number) {
+      const buttons = document.querySelectorAll<HTMLElement>('.renewal-pkg-btn');
+      buttons.forEach(btn => {
+        const btnCount = parseInt(btn.dataset.sessions || '0', 10);
+        if (btnCount === count) {
+          btn.className = 'renewal-pkg-btn p-3.5 rounded-2xl bg-brand-primary font-extrabold text-black text-sm border-2 border-black/10 shadow-sm transition-all active:scale-95 text-center';
+        } else {
+          btn.className = 'renewal-pkg-btn p-3.5 rounded-2xl bg-neutral-100 font-extrabold text-neutral-900 text-sm hover:bg-brand-primary/20 border border-transparent transition-all active:scale-95 text-center';
+        }
+      });
+    }
+
+    private async loadPatientInfo(providedName?: string) {
+      const nameEl = document.getElementById('renewal-patient-name');
+      if (providedName && nameEl) {
+        nameEl.textContent = `Pacient: ${providedName}`;
+        return;
+      }
+      if (!this.currentPatientId) return;
+      try {
+        const patient = await getPatient(this.currentPatientId);
+        if (nameEl) nameEl.textContent = `Pacient: ${patient.name}`;
+      } catch {}
+    }
+
+    private bindDragHandle() {
+      const dragHandle = document.getElementById('renewal-drag-handle');
+      if (!dragHandle || !this.content) return;
+      let startY = 0;
+      let currentY = 0;
+      let dragging = false;
+      const content = this.content;
+
+      dragHandle.addEventListener('touchstart', (e: TouchEvent) => {
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        dragging = true;
+        content.style.transition = 'none';
+      }, { passive: true });
+
+      dragHandle.addEventListener('touchmove', (e: TouchEvent) => {
+        if (!dragging) return;
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - startY;
+        if (deltaY > 0) {
+          if (e.cancelable) e.preventDefault();
+          content.style.transform = `translateY(${deltaY}px)`;
+        }
+      }, { passive: false });
+
+      const onEnd = () => {
+        if (!dragging) return;
+        dragging = false;
+        const deltaY = currentY - startY;
+        content.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 80) {
+          this.close();
+        } else {
+          content.style.transform = 'translateY(0)';
+        }
+      };
+
+      dragHandle.addEventListener('touchend', onEnd);
+      dragHandle.addEventListener('touchcancel', onEnd);
+    }
+
+    private bindContentSwipe() {
+      if (!this.content) return;
+      let startY = 0;
+      let currentY = 0;
+      let startX = 0;
+      let dragEngaged = false;
+      const content = this.content;
+
+      content.addEventListener('touchstart', (e: TouchEvent) => {
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        startX = e.touches[0].clientX;
+        dragEngaged = false;
+      }, { passive: true });
+
+      content.addEventListener('touchmove', (e: TouchEvent) => {
+        const isAtTop = content.scrollTop <= 0;
+        if (!isAtTop && !dragEngaged) return;
+
+        const y = e.touches[0].clientY;
+        const deltaY = y - startY;
+        const deltaX = e.touches[0].clientX - startX;
+
+        if (!dragEngaged) {
+          if (deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
+            dragEngaged = true;
+            content.style.transition = 'none';
+          } else {
+            return;
+          }
+        }
+
+        currentY = y;
+        if (deltaY > 0) {
+          if (e.cancelable) e.preventDefault();
+          content.style.transform = `translateY(${deltaY}px)`;
+        }
+      }, { passive: false });
+
+      const onEnd = () => {
+        if (!dragEngaged) return;
+        dragEngaged = false;
+        const deltaY = currentY - startY;
+        content.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 120) {
+          this.close();
+        } else {
+          content.style.transform = 'translateY(0)';
+        }
+      };
+
+      content.addEventListener('touchend', onEnd);
+      content.addEventListener('touchcancel', onEnd);
+    }
+
+    private async handleConfirm() {
+      if (!this.currentPatientId) return;
+      const count = parseInt(this.customInput?.value || String(this.selectedSessions), 10);
+      if (!count || count <= 0 || isNaN(count)) {
+        (window as any).showToast?.('Introdu un număr valid de ședințe.', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('btn-confirm-renewal') as HTMLButtonElement | null;
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Se reînnoiește…</span>';
+      }
+
+      try {
+        await resetPatientSubscription(this.currentPatientId, count);
+        (window as any).showToast?.(`Abonamentul a fost reînnoit la ${count} ședințe (0/${count} efectuate).`, 'success');
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+        this.close();
+      } catch (err: any) {
+        (window as any).showToast?.('Eroare la reînnoire: ' + (err?.message || err), 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>Confirmă reînnoirea</span>';
+        }
+      }
+    }
+
+    open() {
+      this.reconnect();
+      if (!this.sheet || !this.backdrop || !this.content) return;
+      this.isOpen = true;
+      this.selectPackage(this.selectedSessions);
+      this.sheet.dataset.open = 'true';
+      void this.sheet.offsetWidth;
+
+      this.backdrop.classList.remove('opacity-0');
+      this.content.classList.remove('translate-y-full');
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = 'none';
+      lockBodyScroll();
+    }
+
+    close() {
+      if (!this.sheet || !this.backdrop || !this.content || !this.isOpen) return;
+      this.isOpen = false;
+      const dock = document.getElementById('persistent-dock');
+      if (dock) dock.style.display = '';
+      unlockBodyScroll();
+
+      this.content.style.transition = '';
+      this.content.style.transform = '';
+      this.backdrop.classList.add('opacity-0');
+      this.content.classList.add('translate-y-full');
+
+      setTimeout(() => {
+        if (!this.isOpen && this.sheet) {
+          this.sheet.dataset.open = 'false';
+          this.currentPatientId = null;
+        }
+      }, 500);
+    }
+  }
+
+  let globalRenewalSheetManager: RenewalSheetManager | null = null;
+  document.addEventListener('astro:page-load', () => {
+    if (!document.getElementById('renewal-sheet')) return;
+    if (!globalRenewalSheetManager) {
+      globalRenewalSheetManager = new RenewalSheetManager();
+    } else {
+      globalRenewalSheetManager.reconnect();
+    }
+  });
+</script>

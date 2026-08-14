@@ -5,6 +5,7 @@ import AddSessionSheet from '../components/features/agenda/AddSessionSheet.astro
 import SessionWrapUpSheet from '../components/features/agenda/SessionWrapUpSheet.astro';
 import CustomToast from '../components/ui/CustomToast.astro';
 import AddPatientSheet from '../components/features/patients/AddPatientSheet.astro';
+import RenewalSheet from '../components/features/patients/RenewalSheet.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
@@ -43,7 +44,7 @@ const { title, hideDock = false } = Astro.props;
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
     <title>{title} | Kineto Agenda</title>
-    <ClientRouter history="replace" />
+    <ClientRouter />
     <!-- Force Astro to prefetch every dashboard page as soon as the app boots,
          so tapping a dock icon never waits for the network. -->
     <div aria-hidden="true" class="hidden">
@@ -70,7 +71,7 @@ const { title, hideDock = false } = Astro.props;
 
     <div class="min-h-[100dvh] w-full flex flex-col relative z-10">
       <!-- Main Content Container -->
-      <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pb-32 pt-[max(0.75rem,env(safe-area-inset-top))] relative z-10">
+      <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pb-32 pt-[max(0.75rem,env(safe-area-inset-top))] relative z-10 page-fade-in">
         <slot />
       </main>
 
@@ -82,6 +83,7 @@ const { title, hideDock = false } = Astro.props;
     <PaymentSheet transition:persist />
     <AddSessionSheet transition:persist />
     <AddPatientSheet transition:persist />
+    <RenewalSheet transition:persist />
     <SessionWrapUpSheet transition:persist />
     <CustomToast transition:persist />
 

@@ -70,4 +70,25 @@
   [data-sheet-root]:not([data-open="true"]) {
     display: none !important;
   }
+
+  /* Fluid Page Loading & Transitions */
+  .page-fade-in {
+    animation: pageFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes pageFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Reduce abrupt skeleton flash by softly fading content */
+  .skeleton-fade {
+    transition: opacity 0.2s ease-out;
+  }
 }

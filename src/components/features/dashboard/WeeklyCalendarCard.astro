@@ -154,6 +154,17 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   <!-- Horizontal Scroll Container with Strict Snapping -->
   <div id="calendar-strip" data-calendar-strip class="relative overflow-hidden flex flex-row w-[calc(100%+3rem)] -mx-6 px-6 pt-32 -mt-32 transition-all closed-mode">
     
+    <div
+      id="calendar-active-pill"
+      class="absolute bg-brand-primary pointer-events-none z-0"
+      style="left: 0; top: 0; width: 0; height: 0; opacity: 0; border-radius: 2rem;"
+    ></div>
+    <div
+      id="calendar-active-circle"
+      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-10"
+      style="left: 0; top: 0; opacity: 0;"
+    ></div>
+
     {allMonths.map((month) => (
       <div 
         data-month-section={month.monthOffset}
@@ -168,21 +179,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
             data-is-current-week={week.isCurrentWeek ? "true" : "false"}
             data-week-index={weekIndex}
           >
-            {month.isCurrentMonth && week.isCurrentWeek && (
-              <>
-                <div
-                  id="calendar-active-pill"
-                  class="absolute bg-brand-primary pointer-events-none z-0"
-                  style="left: 0; top: 0; width: 0; height: 0; opacity: 1; border-radius: 2rem;"
-                ></div>
-                <div
-                  id="calendar-active-circle"
-                  class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-10"
-                  style="left: 0; top: 0; opacity: 1;"
-                ></div>
-              </>
-            )}
-
             {week.days.map((item, index) => (
               item.isCurrentMonth ? (
                 <button

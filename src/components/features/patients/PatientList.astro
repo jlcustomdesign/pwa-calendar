@@ -447,6 +447,7 @@
 
         const deleteBtn = actionsBg.querySelector('.delete-btn');
         deleteBtn?.addEventListener('click', async (e) => {
+          e.preventDefault();
           e.stopPropagation();
           const confirmed = await (window as any).showConfirm('Ștergere Pacient', `Sigur dorești să ștergi pacientul ${patient.name}?`);
           if (confirmed) {
