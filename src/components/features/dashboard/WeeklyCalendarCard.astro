@@ -160,7 +160,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         data-month-name={month.monthName}
         data-year={month.year}
         id={month.isCurrentMonth ? "current-month-section" : undefined}
-        class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0"
+        class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
       >
         {month.weeks.map((week, weekIndex) => (
           <div 
@@ -203,6 +203,9 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                   <span class={`w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
                     {item.date}
                   </span>
+                  {item.isToday && (
+                    <span class="absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-brand-primary pointer-events-none z-20"></span>
+                  )}
                 </button>
               ) : (
                 <div aria-hidden="true" class="pointer-events-none"></div>
@@ -581,7 +584,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
 <style>
   .week-section {
-    height: 5rem;
+    height: 5.5rem;
     opacity: 1;
   }
   
