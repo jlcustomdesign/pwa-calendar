@@ -43,7 +43,7 @@ const { title, hideDock = false } = Astro.props;
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
     <title>{title} | Kineto Agenda</title>
-    <ClientRouter />
+    <ClientRouter history="replace" />
     <!-- Force Astro to prefetch every dashboard page as soon as the app boots,
          so tapping a dock icon never waits for the network. -->
     <div aria-hidden="true" class="hidden">

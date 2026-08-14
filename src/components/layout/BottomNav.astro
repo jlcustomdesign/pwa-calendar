@@ -11,6 +11,7 @@ const currentPath = Astro.url.pathname;
       return (
         <a
           href={item.path}
+          data-astro-history="replace"
           class={`flex flex-col items-center justify-center flex-1 h-full min-w-[44px] min-h-[44px] py-1 text-xs font-medium active:scale-95 transition-transform ${
             isActive ? 'text-brand-primary font-semibold' : 'text-text-muted hover:text-text-main'
           }`}

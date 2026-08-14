@@ -134,7 +134,7 @@ import '../styles/global.css';
 
             try {
               await login(emailInput?.value?.trim(), passInput?.value);
-              window.location.href = '/dashboard';
+              window.location.replace('/dashboard');
             } catch (err: any) {
               if (errEl) {
                 errEl.textContent = 'Email sau parolă incorecte.';

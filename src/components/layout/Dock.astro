@@ -44,6 +44,7 @@ const navItems = [
         href={item.path}
         data-dock-item
         data-astro-prefetch="load"
+        data-astro-history="replace"
         data-active={isActive ? "true" : "false"}
         data-index={index}
         data-id={item.id}
@@ -165,6 +166,7 @@ const navItems = [
 
     dockNav?.querySelectorAll('[data-dock-item]').forEach((item) => {
       const handleDockTap = (e: Event) => {
+        e.preventDefault();
         const target = e.currentTarget as HTMLElement;
         const href = target.getAttribute('href');
         dockNav.querySelectorAll('[data-dock-item]').forEach((i) => setItemVisualState(i as HTMLElement, false));
@@ -173,12 +175,12 @@ const navItems = [
 
         if (href && window.location.pathname !== href) {
           import('astro:transitions/client').then(({ navigate }) => {
-            navigate(href);
+            navigate(href, { history: 'replace' });
           }).catch(() => {});
         }
       };
 
-      item.addEventListener('touchstart', handleDockTap, { passive: true });
+      item.addEventListener('touchstart', handleDockTap, { passive: false });
       item.addEventListener('click', handleDockTap);
     });
 

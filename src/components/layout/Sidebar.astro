@@ -17,6 +17,7 @@ import { NAV_ITEMS, ROUTES } from '../../lib/constants';
       {NAV_ITEMS.map((item) => (
         <a
           href={item.path}
+          data-astro-history="replace"
           class="flex items-center min-h-[44px] px-3.5 py-2 text-sm font-medium rounded-lg text-text-muted hover:bg-surface-panel hover:text-text-main active:scale-95 transition-all"
         >
           {item.name}
