@@ -91,6 +91,32 @@ const { title, hideDock = false } = Astro.props;
       import { setPaymentStatus } from '../lib/services/patientService';
       import { getAppointment, deleteAppointment, cancelAppointment, markAbsent, reconcileSessionCounts } from '../lib/services/appointmentService';
 
+      // Prevent horizontal edge-swipe navigation (iOS/Android back/forward gestures)
+      function preventHorizontalSwipeNavigation() {
+        let startX = 0;
+        let startY = 0;
+        const EDGE_MARGIN = 24;
+
+        document.addEventListener('touchstart', (e: TouchEvent) => {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e: TouchEvent) => {
+          if (e.touches.length === 0) return;
+          const x = e.touches[0].clientX;
+          const y = e.touches[0].clientY;
+          const dx = x - startX;
+          const dy = y - startY;
+          const nearEdge = startX <= EDGE_MARGIN || startX >= window.innerWidth - EDGE_MARGIN;
+
+          // Block horizontal swipes, especially near screen edges
+          if (nearEdge && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+            if (e.cancelable) e.preventDefault();
+          }
+        }, { passive: false });
+      }
+
       function setupSessionCardController() {
         let activeSurface: HTMLElement | null = null;
         let startX = 0;
@@ -274,6 +300,7 @@ const { title, hideDock = false } = Astro.props;
         if (!(window as any)._sessionCardControllerInitialized) {
           (window as any)._sessionCardControllerInitialized = true;
           setupSessionCardController();
+          preventHorizontalSwipeNavigation();
         }
         
         // Expose global payment handler

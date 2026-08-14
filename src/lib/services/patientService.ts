@@ -226,12 +226,13 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
 // ── Reînnoire / Resetare pachet pacient (reia ședințele de la 0) ──
 export async function resetPatientSubscription(id: string, newTotalSessions?: number): Promise<void> {
   const current = await getPatient(id);
-  const total = newTotalSessions ?? (current.sedinte_total || 10);
+  const addedTotal = newTotalSessions ?? (current.sedinte_total || 10);
+  // Extindem abonamentul cu un nou pachet, păstrând istoricul ședințelor vechi ca finalizate.
+  // Astfel, după o eventuală reconectare/cache-clear, contorul nu va mai reveni la „terminat”.
   const { error } = await (supabase as any)
     .from('pacienti')
     .update({
-      sedinte_folosite: 0,
-      sedinte_total: total,
+      sedinte_total: (current.sedinte_total || 0) + addedTotal,
       status_abonament: 'activ'
     })
     .eq('id', id);

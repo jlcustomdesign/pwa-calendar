@@ -237,7 +237,7 @@ import DailyProgress from './DailyProgress.astro';
 
       // Subscription warning shown only in open state
       const subscriptionWarningDetails = session.subscriptionDone
-        ? `<div class="px-6 pb-3"><button type="button" class="w-full py-2.5 px-4 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>REÎNNOIEȘTE PACHETUL</span></button></div>`
+        ? `<div class="px-6 pb-3"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>REÎNNOIEȘTE PACHETUL</span></button></div>`
         : '';
 
       const restDePlata = Math.max(0, (session.costTotal || 0) - (session.sumaIncasata || 0));

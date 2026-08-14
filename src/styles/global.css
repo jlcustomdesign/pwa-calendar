@@ -40,6 +40,7 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    touch-action: pan-y;
   }
 
   /* Re-enable selection inside inputs / textareas so users can still edit text */

@@ -146,7 +146,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       }
 
       const subscriptionWarningDetails = session.subscriptionDone
-        ? `<div class="px-6 pb-3"><button type="button" class="w-full py-2.5 px-4 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>ABONAMENT TERMINAT — REÎNNOIEȘTE (0/${session.totalSessions || 10})</span></button></div>`
+        ? `<div class="px-6 pb-3"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>ABONAMENT TERMINAT — REÎNNOIEȘTE (0/${session.totalSessions || 10})</span></button></div>`
         : '';
 
       const sumaIncasata = session.sumaIncasata || 0;
@@ -349,22 +349,71 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       const lunchStart = (settings.lunch_start || (settings as any).pause_start || '13:00').substring(0, 5);
       const lunchEnd = (settings.lunch_end || (settings as any).pause_end || '14:00').substring(0, 5);
 
+      function findSessionForHour(slotTimeStr: string) {
+        const slotHour = parseInt(slotTimeStr.split(':')[0], 10);
+        return storedSessions.find((s: any) => {
+          if (!s.selectedTime) return false;
+          const sessionHour = parseInt(s.selectedTime.split(':')[0], 10);
+          return !isNaN(sessionHour) && sessionHour === slotHour;
+        });
+      }
+
       const timeSlots: string[] = [];
       for (let h = startHour; h <= endHour; h++) {
         timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
       }
 
-      container.innerHTML = timeSlots.map((slotTimeStr) => {
-        const slotHourStr = slotTimeStr.split(':')[0];
-
-        const session = storedSessions.find((s: any) => {
-          if (!s.selectedTime) return false;
-          const sessionHour = parseInt(s.selectedTime.split(':')[0], 10);
-          const slotHour = parseInt(slotHourStr, 10);
-          return !isNaN(sessionHour) && sessionHour === slotHour;
-        });
-
+      // Group consecutive lunch slots into a single block so the lunch card spans all of them.
+      type SlotItem = { type: 'slot'; time: string; session: any } | { type: 'lunch'; slots: string[] };
+      const items: SlotItem[] = [];
+      let i = 0;
+      while (i < timeSlots.length) {
+        const slotTimeStr = timeSlots[i];
+        const session = findSessionForHour(slotTimeStr);
         const isLunchSlot = !session && slotTimeStr >= lunchStart && slotTimeStr < lunchEnd;
+
+        if (isLunchSlot) {
+          const lunchSlots: string[] = [];
+          for (let j = i; j < timeSlots.length; j++) {
+            const t = timeSlots[j];
+            const s = findSessionForHour(t);
+            if (!s && t >= lunchStart && t < lunchEnd) {
+              lunchSlots.push(t);
+            } else {
+              break;
+            }
+          }
+          items.push({ type: 'lunch', slots: lunchSlots });
+          i += lunchSlots.length;
+        } else {
+          items.push({ type: 'slot', time: slotTimeStr, session });
+          i++;
+        }
+      }
+
+      container.innerHTML = items.map((item) => {
+        if (item.type === 'lunch') {
+          const slotCount = item.slots.length;
+          const heightClass = slotCount >= 2 ? 'h-32' : 'h-14';
+          const labelHour = item.slots[0].split(':')[0];
+          return `
+            <div class="relative flex items-stretch gap-4 min-h-[4.5rem]">
+              <div class="w-14 shrink-0 text-center flex flex-col items-center justify-center select-none relative pt-1">
+                <span class="text-2xl font-black text-black leading-none tracking-tight">${labelHour}</span>
+                <span class="text-xs font-bold text-text-muted tracking-wider uppercase mt-0.5">Pauză</span>
+              </div>
+              <div class="flex-1 min-w-0 pb-2">
+                <div class="w-full ${heightClass} rounded-2xl flex items-center justify-between px-5 select-none" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
+                  <span class="text-sm font-black text-pink-600/70">Pauză de masă</span>
+                  <span class="text-base font-black text-pink-700/70">${lunchStart} – ${lunchEnd}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        const slotTimeStr = item.time;
+        const session = item.session;
         const displayTimeStr = session ? session.selectedTime : slotTimeStr;
         const [hourStr, minStr] = displayTimeStr.split(':');
 
@@ -374,22 +423,17 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
               <span class="text-2xl font-black text-black leading-none tracking-tight">${hourStr}</span>
               <span class="text-xs font-bold text-text-muted tracking-wider uppercase mt-0.5">${minStr || '00'}</span>
             </div>
-            
+
             <div class="flex-1 min-w-0 pb-2" data-slot-time="${slotTimeStr}">
-              ${session ? createSessionCardHTML(session) : (isLunchSlot ? `
-                <div class="w-full h-14 rounded-2xl flex items-center justify-between px-5 select-none" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
-                  <span class="text-sm font-black text-pink-600/70">Pauză de masă</span>
-                  <span class="text-base font-black text-pink-700/70">${lunchStart} – ${lunchEnd}</span>
-                </div>
-              ` : `
-                <button 
+              ${session ? createSessionCardHTML(session) : `
+                <button
                   type="button"
                   class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
                   onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', date: currentCalendarDate, showDateTime: false } }))"
                 >
                   + Adaugă ședință
                 </button>
-              `)}
+              `}
             </div>
           </div>
         `;
