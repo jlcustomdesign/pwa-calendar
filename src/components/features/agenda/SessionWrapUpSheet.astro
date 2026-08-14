@@ -14,9 +14,6 @@
         <h2 class="text-xl sm:text-2xl font-black tracking-tight text-text-main">Finalizează ședința</h2>
         <p class="text-text-muted font-bold text-sm mt-0.5" id="wrapup-subtitle">Confirmă detaliile și programează săptămâna viitoare</p>
       </div>
-      <button type="button" id="wrapup-close-btn" class="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 font-bold text-base flex items-center justify-center transition-colors">
-        &times;
-      </button>
     </div>
     <!-- Patient & Session Summary Card (Lean & Essential) -->
     <div class="mb-5 bg-neutral-100/90 p-4 rounded-2xl border border-transparent relative">
@@ -233,6 +230,9 @@
       this.sheet = document.getElementById('session-wrapup-sheet');
       this.backdrop = document.getElementById('session-wrapup-backdrop');
       this.content = document.getElementById('session-wrapup-content');
+      this.bindSheetSwipe();
+      this.bindPickerSwipe('wrapup-date-picker-sheet', () => this.closeDatePicker());
+      this.bindPickerSwipe('wrapup-time-picker-sheet', () => this.closeTimePicker());
     }
 
     private bindEvents() {
@@ -328,13 +328,18 @@
       const patientId = this.currentAppointment.pacient_id || this.currentAppointment.pacienti?.id;
       const patientName = this.currentAppointment.pacienti ? `${this.currentAppointment.pacienti.prenume || ''} ${this.currentAppointment.pacienti.nume || ''}`.trim() : this.currentAppointment.patientName;
       const total = this.currentAppointment.pacienti?.sedinte_total || 10;
-      window.dispatchEvent(new CustomEvent('openRenewalSheet', {
-        detail: {
-          patientId,
-          currentTotal: total,
-          patientName
-        }
-      }));
+      
+      this.close();
+
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('openRenewalSheet', {
+          detail: {
+            patientId,
+            currentTotal: total,
+            patientName
+          }
+        }));
+      }, 250);
     }
 
     private async initView() {
@@ -399,9 +404,8 @@
         }
       }
 
-      // Default option reset
-      const isOneTime = appt.pacienti?.plan === 'One Time';
-      this.setRecurrenceOption((isOneTime || folosite >= total) ? 'none' : 'same');
+      // Default option is ALWAYS "Da, peste o săptămână"
+      this.setRecurrenceOption('same');
 
       // Reset submit button state so it works on every open
       const btnConfirm = document.getElementById('btn-confirm-wrapup') as HTMLButtonElement | null;
@@ -412,91 +416,15 @@
 
     }
 
-    private updateCustomTimeValue() {
-      const customTimeInput = document.getElementById('wrapup-custom-time') as HTMLInputElement;
-      if (customTimeInput) {
-        customTimeInput.value = `${this.selectedCustomHour}:${this.selectedCustomMinute}`;
-      }
-    }
-
-
-
-    private renderCustomCalendar() {
-      const year = this.pickerMonth.getFullYear();
-      const month = this.pickerMonth.getMonth();
-
-      const monthTitle = document.getElementById('wrapup-cal-month-title');
-      if (monthTitle) {
-        const mName = this.pickerMonth.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
-        monthTitle.textContent = mName.charAt(0).toUpperCase() + mName.slice(1);
-      }
-
-      const daysGrid = document.getElementById('wrapup-cal-days-grid');
-      if (!daysGrid) return;
-
-      const firstDayOfMonth = new Date(year, month, 1);
-      const lastDayOfMonth = new Date(year, month + 1, 0);
-
-      // Shift for Monday start: (day + 6) % 7
-      const startDayIndex = (firstDayOfMonth.getDay() + 6) % 7;
-      const totalDays = lastDayOfMonth.getDate();
-
-      let html = '';
-      for (let i = 0; i < startDayIndex; i++) {
-        html += `<div></div>`;
-      }
-
-      const todayStr = new Date().toISOString().split('T')[0];
-
-      for (let day = 1; day <= totalDays; day++) {
-        const dateObj = new Date(year, month, day);
-        const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 6 = Saturday
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-        const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const isSelected = dStr === this.selectedCustomDateStr;
-        const isToday = dStr === todayStr;
-
-        let dayClass = "w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs transition-all cursor-pointer mx-auto ";
-        let styleAttr = "";
-
-        if (isSelected) {
-          dayClass += "bg-rose-500 text-white shadow-sm scale-105";
-        } else if (isToday) {
-          dayClass += "bg-amber-100 text-amber-900 border border-transparent";
-        } else if (isWeekend) {
-          dayClass += "text-neutral-400 opacity-70 hover:opacity-100";
-          styleAttr = `style="background: repeating-linear-gradient(45deg, rgba(0,0,0,0.07), rgba(0,0,0,0.07) 3px, transparent 3px, transparent 6px);"`;
-        } else {
-          dayClass += "hover:bg-neutral-200 text-neutral-800";
-        }
-
-        html += `<button type="button" class="${dayClass}" ${styleAttr} data-date="${dStr}">${day}</button>`;
-      }
-
-      daysGrid.innerHTML = html;
-
-      daysGrid.querySelectorAll<HTMLButtonElement>('[data-date]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const d = btn.getAttribute('data-date');
-          if (d) {
-            this.selectedCustomDateStr = d;
-            const customDateInput = document.getElementById('wrapup-custom-date') as HTMLInputElement;
-            if (customDateInput) customDateInput.value = d;
-            this.renderCustomCalendar();
-          }
-        });
-      });
-    }
-
     private setRecurrenceOption(option: 'same' | 'custom' | 'none') {
       this.selectedRecurrence = option;
+
       const container = document.getElementById('recurrence-options-container');
       const customBox = document.getElementById('wrapup-custom-datetime-box');
-
       if (!container) return;
 
-      container.querySelectorAll<HTMLButtonElement>('[data-recurrence-option]').forEach(btn => {
+      const buttons = container.querySelectorAll<HTMLButtonElement>('[data-recurrence-option]');
+      buttons.forEach(btn => {
         const opt = btn.getAttribute('data-recurrence-option');
         const isSel = opt === option;
         const iconContainer = btn.querySelector('.rounded-full');
@@ -536,6 +464,9 @@
 
       const appt = this.currentAppointment;
       const patientId = appt.pacient_id || appt.pacienti?.id;
+      const folosite = (appt.pacienti?.sedinte_folosite ?? 0) + 1;
+      const total = appt.pacienti?.sedinte_total || 10;
+      const isSubscriptionDone = folosite >= total;
 
       try {
         // 1. Confirm current session
@@ -554,7 +485,35 @@
           window.dispatchEvent(new CustomEvent('patientsUpdated'));
         }
 
-        // 2. Schedule next week session if selected
+        // 2. Check if subscription is complete and user wants to schedule next week
+        if (isSubscriptionDone && this.selectedRecurrence !== 'none') {
+          const targetDate = this.selectedRecurrence === 'same' ? this.nextWeekDateStr : (this.customDate || this.nextWeekDateStr);
+          const targetTime = this.selectedRecurrence === 'same' ? (appt.ora || appt.selectedTime || '08:00') : (this.customTime || '08:00');
+          const locatie = (appt.location || appt.pacienti?.locatie || 'Belaqva') as 'Belaqva' | 'Ghimbav';
+          const patientName = appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : (appt.patientName || 'Pacient');
+
+          this.close();
+
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('openRenewalSheet', {
+              detail: {
+                patientId,
+                currentTotal: total,
+                patientName,
+                pendingAppointment: {
+                  data: targetDate,
+                  ora: targetTime,
+                  locatie: locatie
+                }
+              }
+            }));
+            (window as any).showToast('Abonament completat! Reînnoiește pachetul pentru a confirma programarea viitoare.', 'warning');
+          }, 250);
+
+          return;
+        }
+
+        // 3. Schedule next week session if subscription still active
         if (this.selectedRecurrence === 'same') {
           const timeStr = appt.ora || appt.selectedTime || '08:00';
           const locatie = appt.location || appt.pacienti?.locatie || 'Belaqva';
@@ -744,42 +703,84 @@
       if (!sheet) return;
 
       let startY = 0;
+      let startX = 0;
       let isDragging = false;
 
-      const onStart = (clientY: number) => {
-        // If an input is focused, prevent sheet dragging to avoid jumps while typing
+      const onStart = (clientX: number, clientY: number) => {
         if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
           return;
         }
         startY = clientY;
-        isDragging = true;
+        startX = clientX;
+        isDragging = false;
       };
-      const onMove = (clientY: number) => {
-        if (!isDragging) return;
+      
+      const onMove = (clientX: number, clientY: number, e: TouchEvent) => {
+        const isAtTop = sheet.scrollTop <= 0;
+        if (!isAtTop && !isDragging) return;
+
         const deltaY = clientY - startY;
+        const deltaX = clientX - startX;
+
+        if (!isDragging) {
+          if (deltaY > 8 && deltaY > Math.abs(deltaX) * 1.2) {
+            isDragging = true;
+            sheet.style.transition = 'none';
+          } else {
+            return;
+          }
+        }
+
         if (deltaY > 0) {
-          sheet.style.transition = 'none';
+          if (e.cancelable) e.preventDefault();
           sheet.style.transform = `translateY(${deltaY}px)`;
         }
       };
+
       const onEnd = (clientY: number) => {
         if (!isDragging) return;
         isDragging = false;
         const deltaY = clientY - startY;
-        sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
-        if (deltaY > 120) {
+        sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 80) {
           this.close();
         } else {
           sheet.style.transform = 'translateY(0)';
         }
       };
 
-      handle?.addEventListener('touchstart', (e: any) => { e.stopPropagation(); onStart(e.touches[0].clientY); }, { passive: false });
-      handle?.addEventListener('touchmove', (e: any) => { e.stopPropagation(); if (e.cancelable) e.preventDefault(); onMove(e.touches[0].clientY); }, { passive: false });
-      handle?.addEventListener('touchend', (e: any) => { e.stopPropagation(); onEnd(e.changedTouches[0].clientY); }, { passive: false });
+      if (handle) {
+        handle.addEventListener('touchstart', (e: any) => {
+          startY = e.touches[0].clientY;
+          startX = e.touches[0].clientX;
+          isDragging = true;
+          sheet.style.transition = 'none';
+        }, { passive: true });
 
-      sheet.addEventListener('touchstart', (e: any) => onStart(e.touches[0].clientY), { passive: true });
-      sheet.addEventListener('touchmove', (e: any) => onMove(e.touches[0].clientY), { passive: true });
+        handle.addEventListener('touchmove', (e: any) => {
+          if (!isDragging) return;
+          const deltaY = e.touches[0].clientY - startY;
+          if (deltaY > 0) {
+            if (e.cancelable) e.preventDefault();
+            sheet.style.transform = `translateY(${deltaY}px)`;
+          }
+        }, { passive: false });
+
+        handle.addEventListener('touchend', (e: any) => {
+          if (!isDragging) return;
+          isDragging = false;
+          const deltaY = e.changedTouches[0].clientY - startY;
+          sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+          if (deltaY > 80) {
+            this.close();
+          } else {
+            sheet.style.transform = 'translateY(0)';
+          }
+        }, { passive: false });
+      }
+
+      sheet.addEventListener('touchstart', (e: any) => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+      sheet.addEventListener('touchmove', (e: any) => onMove(e.touches[0].clientX, e.touches[0].clientY, e), { passive: false });
       sheet.addEventListener('touchend', (e: any) => onEnd(e.changedTouches[0].clientY), { passive: true });
     }
 

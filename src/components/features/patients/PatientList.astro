@@ -304,9 +304,9 @@
         const cardWrapper = document.createElement('div');
         cardWrapper.className = 'block relative rounded-[2.5rem] shadow-sm overflow-hidden mb-4 mx-0 sm:mx-4';
 
-        // Action Background (Edit / Delete) - Using SessionCard style
+        // Action Background (History / Edit / Delete)
         const actionsBg = document.createElement('div');
-        actionsBg.className = 'absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0';
+        actionsBg.className = 'absolute inset-0 bg-neutral-100 flex items-center justify-end px-3.5 z-0';
         actionsBg.innerHTML = `
           <div class="flex items-center gap-2">
             <button type="button" class="history-btn w-12 h-12 rounded-full bg-sky-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform border border-transparent" title="Istoric Plăți">
@@ -482,14 +482,16 @@
 
         // Swipe logic
         let startX = 0;
+        let startY = 0;
         let currentX = 0;
         let isSwiping = false;
         let isOpen = false;
-        const MAX_SWIPE = -280;
+        const MAX_SWIPE = -190;
         const SWIPE_THRESHOLD = -40;
 
         card.addEventListener('touchstart', (e: any) => {
           startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
           currentX = startX;
           isSwiping = true;
           cardWrapper.dataset.wasSwiping = 'false';
@@ -499,7 +501,9 @@
         card.addEventListener('touchmove', (e: any) => {
           if (!isSwiping) return;
           currentX = e.touches[0].clientX;
+          const currentY = e.touches[0].clientY;
           const diffX = currentX - startX;
+          const diffY = currentY - startY;
           
           if (Math.abs(diffX) > 10) {
             cardWrapper.dataset.wasSwiping = 'true';

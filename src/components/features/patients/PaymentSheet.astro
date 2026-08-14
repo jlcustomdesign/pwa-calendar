@@ -1,8 +1,8 @@
 ---
 ---
-<div id="payment-sheet" data-sheet-root class="fixed inset-0 z-50 pointer-events-none">
+<div id="payment-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
   <div id="payment-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
-  <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]">
+  <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto">
     <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8 cursor-grab active:cursor-grabbing" id="payment-drag-handle"></div>
     
     <div class="flex items-center justify-between mb-4">
@@ -351,8 +351,8 @@
       }
       this.dragEngaged = false;
       const deltaY = this.currentY - this.startY;
-      this.content.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
-      if (deltaY > 150) {
+      this.content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+      if (deltaY > 80) {
         this.close();
       } else {
         this.content.style.transform = 'translateY(0)';
