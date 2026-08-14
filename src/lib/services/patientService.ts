@@ -239,6 +239,7 @@ export async function resetPatientSubscription(id: string, newTotalSessions?: nu
     .eq('id', id);
 
   if (error) throw new Error('Eroare la reînnoirea abonamentului: ' + error.message);
+  clearRenewalDismissal(id);
 }
 
 const DISMISSED_RENEWALS_KEY = 'kineto_dismissed_renewals';
@@ -261,6 +262,17 @@ export function dismissRenewalNotification(patientId: string): void {
     if (!dismissed.includes(patientId)) {
       dismissed.push(patientId);
       localStorage.setItem(DISMISSED_RENEWALS_KEY, JSON.stringify(dismissed));
+    }
+  } catch {}
+}
+
+export function clearRenewalDismissal(patientId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const dismissed = JSON.parse(localStorage.getItem(DISMISSED_RENEWALS_KEY) || '[]');
+    if (Array.isArray(dismissed)) {
+      const filtered = dismissed.filter(id => id !== patientId);
+      localStorage.setItem(DISMISSED_RENEWALS_KEY, JSON.stringify(filtered));
     }
   } catch {}
 }

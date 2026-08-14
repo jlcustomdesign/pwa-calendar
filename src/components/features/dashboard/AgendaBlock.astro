@@ -250,8 +250,18 @@
               </div>
 
               <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
-                <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0 flex items-center gap-2">
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
+                  ${isTerminat && !isRenewalDismissed(session.patientId) ? `
+                    <button 
+                      type="button" 
+                      class="shrink-0 px-2 py-0.5 rounded-full bg-amber-400 text-black text-[10px] font-black uppercase tracking-wider animate-pulse shadow-sm"
+                      onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10}, '${session.patientName?.replace(/'/g, "\\'") || ''}')"
+                      title="Reînnoiește pachetul"
+                    >
+                      Reînnoiește
+                    </button>
+                  ` : ''}
                 </div>
                 ${statusIcon}
               </div>
