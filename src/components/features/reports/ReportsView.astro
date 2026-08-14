@@ -19,11 +19,10 @@
     <div class="h-40 rounded-[2.2rem] bg-black/10 animate-pulse"></div>
   </div>
 
-  <div id="reports-data" class="space-y-7 transition-opacity duration-200">
+  <div id="reports-data" class="space-y-7 hidden">
 
-  <section class="space-y-3 relative">
-    <div class="flex items-center justify-start px-1">
-      <button type="button" id="today-date-display" class="text-xl sm:text-2xl font-black text-text-main px-4 py-1.5 rounded-2xl bg-surface-card shadow-sm border border-transparent min-w-[10rem] text-center active:scale-95 transition-transform">
+  <div class="flex items-center justify-start px-1">
+    <button type="button" id="today-date-display" class="text-xl sm:text-2xl font-black text-text-main px-4 py-1.5 rounded-2xl bg-surface-card shadow-sm border border-transparent min-w-[10rem] text-center active:scale-95 transition-transform">
         --
       </button>
     </div>
@@ -742,7 +741,7 @@
     const skeleton = document.getElementById('reports-skeleton');
     const data = document.getElementById('reports-data');
     if (skeleton) skeleton.classList.remove('hidden');
-    if (data) data.classList.add('opacity-0');
+    if (data) data.classList.add('hidden');
 
     setupTabs();
     setupNavigation();
@@ -753,7 +752,7 @@
       loadReportStats()
     ]);
 
-    if (data) data.classList.remove('opacity-0');
+    if (data) data.classList.remove('hidden');
     if (skeleton) {
       skeleton.classList.add('opacity-0');
       setTimeout(() => skeleton.classList.add('hidden'), 200);

@@ -160,7 +160,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         data-month-name={month.monthName}
         data-year={month.year}
         id={month.isCurrentMonth ? "current-month-section" : undefined}
-        class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 border-2 border-brand-secondary rounded-[1.5rem] p-2"
+        class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0"
       >
         {month.weeks.map((week, weekIndex) => (
           <div 
