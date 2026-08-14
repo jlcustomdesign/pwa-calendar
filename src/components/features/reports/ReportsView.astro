@@ -120,39 +120,43 @@
         </div>
 
         <div class="flex items-stretch gap-1">
-          <!-- Graph area -->
-          <div class="relative flex-1 h-36" id="chart-container">
-            <svg viewBox="0 0 350 120" class="w-full h-full overflow-visible" preserveAspectRatio="none" id="reports-svg">
-              <defs>
-                <pattern id="hatch-pattern" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-                  <line x1="0" y1="0" x2="0" y2="8" stroke="rgb(var(--color-text-main))" stroke-width="1.5" opacity="0.25" />
-                </pattern>
+          <!-- Graph + X-axis labels column -->
+          <div class="flex-1 flex flex-col min-w-0">
+            <!-- Graph area -->
+            <div class="relative flex-1 h-36" id="chart-container">
+              <svg viewBox="0 0 350 120" class="w-full h-full overflow-visible" preserveAspectRatio="none" id="reports-svg">
+                <defs>
+                  <pattern id="hatch-pattern" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="0" y2="8" stroke="rgb(var(--color-text-main))" stroke-width="1.5" opacity="0.25" />
+                  </pattern>
 
-                <linearGradient id="soft-bg-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgb(var(--color-brand-primary))" stop-opacity="0.2" />
-                  <stop offset="100%" stop-color="rgb(var(--color-surface-card))" stop-opacity="0.0" />
-                </linearGradient>
-              </defs>
+                  <linearGradient id="soft-bg-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="rgb(var(--color-brand-primary))" stop-opacity="0.2" />
+                    <stop offset="100%" stop-color="rgb(var(--color-surface-card))" stop-opacity="0.0" />
+                  </linearGradient>
+                </defs>
 
-              <path id="chart-path-gradient" fill="url(#soft-bg-gradient)" d="" />
-              <path id="chart-path-hatch" fill="url(#hatch-pattern)" d="" />
-              <path id="chart-path-stroke" fill="none" stroke="rgb(var(--color-text-main))" stroke-width="3" stroke-linecap="round" d="" />
-            </svg>
+                <path id="chart-path-gradient" fill="url(#soft-bg-gradient)" d="" />
+                <path id="chart-path-hatch" fill="url(#hatch-pattern)" d="" />
+                <path id="chart-path-stroke" fill="none" stroke="rgb(var(--color-text-main))" stroke-width="3" stroke-linecap="round" d="" />
+              </svg>
 
-            <div id="pink-dot-glow" class="absolute bg-brand-secondary rounded-full opacity-30 transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 20px; height: 20px; z-index: 20;"></div>
-            <div id="pink-dot" class="absolute bg-brand-secondary rounded-full border-[2.5px] border-white shadow-md transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 14px; height: 14px; z-index: 21;"></div>
+              <div id="pink-dot-glow" class="absolute bg-brand-secondary rounded-full opacity-30 transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 20px; height: 20px; z-index: 20;"></div>
+              <div id="pink-dot" class="absolute bg-brand-secondary rounded-full border-[2.5px] border-white shadow-md transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden" style="width: 14px; height: 14px; z-index: 21;"></div>
+            </div>
+
+            <!-- X-axis labels (aligned under SVG graph only) -->
+            <div class="flex items-center justify-between px-2 pt-2 text-xl sm:text-2xl font-black text-text-main" id="chart-x-labels">
+              <!-- Dynamic labels generated in JS -->
+            </div>
           </div>
 
-          <!-- Y-axis anchors (on the right side) -->
-          <div class="flex flex-col justify-between text-[10px] font-black text-text-muted text-left py-0.5 w-auto shrink-0 pl-1" id="chart-y-labels">
+          <!-- Y-axis anchors (to the right of graph, matching graph height) -->
+          <div class="flex flex-col justify-between text-[10px] font-black text-text-muted text-left py-0.5 pb-8 w-auto shrink-0 pl-1" id="chart-y-labels">
             <span id="chart-y-max">--</span>
             <span id="chart-y-mid">--</span>
             <span>0</span>
           </div>
-        </div>
-
-        <div class="flex items-center justify-between px-2 text-xl sm:text-2xl font-black text-text-main" id="chart-x-labels">
-          <!-- Dynamic labels generated in JS -->
         </div>
 
         <!-- Total perioadă + Evoluție cap-coadă -->

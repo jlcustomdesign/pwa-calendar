@@ -345,10 +345,11 @@ export async function getPatientPaymentHistoryDetails(id: string): Promise<Payme
 
     if (!error && data && data.length > 0) {
       data.forEach((p: any) => {
+        const dStr = p.data_platii || (p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]);
         history.push({
           id: p.id,
           suma: Number(p.suma || 0),
-          data_platii: p.data_platii || (p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+          data_platii: dStr,
           descriere: 'Plată pachet ședințe'
         });
       });
@@ -365,12 +366,12 @@ export async function getPatientPaymentHistoryDetails(id: string): Promise<Payme
         const arr = JSON.parse(existingStr);
         arr.forEach((item: any) => {
           const itemDate = item.timestamp ? new Date(item.timestamp).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-          const exists = history.some(h => h.suma === item.suma && h.data_platii === itemDate);
+          const exists = history.some(h => h.suma === Number(item.suma) && h.data_platii === itemDate);
           if (!exists) {
             history.push({
               suma: Number(item.suma || 0),
               data_platii: itemDate,
-              descriere: 'Plată parțială locală'
+              descriere: 'Plată înregistrată'
             });
           }
         });
@@ -378,6 +379,22 @@ export async function getPatientPaymentHistoryDetails(id: string): Promise<Payme
     } catch (e) {
       console.warn('Eroare citire plăți local:', e);
     }
+  }
+
+  if (history.length === 0) {
+    try {
+      const patient = await getPatient(id);
+      const totalPaid = await getPatientPayments(id);
+      if (totalPaid > 0 || patient.achitat) {
+        const paidVal = totalPaid > 0 ? totalPaid : Number(patient.cost || 0);
+        const pDate = patient.created_at ? patient.created_at.split('T')[0] : new Date().toISOString().split('T')[0];
+        history.push({
+          suma: paidVal,
+          data_platii: pDate,
+          descriere: patient.achitat ? 'Plată integrală abonament' : 'Plată înregistrată'
+        });
+      }
+    } catch (e) {}
   }
 
   return history;
