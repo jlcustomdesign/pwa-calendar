@@ -187,16 +187,47 @@ export async function createAppointment(input: {
 }
 
 export async function completeSession(id: string, note?: string) {
-  // DB triggerul `trg_incrementeaza_sedinte` incrementează automat sedinte_folosite
-  // când statusul devine 'finalizat', deci nu mai incrementăm manual aici.
-  const { error } = await (supabase as any)
+  // 1. Preluăm datele programării pentru a ști pacientul
+  const { data: appt, error: apptErr } = await (supabase as any)
+    .from('programari')
+    .select('id, pacient_id, status')
+    .eq('id', id)
+    .single();
+
+  if (apptErr || !appt) {
+    throw new Error('Eroare la identificarea programării.');
+  }
+
+  // 2. Setăm status = 'finalizat' pe programare
+  const { error: updErr } = await (supabase as any)
     .from('programari')
     .update({ status: 'finalizat', note: note ?? null })
     .eq('id', id);
 
-  if (error) {
-    console.error('completeSession error:', error, { id });
-    throw new Error('Eroare la finalizarea sesiunii: ' + (error.message || JSON.stringify(error)));
+  if (updErr) {
+    console.error('completeSession error:', updErr, { id });
+    throw new Error('Eroare la finalizarea sesiunii: ' + (updErr.message || JSON.stringify(updErr)));
+  }
+
+  // 3. Dacă statusul anterior nu era deja finalizat, incrementăm sedinte_folosite pe pacient
+  if (appt.status !== 'finalizat' && appt.pacient_id) {
+    try {
+      const { data: p } = await (supabase as any)
+        .from('pacienti')
+        .select('sedinte_folosite, sedinte_total')
+        .eq('id', appt.pacient_id)
+        .single();
+      
+      if (p) {
+        const currentUsed = p.sedinte_folosite ?? 0;
+        await (supabase as any)
+          .from('pacienti')
+          .update({ sedinte_folosite: currentUsed + 1 })
+          .eq('id', appt.pacient_id);
+      }
+    } catch (e) {
+      console.warn('completeSession patient counter update warning:', e);
+    }
   }
 }
 
