@@ -95,7 +95,7 @@ const { title, hideDock = false } = Astro.props;
       function preventHorizontalSwipeNavigation() {
         let startX = 0;
         let startY = 0;
-        const EDGE_MARGIN = 24;
+        const EDGE_MARGIN = 50;
 
         document.addEventListener('touchstart', (e: TouchEvent) => {
           startX = e.touches[0].clientX;
@@ -104,17 +104,38 @@ const { title, hideDock = false } = Astro.props;
 
         document.addEventListener('touchmove', (e: TouchEvent) => {
           if (e.touches.length === 0) return;
+          const target = e.target as HTMLElement;
+          // Don't interfere with in-app horizontal swipe gestures (session cards / patient list)
+          if (target.closest('.swipe-surface') || target.closest('#patient-list-container') || target.closest('[data-calendar-strip]')) {
+            return;
+          }
+
           const x = e.touches[0].clientX;
           const y = e.touches[0].clientY;
           const dx = x - startX;
           const dy = y - startY;
-          const nearEdge = startX <= EDGE_MARGIN || startX >= window.innerWidth - EDGE_MARGIN;
+          const nearLeftEdge = startX <= EDGE_MARGIN;
+          const nearRightEdge = startX >= window.innerWidth - EDGE_MARGIN;
 
-          // Block horizontal swipes, especially near screen edges
-          if (nearEdge && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+          // Block horizontal swipes near screen edges that look like OS back/forward gestures
+          if ((nearLeftEdge || nearRightEdge) && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 4) {
             if (e.cancelable) e.preventDefault();
           }
         }, { passive: false });
+
+        // Safari history trap: pushing a dummy state makes the first swipe-back only remove
+        // our dummy entry instead of leaving the PWA. We re-push on popstate to stay in place.
+        if (window.history && window.history.pushState) {
+          const pushTrap = () => {
+            try { window.history.pushState({ __kineto_trap: true }, '', window.location.href); } catch {}
+          };
+          pushTrap();
+          window.addEventListener('popstate', (e) => {
+            if (e.state && (e.state as any).__kineto_trap) {
+              pushTrap();
+            }
+          });
+        }
       }
 
       function setupSessionCardController() {

@@ -146,7 +146,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       }
 
       const subscriptionWarningDetails = session.subscriptionDone
-        ? `<div class="px-6 pb-3"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>ABONAMENT TERMINAT — REÎNNOIEȘTE (0/${session.totalSessions || 10})</span></button></div>`
+        ? `<div class="pb-3"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>ABONAMENT TERMINAT — REÎNNOIEȘTE (0/${session.totalSessions || 10})</span></button></div>`
         : '';
 
       const sumaIncasata = session.sumaIncasata || 0;

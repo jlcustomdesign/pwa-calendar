@@ -337,7 +337,7 @@
         }
 
         const subscriptionWarningHtml = subscriptionDone
-          ? `<div class='px-6 pt-2 pb-5'><button type='button' class='w-full py-4 px-6 rounded-2xl bg-amber-500 text-white text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md hover:bg-amber-600 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions})'><span>REÎNNOIEȘTE PACHETUL (${displayCount}/${totalSessions})</span></button></div>`
+          ? `<div class='pt-2 pb-5'><button type='button' class='w-full py-4 px-6 rounded-2xl bg-amber-500 text-white text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md hover:bg-amber-600 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions})'><span>REÎNNOIEȘTE PACHETUL (${displayCount}/${totalSessions})</span></button></div>`
           : '';
 
         const notificationBellHtml = subscriptionDone
