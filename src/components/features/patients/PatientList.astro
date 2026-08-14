@@ -306,9 +306,9 @@
 
         // Action Background (History / Edit / Delete)
         const actionsBg = document.createElement('div');
-        actionsBg.className = 'absolute inset-0 bg-neutral-100 flex items-center justify-end px-3.5 z-0';
+        actionsBg.className = 'absolute inset-0 bg-neutral-100 flex items-center justify-end px-4 z-0';
         actionsBg.innerHTML = `
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2.5">
             <button type="button" class="history-btn w-12 h-12 rounded-full bg-sky-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform border border-transparent" title="Istoric Plăți">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </button>
@@ -480,58 +480,86 @@
           }
         });
 
-        // Swipe logic
+        // Swipe logic (Touch + Mouse) - Single slide reveals all 3 buttons
         let startX = 0;
         let startY = 0;
         let isSwiping = false;
         let isOpen = false;
         let currentTranslateX = 0;
-        const MAX_SWIPE = -280;
+        const MAX_SWIPE = -230; // Fully exposes all 3 action buttons in 1 slide
 
-        card.addEventListener('touchstart', (e: any) => {
-          startX = e.touches[0].clientX;
-          startY = e.touches[0].clientY;
+        const onStart = (clientX: number, clientY: number) => {
+          startX = clientX;
+          startY = clientY;
           isSwiping = true;
           cardWrapper.dataset.wasSwiping = 'false';
           card.style.transition = 'none';
-        }, { passive: true });
+        };
 
-        card.addEventListener('touchmove', (e: any) => {
+        const onMove = (clientX: number, clientY: number) => {
           if (!isSwiping) return;
-          const currentX = e.touches[0].clientX;
-          const diffX = currentX - startX;
+          const diffX = clientX - startX;
+          const diffY = clientY - startY;
           
-          if (Math.abs(diffX) > 10) {
+          if (Math.abs(diffX) > 8) {
             cardWrapper.dataset.wasSwiping = 'true';
           }
 
           let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
           if (targetX > 0) targetX = 0;
-          if (targetX < MAX_SWIPE - 40) targetX = MAX_SWIPE - 40;
+          if (targetX < MAX_SWIPE - 25) targetX = MAX_SWIPE - 25;
           
           currentTranslateX = targetX;
           card.style.transform = `translateX(${targetX}px)`;
-        }, { passive: true });
+        };
 
         const onEnd = () => {
           if (!isSwiping) return;
           isSwiping = false;
-          card.style.transition = 'transform 300ms cubic-bezier(0.32, 0.72, 0, 1)';
+          card.style.transition = 'transform 250ms cubic-bezier(0.32, 0.72, 0, 1)';
 
-          // Position-based latching: if dragged past -50px, lock open firmly!
-          if (currentTranslateX < -50) {
+          // Snap to open on first slide if swiped left past -35px, or close if swiped right
+          if (!isOpen && currentTranslateX < -35) {
             isOpen = true;
             currentTranslateX = MAX_SWIPE;
             card.style.transform = `translateX(${MAX_SWIPE}px)`;
-          } else {
+          } else if (isOpen && currentTranslateX > MAX_SWIPE + 35) {
             isOpen = false;
             currentTranslateX = 0;
             card.style.transform = 'translateX(0px)';
+          } else {
+            card.style.transform = isOpen ? `translateX(${MAX_SWIPE}px)` : 'translateX(0px)';
+            currentTranslateX = isOpen ? MAX_SWIPE : 0;
           }
         };
 
+        card.addEventListener('touchstart', (e: any) => {
+          onStart(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+
+        card.addEventListener('touchmove', (e: any) => {
+          onMove(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+
         card.addEventListener('touchend', onEnd);
         card.addEventListener('touchcancel', onEnd);
+
+        // Mouse support
+        let isMouseDown = false;
+        card.addEventListener('mousedown', (e: MouseEvent) => {
+          if ((e.target as HTMLElement)?.closest('button, a, input')) return;
+          isMouseDown = true;
+          onStart(e.clientX, e.clientY);
+        });
+        window.addEventListener('mousemove', (e: MouseEvent) => {
+          if (isMouseDown) onMove(e.clientX, e.clientY);
+        });
+        window.addEventListener('mouseup', () => {
+          if (isMouseDown) {
+            isMouseDown = false;
+            onEnd();
+          }
+        });
 
         cardWrapper.appendChild(actionsBg);
         cardWrapper.appendChild(card);

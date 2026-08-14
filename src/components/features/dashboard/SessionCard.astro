@@ -186,7 +186,7 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
         let isSwiping = false;
         let isOpen = false;
         let currentTranslateX = 0;
-        const MAX_SWIPE = -280;
+        const MAX_SWIPE = -230;
 
         const onStart = (clientX: number) => {
           startX = clientX;
@@ -199,13 +199,13 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
           if (!isSwiping) return;
           const diffX = clientX - startX;
           
-          if (Math.abs(diffX) > 10) {
+          if (Math.abs(diffX) > 8) {
             this.dataset.wasSwiping = 'true';
           }
 
           let targetX = isOpen ? MAX_SWIPE + diffX : diffX;
           if (targetX > 0) targetX = 0;
-          if (targetX < MAX_SWIPE - 40) targetX = MAX_SWIPE - 40;
+          if (targetX < MAX_SWIPE - 25) targetX = MAX_SWIPE - 25;
           
           currentTranslateX = targetX;
           surface.style.transform = `translateX(${targetX}px)`;
@@ -214,17 +214,19 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
         const onEnd = () => {
           if (!isSwiping) return;
           isSwiping = false;
-          surface.style.transition = 'transform 300ms cubic-bezier(0.32, 0.72, 0, 1)';
+          surface.style.transition = 'transform 250ms cubic-bezier(0.32, 0.72, 0, 1)';
           
-          // Position-based latching: if dragged past -50px, lock open firmly!
-          if (currentTranslateX < -50) {
+          if (!isOpen && currentTranslateX < -35) {
             isOpen = true;
             currentTranslateX = MAX_SWIPE;
             surface.style.transform = `translateX(${MAX_SWIPE}px)`;
-          } else {
+          } else if (isOpen && currentTranslateX > MAX_SWIPE + 35) {
             isOpen = false;
             currentTranslateX = 0;
             surface.style.transform = 'translateX(0px)';
+          } else {
+            surface.style.transform = isOpen ? `translateX(${MAX_SWIPE}px)` : 'translateX(0px)';
+            currentTranslateX = isOpen ? MAX_SWIPE : 0;
           }
         };
 
