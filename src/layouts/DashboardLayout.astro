@@ -306,6 +306,40 @@ const { title, hideDock = false } = Astro.props;
           setupSessionCardController();
           preventHorizontalSwipeNavigation();
         }
+
+        // Force all internal dashboard navigation to use replaceState so iOS never
+        // builds a history stack that re-enables the edge-swipe back gesture.
+        function enforceReplaceNavigation() {
+          document.addEventListener('click', (e) => {
+            const target = e.target as HTMLElement;
+            const anchor = target.closest('a') as HTMLAnchorElement | null;
+            if (!anchor) return;
+
+            const href = anchor.getAttribute('href');
+            if (!href) return;
+            if (href.startsWith('http') || href.startsWith('tel:') || href.startsWith('mailto:')) return;
+            if (anchor.target === '_blank') return;
+            if (href.startsWith('#')) return;
+            if (anchor.hasAttribute('download')) return;
+
+            // Only intercept same-origin internal links
+            try {
+              const url = new URL(href, window.location.origin);
+              if (url.origin !== window.location.origin) return;
+            } catch {
+              return;
+            }
+
+            e.preventDefault();
+            import('astro:transitions/client').then(({ navigate }) => {
+              navigate(href, { history: 'replace' });
+            }).catch(() => {
+              // Fallback if Astro transitions aren't available
+              window.location.replace(href);
+            });
+          }, true);
+        }
+        enforceReplaceNavigation();
         
         // Expose global payment handler
         (window as any).handlePaymentToggle = (patientId: string, currentStatus: string) => {
