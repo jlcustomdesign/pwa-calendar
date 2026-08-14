@@ -460,6 +460,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
   async function initSubSectionLogic() {
     const settingsForm = document.getElementById('settings-form');
+    const params = new URLSearchParams(window.location.search);
 
     // Load Settings din Supabase
     let settings: any = {};
