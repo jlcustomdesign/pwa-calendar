@@ -119,7 +119,7 @@
 
         <div class="flex items-stretch gap-2">
           <!-- Y-axis anchors -->
-          <div class="flex flex-col justify-between text-[10px] font-black text-text-muted text-right py-1 w-10 shrink-0" id="chart-y-labels">
+          <div class="flex flex-col justify-between text-[10px] font-black text-text-muted text-right py-1 w-10 shrink-0 ml-3" id="chart-y-labels">
             <span id="chart-y-max">--</span>
             <span id="chart-y-mid">--</span>
             <span>0</span>
@@ -534,16 +534,35 @@
       valueDisplay.innerHTML = `${statData ? statData.venit || 0 : 0} <span class="text-sm font-sans font-black text-text-main">RON</span>`;
     }
 
+    // Draw the line only up to today (or the last known day for past periods)
+    const todayStr = toLocalISOString(new Date());
+    let todayIdx = -1;
+    for (let i = chartData.length - 1; i >= 0; i--) {
+      const item = chartData[i];
+      if (item && item.dateStr && item.dateStr <= todayStr) {
+        todayIdx = i;
+        break;
+      }
+    }
+    if (todayIdx < 0 && chartData.length > 0) {
+      if (chartData[0]?.dateStr && chartData[0].dateStr > todayStr) {
+        todayIdx = 0;
+      } else {
+        todayIdx = chartData.length - 1;
+      }
+    }
+
+    const visiblePoints = todayIdx >= 0 ? points.slice(0, todayIdx + 1) : points;
     const isAllZero = chartVals.every(v => v === 0);
 
-    if (isAllZero || points.length === 0) {
+    if (isAllZero || visiblePoints.length === 0) {
       const strokePath = `M 15,115 L 335,115`;
       const fillPath = `M 15,115 L 335,115 Z`;
       if (pathStroke) pathStroke.setAttribute('d', strokePath);
       if (pathGradient) pathGradient.setAttribute('d', fillPath);
       if (pathHatch) pathHatch.setAttribute('d', fillPath);
-    } else if (points.length === 1) {
-      const p = points[0];
+    } else if (visiblePoints.length === 1) {
+      const p = visiblePoints[0];
       const strokePath = `M 0,${p.y} L ${p.x},${p.y}`;
       const fillPath = `M 0,115 L 0,${p.y} L ${p.x},${p.y} L ${p.x},115 Z`;
       
@@ -551,17 +570,17 @@
       if (pathGradient) pathGradient.setAttribute('d', fillPath);
       if (pathHatch) pathHatch.setAttribute('d', fillPath);
     } else {
-      let strokePath = `M ${points[0].x},${points[0].y}`;
-      for(let i=0; i<points.length - 1; i++) {
-        const p1 = points[i];
-        const p2 = points[i+1];
+      let strokePath = `M ${visiblePoints[0].x},${visiblePoints[0].y}`;
+      for(let i=0; i<visiblePoints.length - 1; i++) {
+        const p1 = visiblePoints[i];
+        const p2 = visiblePoints[i+1];
         const cx1 = p1.x + (p2.x - p1.x) / 2;
         const cy1 = p1.y;
         const cx2 = p1.x + (p2.x - p1.x) / 2;
         const cy2 = p2.y;
         strokePath += ` C ${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}`;
       }
-      const fillPath = strokePath + ` L ${points[points.length - 1].x},115 L ${points[0].x},115 Z`;
+      const fillPath = strokePath + ` L ${visiblePoints[visiblePoints.length - 1].x},115 L ${visiblePoints[0].x},115 Z`;
       
       if (pathStroke) pathStroke.setAttribute('d', strokePath);
       if (pathGradient) pathGradient.setAttribute('d', fillPath);
@@ -625,25 +644,9 @@
       });
     });
 
-    let activeBtnIdx = -1;
-    const todayStr = toLocalISOString(new Date());
-    
-    for (let i = chartData.length - 1; i >= 0; i--) {
-      const item = chartData[i];
-      if (item && item.dateStr && item.dateStr <= todayStr) {
-        activeBtnIdx = i;
-        break;
-      }
-    }
 
-    if (activeBtnIdx < 0 && chartData.length > 0) {
-      if (chartData[0]?.dateStr && chartData[0].dateStr > todayStr) {
-        activeBtnIdx = 0;
-      } else {
-        activeBtnIdx = chartData.length - 1;
-      }
-    }
 
+    const activeBtnIdx = todayIdx;
     const newDayBtns = document.querySelectorAll('.day-btn');
     if (activeBtnIdx >= 0 && newDayBtns[activeBtnIdx]) {
       (newDayBtns[activeBtnIdx] as HTMLElement).dispatchEvent(new Event('click'));
