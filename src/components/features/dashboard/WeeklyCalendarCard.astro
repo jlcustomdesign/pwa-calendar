@@ -267,14 +267,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       pill.style.opacity = "1";
       circle.style.opacity = "1";
 
-      // Wrap the white circle (32x32) with equal padding so it has the same
-      // distance to the bottom and the sides of the brand-primary pill.
-      const PILL_PADDING = 6;
-      const targetW = 32 + PILL_PADDING * 2;
-      const targetH = 32 + PILL_PADDING * 2;
-      const targetL = cLeft - PILL_PADDING;
-      const targetT = cTop - PILL_PADDING;
-      const targetBR = "14px";
+      const targetW = isExpanded ? 40 : width;
+      const targetH = isExpanded ? 40 : height;
+      const targetL = isExpanded ? cLeft - 4 : left;
+      const targetT = isExpanded ? cTop - 4 : top;
+      const targetBR = isExpanded ? "50%" : "50px";
 
       if (isInitial) {
         pill.style.transition = "none";
