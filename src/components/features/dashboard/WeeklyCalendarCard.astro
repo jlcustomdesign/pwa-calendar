@@ -184,25 +184,29 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
             )}
 
             {week.days.map((item, index) => (
-              <button
-                type="button"
-                data-calendar-item
-                data-active={item.active ? "true" : "false"}
-                data-index={index}
-                data-month={item.monthNum}
-                data-year={item.year}
-                data-date={item.date}
-                data-is-current-month={item.isCurrentMonth ? "true" : "false"}
-                data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-                class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
-                  item.active ? "text-black font-bold" : "text-text-main hover:opacity-100"
-                } ${item.active ? '' : (item.isCurrentMonth ? 'opacity-70' : 'opacity-30')}`}
-              >
-                <span class="day-label text-xs font-bold tracking-wider pointer-events-none z-20 transition-opacity duration-300">{item.dayLabel}</span>
-                <span class={`w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
-                  {item.date}
-                </span>
-              </button>
+              item.isCurrentMonth ? (
+                <button
+                  type="button"
+                  data-calendar-item
+                  data-active={item.active ? "true" : "false"}
+                  data-index={index}
+                  data-month={item.monthNum}
+                  data-year={item.year}
+                  data-date={item.date}
+                  data-is-current-month="true"
+                  data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
+                  class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+                    item.active ? "text-black font-bold" : "text-text-main hover:opacity-100 opacity-70"
+                  }`}
+                >
+                  <span class="day-label text-xs font-bold tracking-wider pointer-events-none z-20 transition-opacity duration-300">{item.dayLabel}</span>
+                  <span class={`w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
+                    {item.date}
+                  </span>
+                </button>
+              ) : (
+                <div aria-hidden="true" class="pointer-events-none"></div>
+              )
             ))}
           </div>
         ))}
