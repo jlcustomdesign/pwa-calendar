@@ -17,9 +17,16 @@ export function initSessionNotifier() {
   
   isNotifierRunning = true;
 
-  // Verifică imediat și apoi la fiecare 30 de secunde
+  // Verifică imediat și apoi la fiecare 20 de secunde
   checkTodaySessionsForNotifications();
-  checkIntervalId = setInterval(checkTodaySessionsForNotifications, 30 * 1000);
+  checkIntervalId = setInterval(checkTodaySessionsForNotifications, 20 * 1000);
+}
+
+export async function sendTestNotification() {
+  await triggerWebNotification(
+    '🔔 Test Notificare: Kineto Agenda',
+    'Notificările pentru începutul și sfârșitul ședințelor sunt active și funcționează!'
+  );
 }
 
 async function checkTodaySessionsForNotifications() {
@@ -52,19 +59,21 @@ async function checkTodaySessionsForNotifications() {
       const startKey = `${todayStr}_${appt.id}_start`;
       const endKey = `${todayStr}_${appt.id}_end`;
 
-      // 1. Notificare ÎNCEPUT ȘEDINȚĂ (dacă ora curentă e la începutul ședinței: startTotalMin <= currentMinutes < startTotalMin + 5)
-      if (currentMinutes >= startTotalMin && currentMinutes < startTotalMin + 5) {
+      // 1. Notificare ÎNCEPUT ȘEDINȚĂ
+      // Fereastră extinsă (cu 2 min înainte până la 15 min după) pentru a prinde notificarea chiar dacă telefonul a fost în standby
+      if (currentMinutes >= startTotalMin - 2 && currentMinutes < startTotalMin + 15) {
         if (!notifiedStarts.has(startKey)) {
           notifiedStarts.add(startKey);
-          triggerWebNotification(
+          await triggerWebNotification(
             `🔔 Ședință Nouă: ${patientName}`,
-            `Ședința a început la ora ${timeStr}. Locație: ${appt.pacienti?.locatie || 'Belaqva'}`
+            `La ora ${timeStr} este programat ${patientName}. Locație: ${appt.pacienti?.locatie || 'Belaqva'}`
           );
         }
       }
 
-      // 2. Notificare SFÂRȘIT ȘEDINȚĂ (dacă ora curentă e la finalul ședinței: endTotalMin <= currentMinutes < endTotalMin + 5)
-      if (currentMinutes >= endTotalMin && currentMinutes < endTotalMin + 5) {
+      // 2. Notificare SFÂRȘIT ȘEDINȚĂ
+      // Fereastră extinsă de la finalul ședinței până la 15 min după
+      if (currentMinutes >= endTotalMin && currentMinutes < endTotalMin + 15) {
         if (!notifiedEnds.has(endKey)) {
           notifiedEnds.add(endKey);
 
@@ -76,9 +85,9 @@ async function checkTodaySessionsForNotifications() {
             nextMessage = `Urmează ${nextName} la ora ${nextAppt.ora || ''}.`;
           }
 
-          triggerWebNotification(
+          await triggerWebNotification(
             `✅ Ședință Încheiată: ${patientName}`,
-            `Ședința s-a terminat. ${nextMessage}`
+            `Ședința cu ${patientName} s-a terminat. ${nextMessage}`
           );
         }
       }
@@ -88,20 +97,39 @@ async function checkTodaySessionsForNotifications() {
   }
 }
 
-function triggerWebNotification(title: string, body: string) {
+export async function triggerWebNotification(title: string, body: string) {
   try {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      const notif = new Notification(title, {
-        body,
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
-        tag: 'kineto-session-alert'
-      });
-      notif.onclick = () => {
-        window.focus();
-        notif.close();
-      };
+    if (typeof window === 'undefined') return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const options: any = {
+      body,
+      icon: '/favicon.svg',
+      badge: '/favicon.svg',
+      tag: 'kineto-session-alert',
+      data: { url: '/dashboard' },
+      vibrate: [200, 100, 200]
+    };
+
+    // 1. Suport Mobil principal: Trimitere prin Service Worker (Necesitate absolută pentru iOS Safari 16.4+ și Android Chrome)
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, options);
+          return;
+        }
+      } catch (swErr) {
+        console.warn('SW showNotification fallback:', swErr);
+      }
     }
+
+    // 2. Fallback Desktop pentru browserele standard
+    const notif = new Notification(title, options);
+    notif.onclick = () => {
+      window.focus();
+      notif.close();
+    };
   } catch (e) {
     console.error('Error triggering web notification:', e);
   }

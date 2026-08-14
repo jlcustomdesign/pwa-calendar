@@ -968,11 +968,17 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           updateNotificationStatusUI();
           if (res === 'granted') {
             showToast('Notificările au fost permise cu succes!');
+            import('../../../lib/services/sessionNotifier').then(({ sendTestNotification }) => {
+              sendTestNotification();
+            });
           }
         } else if (Notification.permission === 'denied') {
           alert('Notificările sunt blocate din setările browser-ului. Te rugăm să le permiți din setările site-ului (apăsând pe iconița de lacăt din stânga adresei web).');
         } else if (Notification.permission === 'granted') {
-          showToast('Notificările sunt deja active!');
+          showToast('Se trimite o notificare de test pe mobil...');
+          import('../../../lib/services/sessionNotifier').then(({ sendTestNotification }) => {
+            sendTestNotification();
+          });
         }
       });
     }
