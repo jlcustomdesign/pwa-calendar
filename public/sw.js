@@ -100,10 +100,16 @@ self.addEventListener('fetch', (event) => {
         const cached = await cache.match(request);
         if (cached) return cached;
 
-        const response = await fetch(request);
-        const clone = response.clone();
-        cache.put(request, clone).catch(() => {});
-        return response;
+        try {
+          const response = await fetch(request);
+          if (response.ok) {
+            const clone = response.clone();
+            cache.put(request, clone).catch(() => {});
+          }
+          return response;
+        } catch (err) {
+          return new Response('Not found', { status: 404, statusText: 'Not found' });
+        }
       })
     );
     return;
