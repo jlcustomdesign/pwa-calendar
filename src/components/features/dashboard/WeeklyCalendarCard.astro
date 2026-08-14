@@ -200,7 +200,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                   }`}
                 >
                   <span class="day-label text-sm font-bold tracking-wider pointer-events-none z-20 transition-opacity duration-300">{item.dayLabel}</span>
-                  <span class={`w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
+                  <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-extrabold pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
                     {item.date}
                   </span>
                   {item.isToday && (
@@ -256,7 +256,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const left = target.offsetLeft;
       const top = target.offsetTop;
 
-      const numSpan = target.querySelector<HTMLSpanElement>("span:last-child");
+      const numSpan = target.querySelector<HTMLSpanElement>("span.date-number");
       if (!numSpan) return;
 
       const cLeft = target.offsetLeft + numSpan.offsetLeft;
@@ -267,9 +267,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       pill.style.opacity = "1";
       circle.style.opacity = "1";
 
-      const targetW = isExpanded ? 40 : width;
+      // Make the non-expanded pill a bit narrower and keep it centered on the day.
+      const pillWidth = isExpanded ? 40 : 48;
+      const targetW = pillWidth;
       const targetH = isExpanded ? 40 : height;
-      const targetL = isExpanded ? cLeft - 4 : left;
+      const targetL = isExpanded ? cLeft - 4 : left + (width - pillWidth) / 2;
       const targetT = isExpanded ? cTop - 4 : top;
       const targetBR = isExpanded ? "50%" : "50px";
 
