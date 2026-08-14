@@ -351,6 +351,15 @@
       if (rawCache && list.children.length === 0) {
         const cachedSessions = JSON.parse(rawCache);
         if (Array.isArray(cachedSessions) && cachedSessions.length > 0) {
+          const daySessions = cachedSessions.filter((s: any) => !s.selectedDate || s.selectedDate === currentAgendaDate);
+          const totalToday = daySessions.length;
+          const completedToday = daySessions.filter((s: any) => s.status === 'finalizat').length;
+          const todayProgressPct = totalToday > 0 ? Math.min(100, Math.round((completedToday / totalToday) * 100)) : 0;
+          const progressText = document.getElementById('daily-progress-text');
+          const progressBar = document.getElementById('daily-progress-bar');
+          if (progressText) progressText.textContent = `${completedToday} din ${totalToday} ședințe`;
+          if (progressBar) progressBar.style.width = `${todayProgressPct}%`;
+
           drawAgendaSessionsList(list, cachedSessions);
           usedCache = true;
         }
@@ -427,9 +436,8 @@
     const daySessions = stored.filter((s: any) => !s.selectedDate || s.selectedDate === currentAgendaDate);
     const totalToday = daySessions.length;
     const completedToday = daySessions.filter((s: any) => {
-      if (currentAgendaDate < todayStr) return true;
-      if (currentAgendaDate > todayStr) return false;
-      return (s.selectedTime || s.time || "00:00") <= nowStr;
+      // O ședință este considerată efectuată în progres dacă are status = 'finalizat'
+      return s.status === 'finalizat';
     }).length;
     const todayProgressPct = totalToday > 0 ? Math.min(100, Math.round((completedToday / totalToday) * 100)) : 0;
 
