@@ -135,7 +135,7 @@ const fullMonthName = rawMonthName ? (rawMonthName.charAt(0).toUpperCase() + raw
 const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${fullMonthName}`;
 ---
 
-<div id="calendar-card" class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none closed-mode relative border-2 border-brand-secondary" data-expanded="false">
+<div id="calendar-card" class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none closed-mode relative" data-expanded="false">
   <div class="flex flex-col gap-1 mb-6 relative z-10">
     <div class="flex items-center justify-between">
       <span id="header-date-suffix" class="text-xl sm:text-2xl font-black text-black tracking-tight">{initialDateNumMonthYear}</span>
@@ -164,7 +164,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       >
         {month.weeks.map((week, weekIndex) => (
           <div 
-            class={`week-section relative grid grid-cols-5 gap-2 px-2 transition-[height,opacity] duration-500 ease-in-out ring-2 ring-brand-secondary rounded-[1.5rem] ${!week.isCurrentWeek && month.isCurrentMonth ? 'collapsed-week' : ''} ${!month.isCurrentMonth ? 'collapsed-week' : ''} ${week.isCurrentWeek && month.isCurrentMonth ? 'active-week' : ''}`}
+            class={`week-section relative grid grid-cols-5 gap-2 px-2 transition-[height,opacity] duration-500 ease-in-out ${!week.isCurrentWeek && month.isCurrentMonth ? 'collapsed-week' : ''} ${!month.isCurrentMonth ? 'collapsed-week' : ''} ${week.isCurrentWeek && month.isCurrentMonth ? 'active-week' : ''}`}
             data-is-current-week={week.isCurrentWeek ? "true" : "false"}
             data-week-index={weekIndex}
           >
@@ -194,7 +194,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                 data-date={item.date}
                 data-is-current-month={item.isCurrentMonth ? "true" : "false"}
                 data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-                class={`relative z-20 flex flex-col items-center justify-between pt-2.5 pb-1.5 w-11 mx-auto h-[4.5rem] rounded-full transition-colors duration-300 ${
+                class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl border-2 border-brand-secondary transition-colors duration-300 ${
                   item.active ? "text-black font-bold" : "text-text-main hover:opacity-100"
                 } ${item.active ? '' : (item.isCurrentMonth ? 'opacity-70' : 'opacity-30')}`}
               >
@@ -577,7 +577,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
 <style>
   .week-section {
-    height: 4.5rem;
+    height: 5.5rem;
     opacity: 1;
   }
   
