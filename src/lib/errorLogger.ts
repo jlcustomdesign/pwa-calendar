@@ -319,6 +319,7 @@ export function clearLogs(): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(PENDING_SYNC_KEY);
   } catch {
     // ignore
   }
