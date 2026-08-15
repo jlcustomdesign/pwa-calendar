@@ -227,7 +227,7 @@ const { title, hideDock = false } = Astro.props;
           // Don't toggle if clicking buttons
           if (target.closest('button, a, input, select')) return;
 
-          const card = summary.closest('session-card, .relative') as HTMLElement | null;
+          const card = (summary.closest('.swipe-surface, session-card, [data-patient-id]') || summary.parentElement) as HTMLElement | null;
           if (!card) return;
 
           // Check if card surface is currently swiped out
