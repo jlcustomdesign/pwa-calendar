@@ -175,8 +175,8 @@
       });
     });
 
-    clearBtn?.addEventListener('click', () => {
-      clearLogs();
+    clearBtn?.addEventListener('click', async () => {
+      await clearLogs();
       render();
     });
 

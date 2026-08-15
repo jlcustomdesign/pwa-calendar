@@ -313,13 +313,19 @@ export function getLogs(): LogEntry[] {
 }
 
 /**
- * Șterge logurile locale. Nu șterge din Supabase.
+ * Șterge logurile locale și cele din Supabase pentru utilizatorul curent.
  */
-export function clearLogs(): void {
+export async function clearLogs(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(STORAGE_KEY);
     window.localStorage.removeItem(PENDING_SYNC_KEY);
+
+    const { supabase } = await import('./supabase');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('error_logs').delete().eq('user_id', user.id);
+    }
   } catch {
     // ignore
   }
