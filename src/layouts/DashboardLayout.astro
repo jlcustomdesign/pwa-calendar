@@ -465,12 +465,17 @@ const { title, hideDock = false } = Astro.props;
           }
         };
 
-        // Confirmă o sesiune trecută direct din card
+        // Confirmă o sesiune trecută sau de azi direct din card
         (window as any).confirmSession = async (input: string | HTMLElement) => {
           const sessionId = resolveSessionId(input);
           if (!sessionId) return;
           try {
             const appointment = await getAppointment(sessionId);
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (appointment.data && appointment.data > todayStr) {
+              (window as any).showToast('Nu poți confirma o ședință din viitor.', 'warning');
+              return;
+            }
             window.dispatchEvent(new CustomEvent('openWrapUp', {
               detail: { appointment }
             }));
