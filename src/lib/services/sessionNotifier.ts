@@ -20,6 +20,16 @@ export function initSessionNotifier() {
   // Verifică imediat și apoi la fiecare 20 de secunde
   checkTodaySessionsForNotifications();
   checkIntervalId = setInterval(checkTodaySessionsForNotifications, 20 * 1000);
+
+  // Pe mobil: Când utilizatorul deblochează telefonul sau comută înapoi în aplicație, verificăm instant!
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkTodaySessionsForNotifications();
+    }
+  });
+  window.addEventListener('focus', () => {
+    checkTodaySessionsForNotifications();
+  });
 }
 
 export async function sendTestNotification() {
