@@ -5,7 +5,21 @@
 import { supabase } from '../supabase';
 import type { Settings } from '../database.types';
 
-const DEFAULT_SETTINGS: Settings = {
+export interface PricingPreset {
+  id: string;
+  name: string;
+  plan: 'Abonament' | 'Ședință unică';
+  total_sessions: number;
+  price: number;
+}
+
+export const DEFAULT_PRICING_PRESETS: PricingPreset[] = [
+  { id: 'p1', name: 'Abonament Standard', plan: 'Abonament', total_sessions: 10, price: 1500 },
+  { id: 'p2', name: 'Program Individual', plan: 'Abonament', total_sessions: 10, price: 1800 },
+  { id: 'p3', name: 'Ședință unică', plan: 'Ședință unică', total_sessions: 1, price: 150 },
+];
+
+const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
   id: 'default',
   therapist_name: 'Roxana',
   work_start: '08:00',
@@ -18,10 +32,11 @@ const DEFAULT_SETTINGS: Settings = {
   default_price: 150,
   default_total_sessions: 10,
   reminder_threshold: 2,
-  whatsapp_template: 'Salut {nume}! Îți reamintim că mai ai {ramase} ședințe rămase. Te așteptăm cu drag!',
+  whatsapp_template: 'Salut {nume}! Îți reamintim că mai mai ai {ramase} ședințe rămase. Te așteptăm cu drag!',
   categories: ['Kinetoterapie', 'Masaj', 'Recuperare'],
+  pricing_presets: DEFAULT_PRICING_PRESETS,
   updated_at: new Date().toISOString()
-} as Settings;
+} as any;
 
 // ── Citire settings (cu cache local instant pentru 0ms delay pe mobil) ──
 export async function getSettings(): Promise<Settings> {

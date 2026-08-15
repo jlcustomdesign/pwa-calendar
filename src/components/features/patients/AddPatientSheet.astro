@@ -46,7 +46,7 @@
       <div class="grid grid-cols-2 gap-4">
         <!-- Plan (Chips) -->
         <div>
-          <label class="block text-sm font-extrabold text-black mb-2">Plan</label>
+          <label class="block text-sm font-extrabold text-black mb-2">Tip Plan</label>
           <input type="hidden" name="plan" id="patientPlan" value="Abonament" />
           <div class="flex flex-col gap-2">
             <button type="button" data-plan="Abonament" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Abonament</button>
@@ -65,28 +65,42 @@
         </div>
       </div>
 
-      <!-- Cost -->
+      <!-- Preset Pachet & Preț Auto-apply -->
       <div>
-        <label class="block text-sm font-extrabold text-black mb-2">Cost (RON)</label>
-        <input 
-          type="number" 
-          name="cost" 
-          id="patientCost" 
-          placeholder="ex: 150" 
-          class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
-        />
+        <label class="block text-sm font-extrabold text-black mb-2">Pachete & Prețuri Predeterminate</label>
+        <div id="patient-pricing-presets" class="flex flex-wrap gap-2 mb-2">
+          <button type="button" data-preset="p1" data-price="1500" data-sessions="10" data-plan="Abonament" class="preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-amber-400 text-black shadow-sm border border-black/10">Abonament Standard (1500 RON)</button>
+          <button type="button" data-preset="p2" data-price="1800" data-sessions="10" data-plan="Abonament" class="preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10">Program Individual (1800 RON)</button>
+          <button type="button" data-preset="p3" data-price="150" data-sessions="1" data-plan="Ședință unică" class="preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10">Ședință unică (150 RON)</button>
+          <button type="button" data-preset="custom" class="preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10">Personalizat</button>
+        </div>
       </div>
 
-      <!-- Total Sessions -->
-      <div>
-        <label class="block text-sm font-extrabold text-black mb-2">Număr total ședințe</label>
-        <input 
-          type="number" 
-          name="totalSessions" 
-          id="patientTotalSessions" 
-          placeholder="e.g. 10" 
-          class="w-full px-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black"
-        />
+      <!-- Cost & Sessions -->
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Cost -->
+        <div>
+          <label class="block text-sm font-extrabold text-black mb-2">Cost Total (RON)</label>
+          <input 
+            type="number" 
+            name="cost" 
+            id="patientCost" 
+            placeholder="ex: 1500" 
+            class="w-full px-5 py-3.5 rounded-2xl bg-black/5 border border-transparent text-base font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
+          />
+        </div>
+
+        <!-- Total Sessions -->
+        <div>
+          <label class="block text-sm font-extrabold text-black mb-2">Număr Ședințe</label>
+          <input 
+            type="number" 
+            name="totalSessions" 
+            id="patientTotalSessions" 
+            placeholder="ex: 10" 
+            class="w-full px-5 py-3.5 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all font-extrabold text-black text-base"
+          />
+        </div>
       </div>
 
       <!-- Status Plată -->
@@ -222,6 +236,18 @@
       // We will move the window listener outside of bindEvents to avoid duplicates.
       // It is now handled in the init function.
       
+      // Bind Preset Chips
+      const presetContainer = document.getElementById('patient-pricing-presets');
+      if (presetContainer) {
+        presetContainer.addEventListener('click', (e) => {
+          const btn = (e.target as HTMLElement).closest('.preset-chip') as HTMLButtonElement | null;
+          if (btn) {
+            e.preventDefault();
+            this.handlePresetClick(btn);
+          }
+        });
+      }
+
       // Bind Plan Chips
       const planChips = document.querySelectorAll<HTMLButtonElement>('[data-plan]');
       planChips.forEach(chip => {
@@ -263,6 +289,44 @@
 
       const saveBtn = document.getElementById('save-patient-btn');
       saveBtn?.addEventListener('click', () => this.savePatient(false));
+    }
+
+    private handlePresetClick(btn: HTMLButtonElement) {
+      const presetId = btn.dataset.preset;
+      const price = btn.dataset.price;
+      const sessions = btn.dataset.sessions;
+      const plan = btn.dataset.plan;
+
+      const costInput = document.getElementById('patientCost') as HTMLInputElement | null;
+      const sessionsInput = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
+      const planInput = document.getElementById('patientPlan') as HTMLInputElement | null;
+
+      const chips = document.querySelectorAll('.preset-chip');
+      chips.forEach(c => {
+        c.className = 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10';
+      });
+
+      btn.className = 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-amber-400 text-black shadow-sm border border-black/10';
+
+      if (presetId === 'custom') {
+        if (costInput) { costInput.value = ''; costInput.focus(); }
+        if (sessionsInput) { sessionsInput.value = ''; }
+        return;
+      }
+
+      if (plan && planInput) {
+        planInput.value = plan;
+        this.updatePlanChips(plan);
+        this.applyPlanDefaults(plan);
+      }
+
+      if (price && costInput) {
+        costInput.value = price;
+      }
+
+      if (sessions && sessionsInput) {
+        sessionsInput.value = sessions;
+      }
     }
 
     private togglePartialAmountBox(paymentVal: string) {
@@ -498,10 +562,17 @@
           this.togglePartialAmountBox(editPaymentStatus);
         } else if (this.form) {
           this.form.reset();
-          this.updatePlanChips('Abonament');
+          const defaultPresetBtn = document.querySelector('.preset-chip[data-preset="p1"]') as HTMLButtonElement | null;
+          if (defaultPresetBtn) {
+            this.handlePresetClick(defaultPresetBtn);
+          } else {
+            (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = '1500';
+            (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = '10';
+            this.updatePlanChips('Abonament');
+            this.applyPlanDefaults('Abonament');
+          }
           this.updateLocationChips('Belaqva');
           this.updatePaymentChips('Neachitat');
-          this.applyPlanDefaults('Abonament');
           this.togglePartialAmountBox('Neachitat');
         }
 
