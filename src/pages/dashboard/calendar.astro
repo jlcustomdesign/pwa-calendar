@@ -231,7 +231,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 <div class="overflow-hidden relative z-20">
                   ${subscriptionWarningDetails}
                   
-                  <div class="px-6 pt-2 pb-2 space-y-3">
+                  <div class="px-6 pt-2 pb-6 space-y-3">
                     <!-- Row 1: White Pill with Black Text & Icons for Time & Location -->
                     <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white text-black text-sm sm:text-base font-extrabold shadow-sm border border-transparent">
                       <span class="flex items-center gap-1.5 shrink-0 text-black">
@@ -276,7 +276,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                   </div>
 
                   ${sessionStatus !== 'finalizat' && sessionStatus !== 'anulat' && sessionStatus !== 'absent' && (!session.selectedDate || session.selectedDate <= new Date().toISOString().split('T')[0]) ? `
-                    <div class="px-6 pb-5 pt-2">
+                    <div class="px-6 pb-6 pt-2">
                       <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary hover:opacity-90' : 'bg-brand-secondary hover:opacity-90'} text-black font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
                         <span>CONFIRMĂ ȘEDINȚA</span>
                       </button>
