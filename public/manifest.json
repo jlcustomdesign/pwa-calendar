@@ -1,7 +1,14 @@
 {
   "short_name": "KinetoAgenda",
   "name": "Kinetotherapist Business Agenda",
-  "icons": [],
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
   "start_url": "/dashboard",
   "background_color": "#ffffff",
   "theme_color": "#0d9488",

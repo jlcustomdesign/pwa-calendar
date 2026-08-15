@@ -201,7 +201,7 @@ async function sendLogToSupabase(entry: LogEntry | PendingErrorLog): Promise<boo
       ? new Date(entry.timestamp).toISOString()
       : entry.created_at;
 
-    const { error } = await supabase.from('error_logs').insert({
+    const { error } = await (supabase as any).from('error_logs').insert({
       user_id: user.id,
       type: entry.type,
       source: entry.source,
