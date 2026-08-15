@@ -501,6 +501,11 @@
         const FULL_SWIPE = -210; // Reveals all 3 buttons in 1 smooth slide
 
         const onStart = (clientX: number, clientY: number) => {
+          const style = window.getComputedStyle(card);
+          const matrix = new WebKitCSSMatrix(style.transform);
+          if (Math.abs(matrix.m41) < 20) {
+            isOpen = false;
+          }
           startX = clientX;
           startY = clientY;
           isSwiping = true;

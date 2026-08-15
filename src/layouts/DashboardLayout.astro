@@ -217,10 +217,26 @@ const { title, hideDock = false } = Astro.props;
           activeSurface = null;
         }
 
-        // Details expand toggle
+        const closeOtherSwipedCards = (target: HTMLElement) => {
+          document.querySelectorAll<HTMLElement>('.swipe-surface').forEach(surface => {
+            const style = window.getComputedStyle(surface);
+            const matrix = new WebKitCSSMatrix(style.transform);
+            if (Math.abs(matrix.m41) > 15) {
+              const cardWrapper = surface.closest('session-card, [data-patient-id], .relative') || surface;
+              if (!cardWrapper.contains(target)) {
+                surface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+                surface.style.transform = 'translateX(0px)';
+              }
+            }
+          });
+        };
+
+        // Details expand toggle & tap-outside to close swiped cards
         document.addEventListener('click', (e) => {
-          if (wasSwiping) return;
           const target = e.target as HTMLElement;
+          closeOtherSwipedCards(target);
+
+          if (wasSwiping) return;
           const summary = target.closest('.card-summary') as HTMLElement | null;
           if (!summary) return;
 
@@ -255,6 +271,8 @@ const { title, hideDock = false } = Astro.props;
         // Touch events
         document.addEventListener('touchstart', (e: TouchEvent) => {
           const target = e.target as HTMLElement;
+          closeOtherSwipedCards(target);
+
           const surface = target.closest('.swipe-surface') as HTMLElement | null;
           if (surface && !target.closest('button, a, input, select')) {
             handleSwipeStart(surface, e.touches[0].clientX, e.touches[0].clientY);
@@ -275,6 +293,8 @@ const { title, hideDock = false } = Astro.props;
         let isMouseDown = false;
         document.addEventListener('mousedown', (e: MouseEvent) => {
           const target = e.target as HTMLElement;
+          closeOtherSwipedCards(target);
+
           const surface = target.closest('.swipe-surface') as HTMLElement | null;
           if (surface && !target.closest('button, a, input, select')) {
             isMouseDown = true;
