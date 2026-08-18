@@ -554,6 +554,7 @@
         };
 
         card.addEventListener('touchstart', (e: any) => {
+          if ((e.target as HTMLElement)?.closest('button, a, input')) return;
           onStart(e.touches[0].clientX, e.touches[0].clientY);
         }, { passive: true });
 
