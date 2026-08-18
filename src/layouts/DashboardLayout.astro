@@ -186,7 +186,7 @@ const { title, hideDock = false } = Astro.props;
 
           activeSurface.style.transform = `translateX(${targetX}px)`;
           activeSurface.style.clipPath = targetX < 0
-            ? `inset(0 ${Math.max(0, Math.round(-targetX))}px 0 0)`
+            ? `inset(0 0 0 ${Math.max(0, Math.round(-targetX))}px)`
             : '';
         }
 
@@ -201,7 +201,7 @@ const { title, hideDock = false } = Astro.props;
           if (!isOpen && diffX < -50) {
             isOpen = true;
             activeSurface.style.transform = `translateX(${maxSwipe}px)`;
-            activeSurface.style.clipPath = `inset(0 ${Math.round(-maxSwipe)}px 0 0)`;
+            activeSurface.style.clipPath = `inset(0 0 0 ${Math.round(-maxSwipe)}px)`;
             const cardRoot = activeSurface.closest('session-card, .swipe-surface') as HTMLElement | null;
             if (cardRoot) {
               const details = cardRoot.querySelector('.card-details') as HTMLElement | null;
@@ -215,7 +215,7 @@ const { title, hideDock = false } = Astro.props;
             activeSurface.style.clipPath = '';
           } else {
             activeSurface.style.transform = isOpen ? `translateX(${maxSwipe}px)` : 'translateX(0px)';
-            activeSurface.style.clipPath = isOpen ? `inset(0 ${Math.round(-maxSwipe)}px 0 0)` : '';
+            activeSurface.style.clipPath = isOpen ? `inset(0 0 0 ${Math.round(-maxSwipe)}px)` : '';
           }
 
           const targetSurface = activeSurface;
