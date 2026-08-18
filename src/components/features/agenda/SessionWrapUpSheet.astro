@@ -896,9 +896,7 @@
     if (!document.getElementById('session-wrapup-sheet')) return;
 
     const mgr = (window as any).__wrapUpManager as WrapUpSheetManager | null;
-    if (mgr) {
-      mgr.reconnect();
-    } else {
+    if (!mgr) {
       (window as any).__wrapUpManager = new WrapUpSheetManager();
     }
   });

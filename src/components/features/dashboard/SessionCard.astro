@@ -151,6 +151,8 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
 <script>
   class SessionCard extends HTMLElement {
     private _initialized = false;
+    private _boundOnMouseMove?: (e: MouseEvent) => void;
+    private _boundOnMouseUp?: (e: MouseEvent) => void;
 
     connectedCallback() {
       if (this._initialized) return;
@@ -286,15 +288,30 @@ const clipPathValue = `inset(0 ${100 - progressPercentage}% 0 0)`;
           isMouseDown = true;
           onStart(e.clientX, e.clientY, e);
         });
-        window.addEventListener('mousemove', (e: MouseEvent) => {
+
+        this._boundOnMouseMove = (e: MouseEvent) => {
           if (isMouseDown) onMove(e.clientX, e.clientY, e);
-        });
-        window.addEventListener('mouseup', (e: MouseEvent) => {
+        };
+        this._boundOnMouseUp = (e: MouseEvent) => {
           if (isMouseDown) {
             isMouseDown = false;
             onEnd(e.clientX);
           }
-        });
+        };
+
+        window.addEventListener('mousemove', this._boundOnMouseMove);
+        window.addEventListener('mouseup', this._boundOnMouseUp);
+      }
+    }
+
+    disconnectedCallback() {
+      if (this._boundOnMouseMove) {
+        window.removeEventListener('mousemove', this._boundOnMouseMove);
+        this._boundOnMouseMove = undefined;
+      }
+      if (this._boundOnMouseUp) {
+        window.removeEventListener('mouseup', this._boundOnMouseUp);
+        this._boundOnMouseUp = undefined;
       }
     }
   }

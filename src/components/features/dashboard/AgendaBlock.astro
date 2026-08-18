@@ -48,14 +48,20 @@
   let lastFetchedSessions: any[] = [];
   const autoPromptedSessions = new Set<string>();
 
-  window.addEventListener('calendarDateSelected', (e: any) => {
+  const handleDateSelected = (e: any) => {
     const date = e.detail?.date;
     if (date) {
       currentAgendaDate = date;
       (window as any).currentCalendarDate = date;
       renderAgendaBlock();
     }
-  });
+  };
+
+  if ((window as any)._agendaBlockDateHandler) {
+    window.removeEventListener('calendarDateSelected', (window as any)._agendaBlockDateHandler);
+  }
+  (window as any)._agendaBlockDateHandler = handleDateSelected;
+  window.addEventListener('calendarDateSelected', handleDateSelected);
 
 
   async function checkActionNotifications() {
@@ -509,7 +515,14 @@
     renderAgendaBlock();
   });
   
-  window.addEventListener('sessionsUpdated', renderAgendaBlock);
-  window.addEventListener('patientsUpdated', renderAgendaBlock);
+  if ((window as any)._agendaBlockSessionsHandler) {
+    window.removeEventListener('sessionsUpdated', (window as any)._agendaBlockSessionsHandler);
+    window.removeEventListener('patientsUpdated', (window as any)._agendaBlockPatientsHandler);
+  }
+  (window as any)._agendaBlockSessionsHandler = renderAgendaBlock;
+  (window as any)._agendaBlockPatientsHandler = renderAgendaBlock;
+
+  window.addEventListener('sessionsUpdated', (window as any)._agendaBlockSessionsHandler);
+  window.addEventListener('patientsUpdated', (window as any)._agendaBlockPatientsHandler);
 
 </script>

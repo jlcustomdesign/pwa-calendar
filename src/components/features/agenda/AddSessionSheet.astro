@@ -1161,20 +1161,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     
     if (!globalAddSessionSheetManager) {
       globalAddSessionSheetManager = new AddSessionSheetManager();
-    } else {
-      // Re-bind DOM elements if they changed
-      globalAddSessionSheetManager.sheet = document.getElementById('add-session-sheet');
-      globalAddSessionSheetManager.form = document.getElementById('add-session-form') as HTMLFormElement;
-      globalAddSessionSheetManager.timeInput = document.getElementById('selectedTime') as HTMLInputElement;
-      globalAddSessionSheetManager.dateInput = document.getElementById('selectedDate') as HTMLInputElement;
-      globalAddSessionSheetManager.datePickerSheet = document.getElementById('custom-date-picker-sheet');
-      globalAddSessionSheetManager.datePickerOverlay = document.getElementById('custom-date-picker-overlay');
-      globalAddSessionSheetManager.createOverlay();
-      globalAddSessionSheetManager.populateDynamicContent();
-      globalAddSessionSheetManager.bindEvents();
-      globalAddSessionSheetManager.bindDateTimeSelectors();
-      globalAddSessionSheetManager.bindDatePicker();
-      globalAddSessionSheetManager.bindCustomTimeModal();
     }
   });
 </script>

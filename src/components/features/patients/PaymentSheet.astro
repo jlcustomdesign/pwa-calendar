@@ -493,17 +493,6 @@
     
     if (!globalPaymentSheetManager) {
       globalPaymentSheetManager = new PaymentSheetManager();
-    } else {
-      // Re-bind DOM elements if they changed
-      globalPaymentSheetManager['sheet'] = document.getElementById('payment-sheet');
-      globalPaymentSheetManager['backdrop'] = document.getElementById('payment-backdrop');
-      globalPaymentSheetManager['content'] = document.getElementById('payment-content');
-      globalPaymentSheetManager['optionsView'] = document.getElementById('payment-options-view');
-      globalPaymentSheetManager['customView'] = document.getElementById('custom-amount-view');
-      globalPaymentSheetManager['customInput'] = document.getElementById('custom-amount-input') as HTMLInputElement;
-      globalPaymentSheetManager['customLabel'] = document.getElementById('custom-amount-label');
-      globalPaymentSheetManager['subtitleText'] = document.getElementById('payment-subtitle');
-      globalPaymentSheetManager['bindEvents']();
     }
   });
 </script>

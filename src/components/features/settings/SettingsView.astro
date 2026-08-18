@@ -268,16 +268,40 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
               </div>
             </div>
 
-            <!-- Stepper: Preț ședință -->
-            <div class="flex items-center justify-between py-1 border-t border-transparent pt-3">
-              <div class="text-base sm:text-lg font-bold text-text-main">Preț ședință</div>
-              <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-transparent">
-                <button type="button" data-stepper-dec="sessionPrice" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
-                  -
-                </button>
-                <input type="number" id="sessionPrice" name="sessionPrice" value="150" min="0" max="2000" step="10" readonly class="w-14 text-center bg-transparent font-bold text-text-main text-base focus:outline-none" />
-                <button type="button" data-stepper-inc="sessionPrice" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
-                  +
+            <!-- Stepper: Preț ședință (Sters pentru a face loc pachetelor) -->
+            <!-- Pachete de prețuri -->
+            <div class="space-y-4 pt-4 border-t border-transparent mt-4">
+              <h3 class="text-lg font-bold text-text-main">Prețuri și Pachete</h3>
+              <div id="pricing-packages-container" class="flex flex-col gap-2.5 w-full">
+                <!-- Dynamically added custom pricing packages items -->
+              </div>
+
+              <!-- Casetă de introducere DIRECT vizibilă de la început -->
+              <div id="inline-pricing-input-box" class="flex flex-col gap-2 w-full pt-2">
+                <input
+                  type="text"
+                  id="new-pricing-name"
+                  placeholder="Nume (ex. Abonament 10 ședințe)"
+                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/80 border border-transparent text-text-main font-bold text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all"
+                />
+                <div class="flex gap-2">
+                  <select id="new-pricing-type" class="flex-1 px-4 py-3 rounded-2xl bg-surface-base/80 border border-transparent text-text-main font-bold text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all appearance-none cursor-pointer">
+                    <option value="One Time">Ședință (One Time)</option>
+                    <option value="Subscription">Pachet (Subscription)</option>
+                  </select>
+                  <input
+                    type="number"
+                    id="new-pricing-price"
+                    placeholder="Preț (RON)"
+                    class="w-32 px-4 py-3 rounded-2xl bg-surface-base/80 border border-transparent text-text-main font-bold text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all"
+                  />
+                </div>
+                <button
+                  type="button"
+                  id="btn-confirm-add-pricing"
+                  class="w-full py-3.5 rounded-2xl bg-brand-secondary text-white font-extrabold text-sm hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-md shadow-brand-secondary/20 shrink-0 mt-1"
+                >
+                  Adaugă
                 </button>
               </div>
             </div>
@@ -455,6 +479,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
 <script>
   import { getSettings as getSettingsDB, saveSettings as saveSettingsDB, getProfile, saveProfile } from '../../../lib/services/settingsService';
+  import { getPricingPackages, createPricingPackage, deletePricingPackage } from '../../../lib/services/pricingService';
   import { exportPatientsCSV } from '../../../lib/services/patientService';
   import { setSettingsCache } from '../../../lib/store';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
@@ -586,11 +611,126 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     // 4. Packages
     const inputDuration = document.getElementById('sessionDuration') as HTMLInputElement | null;
     const inputBreakBetween = document.getElementById('breakBetween') as HTMLInputElement | null;
-    const inputPrice = document.getElementById('sessionPrice') as HTMLInputElement | null;
 
     if (inputDuration)     inputDuration.value     = (settings.session_duration ?? 50).toString();
     if (inputBreakBetween) inputBreakBetween.value  = (settings.break_buffer      ?? 10).toString();
-    if (inputPrice)        inputPrice.value         = (settings.default_price      ?? 150).toString();
+
+    // 4.1 Pricing Packages Logic
+    const pricingPackagesContainer = document.getElementById('pricing-packages-container');
+    const btnConfirmAddPricing = document.getElementById('btn-confirm-add-pricing');
+    const newPricingNameInput = document.getElementById('new-pricing-name') as HTMLInputElement | null;
+    const newPricingTypeSelect = document.getElementById('new-pricing-type') as HTMLSelectElement | null;
+    const newPricingPriceInput = document.getElementById('new-pricing-price') as HTMLInputElement | null;
+
+    let localPricingPackages: any[] = [];
+
+    async function fetchPricingPackages() {
+      try {
+        localPricingPackages = await getPricingPackages();
+        renderAllPricingPackages();
+      } catch (err) {
+        console.error("Failed to fetch pricing packages", err);
+      }
+    }
+
+    function renderAllPricingPackages() {
+      if (!pricingPackagesContainer) return;
+      pricingPackagesContainer.innerHTML = '';
+      localPricingPackages.forEach(renderPricingPackageItem);
+    }
+
+    function renderPricingPackageItem(pkg: any) {
+      if (!pricingPackagesContainer) return;
+      const itemDiv = document.createElement('div');
+      itemDiv.setAttribute('data-pricing-id', pkg.id);
+      itemDiv.className = 'flex items-center justify-between p-3.5 px-4 rounded-2xl bg-surface-base/60 hover:bg-surface-base border border-transparent transition-all animate-fadeIn w-full';
+      
+      const leftBox = document.createElement('div');
+      leftBox.className = 'flex flex-col min-w-0 flex-1';
+
+      const titleRow = document.createElement('div');
+      titleRow.className = 'flex items-center justify-between mb-1';
+
+      const spanName = document.createElement('span');
+      spanName.className = 'text-text-main font-extrabold text-base tracking-tight truncate flex-1';
+      spanName.textContent = pkg.nume;
+
+      const spanPrice = document.createElement('span');
+      spanPrice.className = 'text-brand-secondary font-black text-base whitespace-nowrap ml-2';
+      spanPrice.textContent = `${pkg.pret} RON`;
+
+      titleRow.appendChild(spanName);
+      titleRow.appendChild(spanPrice);
+
+      const spanType = document.createElement('span');
+      spanType.className = 'text-text-muted font-semibold text-xs';
+      spanType.textContent = pkg.tip === 'Subscription' ? 'Pachet' : 'Ședință';
+
+      leftBox.appendChild(titleRow);
+      leftBox.appendChild(spanType);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'w-8 h-8 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold text-xs flex items-center justify-center transition-all shrink-0 ml-3 cursor-pointer shadow-sm';
+      delBtn.innerHTML = '&times;';
+      delBtn.addEventListener('click', async () => {
+        try {
+          delBtn.disabled = true;
+          delBtn.classList.add('opacity-50');
+          await deletePricingPackage(pkg.id);
+          localPricingPackages = localPricingPackages.filter(p => p.id !== pkg.id);
+          itemDiv.remove();
+          showToast('Pachet șters cu succes!');
+        } catch (err) {
+          console.error("Failed to delete package", err);
+          delBtn.disabled = false;
+          delBtn.classList.remove('opacity-50');
+        }
+      });
+
+      itemDiv.appendChild(leftBox);
+      itemDiv.appendChild(delBtn);
+
+      pricingPackagesContainer.appendChild(itemDiv);
+    }
+
+    if (pricingPackagesContainer) {
+      fetchPricingPackages();
+    }
+
+    btnConfirmAddPricing?.addEventListener('click', async () => {
+      if (!newPricingNameInput || !newPricingTypeSelect || !newPricingPriceInput || !pricingPackagesContainer) return;
+      const nume = newPricingNameInput.value.trim();
+      const tip = newPricingTypeSelect.value as 'Subscription' | 'One Time';
+      const pretStr = newPricingPriceInput.value;
+      const pret = parseInt(pretStr, 10);
+
+      if (!nume || isNaN(pret)) {
+        showToast('Numele și prețul sunt obligatorii.');
+        return;
+      }
+      
+      try {
+        btnConfirmAddPricing.textContent = 'Se adaugă...';
+        (btnConfirmAddPricing as HTMLButtonElement).disabled = true;
+        
+        const newPkg = await createPricingPackage({ nume, tip, pret });
+        if (newPkg) {
+          localPricingPackages.push(newPkg);
+          renderPricingPackageItem(newPkg);
+          
+          newPricingNameInput.value = '';
+          newPricingPriceInput.value = '';
+          showToast('Pachet adăugat cu succes!');
+        }
+      } catch (err) {
+        console.error("Failed to add pricing package", err);
+        showToast('Eroare la adăugarea pachetului.');
+      } finally {
+        btnConfirmAddPricing.textContent = 'Adaugă';
+        (btnConfirmAddPricing as HTMLButtonElement).disabled = false;
+      }
+    });
 
     // 5. Reminders
     const cbLastSession = document.getElementById('reminder-last-session-checkbox') as HTMLInputElement | null;
@@ -891,7 +1031,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           savedSettings = await saveSettingsDB({
             session_duration: parseInt(inputDuration?.value    || '50',  10),
             break_buffer:     parseInt(inputBreakBetween?.value || '10', 10),
-            default_price:    parseFloat(inputPrice?.value    || '150'),
+            // default_price was removed, managed via pricing packages
           });
 
         } else if (section === 'reminders') {

@@ -541,11 +541,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
     });
 
-    window.addEventListener("resize", () => {
+    if ((window as any)._weeklyCalendarResizeHandler) {
+      window.removeEventListener("resize", (window as any)._weeklyCalendarResizeHandler);
+    }
+    const handleResize = () => {
       const activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
       if (activeBtn) animatePillAndCircleDrop(activeBtn, true);
       updateMonthYearLabel();
-    });
+    };
+    (window as any)._weeklyCalendarResizeHandler = handleResize;
+    window.addEventListener("resize", handleResize);
 
     function updateMonthYearLabel() {
       const contentWidth = strip.offsetWidth - 48; // accounting for px-6

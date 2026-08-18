@@ -470,8 +470,6 @@
     if (!document.getElementById('renewal-sheet')) return;
     if (!globalRenewalSheetManager) {
       globalRenewalSheetManager = new RenewalSheetManager();
-    } else {
-      globalRenewalSheetManager.reconnect();
     }
   });
 </script>

@@ -89,10 +89,10 @@
     }
   }
 
-  let frequencyBanner: FrequencyPromptBanner | null = null;
   function initFrequencyBanner() {
-    if (!frequencyBanner) {
-      frequencyBanner = new FrequencyPromptBanner();
+    if (!(window as any).__kinetoFrequencyBannerInitialized) {
+      (window as any).__kinetoFrequencyBannerInitialized = true;
+      new FrequencyPromptBanner();
     }
   }
   document.addEventListener('DOMContentLoaded', initFrequencyBanner);

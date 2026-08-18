@@ -324,7 +324,8 @@ export async function clearLogs(): Promise<void> {
     const { supabase } = await import('./supabase');
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from('error_logs').delete().eq('user_id', user.id);
+      // Șterge toate logurile din tabel, inclusiv pe cele fără user_id
+      await supabase.from('error_logs').delete().neq('id', '');
     }
   } catch {
     // ignore

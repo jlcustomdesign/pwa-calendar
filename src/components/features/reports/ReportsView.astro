@@ -722,6 +722,10 @@
       ro.observe(tabsContainer);
     }
 
+    if ((window as any)._reportsResizeHandler) {
+      window.removeEventListener('resize', (window as any)._reportsResizeHandler);
+    }
+    (window as any)._reportsResizeHandler = updateActivePill;
     window.addEventListener('resize', updateActivePill);
   }
 

@@ -228,6 +228,25 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['error_logs']['Insert']>;
       };
 
+      // ── pricing_packages ──────────────────────────────────────
+      pricing_packages: {
+        Row: {
+          id:          string;
+          nume:        string;
+          tip:         'Subscription' | 'One Time';
+          pret:        number;
+          created_at:  string;
+        };
+        Insert: {
+          id?:         string;
+          nume:        string;
+          tip:         'Subscription' | 'One Time';
+          pret:        number;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['pricing_packages']['Insert']>;
+      };
+
     };
 
     Views: {
@@ -267,3 +286,5 @@ export type Plata            = Database['public']['Tables']['plati']['Row'];
 export type PlataInsert      = Database['public']['Tables']['plati']['Insert'];
 export type ErrorLog         = Database['public']['Tables']['error_logs']['Row'];
 export type ErrorLogInsert   = Database['public']['Tables']['error_logs']['Insert'];
+export type PricingPackage   = Database['public']['Tables']['pricing_packages']['Row'];
+export type PricingPackageInsert = Database['public']['Tables']['pricing_packages']['Insert'];

@@ -84,14 +84,20 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       window.dispatchEvent(new CustomEvent('sessionsUpdated'));
     };
 
-    window.addEventListener('calendarDateSelected', (e: any) => {
+    const handleDateSelected = (e: any) => {
       const date = e.detail?.date;
       if (date) {
         currentCalendarDate = date;
         (window as any).currentCalendarDate = date;
         renderTimeline();
       }
-    });
+    };
+
+    if ((window as any)._calendarDateSelectedHandler) {
+      window.removeEventListener('calendarDateSelected', (window as any)._calendarDateSelectedHandler);
+    }
+    (window as any)._calendarDateSelectedHandler = handleDateSelected;
+    window.addEventListener('calendarDateSelected', handleDateSelected);
 
     function createSessionCardHTML(session: any) {
       const paymentStatus = session.paymentStatus || 'Neachitat';
@@ -446,8 +452,19 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       }).join('');
     }
 
-    window.addEventListener('sessionsUpdated', renderTimeline);
-    window.addEventListener('patientsUpdated', renderTimeline);
+    if ((window as any)._calendarSessionsHandler) {
+      window.removeEventListener('sessionsUpdated', (window as any)._calendarSessionsHandler);
+      window.removeEventListener('patientsUpdated', (window as any)._calendarPatientsHandler);
+      window.removeEventListener('settingsUpdated', (window as any)._calendarSettingsHandler);
+    }
+    
+    (window as any)._calendarSessionsHandler = renderTimeline;
+    (window as any)._calendarPatientsHandler = renderTimeline;
+    (window as any)._calendarSettingsHandler = renderTimeline;
+
+    window.addEventListener('sessionsUpdated', (window as any)._calendarSessionsHandler);
+    window.addEventListener('patientsUpdated', (window as any)._calendarPatientsHandler);
+    
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       renderTimeline();
     } else {
@@ -455,7 +472,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
     }
     document.addEventListener('astro:page-load', renderTimeline);
     // Re-renderizează timeline când se schimbă orele de lucru sau pauza din Setări
-    window.addEventListener('settingsUpdated', renderTimeline);
+    window.addEventListener('settingsUpdated', (window as any)._calendarSettingsHandler);
 
     // ── Drag & drop: mută o programare (long-press apoi drag) ──────────────
     // Drop pe un slot orar din timeline → schimbă ora.

@@ -69,10 +69,7 @@
       <div>
         <label class="block text-sm font-extrabold text-black mb-2">Pachete & Prețuri Predeterminate</label>
         <div id="patient-pricing-presets" class="flex flex-wrap gap-2 mb-2">
-          <button type="button" data-preset="p1" data-price="1500" data-sessions="10" data-plan="Abonament" class="preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-amber-400 text-black shadow-sm border border-black/10">Abonament Standard (1500 RON)</button>
-          <button type="button" data-preset="p2" data-price="1800" data-sessions="10" data-plan="Abonament" class="preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10">Program Individual (1800 RON)</button>
-          <button type="button" data-preset="p3" data-price="150" data-sessions="1" data-plan="Ședință unică" class="preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10">Ședință unică (150 RON)</button>
-          <button type="button" data-preset="custom" class="preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10">Personalizat</button>
+          <!-- Dynamically populated from pricing_packages -->
         </div>
       </div>
 
@@ -153,6 +150,7 @@
 
 <script>
   import { addPatient, updatePatient, addPayment } from '../../../lib/services/patientService';
+  import { getPricingPackages } from '../../../lib/services/pricingService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class AddPatientSheetManager {
@@ -164,6 +162,8 @@
     startX: number = 0;
     dragEngaged: boolean = false;
     scrollAtTop: boolean = true;
+    pricingPackages: any[] = [];
+    currentPlanFilter: string = 'Abonament';
 
     constructor() {
       this.sheet = document.getElementById('add-patient-sheet');
@@ -171,6 +171,55 @@
       
       this.createOverlay();
       this.bindEvents();
+      this.loadPricingPackages();
+    }
+
+    async loadPricingPackages() {
+      try {
+        this.pricingPackages = await getPricingPackages();
+        this.renderPricingPresets();
+      } catch (err) {
+        console.error("Eroare la incarcarea pachetelor", err);
+      }
+    }
+
+    renderPricingPresets() {
+      const container = document.getElementById('patient-pricing-presets');
+      if (!container) return;
+      container.innerHTML = '';
+      
+      const clean = (s: string) => (s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const normSelected = clean(this.currentPlanFilter);
+      const isSubscription = normSelected.includes('abonament') || normSelected.includes('subscrip');
+
+      const filtered = this.pricingPackages.filter(p => {
+        if (isSubscription) {
+          return p.tip === 'Subscription';
+        } else {
+          return p.tip === 'One Time';
+        }
+      });
+
+      filtered.forEach((pkg, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.preset = pkg.id;
+        btn.dataset.price = pkg.pret.toString();
+        btn.dataset.sessions = pkg.tip === 'Subscription' ? '10' : '1'; // Default sessions
+        btn.dataset.plan = this.currentPlanFilter;
+        // Primul element primeste selectie by default (optional, le lasam ne-selectate pana cand se face click)
+        btn.className = 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10';
+        btn.textContent = `${pkg.nume} (${pkg.pret} RON)`;
+        container.appendChild(btn);
+      });
+
+      // Buton personalizat la final
+      const customBtn = document.createElement('button');
+      customBtn.type = 'button';
+      customBtn.dataset.preset = 'custom';
+      customBtn.className = 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10';
+      customBtn.textContent = 'Personalizat';
+      container.appendChild(customBtn);
     }
 
     createOverlay() {
@@ -257,8 +306,10 @@
           if (this.form) {
             (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = planVal;
           }
+          this.currentPlanFilter = planVal;
           this.updatePlanChips(planVal);
           this.applyPlanDefaults(planVal);
+          this.renderPricingPresets();
         });
       });
 
@@ -555,11 +606,13 @@
           (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = patient.sedinte_total != null ? String(patient.sedinte_total) : '';
           (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = editPaymentStatus;
           (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.drive_link || '';
+          this.currentPlanFilter = patient.plan || 'Abonament';
           this.updatePlanChips(patient.plan || 'Abonament');
           this.updateLocationChips(patient.locatie || 'Belaqva');
           this.updatePaymentChips(editPaymentStatus);
           this.applyPlanDefaults(patient.plan || 'Abonament');
           this.togglePartialAmountBox(editPaymentStatus);
+          this.renderPricingPresets();
         } else if (this.form) {
           this.form.reset();
           const defaultPresetBtn = document.querySelector('.preset-chip[data-preset="p1"]') as HTMLButtonElement | null;
@@ -568,8 +621,10 @@
           } else {
             (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = '1500';
             (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = '10';
+            this.currentPlanFilter = 'Abonament';
             this.updatePlanChips('Abonament');
             this.applyPlanDefaults('Abonament');
+            this.renderPricingPresets();
           }
           this.updateLocationChips('Belaqva');
           this.updatePaymentChips('Neachitat');
@@ -679,10 +734,12 @@
       (window as any)._patientSheetListenerBound = true;
     }
     
-    // Always instantiate a new manager on page load so it binds to the new DOM elements
-    (window as any).currentPatientSheetManager = new AddPatientSheetManager();
+    // Since this sheet uses transition:persist, the DOM is preserved across page loads.
+    // We only need to instantiate the manager once.
+    if (!(window as any).currentPatientSheetManager) {
+      (window as any).currentPatientSheetManager = new AddPatientSheetManager();
+    }
   }
 
   document.addEventListener('astro:page-load', initPatientSheet);
 </script>
-

@@ -566,19 +566,25 @@
 
         // Mouse support
         let isMouseDown = false;
+        
+        const onWindowMouseMove = (e: MouseEvent) => {
+          if (isMouseDown) onMove(e.clientX, e.clientY);
+        };
+        const onWindowMouseUp = () => {
+          if (isMouseDown) {
+            isMouseDown = false;
+            onEnd();
+            window.removeEventListener('mousemove', onWindowMouseMove);
+            window.removeEventListener('mouseup', onWindowMouseUp);
+          }
+        };
+
         card.addEventListener('mousedown', (e: MouseEvent) => {
           if ((e.target as HTMLElement)?.closest('button, a, input')) return;
           isMouseDown = true;
           onStart(e.clientX, e.clientY);
-        });
-        window.addEventListener('mousemove', (e: MouseEvent) => {
-          if (isMouseDown) onMove(e.clientX, e.clientY);
-        });
-        window.addEventListener('mouseup', () => {
-          if (isMouseDown) {
-            isMouseDown = false;
-            onEnd();
-          }
+          window.addEventListener('mousemove', onWindowMouseMove);
+          window.addEventListener('mouseup', onWindowMouseUp);
         });
 
         cardWrapper.appendChild(actionsBg);
