@@ -490,7 +490,11 @@
         summary?.addEventListener('touchmove', (e: any) => {
           const dx = e.touches[0].clientX - summaryTouchStartX;
           const dy = e.touches[0].clientY - summaryTouchStartY;
-          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+          // Only treat as scroll/swipe if movement is clearly directional and significant;
+          // normal tap jitter is usually under 15px.
+          const isHorizontalSwipe = Math.abs(dx) > 25 && Math.abs(dx) > Math.abs(dy) * 1.5;
+          const isVerticalScroll = Math.abs(dy) > 25 && Math.abs(dy) > Math.abs(dx);
+          if (isHorizontalSwipe || isVerticalScroll) {
             summaryTouchMoved = true;
           }
         }, { passive: true });
@@ -507,7 +511,8 @@
           // Ignore if the finger moved (scroll/swipe attempt)
           if (summaryTouchMoved) return;
 
-          // Mark that touch handled this tap so the delayed click doesn't toggle again
+          // Prevent the delayed synthetic click so we don't toggle twice
+          e.preventDefault();
           touchHandledTap = true;
           toggleDetails();
         });
