@@ -223,6 +223,33 @@ const { title, hideDock = false } = Astro.props;
           activeSurface = null;
         }
 
+        // Tap card summary to expand/collapse details (never close a swiped card).
+        document.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement;
+
+          // Ignore action buttons/areas and interactive elements.
+          if (target.closest('[data-action-btn], [data-action-area], button, a, input, select')) {
+            return;
+          }
+
+          if (wasSwiping) return;
+
+          const summary = target.closest('.card-summary') as HTMLElement | null;
+          if (!summary) return;
+
+          const card = (summary.closest('.swipe-surface, session-card, [data-patient-id]') || summary.parentElement) as HTMLElement | null;
+          if (!card) return;
+
+          const details = card.querySelector('.card-details') as HTMLElement | null;
+          const icon = card.querySelector('.expand-icon') as HTMLElement | null;
+
+          if (details) {
+            const isCurrentlyExpanded = details.style.gridTemplateRows === '1fr';
+            details.style.gridTemplateRows = isCurrentlyExpanded ? '0fr' : '1fr';
+            if (icon) icon.style.transform = isCurrentlyExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+          }
+        });
+
         // Touch events
         document.addEventListener('touchstart', (e: TouchEvent) => {
           const target = e.target as HTMLElement;
@@ -247,7 +274,6 @@ const { title, hideDock = false } = Astro.props;
         let isMouseDown = false;
         document.addEventListener('mousedown', (e: MouseEvent) => {
           const target = e.target as HTMLElement;
-          closeOtherSwipedCards(target);
 
           const surface = target.closest('.swipe-surface') as HTMLElement | null;
           if (surface && !target.closest('button, a, input, select')) {
