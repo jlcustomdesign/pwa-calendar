@@ -57,8 +57,8 @@ const { title, hideDock = false } = Astro.props;
     </div>
   </head>
   <body class="min-h-[100dvh] w-full font-sans text-text-main antialiased selection:bg-brand-primary/20 overflow-x-hidden !bg-transparent">
-    <!-- Full-bleed static blob background — sized with JS so it always covers the real viewport on iOS Safari dynamic URL-bar changes -->
-    <div id="bg-blobs" class="pointer-events-none fixed top-0 left-0 z-0" style="width: 100vw; height: 100vh; height: -webkit-fill-available;" aria-hidden="true">
+    <!-- Full-bleed static blob background — oversized so it always covers the viewport plus iOS safe areas / dynamic URL bar -->
+    <div id="bg-blobs" class="pointer-events-none fixed z-0" style="top: -50vh; left: -50vw; width: 200vw; height: 200vh;" aria-hidden="true">
       <!-- Continuous base gradient so there are no hard edges behind safe areas/notch -->
       <div class="absolute inset-0 bg-gradient-to-b from-white via-neutral-50 to-white opacity-90"></div>
 
@@ -329,23 +329,6 @@ const { title, hideDock = false } = Astro.props;
 
       // Initialize on load and page swaps
       if (typeof window !== 'undefined') {
-        // Keep the blob background pinned to the real viewport size on iOS dynamic URL-bar changes
-        (function keepBgCoveringViewport() {
-          const bg = document.getElementById('bg-blobs');
-          if (!bg) return;
-          function update() {
-            bg.style.width = `${window.innerWidth}px`;
-            bg.style.height = `${window.innerHeight}px`;
-          }
-          update();
-          window.addEventListener('resize', update);
-          window.addEventListener('orientationchange', update);
-          // iOS Safari sometimes needs a moment after the URL bar animates
-          window.addEventListener('scroll', () => {
-            window.requestAnimationFrame(update);
-          }, { passive: true });
-        })();
-
         initErrorLogger();
         import('../lib/services/sessionNotifier').then(({ initSessionNotifier }) => {
           initSessionNotifier();
