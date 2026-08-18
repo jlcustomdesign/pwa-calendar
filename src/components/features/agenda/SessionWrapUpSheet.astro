@@ -894,6 +894,8 @@
     const mgr = (window as any).__wrapUpManager as WrapUpSheetManager | null;
     if (!mgr) {
       (window as any).__wrapUpManager = new WrapUpSheetManager();
+    } else {
+      mgr.reconnect();
     }
   });
 </script>

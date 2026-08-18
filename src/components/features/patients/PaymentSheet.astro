@@ -136,9 +136,21 @@
       this.bindEvents();
     }
 
+    private reconnect() {
+      this.sheet = document.getElementById('payment-sheet');
+      this.backdrop = document.getElementById('payment-backdrop');
+      this.content = document.getElementById('payment-content');
+      this.optionsView = document.getElementById('payment-options-view');
+      this.customView = document.getElementById('custom-amount-view');
+      this.customInput = document.getElementById('custom-amount-input') as HTMLInputElement;
+      this.customLabel = document.getElementById('custom-amount-label');
+      this.subtitleText = document.getElementById('payment-subtitle');
+    }
+
     private bindEvents() {
       // Open sheet event
       window.addEventListener('openPaymentSheet', ((e: CustomEvent) => {
+        this.reconnect();
         this.currentPatientId = e.detail.patientId;
         this.resetView();
         this.open();
@@ -483,12 +495,14 @@
   }
 
   let globalPaymentSheetManager: PaymentSheetManager | null = null;
-  
+
   document.addEventListener('astro:page-load', () => {
     if (!document.getElementById('payment-sheet')) return;
-    
+
     if (!globalPaymentSheetManager) {
       globalPaymentSheetManager = new PaymentSheetManager();
+    } else {
+      globalPaymentSheetManager.reconnect();
     }
   });
 </script>
