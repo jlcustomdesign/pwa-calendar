@@ -223,68 +223,9 @@ const { title, hideDock = false } = Astro.props;
           activeSurface = null;
         }
 
-        const closeOtherSwipedCards = (target: HTMLElement) => {
-          document.querySelectorAll<HTMLElement>('.swipe-surface').forEach(surface => {
-            const style = window.getComputedStyle(surface);
-            const matrix = new WebKitCSSMatrix(style.transform);
-            if (Math.abs(matrix.m41) > 15) {
-              const cardWrapper = surface.closest('session-card, [data-patient-id], .relative') || surface;
-              if (!cardWrapper.contains(target)) {
-                surface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-                surface.style.transform = 'translateX(0px)';
-              }
-            }
-          });
-        };
-
-        // Details expand toggle & tap-outside to close swiped cards
-        document.addEventListener('click', (e) => {
-          const target = e.target as HTMLElement;
-
-          // Ignore action buttons/areas inside swiped cards so edit/cancel/delete work.
-          // Do this first so we never close the current card when tapping an action.
-          if (target.closest('[data-action-btn], [data-action-area]')) {
-            return;
-          }
-
-          closeOtherSwipedCards(target);
-
-          if (wasSwiping) return;
-          const summary = target.closest('.card-summary') as HTMLElement | null;
-          if (!summary) return;
-
-          // Don't toggle if clicking buttons
-          if (target.closest('button, a, input, select')) return;
-
-          const card = (summary.closest('.swipe-surface, session-card, [data-patient-id]') || summary.parentElement) as HTMLElement | null;
-          if (!card) return;
-
-          // Check if card surface is currently swiped out
-          const surface = (card.classList.contains('swipe-surface') ? card : card.querySelector('.swipe-surface')) as HTMLElement | null;
-          if (surface) {
-            const style = window.getComputedStyle(surface);
-            const matrix = new WebKitCSSMatrix(style.transform);
-            if (Math.abs(matrix.m41) > 20) {
-              surface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-              surface.style.transform = 'translateX(0px)';
-              return;
-            }
-          }
-
-          const details = card.querySelector('.card-details') as HTMLElement | null;
-          const icon = card.querySelector('.expand-icon') as HTMLElement | null;
-
-          if (details) {
-            const isCurrentlyExpanded = details.style.gridTemplateRows === '1fr';
-            details.style.gridTemplateRows = isCurrentlyExpanded ? '0fr' : '1fr';
-            if (icon) icon.style.transform = isCurrentlyExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
-          }
-        });
-
         // Touch events
         document.addEventListener('touchstart', (e: TouchEvent) => {
           const target = e.target as HTMLElement;
-          closeOtherSwipedCards(target);
 
           const surface = target.closest('.swipe-surface') as HTMLElement | null;
           if (surface && !target.closest('button, a, input, select')) {
