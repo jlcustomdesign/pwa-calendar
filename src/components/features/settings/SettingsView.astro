@@ -292,7 +292,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                   <input
                     type="number"
                     id="new-pricing-price"
-                    placeholder="Preț (RON)"
+                    placeholder="Preț / ședință (RON)"
                     class="w-32 px-4 py-3 rounded-2xl bg-surface-base/80 border border-transparent text-text-main font-bold text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all"
                   />
                 </div>
@@ -657,7 +657,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
       const spanPrice = document.createElement('span');
       spanPrice.className = 'text-brand-secondary font-black text-base whitespace-nowrap ml-2';
-      spanPrice.textContent = `${pkg.pret} RON`;
+      spanPrice.textContent = `${pkg.pret} RON/sed`;
 
       titleRow.appendChild(spanName);
       titleRow.appendChild(spanPrice);

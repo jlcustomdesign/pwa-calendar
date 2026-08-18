@@ -239,6 +239,10 @@ const { title, hideDock = false } = Astro.props;
         // Details expand toggle & tap-outside to close swiped cards
         document.addEventListener('click', (e) => {
           const target = e.target as HTMLElement;
+
+          // Ignore action buttons inside swiped cards so edit/cancel/delete work
+          if (target.closest('[data-action-btn]')) return;
+
           closeOtherSwipedCards(target);
 
           if (wasSwiping) return;

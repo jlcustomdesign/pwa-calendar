@@ -220,23 +220,26 @@
             <div class="flex items-center gap-3">
               <button 
                 type="button" 
-                class="w-12 h-12 rounded-full bg-white shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-transparent"
-                onclick="window.editSession('${session.id}'); event.stopPropagation();"
+                data-action-btn
+                class="relative z-20 w-12 h-12 rounded-full bg-white shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-transparent"
+                onclick="event.stopPropagation(); event.preventDefault(); window.editSession('${session.id}');"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.89 1.12l-2.843.712a.75.75 0 01-.904-.903l.71-2.842a4.5 4.5 0 011.12-1.89L16.862 4.487z"></path><path d="M19.5 7.125L16.862 4.487"></path></svg>
+                <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.89 1.12l-2.843.712a.75.75 0 01-.904-.903l.71-2.842a4.5 4.5 0 011.12-1.89L16.862 4.487z"></path><path d="M19.5 7.125L16.862 4.487"></path></svg>
               </button>
               <button 
                 type="button" 
-                class="w-12 h-12 rounded-full bg-orange-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
-                onclick="window.cancelSession('${session.id}'); event.stopPropagation();"
+                data-action-btn
+                class="relative z-20 w-12 h-12 rounded-full bg-orange-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
+                onclick="event.stopPropagation(); event.preventDefault(); window.cancelSession('${session.id}');"
                 title="Marchează ca Anulat/Absent"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
               </button>
               <button 
                 type="button" 
-                class="w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
-                onclick="window.deleteSession('${session.id}'); event.stopPropagation();"
+                data-action-btn
+                class="relative z-20 w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
+                onclick="event.stopPropagation(); event.preventDefault(); window.deleteSession('${session.id}');"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               </button>
@@ -248,7 +251,7 @@
             <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[110px] p-6">
               
               <!-- Watermark Time Background -->
-              <div class="absolute left-3 top-0 bottom-0 font-black text-[3.8rem] leading-[0.8] opacity-30 pointer-events-none tracking-tighter mix-blend-overlay flex items-center justify-start z-0 w-20">
+              <div class="absolute left-3 top-0 bottom-0 font-black text-[3.8rem] leading-[0.8] opacity-50 pointer-events-none tracking-tighter flex items-center justify-start z-0 w-20">
                 <div class="flex items-start">
                   ${startH.toString().padStart(2, '0')}
                   <span class="text-xl mt-1 ml-0.5">${startM.toString().padStart(2, '0')}</span>
@@ -257,6 +260,7 @@
 
               <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
                 <div class="flex-1 min-w-0 flex items-center gap-2">
+                  <span class="text-xs font-black bg-black/10 px-2 py-1 rounded-lg shrink-0">${cleanTimeStr}</span>
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
                 </div>
                 ${statusIcon}

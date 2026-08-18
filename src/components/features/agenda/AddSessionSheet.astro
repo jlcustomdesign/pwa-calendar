@@ -1018,6 +1018,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       // Ensure the sheet is in the layout before animating (prevents flash on load)
       this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;
       this.sheet.dataset.open = 'true';
+      // Prevent the on-screen keyboard from opening automatically when the sheet slides up
+      if (document.activeElement && 'blur' in document.activeElement) {
+        (document.activeElement as HTMLElement).blur();
+      }
       void this.sheet.offsetWidth;
       // Reset any inline transform from drag and set closed state
       this.sheet.style.transform = '';
