@@ -26,11 +26,6 @@
 }
 
 @layer base {
-  html {
-    /* White behind the notch / overscroll so iOS never shows a gray/beige line */
-    background-color: #ffffff !important;
-  }
-
   html, body {
     margin: 0;
     padding: 0;
@@ -48,7 +43,7 @@
   }
 
   body {
-    background-color: rgb(var(--color-surface-base));
+    background-color: transparent;
   }
 
   /* Re-enable selection inside inputs / textareas so users can still edit text */
