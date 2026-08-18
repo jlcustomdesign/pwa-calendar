@@ -173,7 +173,6 @@
   import { addPatient, updatePatient, addPayment } from '../../../lib/services/patientService';
   import { getPricingPackages } from '../../../lib/services/pricingService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
-  import { showDockForSheet, hideDockForSheet } from '../../../utils/dockVisibility';
 
   class AddPatientSheetManager {
     sheet: HTMLElement | null;
@@ -715,7 +714,6 @@
       void this.sheet.offsetWidth;
       this.sheet.classList.remove('translate-y-full');
       this.overlay.classList.remove('opacity-0', 'pointer-events-none');
-      showDockForSheet();
       lockBodyScroll();
     }
 
@@ -724,7 +722,6 @@
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      hideDockForSheet();
       unlockBodyScroll();
       setTimeout(() => {
         if (this.sheet) this.sheet.dataset.open = 'false';

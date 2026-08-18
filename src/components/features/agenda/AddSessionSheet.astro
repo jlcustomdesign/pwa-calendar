@@ -198,7 +198,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 <script>
   import { getSettings } from '../../../utils/settings';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
-  import { showDockForSheet, hideDockForSheet } from '../../../utils/dockVisibility';
 
   import { getPatients, getPatient, addPatient, updatePatient } from '../../../lib/services/patientService';
   import { createAppointment, updateAppointment } from '../../../lib/services/appointmentService';
@@ -1028,7 +1027,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      showDockForSheet();
       lockBodyScroll();
 
       // Remove closed state on the next frame so the browser actually animates
@@ -1043,7 +1041,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      hideDockForSheet();
       unlockBodyScroll();
 
       // Reset form and fully hide sheet after animation

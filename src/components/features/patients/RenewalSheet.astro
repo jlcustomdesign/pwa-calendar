@@ -130,7 +130,6 @@
   import { resetPatientSubscription, getPatient, getPatientPayments } from '../../../lib/services/patientService';
   import { createAppointment } from '../../../lib/services/appointmentService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
-  import { showDockForSheet, hideDockForSheet } from '../../../utils/dockVisibility';
 
   class RenewalSheetManager {
     private sheet: HTMLElement | null = null;
@@ -440,14 +439,12 @@
 
       this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
-      showDockForSheet();
       lockBodyScroll();
     }
 
     close() {
       if (!this.sheet || !this.backdrop || !this.content || !this.isOpen) return;
       this.isOpen = false;
-      hideDockForSheet();
       unlockBodyScroll();
 
       this.content.style.transition = '';

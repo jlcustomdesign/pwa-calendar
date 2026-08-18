@@ -97,7 +97,6 @@ const { title, hideDock = false } = Astro.props;
       import { initErrorLogger } from '../lib/errorLogger';
       import { setPaymentStatus } from '../lib/services/patientService';
       import { getAppointment, deleteAppointment, cancelAppointment, markAbsent } from '../lib/services/appointmentService';
-      import { resetDockVisibility } from '../utils/dockVisibility';
 
       // Prevent horizontal swipe navigation inside the PWA (Safari/Chrome back/forward gestures)
       function preventHorizontalSwipeNavigation() {
@@ -298,7 +297,6 @@ const { title, hideDock = false } = Astro.props;
 
       // Initialize on load and page swaps
       if (typeof window !== 'undefined') {
-        resetDockVisibility();
         initErrorLogger();
         import('../lib/services/sessionNotifier').then(({ initSessionNotifier }) => {
           initSessionNotifier();
@@ -492,9 +490,6 @@ const { title, hideDock = false } = Astro.props;
         }
       }
 
-      document.addEventListener('astro:page-load', () => {
-        resetDockVisibility();
-      });
     </script>
   </body>
 </html>
