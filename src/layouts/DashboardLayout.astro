@@ -61,7 +61,7 @@ const { title, hideDock = false } = Astro.props;
          cover the iOS status bar / notch / home-indicator area; inner wrapper keeps
          the original blob positions unchanged. -->
     <div class="pointer-events-none fixed -inset-16 z-0 bg-surface-base" aria-hidden="true">
-      <div class="absolute inset-16 overflow-visible">
+      <div class="absolute inset-16 overflow-visible -translate-y-16">
         <svg class="absolute -top-24 -left-16 w-80 h-80 text-brand-secondary opacity-35 fill-current" viewBox="0 0 200 200">
           <path d="M38.1,-60.5C47.8,-53.4,53.2,-39.7,59.3,-26.4C65.4,-13.1,72.2,-0.2,71.1,12.5C70,25.2,61,37.7,50.1,47.9C39.2,58.1,26.4,66,11.8,70C-2.8,74,-19.2,74.1,-33.4,67.8C-47.6,61.5,-59.6,48.8,-66.9,34.1C-74.2,19.4,-76.8,2.7,-73.9,-12.8C-71,-28.3,-62.6,-42.6,-50.8,-50.3C-39,-58,-23.8,-59.1,-9.1,-58.5C5.6,-57.9,28.4,-67.6,38.1,-60.5Z" transform="translate(100 100)" />
         </svg>
