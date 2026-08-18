@@ -245,9 +245,15 @@
     }
 
     private bindEvents() {
-      // Use document delegation so clicks keep working after Astro view transitions
-      // and even if the persisted sheet element is replaced.
-      document.addEventListener('click', (e) => this.handleDocumentClick(e));
+      // Only install the delegated document listener once; route every click to
+      // the current manager instance so state (currentAppointment) is never stale.
+      if ((window as any)._wrapUpDocClickBound) return;
+      (window as any)._wrapUpDocClickBound = true;
+
+      document.addEventListener('click', (e) => {
+        const mgr = (window as any).currentWrapUpSheetManager || this;
+        mgr.handleDocumentClick(e);
+      });
 
       // Swipe-down to close main wrap-up sheet
       this.bindSheetSwipe();
@@ -683,6 +689,8 @@
     private bindPickerSwipe(sheetId: string, onClose: () => void) {
       const sheet = document.getElementById(sheetId);
       if (!sheet) return;
+      if (sheet.dataset.wrapupPickerSwipeBound === 'true') return;
+      sheet.dataset.wrapupPickerSwipeBound = 'true';
 
       let startY = 0;
       sheet.addEventListener('touchstart', (e: any) => {
@@ -710,6 +718,8 @@
       const sheet = this.content;
       const handle = document.getElementById('wrapup-drag-handle');
       if (!sheet) return;
+      if (sheet.dataset.wrapupSwipeBound === 'true') return;
+      sheet.dataset.wrapupSwipeBound = 'true';
 
       let startY = 0;
       let startX = 0;

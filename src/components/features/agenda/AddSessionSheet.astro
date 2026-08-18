@@ -414,11 +414,15 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     }
     
     bindDateTimeSelectors() {
+      const container = document.getElementById('date-time-selectors');
+      if (!container || container.dataset.addSessionDateTimeBound === 'true') return;
+      container.dataset.addSessionDateTimeBound = 'true';
+
       const dateBtns = document.querySelectorAll<HTMLButtonElement>('[data-date-btn]');
       const timeBtns = document.querySelectorAll<HTMLButtonElement>('[data-time-btn]');
       const nativeDatePicker = document.getElementById('native-date-picker') as HTMLInputElement;
       const otherDateBtn = document.getElementById('other-date-btn');
-      
+
       const nativeTimePicker = document.getElementById('native-time-picker') as HTMLInputElement;
       const timeScrollLeftBtn = document.getElementById('time-scroll-left');
       const timeSlotsContainer = document.getElementById('time-slots-container');
@@ -514,6 +518,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     }
 
     bindDatePicker() {
+      if (!this.datePickerSheet || this.datePickerSheet.dataset.addSessionDatePickerBound === 'true') return;
+      this.datePickerSheet.dataset.addSessionDatePickerBound = 'true';
+
       const prevBtn = document.getElementById('date-picker-prev');
       const nextBtn = document.getElementById('date-picker-next');
       const closeBtn = document.getElementById('date-picker-close');
@@ -734,10 +741,13 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
     // --- Custom Time Modal Logic ---
     bindCustomTimeModal() {
+      const modal = document.getElementById('add-session-time-modal');
+      if (!modal || modal.dataset.addSessionTimeModalBound === 'true') return;
+      modal.dataset.addSessionTimeModalBound = 'true';
+
       const btnOpen = document.getElementById('btn-open-session-time');
       const btnTimeSheet = document.getElementById('btn-trigger-time-sheet');
       const btnConfirm = document.getElementById('btn-confirm-session-time');
-      const modal = document.getElementById('add-session-time-modal');
 
       const closeModal = () => {
         if (!modal) return;
@@ -959,6 +969,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
     bindEvents() {
       if (!this.sheet) return;
+      if (this.sheet.dataset.addSessionEventsBound === 'true') return;
+      this.sheet.dataset.addSessionEventsBound = 'true';
 
       // Swipe-down to dismiss from anywhere on the sheet — only engages on a
       // clearly vertical downward swipe while the form is scrolled to the top
@@ -1107,6 +1119,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     }
 
     bindHandleSwipe(handle: HTMLElement, onClose: () => void) {
+      if (handle.dataset.handleSwipeBound === 'true') return;
+      handle.dataset.handleSwipeBound = 'true';
+
       let startY = 0;
       let currentY = 0;
       let dragging = false;

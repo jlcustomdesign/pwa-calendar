@@ -155,18 +155,32 @@
     }
 
     private bindEvents() {
-      // Close handlers
-      this.backdrop?.addEventListener('click', () => this.close());
+      const root = document.getElementById('payment-sheet');
+      if (!root) return;
+
+      // One delegated click listener for the whole sheet, routing to the current
+      // manager so it always sees the latest currentPatientId.
+      if (root.dataset.paymentEventsBound !== 'true') {
+        root.dataset.paymentEventsBound = 'true';
+        root.addEventListener('click', (e) => {
+          const mgr = (window as any).currentPaymentSheetManager || this;
+          mgr.handleClick(e);
+        });
+      }
 
       // Swipe-down to dismiss — works from anywhere on the sheet,
       // as long as the gesture is a clearly vertical downward swipe
-      this.content?.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
-      this.content?.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
-      this.content?.addEventListener('touchend', () => this.handleTouchEnd());
+      if (this.content && this.content.dataset.paymentSwipeBound !== 'true') {
+        this.content.dataset.paymentSwipeBound = 'true';
+        this.content.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+        this.content.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+        this.content.addEventListener('touchend', () => this.handleTouchEnd());
+      }
 
       // Dedicated drag handle close
       const dragHandle = document.getElementById('payment-drag-handle');
-      if (dragHandle && this.content) {
+      if (dragHandle && this.content && dragHandle.dataset.paymentDragBound !== 'true') {
+        dragHandle.dataset.paymentDragBound = 'true';
         let startY = 0;
         let currentY = 0;
         let dragging = false;
@@ -200,28 +214,46 @@
         dragHandle.addEventListener('touchcancel', onEnd);
       }
 
-      // Initial Options Action handlers
-      document.getElementById('btn-partially-paid')?.addEventListener('click', () => {
-        this.showCustomView();
-      });
-      document.getElementById('btn-fully-paid')?.addEventListener('click', () => this.handleFullyPaid());
-      document.getElementById('btn-reset-payment')?.addEventListener('click', () => this.handleResetPayment());
+      // Allow pressing Enter to confirm (bound once per input element)
+      if (this.customInput && this.customInput.dataset.paymentInputBound !== 'true') {
+        this.customInput.dataset.paymentInputBound = 'true';
+        this.customInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.handleCustomConfirm();
+          }
+        });
+      }
+    }
 
-      // Custom Form Handlers
-      document.getElementById('btn-cancel-custom')?.addEventListener('click', () => {
+    private handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+
+      if (target.closest('#payment-backdrop')) {
+        this.close();
+        return;
+      }
+      if (target.closest('#btn-partially-paid')) {
+        this.showCustomView();
+        return;
+      }
+      if (target.closest('#btn-fully-paid')) {
+        this.handleFullyPaid();
+        return;
+      }
+      if (target.closest('#btn-reset-payment')) {
+        this.handleResetPayment();
+        return;
+      }
+      if (target.closest('#btn-cancel-custom')) {
         this.resetView();
-      });
-      document.getElementById('btn-confirm-custom')?.addEventListener('click', () => {
+        return;
+      }
+      if (target.closest('#btn-confirm-custom')) {
         this.handleCustomConfirm();
-      });
-      
-      // Allow pressing Enter to confirm
-      this.customInput?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          this.handleCustomConfirm();
-        }
-      });
+        return;
+      }
     }
     
     private async showCustomView() {

@@ -86,24 +86,7 @@
 </template>
 
 <script>
-  import { getPatients, deletePatient as deletePatientDB, renewWithPrompt, dismissRenewalNotification, isRenewalDismissed } from '../../../lib/services/patientService';
-
-  (window as any).renewSubscription = (window as any).renewSubscription || (async (patientId: string, totalSessions: number) => {
-    try {
-      await renewWithPrompt(patientId, totalSessions);
-      (window as any).showToast?.('Abonamentul a fost reînnoit! Ședințele au fost reluate de la 0.', 'success');
-      window.dispatchEvent(new CustomEvent('patientsUpdated'));
-      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-    } catch (err: any) {
-      (window as any).showToast?.('Eroare la reînnoire: ' + (err?.message || err), 'error');
-    }
-  });
-
-  (window as any).dismissSubscriptionWarning = (window as any).dismissSubscriptionWarning || ((patientId: string) => {
-    dismissRenewalNotification(patientId);
-    window.dispatchEvent(new CustomEvent('patientsUpdated'));
-    window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-  });
+  import { getPatients, deletePatient as deletePatientDB, isRenewalDismissed } from '../../../lib/services/patientService';
 
   class PatientListManager {
     container: HTMLElement | null;

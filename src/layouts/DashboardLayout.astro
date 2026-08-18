@@ -95,7 +95,7 @@ const { title, hideDock = false } = Astro.props;
     <!-- Global Session Card Interactive Controller (Expand & Swipe-to-Edit/Delete) -->
     <script>
       import { initErrorLogger } from '../lib/errorLogger';
-      import { setPaymentStatus } from '../lib/services/patientService';
+      import { setPaymentStatus, renewWithPrompt, dismissRenewalNotification } from '../lib/services/patientService';
       import { getAppointment, deleteAppointment, cancelAppointment, markAbsent } from '../lib/services/appointmentService';
 
       // Prevent horizontal swipe navigation inside the PWA (Safari/Chrome back/forward gestures)
@@ -353,11 +353,15 @@ const { title, hideDock = false } = Astro.props;
 
         // Force all internal dashboard navigation to use replaceState so iOS never
         // builds a history stack that re-enables the edge-swipe back gesture.
-        function enforceReplaceNavigation() {
+        if (!(window as any).__kinetoReplaceNavigationBound) {
+          (window as any).__kinetoReplaceNavigationBound = true;
           document.addEventListener('click', (e) => {
             const target = e.target as HTMLElement;
             const anchor = target.closest('a') as HTMLAnchorElement | null;
             if (!anchor) return;
+
+            // Let the Dock handle its own navigation (it already uses replace).
+            if (anchor.closest('#persistent-dock')) return;
 
             const href = anchor.getAttribute('href');
             if (!href) return;
@@ -383,8 +387,17 @@ const { title, hideDock = false } = Astro.props;
             });
           }, true);
         }
-        enforceReplaceNavigation();
         
+        // Expose global renewal handlers once (with patientName support)
+        (window as any).renewSubscription = (patientId: string, totalSessions: number, patientName?: string) => {
+          renewWithPrompt(patientId, totalSessions, patientName);
+        };
+        (window as any).dismissSubscriptionWarning = (patientId: string) => {
+          dismissRenewalNotification(patientId);
+          window.dispatchEvent(new CustomEvent('patientsUpdated'));
+          window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+        };
+
         // Expose global payment handler
         (window as any).handlePaymentToggle = (patientId: string, currentStatus: string) => {
           if (currentStatus !== 'Achitat integral' && currentStatus !== 'Achitat' && currentStatus !== 'Paid' && currentStatus !== 'Paid fully') {

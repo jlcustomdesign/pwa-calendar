@@ -257,6 +257,8 @@
 
     bindEvents() {
       if (!this.sheet) return;
+      if (this.sheet.dataset.addPatientEventsBound === 'true') return;
+      this.sheet.dataset.addPatientEventsBound = 'true';
 
       // Swipe-down to dismiss from anywhere on the sheet — only engages on a
       // clearly vertical downward swipe while the form is scrolled to the top

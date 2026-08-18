@@ -60,28 +60,11 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
   <script>
     import { getAppointmentsByDate, updateAppointment, swapAppointmentPatients } from '../../lib/services/appointmentService';
     import { getSettings } from '../../lib/services/settingsService';
-    import { getPatientPayments, renewWithPrompt, dismissRenewalNotification, isRenewalDismissed } from '../../lib/services/patientService';
+    import { getPatientPayments, isRenewalDismissed } from '../../lib/services/patientService';
 
     const todayStr = new Date().toISOString().split('T')[0];
     let currentCalendarDate = todayStr;
     (window as any).currentCalendarDate = currentCalendarDate;
-
-    (window as any).renewSubscription = async (patientId: string, totalSessions: number) => {
-      try {
-        await renewWithPrompt(patientId, totalSessions);
-        (window as any).showToast?.('Abonamentul a fost reînnoit! Ședințele au fost reluate de la 0.', 'success');
-        window.dispatchEvent(new CustomEvent('patientsUpdated'));
-        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-      } catch (err: any) {
-        (window as any).showToast?.('Eroare la reînnoire: ' + (err?.message || err), 'error');
-      }
-    };
-
-    (window as any).dismissSubscriptionWarning = (patientId: string) => {
-      dismissRenewalNotification(patientId);
-      window.dispatchEvent(new CustomEvent('patientsUpdated'));
-      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-    };
 
     const handleDateSelected = (e: any) => {
       const date = e.detail?.date;

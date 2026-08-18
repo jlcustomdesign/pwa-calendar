@@ -169,45 +169,59 @@
     }
 
     private bindEvents() {
+      // Only install the delegated document listener once; route every click to
+      // the current manager instance so state (currentPatientId, selectedSessions)
+      // is never stale after Astro view transitions.
+      if ((window as any)._renewalDocClickBound) return;
+      (window as any)._renewalDocClickBound = true;
+
       document.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        if (!target) return;
-
-        if (target.closest('#renewal-close-btn') || target.closest('#renewal-backdrop')) {
-          this.close();
-          return;
-        }
-
-        const pkgBtn = target.closest('.renewal-pkg-btn') as HTMLElement;
-        if (pkgBtn) {
-          const count = parseInt(pkgBtn.dataset.sessions || '10', 10);
-          this.selectPackage(count);
-          return;
-        }
-
-        const payBtn = target.closest('.renewal-payment-btn') as HTMLElement;
-        if (payBtn) {
-          const mode = (payBtn.dataset.mode || 'later') as 'later' | 'now';
-          this.setPaymentMode(mode);
-          return;
-        }
-
-        if (target.closest('#btn-confirm-renewal')) {
-          this.handleConfirm();
-          return;
-        }
+        const mgr = (window as any).currentRenewalSheetManager || this;
+        mgr.handleDocumentClick(e);
       });
 
-      this.customInput?.addEventListener('input', () => {
-        const val = parseInt(this.customInput?.value || '0', 10);
-        if (val > 0) {
-          this.selectedSessions = val;
-          this.updatePackageButtons(val);
-        }
-      });
+      if (this.customInput && this.customInput.dataset.renewalInputBound !== 'true') {
+        this.customInput.dataset.renewalInputBound = 'true';
+        this.customInput.addEventListener('input', () => {
+          const val = parseInt(this.customInput?.value || '0', 10);
+          if (val > 0) {
+            this.selectedSessions = val;
+            this.updatePackageButtons(val);
+          }
+        });
+      }
 
       this.bindDragHandle();
       this.bindContentSwipe();
+    }
+
+    private handleDocumentClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+
+      if (target.closest('#renewal-close-btn') || target.closest('#renewal-backdrop')) {
+        this.close();
+        return;
+      }
+
+      const pkgBtn = target.closest('.renewal-pkg-btn') as HTMLElement;
+      if (pkgBtn) {
+        const count = parseInt(pkgBtn.dataset.sessions || '10', 10);
+        this.selectPackage(count);
+        return;
+      }
+
+      const payBtn = target.closest('.renewal-payment-btn') as HTMLElement;
+      if (payBtn) {
+        const mode = (payBtn.dataset.mode || 'later') as 'later' | 'now';
+        this.setPaymentMode(mode);
+        return;
+      }
+
+      if (target.closest('#btn-confirm-renewal')) {
+        this.handleConfirm();
+        return;
+      }
     }
 
     private setPaymentMode(mode: 'later' | 'now') {
@@ -275,6 +289,8 @@
     private bindDragHandle() {
       const dragHandle = document.getElementById('renewal-drag-handle');
       if (!dragHandle || !this.content) return;
+      if (dragHandle.dataset.renewalBound === 'true') return;
+      dragHandle.dataset.renewalBound = 'true';
       let startY = 0;
       let currentY = 0;
       let dragging = false;
@@ -315,6 +331,8 @@
 
     private bindContentSwipe() {
       if (!this.content) return;
+      if (this.content.dataset.renewalSwipeBound === 'true') return;
+      this.content.dataset.renewalSwipeBound = 'true';
       let startY = 0;
       let currentY = 0;
       let startX = 0;
