@@ -159,6 +159,13 @@
           />
         </div>
       </div>
+
+      <!-- Renewal shortcut visible only in edit mode -->
+      <div id="edit-renewal-box" class="hidden">
+        <button type="button" id="btn-renew-in-edit" class="w-full py-3 rounded-2xl bg-brand-secondary text-black font-black text-sm uppercase tracking-wide shadow-sm active:scale-95 transition-transform">
+          Reînnoiește abonamentul
+        </button>
+      </div>
     </form>
   </div>
 
@@ -242,6 +249,39 @@
       customBtn.className = 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10';
       customBtn.textContent = 'Personalizat';
       container.appendChild(customBtn);
+
+      this.highlightMatchingPreset();
+    }
+
+    private highlightMatchingPreset() {
+      const priceInput = document.getElementById('patientPricePerSession') as HTMLInputElement | null;
+      const sessionsInput = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
+      const planInput = document.getElementById('patientPlan') as HTMLInputElement | null;
+      const price = priceInput?.value || '';
+      const sessions = sessionsInput?.value || '';
+      const plan = planInput?.value || this.currentPlanFilter;
+
+      let matched = false;
+      const chips = document.querySelectorAll<HTMLElement>('.preset-chip');
+      chips.forEach(chip => {
+        if (chip.dataset.preset === 'custom') return;
+        const p = chip.dataset.pricePerSession || '';
+        const s = chip.dataset.sessions || '';
+        const pl = chip.dataset.plan || '';
+        if (p === price && s === sessions && pl === plan) {
+          chip.className = 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-amber-400 text-black shadow-sm border border-black/10';
+          matched = true;
+        } else {
+          chip.className = 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10';
+        }
+      });
+
+      const customChip = document.querySelector<HTMLElement>('.preset-chip[data-preset="custom"]');
+      if (customChip) {
+        customChip.className = matched
+          ? 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10'
+          : 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-amber-400 text-black shadow-sm border border-black/10';
+      }
     }
 
     createOverlay() {
@@ -380,8 +420,14 @@
 
       const priceInput = document.getElementById('patientPricePerSession') as HTMLInputElement | null;
       const sessionsInput2 = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
-      priceInput?.addEventListener('input', () => this.calculateTotalCost());
-      sessionsInput2?.addEventListener('input', () => this.calculateTotalCost());
+      priceInput?.addEventListener('input', () => {
+        this.calculateTotalCost();
+        this.highlightMatchingPreset();
+      });
+      sessionsInput2?.addEventListener('input', () => {
+        this.calculateTotalCost();
+        this.highlightMatchingPreset();
+      });
 
       const saveBtn = document.getElementById('save-patient-btn');
       saveBtn?.addEventListener('click', () => this.savePatient(false));
@@ -409,17 +455,11 @@
       const sessionsInput = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
       const planInput = document.getElementById('patientPlan') as HTMLInputElement | null;
 
-      const chips = document.querySelectorAll('.preset-chip');
-      chips.forEach(c => {
-        c.className = 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-black/5 text-black hover:bg-black/10';
-      });
-
-      btn.className = 'preset-chip px-4 py-2.5 rounded-xl text-xs font-black transition-all bg-amber-400 text-black shadow-sm border border-black/10';
-
       if (presetId === 'custom') {
         if (pricePerSessionInput) { pricePerSessionInput.value = ''; pricePerSessionInput.focus(); }
         if (sessionsInput) { sessionsInput.value = ''; }
         if (costInput) { costInput.value = ''; }
+        this.renderPricingPresets();
         return;
       }
 
@@ -438,6 +478,7 @@
       }
 
       this.calculateTotalCost();
+      this.renderPricingPresets();
     }
 
     private togglePartialAmountBox(paymentVal: string) {
@@ -678,6 +719,16 @@
           this.applyPlanDefaults(patient.plan || 'Abonament');
           this.togglePartialAmountBox(editPaymentStatus);
           this.renderPricingPresets();
+
+          // Show renewal shortcut inside edit mode
+          const renewalBox = document.getElementById('edit-renewal-box');
+          const renewBtn = document.getElementById('btn-renew-in-edit');
+          if (renewalBox) renewalBox.classList.remove('hidden');
+          if (renewBtn && patient) {
+            renewBtn.onclick = () => {
+              window.renewSubscription(patient.id, sessions || 10, patient.name);
+            };
+          }
         } else if (this.form) {
           this.form.reset();
           const defaultPresetBtn = document.querySelector('.preset-chip[data-preset="p1"]') as HTMLButtonElement | null;
@@ -695,6 +746,8 @@
           this.updateLocationChips('Belaqva');
           this.updatePaymentChips('Neachitat');
           this.togglePartialAmountBox('Neachitat');
+          const renewalBox = document.getElementById('edit-renewal-box');
+          if (renewalBox) renewalBox.classList.add('hidden');
         }
 
         const partialAmountInput = document.getElementById('patientPartialAmount') as HTMLInputElement | null;

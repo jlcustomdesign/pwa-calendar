@@ -154,6 +154,8 @@
       this.content = document.getElementById('renewal-content');
       this.customInput = document.getElementById('renewal-custom-input') as HTMLInputElement;
       this.costInput = document.getElementById('renewal-cost-input') as HTMLInputElement;
+      // Keep the open flag in sync when the persisted sheet is reused after navigation.
+      if (this.sheet?.dataset.open === 'true') this.isOpen = true;
       this.bindDragHandle();
       this.bindContentSwipe();
     }

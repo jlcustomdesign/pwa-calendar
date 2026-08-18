@@ -145,6 +145,8 @@
       this.customInput = document.getElementById('custom-amount-input') as HTMLInputElement;
       this.customLabel = document.getElementById('custom-amount-label');
       this.subtitleText = document.getElementById('payment-subtitle');
+      // Keep the open flag in sync when the persisted sheet is reused after navigation.
+      if (this.sheet?.dataset.open === 'true') this.isOpen = true;
     }
 
     handleOpenEvent(e: CustomEvent) {

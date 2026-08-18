@@ -140,7 +140,18 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       }
 
       const subscriptionWarningDetails = session.subscriptionDone && !isRenewalDismissed(session.patientId)
-        ? `<div class="pb-3 space-y-2"><button type="button" class="w-full py-4 px-6 rounded-2xl bg-brand-secondary text-black text-sm sm:text-base font-black uppercase tracking-wider text-center shadow-md border border-transparent hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10})"><span>ABONAMENT TERMINAT — REÎNNOIEȘTE (0/${session.totalSessions || 10})</span></button><button type="button" class="w-full py-3 px-6 rounded-2xl bg-surface-base text-text-muted text-xs sm:text-sm font-black uppercase tracking-wider text-center border border-transparent hover:opacity-80 active:scale-95 transition-all cursor-pointer" onclick="event.stopPropagation(); window.dismissSubscriptionWarning('${session.patientId}')"><span>NU REÎNNOIA</span></button></div>`
+        ? `<div class="px-6 pb-3">
+            <div class="flex items-center gap-3 rounded-2xl bg-brand-secondary/15 border border-brand-secondary/30 p-3">
+              <div class="flex-1 min-w-0">
+                <p class="text-xs sm:text-sm font-black text-black truncate">Abonament terminat</p>
+                <p class="text-[10px] font-bold text-black/70">0/${session.totalSessions || 10} ședințe</p>
+              </div>
+              <button type="button" class="shrink-0 px-4 py-2.5 rounded-full bg-brand-secondary text-black text-xs font-black uppercase tracking-wide shadow-sm active:scale-95 transition-transform" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10}, '${patientNameStr.replace(/'/g, "\\'")}')">Reînnoiește</button>
+              <button type="button" class="shrink-0 w-9 h-9 rounded-full bg-surface-card text-text-muted flex items-center justify-center active:scale-95 transition-transform" onclick="event.stopPropagation(); window.dismissSubscriptionWarning('${session.patientId}')" aria-label="Nu acum">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>`
         : '';
 
       const sumaIncasata = session.sumaIncasata || 0;
