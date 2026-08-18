@@ -10,8 +10,9 @@
     }
   ],
   "start_url": "/dashboard",
+  "scope": "/",
   "background_color": "#ffffff",
-  "theme_color": "#0d9488",
+  "theme_color": "#ffffff",
   "display": "standalone",
   "orientation": "portrait"
 }
