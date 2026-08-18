@@ -223,6 +223,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const pill = document.getElementById("calendar-active-pill") as HTMLElement;
     const circle = document.getElementById("calendar-active-circle") as HTMLElement;
     if (!strip || !pill || !circle || !card || !expandBtn) return;
+    if (strip.dataset.calendarAnimated === 'true') return;
+    strip.dataset.calendarAnimated = 'true';
 
     let dropTimeout: number | undefined;
     let isExpanded = false;

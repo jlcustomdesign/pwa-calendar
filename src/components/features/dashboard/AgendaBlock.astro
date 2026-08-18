@@ -36,7 +36,13 @@
   const todayStr = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
   let currentAgendaDate = todayStr;
   let lastFetchedSessions: any[] = [];
-  const autoPromptedSessions = new Set<string>();
+  const autoPromptedSessions = new Set<string>((() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('kineto_auto_prompted') || '[]');
+    } catch {
+      return [];
+    }
+  })());
 
   const handleDateSelected = (e: any) => {
     const date = e.detail?.date;
@@ -437,6 +443,9 @@
       // Auto prompt if the session ended within the last 3 minutes and wasn't prompted yet
       if (nowTotalMin >= totalEndMin && nowTotalMin - totalEndMin <= 3 && !autoPromptedSessions.has(s.id)) {
         autoPromptedSessions.add(s.id);
+        try {
+          sessionStorage.setItem('kineto_auto_prompted', JSON.stringify(Array.from(autoPromptedSessions)));
+        } catch {}
         if (typeof (window as any).confirmSession === 'function') {
           (window as any).confirmSession(s.id);
         }
@@ -455,7 +464,10 @@
 
   function bootAgenda() {
     renderAgendaBlock();
-    setInterval(checkAutoPromptAndProgress, 60000);
+    if ((window as any).__agendaIntervalId) {
+      clearInterval((window as any).__agendaIntervalId);
+    }
+    (window as any).__agendaIntervalId = setInterval(checkAutoPromptAndProgress, 60000);
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {

@@ -145,6 +145,9 @@
 
     bindLocalEvents() {
       const searchInput = document.getElementById('patient-search') as HTMLInputElement;
+      if (!searchInput || searchInput.dataset.patientLocalBound === 'true') return;
+      searchInput.dataset.patientLocalBound = 'true';
+
       if (searchInput) {
         searchInput.addEventListener('input', (e) => {
           this.currentSearchQuery = (e.target as HTMLInputElement).value.toLowerCase();
@@ -178,6 +181,8 @@
 
       const filterBtns = document.querySelectorAll('.filter-btn');
       filterBtns.forEach(btn => {
+        if (btn.dataset.filterBound === 'true') return;
+        btn.dataset.filterBound = 'true';
         btn.addEventListener('click', (e) => {
           filterBtns.forEach(b => {
             b.classList.remove('bg-brand-primary');

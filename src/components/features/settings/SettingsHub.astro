@@ -198,17 +198,22 @@
 
   function initSettingsHub() {
     const logoutBtn = document.getElementById('btn-logout');
-    logoutBtn?.addEventListener('click', async () => {
-      try {
-        await logout();
-        window.location.href = '/login';
-      } catch (e) {
-        window.location.href = '/login';
-      }
-    });
+    if (logoutBtn && logoutBtn.dataset.settingsHubBound !== 'true') {
+      logoutBtn.dataset.settingsHubBound = 'true';
+      logoutBtn.addEventListener('click', async () => {
+        try {
+          await logout();
+          window.location.href = '/login';
+        } catch (e) {
+          window.location.href = '/login';
+        }
+      });
+    }
 
     const clearCacheBtn = document.getElementById('btn-clear-cache');
-    clearCacheBtn?.addEventListener('click', async () => {
+    if (clearCacheBtn && clearCacheBtn.dataset.settingsHubBound !== 'true') {
+      clearCacheBtn.dataset.settingsHubBound = 'true';
+      clearCacheBtn.addEventListener('click', async () => {
       try {
         // 1. Unregister service workers
         if ('serviceWorker' in navigator) {
@@ -232,6 +237,7 @@
         window.location.reload();
       }
     });
+    }
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {

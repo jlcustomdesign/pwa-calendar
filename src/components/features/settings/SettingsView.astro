@@ -486,6 +486,9 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
   async function initSubSectionLogic() {
     const settingsForm = document.getElementById('settings-form');
+    if (settingsForm && settingsForm.dataset.settingsLogicBound === 'true') return;
+    if (settingsForm) settingsForm.dataset.settingsLogicBound = 'true';
+
     const params = new URLSearchParams(window.location.search);
 
     // Load Settings din Supabase

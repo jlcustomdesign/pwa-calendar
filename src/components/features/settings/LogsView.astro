@@ -73,6 +73,11 @@
     const clearBtn = document.getElementById('btn-clear-logs');
     const filterBtns = document.querySelectorAll<HTMLButtonElement>('#logs-filter [data-filter]');
     if (!listEl || !emptyEl) return;
+    if (listEl.dataset.logsViewBound === 'true') {
+      render();
+      return;
+    }
+    listEl.dataset.logsViewBound = 'true';
 
     let currentFilter: LogType | 'all' = 'all';
 
