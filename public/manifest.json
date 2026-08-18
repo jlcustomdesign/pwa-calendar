@@ -1,5 +1,4 @@
 {
-  "id": "/dashboard",
   "short_name": "KinetoAgenda",
   "name": "Kinetotherapist Business Agenda",
   "icons": [
@@ -11,9 +10,8 @@
     }
   ],
   "start_url": "/dashboard",
-  "scope": "/",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#0d9488",
   "display": "standalone",
   "orientation": "portrait"
 }
