@@ -362,7 +362,7 @@
           : '';
 
         const notificationBellHtml = subscriptionDone
-          ? `<button type='button' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${patient.name?.replace(/'/g, "\\'") || ""}")' class='shrink-0 px-3 py-1.5 rounded-full bg-amber-400 text-black text-xs font-black uppercase tracking-wider shadow-md border border-black/10 active:scale-95 transition-all' title='Abonament terminat - Reînnoiește'>Reînnoiește</button>`
+          ? `<button type='button' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${patient.name?.replace(/'/g, "\\'") || ""}")' class='shrink-0 px-3 py-1.5 rounded-full bg-black text-white text-xs font-black uppercase tracking-wider shadow-md active:scale-95 transition-all' title='Abonament terminat - Reînnoiește'>Reînnoiește</button>`
           : '';
 
         card.innerHTML = `
