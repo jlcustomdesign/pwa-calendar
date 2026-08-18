@@ -10,166 +10,173 @@
   <!-- Swipe handle -->
   <div id="add-patient-drag-handle" class="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
-  <div class="flex-1 overflow-y-auto px-2 pt-1 pb-28">
+  <div class="flex-1 overflow-y-auto px-2 pt-1 pb-40">
     <h3 id="patient-sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-6">Pacient nou</h3>
 
-    <form id="add-patient-form" class="space-y-7">
+    <form id="add-patient-form" class="space-y-5">
       <input type="hidden" name="patientId" id="editPatientId" value="" />
-      
-      <!-- General Details -->
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-extrabold text-black mb-2">Nume complet</label>
-          <input 
-            type="text" 
-            name="name" 
-            id="patientName" 
-            required
-            placeholder="ex: Alexandru Popa" 
-            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
-          />
-        </div>
 
-        <div>
-          <label class="block text-sm font-extrabold text-black mb-2">Număr de telefon</label>
-          <input 
-            type="tel" 
-            name="phone" 
-            id="patientPhone" 
-            placeholder="ex: 0740 123 456" 
-            class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
-          />
-        </div>
-      </div>
-
-      <!-- Plan & Location -->
-      <div class="grid grid-cols-2 gap-4">
-        <!-- Plan (Chips) -->
-        <div>
-          <label class="block text-sm font-extrabold text-black mb-2">Tip Plan</label>
-          <input type="hidden" name="plan" id="patientPlan" value="Abonament" />
-          <div class="flex flex-col gap-2">
-            <button type="button" data-plan="Abonament" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Abonament</button>
-            <button type="button" data-plan="Ședință unică" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Ședință unică</button>
-          </div>
-        </div>
-
-        <!-- Location (Chips) -->
-        <div>
-          <label class="block text-sm font-extrabold text-black mb-2">Locație</label>
-          <input type="hidden" name="location" id="patientLocation" value="Belaqva" />
-          <div class="flex flex-col gap-2">
-            <button type="button" data-location="Belaqva" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Belaqva</button>
-            <button type="button" data-location="Ghimbav" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Ghimbav</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Preset Pachet & Preț Auto-apply -->
+      <!-- Name stays visible -->
       <div>
-        <label class="block text-sm font-extrabold text-black mb-2">Pachete & Prețuri Predeterminate</label>
-        <div id="patient-pricing-presets" class="flex flex-wrap gap-2 mb-2">
-          <!-- Dynamically populated from pricing_packages -->
-        </div>
-      </div>
-
-      <!-- Price per session & Sessions -->
-      <div class="grid grid-cols-2 gap-4">
-        <!-- Price per session -->
-        <div>
-          <label class="block text-sm font-extrabold text-black mb-2">Preț / Ședință (RON)</label>
-          <div class="flex items-center gap-2">
-            <button type="button" data-stepper="pricePerSession" data-dir="-1" class="w-10 h-12 rounded-xl bg-black/5 text-black font-extrabold active:scale-95 transition-transform">−</button>
-            <input 
-              type="number" 
-              name="pricePerSession" 
-              id="patientPricePerSession" 
-              placeholder="ex: 130" 
-              class="flex-1 min-w-0 px-3 py-3.5 rounded-2xl bg-black/5 border border-transparent text-base font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all text-center"
-            />
-            <button type="button" data-stepper="pricePerSession" data-dir="1" class="w-10 h-12 rounded-xl bg-black/5 text-black font-extrabold active:scale-95 transition-transform">+</button>
-          </div>
-        </div>
-
-        <!-- Total Sessions -->
-        <div>
-          <label class="block text-sm font-extrabold text-black mb-2">Număr Ședințe</label>
-          <div class="flex items-center gap-2">
-            <button type="button" data-stepper="totalSessions" data-dir="-1" class="w-10 h-12 rounded-xl bg-black/5 text-black font-extrabold active:scale-95 transition-transform">−</button>
-            <input 
-              type="number" 
-              name="totalSessions" 
-              id="patientTotalSessions" 
-              placeholder="ex: 10" 
-              class="flex-1 min-w-0 px-3 py-3.5 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all font-extrabold text-black text-base text-center"
-            />
-            <button type="button" data-stepper="totalSessions" data-dir="1" class="w-10 h-12 rounded-xl bg-black/5 text-black font-extrabold active:scale-95 transition-transform">+</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Cost Total (read-only, auto-calculated) -->
-      <div>
-        <label class="block text-sm font-extrabold text-black mb-2">Cost Total (RON)</label>
-        <input 
-          type="number" 
-          name="cost" 
-          id="patientCost" 
-          readonly
-          placeholder="0" 
-          class="w-full px-5 py-3.5 rounded-2xl bg-black/5 border border-transparent text-base font-extrabold text-black opacity-70 cursor-default"
+        <label class="block text-sm font-extrabold text-black mb-2">Nume complet</label>
+        <input
+          type="text"
+          name="name"
+          id="patientName"
+          required
+          placeholder="ex: Alexandru Popa"
+          class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-lg font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
         />
       </div>
 
-      <!-- Status Plată -->
-      <div>
-        <label class="block text-sm font-extrabold text-black mb-2">Status plată</label>
-        <input type="hidden" name="paymentStatus" id="patientPaymentStatus" value="Neachitat" />
-        <div class="flex flex-wrap gap-2">
-          <button type="button" data-payment="Neachitat" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Neachitat</button>
-          <button type="button" data-payment="Plată parțială" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Plată parțială</button>
-          <button type="button" data-payment="Achitat" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Achitat</button>
-        </div>
-
-        <!-- Partial payment amount (shown only when partial is selected) -->
-        <div id="partial-payment-box" class="hidden mt-3">
-          <label class="block text-xs font-extrabold text-black/70 mb-1.5">Sumă achitată acum (RON)</label>
-          <input 
-            type="number" 
-            name="partialAmount" 
-            id="patientPartialAmount" 
-            min="1"
-            placeholder="ex: 50" 
-            class="w-full px-6 py-3 rounded-full bg-black/5 border border-transparent text-base font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
-          />
-        </div>
-      </div>
-
-      <!-- Drive Link -->
-      <div>
-        <label class="block text-sm font-extrabold text-black mb-2">Link dosar / Drive (opțional)</label>
-        <div class="relative">
-          <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-          <input 
-            type="url" 
-            name="driveLink" 
-            id="patientDriveLink" 
-            placeholder="https://drive.google.com/..." 
-            class="w-full pl-11 pr-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black text-sm"
-          />
-        </div>
-      </div>
-
-      <!-- Renewal shortcut visible only in edit mode -->
-      <div id="edit-renewal-box" class="hidden">
-        <button type="button" id="btn-renew-in-edit" class="w-full py-3 rounded-2xl bg-brand-secondary text-black font-black text-sm uppercase tracking-wide shadow-sm active:scale-95 transition-transform">
-          Reînnoiește abonamentul
+      <!-- Plan & Location -->
+      <div class="rounded-2xl bg-black/[0.03] p-1">
+        <button type="button" class="patient-section-header w-full flex items-center justify-between py-3 px-4" aria-controls="section-content-plan">
+          <span class="text-sm font-extrabold text-black">Plan și locație</span>
+          <svg class="section-chevron w-5 h-5 text-text-muted transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
         </button>
+        <div id="section-content-plan" class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
+          <div class="overflow-hidden px-4 pb-4 space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-black text-text-muted mb-2 uppercase tracking-wider">Tip Plan</label>
+                <input type="hidden" name="plan" id="patientPlan" value="Abonament" />
+                <div class="flex flex-col gap-2">
+                  <button type="button" data-plan="Abonament" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Abonament</button>
+                  <button type="button" data-plan="Ședință unică" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Ședință unică</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-black text-text-muted mb-2 uppercase tracking-wider">Locație</label>
+                <input type="hidden" name="location" id="patientLocation" value="Belaqva" />
+                <div class="flex flex-col gap-2">
+                  <button type="button" data-location="Belaqva" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Belaqva</button>
+                  <button type="button" data-location="Ghimbav" class="px-4 py-3 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Ghimbav</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Price -->
+      <div class="rounded-2xl bg-black/[0.03] p-1">
+        <button type="button" class="patient-section-header w-full flex items-center justify-between py-3 px-4" aria-controls="section-content-price">
+          <span class="text-sm font-extrabold text-black">Preț</span>
+          <svg class="section-chevron w-5 h-5 text-text-muted transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div id="section-content-price" class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
+          <div class="overflow-hidden px-4 pb-4 space-y-4">
+            <div>
+              <label class="block text-xs font-black text-text-muted mb-2 uppercase tracking-wider">Pachete & Prețuri</label>
+              <div id="patient-pricing-presets" class="flex flex-wrap gap-2"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-black text-text-muted mb-2 uppercase tracking-wider">Preț / Ședință</label>
+                <div class="flex items-center gap-2">
+                  <button type="button" data-stepper="pricePerSession" data-dir="-1" class="w-10 h-12 rounded-xl bg-black/5 text-black font-extrabold active:scale-95 transition-transform">−</button>
+                  <input
+                    type="number"
+                    name="pricePerSession"
+                    id="patientPricePerSession"
+                    placeholder="ex: 130"
+                    class="flex-1 min-w-0 px-3 py-3.5 rounded-2xl bg-black/5 border border-transparent text-base font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all text-center"
+                  />
+                  <button type="button" data-stepper="pricePerSession" data-dir="1" class="w-10 h-12 rounded-xl bg-black/5 text-black font-extrabold active:scale-95 transition-transform">+</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-black text-text-muted mb-2 uppercase tracking-wider">Nr. Ședințe</label>
+                <div class="flex items-center gap-2">
+                  <button type="button" data-stepper="totalSessions" data-dir="-1" class="w-10 h-12 rounded-xl bg-black/5 text-black font-extrabold active:scale-95 transition-transform">−</button>
+                  <input
+                    type="number"
+                    name="totalSessions"
+                    id="patientTotalSessions"
+                    placeholder="ex: 10"
+                    class="flex-1 min-w-0 px-3 py-3.5 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all font-extrabold text-black text-base text-center"
+                  />
+                  <button type="button" data-stepper="totalSessions" data-dir="1" class="w-10 h-12 rounded-xl bg-black/5 text-black font-extrabold active:scale-95 transition-transform">+</button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-black text-text-muted mb-2 uppercase tracking-wider">Cost Total (RON)</label>
+              <input
+                type="number"
+                name="cost"
+                id="patientCost"
+                readonly
+                placeholder="0"
+                class="w-full px-5 py-3.5 rounded-2xl bg-black/5 border border-transparent text-base font-extrabold text-black opacity-70 cursor-default"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="rounded-2xl bg-black/[0.03] p-1">
+        <button type="button" class="patient-section-header w-full flex items-center justify-between py-3 px-4" aria-controls="section-content-details">
+          <span class="text-sm font-extrabold text-black">Detalii</span>
+          <svg class="section-chevron w-5 h-5 text-text-muted transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div id="section-content-details" class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
+          <div class="overflow-hidden px-4 pb-4 space-y-4">
+            <div>
+              <label class="block text-xs font-black text-text-muted mb-2 uppercase tracking-wider">Telefon</label>
+              <input
+                type="tel"
+                name="phone"
+                id="patientPhone"
+                placeholder="ex: 0740 123 456"
+                class="w-full px-6 py-4 rounded-full bg-black/5 border border-transparent text-base font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-black text-text-muted mb-2 uppercase tracking-wider">Status plată</label>
+              <input type="hidden" name="paymentStatus" id="patientPaymentStatus" value="Neachitat" />
+              <div class="flex flex-wrap gap-2">
+                <button type="button" data-payment="Neachitat" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Neachitat</button>
+                <button type="button" data-payment="Plată parțială" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Plată parțială</button>
+                <button type="button" data-payment="Achitat" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all bg-black/5 text-black hover:bg-black/10">Achitat</button>
+              </div>
+              <div id="partial-payment-box" class="hidden mt-3">
+                <label class="block text-xs font-extrabold text-black/70 mb-1.5">Sumă achitată acum (RON)</label>
+                <input
+                  type="number"
+                  name="partialAmount"
+                  id="patientPartialAmount"
+                  min="1"
+                  placeholder="ex: 50"
+                  class="w-full px-6 py-3 rounded-full bg-black/5 border border-transparent text-base font-extrabold text-black focus:outline-none focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-black text-text-muted mb-2 uppercase tracking-wider">Link dosar / Drive</label>
+              <div class="relative">
+                <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                <input
+                  type="url"
+                  name="driveLink"
+                  id="patientDriveLink"
+                  placeholder="https://drive.google.com/..."
+                  class="w-full pl-11 pr-4 py-3 rounded-2xl bg-black/5 border border-transparent focus:bg-white focus:border-transparent focus:ring-2 focus:ring-brand-primary/20 transition-all font-bold text-black text-sm"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </form>
   </div>
 
-  <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-12">
+  <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-12 flex flex-col gap-3">
+    <button type="button" id="btn-renew-sticky" class="hidden w-full py-5 rounded-2xl bg-black text-white font-black text-base uppercase tracking-wide shadow-md active:scale-95 transition-all cursor-pointer">
+      Reînnoiește
+    </button>
     <button type="button" id="save-patient-btn" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer">
       Salvează
     </button>
@@ -348,7 +355,23 @@
 
       // We will move the window listener outside of bindEvents to avoid duplicates.
       // It is now handled in the init function.
-      
+
+      // Accordion sections
+      const sectionHeaders = this.form?.querySelectorAll('.patient-section-header');
+      sectionHeaders?.forEach(header => {
+        if (header.dataset.sectionBound === 'true') return;
+        header.dataset.sectionBound = 'true';
+        header.addEventListener('click', () => {
+          const contentId = header.getAttribute('aria-controls');
+          const content = contentId ? document.getElementById(contentId) : null;
+          const chevron = header.querySelector('.section-chevron') as HTMLElement | null;
+          if (!content) return;
+          const isOpen = content.style.gridTemplateRows === '1fr';
+          content.style.gridTemplateRows = isOpen ? '0fr' : '1fr';
+          if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+      });
+
       // Bind Preset Chips
       const presetContainer = document.getElementById('patient-pricing-presets');
       if (presetContainer) {
@@ -720,12 +743,11 @@
           this.togglePartialAmountBox(editPaymentStatus);
           this.renderPricingPresets();
 
-          // Show renewal shortcut inside edit mode
-          const renewalBox = document.getElementById('edit-renewal-box');
-          const renewBtn = document.getElementById('btn-renew-in-edit');
-          if (renewalBox) renewalBox.classList.remove('hidden');
-          if (renewBtn && patient) {
-            renewBtn.onclick = () => {
+          // Show sticky renewal button in edit mode
+          const stickyRenewBtn = document.getElementById('btn-renew-sticky');
+          if (stickyRenewBtn) {
+            stickyRenewBtn.classList.remove('hidden');
+            stickyRenewBtn.onclick = () => {
               window.renewSubscription(patient.id, sessions || 10, patient.name);
             };
           }
@@ -746,8 +768,8 @@
           this.updateLocationChips('Belaqva');
           this.updatePaymentChips('Neachitat');
           this.togglePartialAmountBox('Neachitat');
-          const renewalBox = document.getElementById('edit-renewal-box');
-          if (renewalBox) renewalBox.classList.add('hidden');
+          const stickyRenewBtn = document.getElementById('btn-renew-sticky');
+          if (stickyRenewBtn) stickyRenewBtn.classList.add('hidden');
         }
 
         const partialAmountInput = document.getElementById('patientPartialAmount') as HTMLInputElement | null;
