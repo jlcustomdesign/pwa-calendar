@@ -18,3 +18,9 @@ export function hideDockForSheet(): void {
     openSheetCount = 0;
   }
 }
+
+export function resetDockVisibility(): void {
+  openSheetCount = 0;
+  const dock = document.getElementById('persistent-dock');
+  if (dock) dock.style.display = '';
+}

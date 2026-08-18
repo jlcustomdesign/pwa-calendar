@@ -800,10 +800,11 @@
       });
       (window as any)._patientSheetListenerBound = true;
     }
-    
-    // Since this sheet uses transition:persist, the DOM is preserved across page loads.
-    // We only need to instantiate the manager once.
-    if (!(window as any).currentPatientSheetManager) {
+
+    // Recreate the manager on every page navigation so its overlay is always
+    // attached to the current document body (Astro's transition:persist moves
+    // the sheet but not the dynamically-created overlay).
+    if (document.getElementById('add-patient-sheet')) {
       (window as any).currentPatientSheetManager = new AddPatientSheetManager();
     }
   }

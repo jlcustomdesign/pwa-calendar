@@ -1160,9 +1160,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
   function initAddSessionSheet() {
     if (!document.getElementById('add-session-sheet')) return;
-    if (!globalAddSessionSheetManager) {
-      globalAddSessionSheetManager = new AddSessionSheetManager();
-    }
+    // Recreate the manager on every page navigation so its overlay is always
+    // attached to the current document body (Astro's transition:persist moves
+    // the sheet but not the dynamically-created overlay).
+    globalAddSessionSheetManager = new AddSessionSheetManager();
   }
 
   // Initialize
