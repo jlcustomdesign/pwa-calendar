@@ -66,49 +66,9 @@
 
   async function checkActionNotifications() {
     const banner = document.getElementById('home-action-notifications');
-    if (!banner) return;
-
-    try {
-      const allPatients = await getPatients({ inactivi: false });
-      const needsRenewal = allPatients.filter(p => {
-        const total = p.sedinte_total || 10;
-        const folosite = p.sedinte_folosite ?? 0;
-        return total > 0 && folosite >= total;
-      });
-
-      if (needsRenewal.length === 0) {
-        banner.innerHTML = '';
-        banner.classList.add('hidden');
-        return;
-      }
-
-      banner.classList.remove('hidden');
-      banner.innerHTML = `
-        <div class="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-between gap-3 shadow-sm">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-xl bg-amber-500 text-black flex items-center justify-center font-black shrink-0 shadow-sm">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            </div>
-            <div class="min-w-0">
-              <h4 class="text-sm font-extrabold text-neutral-900 leading-tight">
-                ${needsRenewal.length === 1 ? `Pacientul <strong>${needsRenewal[0].name}</strong> necesită reînnoire` : `${needsRenewal.length} pacienți au abonamentul completat`}
-              </h4>
-              <p class="text-xs font-bold text-neutral-600 truncate mt-0.5">
-                ${needsRenewal.length === 1 ? 'Atinge pentru a alege noul pachet de ședințe' : needsRenewal.map(p => p.name).join(', ')}
-              </p>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            onclick="${needsRenewal.length === 1 ? `window.renewSubscription('${needsRenewal[0].id}', ${needsRenewal[0].sedinte_total || 10}, '${needsRenewal[0].name.replace(/'/g, "\\'")}')` : `window.location.href='/dashboard/patients'`}"
-            class="px-3.5 py-2 rounded-xl bg-brand-primary font-black text-xs text-black shadow-sm hover:brightness-105 active:scale-95 transition-all shrink-0 cursor-pointer"
-          >
-            ${needsRenewal.length === 1 ? 'Reînnoiește' : 'Vezi pacienți'}
-          </button>
-        </div>
-      `;
-    } catch (e) {
-      console.warn('Eroare verificare notificari home:', e);
+    if (banner) {
+      banner.innerHTML = '';
+      banner.classList.add('hidden');
     }
   }
 
