@@ -61,6 +61,7 @@
 
 <script>
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { showDockForSheet, hideDockForSheet } from '../../../utils/dockVisibility';
 
   function setupModals() {
     const triggers = document.querySelectorAll('[data-modal-trigger]');
@@ -73,8 +74,7 @@
         const modal = document.getElementById(modalId);
         if (modal) {
           lockBodyScroll();
-          const dock = document.getElementById('persistent-dock');
-          if (dock) dock.style.display = 'none';
+          showDockForSheet();
 
           // Show modal — fade the backdrop element itself so the blur
           // animates gradually (same pattern as the other sheets)
@@ -208,8 +208,7 @@
 
   function closeModalSheet(modal: HTMLElement) {
     unlockBodyScroll();
-    const dock = document.getElementById('persistent-dock');
-    if (dock) dock.style.display = '';
+    hideDockForSheet();
 
     modal.dataset.open = 'false';
 

@@ -173,6 +173,7 @@
   import { addPatient, updatePatient, addPayment } from '../../../lib/services/patientService';
   import { getPricingPackages } from '../../../lib/services/pricingService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { showDockForSheet, hideDockForSheet } from '../../../utils/dockVisibility';
 
   class AddPatientSheetManager {
     sheet: HTMLElement | null;
@@ -714,8 +715,7 @@
       void this.sheet.offsetWidth;
       this.sheet.classList.remove('translate-y-full');
       this.overlay.classList.remove('opacity-0', 'pointer-events-none');
-      const dock = document.getElementById('persistent-dock');
-      if (dock) dock.style.display = 'none';
+      showDockForSheet();
       lockBodyScroll();
     }
 
@@ -724,8 +724,7 @@
       this.sheet.style.transform = '';
       this.sheet.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      const dock = document.getElementById('persistent-dock');
-      if (dock) dock.style.display = '';
+      hideDockForSheet();
       unlockBodyScroll();
       setTimeout(() => {
         if (this.sheet) this.sheet.dataset.open = 'false';
@@ -810,4 +809,8 @@
   }
 
   document.addEventListener('astro:page-load', initPatientSheet);
+  document.addEventListener('DOMContentLoaded', initPatientSheet);
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initPatientSheet();
+  }
 </script>

@@ -198,6 +198,7 @@
   import { completeSession, createAppointment } from '../../../lib/services/appointmentService';
   import { getPatient, resetPatientSubscription } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { showDockForSheet, hideDockForSheet } from '../../../utils/dockVisibility';
   import { toLocalISOString } from '../../../utils/date';
 
   class WrapUpSheetManager {
@@ -864,8 +865,7 @@
       void this.sheet.offsetWidth;
       this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
-      const dock = document.getElementById('persistent-dock');
-      if (dock) dock.style.display = 'none';
+      showDockForSheet();
       lockBodyScroll();
     }
 
@@ -877,8 +877,7 @@
       this.backdrop.classList.add('opacity-0');
       this.content.style.transform = '';
       this.content.classList.add('translate-y-full');
-      const dock = document.getElementById('persistent-dock');
-      if (dock) dock.style.display = '';
+      hideDockForSheet();
       unlockBodyScroll();
       setTimeout(() => {
         this.reconnect();

@@ -101,6 +101,7 @@
 <script>
   import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPaymentHistoryDetails } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { showDockForSheet, hideDockForSheet } from '../../../utils/dockVisibility';
 
   class PaymentSheetManager {
     private sheet: HTMLElement | null;
@@ -452,16 +453,14 @@
       // fading a parent wrapper would disable the backdrop-blur mid-animation
       this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
-      const dock = document.getElementById('persistent-dock');
-      if (dock) dock.style.display = 'none';
+      showDockForSheet();
       lockBodyScroll();
     }
 
     private close() {
       if (!this.sheet || !this.content || !this.backdrop || !this.isOpen) return;
       this.isOpen = false;
-      const dock = document.getElementById('persistent-dock');
-      if (dock) dock.style.display = '';
+      hideDockForSheet();
       unlockBodyScroll();
 
       // Clear any inline drag styles so the class-based transition takes over
