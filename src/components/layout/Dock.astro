@@ -54,8 +54,14 @@ const navItems = [
         }`}
       >
         <Fragment set:html={iconHtml} />
+        {item.id === 'home' && (
+          <span id="home-notification-dot" class="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500 hidden"></span>
+        )}
         {item.id === 'layers' && (
           <span id="patients-notification-dot" class="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500 hidden"></span>
+        )}
+        {item.id === 'reports' && (
+          <span id="reports-notification-dot" class="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500 hidden"></span>
         )}
       </a>
     );
@@ -135,20 +141,41 @@ const navItems = [
     }
   }
 
-  async function updatePatientNotificationDot() {
-    const dot = document.getElementById('patients-notification-dot');
-    if (!dot) return;
+  async function updateDockBadges() {
+    const homeDot = document.getElementById('home-notification-dot');
+    const patientsDot = document.getElementById('patients-notification-dot');
+    const reportsDot = document.getElementById('reports-notification-dot');
+
     try {
-      const { getPatients } = await import('../../lib/services/patientService');
-      const patients = await getPatients();
-      const hasExpired = patients.some((p: any) => {
-        const total = p.sedinte_total ?? 0;
-        const used = p.sedinte_folosite ?? 0;
-        return total > 0 && used >= total;
+      const [{ getPendingWrapUps }, { getPatients, isRenewalDismissed }, { getUnpaidPatients }] = await Promise.all([
+        import('../../lib/services/appointmentService'),
+        import('../../lib/services/patientService'),
+        import('../../lib/services/reportsService'),
+      ]);
+
+      const [pendingWrapUps, patients, unpaid] = await Promise.all([
+        getPendingWrapUps(),
+        getPatients(),
+        getUnpaidPatients(),
+      ]);
+
+      // Home: ședințe trecute care trebuie confirmate
+      homeDot?.classList.toggle('hidden', pendingWrapUps.length === 0);
+
+      // Patients: abonamente terminate/ultima ședință NEdismissuite OR pacienți neachitați
+      const needsAttentionPatients = patients.some((p: any) => {
+        const subscriptionAlert = ['terminat', 'ultima_sedinta'].includes(p.status_abonament) && !isRenewalDismissed(p.id);
+        const unpaidPatient = p.achitat === false;
+        return subscriptionAlert || unpaidPatient;
       });
-      dot.classList.toggle('hidden', !hasExpired);
+      patientsDot?.classList.toggle('hidden', !needsAttentionPatients);
+
+      // Reports: restanțe globale
+      reportsDot?.classList.toggle('hidden', unpaid.count === 0);
     } catch {
-      dot.classList.add('hidden');
+      homeDot?.classList.add('hidden');
+      patientsDot?.classList.add('hidden');
+      reportsDot?.classList.add('hidden');
     }
   }
 
@@ -160,9 +187,12 @@ const navItems = [
 
     // Initial paint with animation so the dock slides in naturally
     updateDockActiveState(true);
-    updatePatientNotificationDot();
+    updateDockBadges();
 
-    window.addEventListener('patientsUpdated', updatePatientNotificationDot);
+    window.addEventListener('patientsUpdated', updateDockBadges);
+    window.addEventListener('sessionsUpdated', updateDockBadges);
+    window.addEventListener('paymentsUpdated', updateDockBadges);
+    document.addEventListener('astro:after-swap', updateDockBadges);
 
     dockNav?.querySelectorAll('[data-dock-item]').forEach((item) => {
       const handleDockTap = (e: Event) => {
