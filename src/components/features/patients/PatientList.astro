@@ -335,7 +335,7 @@
 
         // The foreground card
         const card = document.createElement('div');
-        card.className = `patient-card relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}`;
+        card.className = `swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}`;
         card.style.touchAction = 'pan-y'; // allow vertical scroll
         
         const planName = patient.plan === 'Subscription' || patient.plan === 'Abonament' ? 'Abonament' : (patient.plan === 'One Time' ? 'Ședință' : (patient.plan || 'Fără plan'));
@@ -482,7 +482,6 @@
         let isExpanded = false;
         
         summary?.addEventListener('click', (e) => {
-          e.stopPropagation();
           if (cardWrapper.dataset.wasSwiping === 'true') {
             cardWrapper.dataset.wasSwiping = 'false';
             return;
@@ -527,15 +526,12 @@
           if (targetX < FULL_SWIPE - 20) targetX = FULL_SWIPE - 20;
           
           card.style.transform = `translateX(${targetX}px)`;
-          card.style.clipPath = targetX < 0 
-            ? `inset(0 ${Math.max(0, Math.round(-targetX))}px 0 0)` 
-            : '';
         };
 
         const onEnd = () => {
           if (!isSwiping) return;
           isSwiping = false;
-          card.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1), clip-path 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+          card.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
 
           // Read current rendered translateX position
           const style = window.getComputedStyle(card);
@@ -547,21 +543,17 @@
             isOpen = true;
             currentTranslateX = FULL_SWIPE;
             card.style.transform = `translateX(${FULL_SWIPE}px)`;
-            card.style.clipPath = 'inset(0 210px 0 0)';
           } else if (isOpen && currentX > -175) {
             isOpen = false;
             currentTranslateX = 0;
             card.style.transform = 'translateX(0px)';
-            card.style.clipPath = '';
           } else {
             card.style.transform = isOpen ? `translateX(${FULL_SWIPE}px)` : 'translateX(0px)';
-            card.style.clipPath = isOpen ? 'inset(0 210px 0 0)' : '';
             currentTranslateX = isOpen ? FULL_SWIPE : 0;
           }
         };
 
         card.addEventListener('touchstart', (e: any) => {
-          if ((e.target as HTMLElement)?.closest('button, a, input')) return;
           onStart(e.touches[0].clientX, e.touches[0].clientY);
         }, { passive: true });
 
