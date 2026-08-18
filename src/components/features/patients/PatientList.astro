@@ -455,82 +455,33 @@
         const summary = card.querySelector('.card-summary');
         const details = card.querySelector('.card-details') as HTMLElement;
         let isExpanded = false;
-        let touchHandledTap = false;
-
-        function getCardTranslateX() {
+        
+        summary?.addEventListener('click', (e) => {
           const style = window.getComputedStyle(card);
-          return new WebKitCSSMatrix(style.transform).m41;
-        }
+          const matrix = new WebKitCSSMatrix(style.transform);
+          const currentX = matrix.m41;
 
-        function closeSwipedCard() {
-          isOpen = false;
-          currentTranslateX = 0;
-          card.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-          card.style.transform = 'translateX(0px)';
-        }
+          // If the card is swiped open, close it on tap instead of toggling details
+          if (currentX < -50) {
+            isOpen = false;
+            currentTranslateX = 0;
+            card.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+            card.style.transform = 'translateX(0px)';
+            cardWrapper.dataset.wasSwiping = 'false';
+            return;
+          }
 
-        function toggleDetails() {
+          // Ignore only if a real swipe just happened and the card is still shifted
+          if (cardWrapper.dataset.wasSwiping === 'true' && Math.abs(currentX) > 20) {
+            cardWrapper.dataset.wasSwiping = 'false';
+            return;
+          }
+
+          cardWrapper.dataset.wasSwiping = 'false';
           isExpanded = !isExpanded;
           if (details) {
             details.style.gridTemplateRows = isExpanded ? '1fr' : '0fr';
           }
-        }
-
-        // Mobile: use touchend directly to avoid the delayed/ghost click issues
-        let summaryTouchStartX = 0;
-        let summaryTouchStartY = 0;
-        let summaryTouchMoved = false;
-
-        summary?.addEventListener('touchstart', (e: any) => {
-          summaryTouchStartX = e.touches[0].clientX;
-          summaryTouchStartY = e.touches[0].clientY;
-          summaryTouchMoved = false;
-        }, { passive: true });
-
-        summary?.addEventListener('touchmove', (e: any) => {
-          const dx = e.touches[0].clientX - summaryTouchStartX;
-          const dy = e.touches[0].clientY - summaryTouchStartY;
-          // Only treat as scroll/swipe if movement is clearly directional and significant;
-          // normal tap jitter is usually under 15px.
-          const isHorizontalSwipe = Math.abs(dx) > 25 && Math.abs(dx) > Math.abs(dy) * 1.5;
-          const isVerticalScroll = Math.abs(dy) > 25 && Math.abs(dy) > Math.abs(dx);
-          if (isHorizontalSwipe || isVerticalScroll) {
-            summaryTouchMoved = true;
-          }
-        }, { passive: true });
-
-        summary?.addEventListener('touchend', (e: any) => {
-          const currentX = getCardTranslateX();
-
-          // If the card is swiped open, close it on tap instead of toggling details
-          if (currentX < -50) {
-            closeSwipedCard();
-            return;
-          }
-
-          // Ignore if the finger moved (scroll/swipe attempt)
-          if (summaryTouchMoved) return;
-
-          // Prevent the delayed synthetic click so we don't toggle twice
-          e.preventDefault();
-          touchHandledTap = true;
-          toggleDetails();
-        });
-
-        // Desktop / fallback click handler
-        summary?.addEventListener('click', (e) => {
-          if (touchHandledTap) {
-            touchHandledTap = false;
-            return;
-          }
-
-          const currentX = getCardTranslateX();
-          if (currentX < -50) {
-            closeSwipedCard();
-            return;
-          }
-
-          toggleDetails();
         });
 
         // Swipe logic (Touch + Mouse) - Single slide reveals ALL 3 action buttons
@@ -558,8 +509,9 @@
           if (!isSwiping) return;
           const diffX = clientX - startX;
           
-          // Only mark as a real swipe after meaningful horizontal movement
-          if (Math.abs(diffX) > 20) {
+          // Only mark as a real swipe after meaningful horizontal movement;
+          // normal tap jitter is usually under 15px.
+          if (Math.abs(diffX) > 35) {
             cardWrapper.dataset.wasSwiping = 'true';
           }
 
