@@ -185,12 +185,15 @@ const { title, hideDock = false } = Astro.props;
           if (targetX < maxSwipe - 20) targetX = maxSwipe + (targetX - maxSwipe) * 0.2;
 
           activeSurface.style.transform = `translateX(${targetX}px)`;
+          activeSurface.style.clipPath = targetX < 0
+            ? `inset(0 ${Math.max(0, Math.round(-targetX))}px 0 0)`
+            : '';
         }
 
         function handleSwipeEnd() {
           if (!isSwiping || !activeSurface) return;
           isSwiping = false;
-          activeSurface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          activeSurface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), clip-path 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
 
           const maxSwipe = getMaxSwipe(activeSurface);
           const diffX = currentX - startX;
@@ -198,6 +201,7 @@ const { title, hideDock = false } = Astro.props;
           if (!isOpen && diffX < -50) {
             isOpen = true;
             activeSurface.style.transform = `translateX(${maxSwipe}px)`;
+            activeSurface.style.clipPath = `inset(0 ${Math.round(-maxSwipe)}px 0 0)`;
             const cardRoot = activeSurface.closest('session-card, .swipe-surface') as HTMLElement | null;
             if (cardRoot) {
               const details = cardRoot.querySelector('.card-details') as HTMLElement | null;
@@ -208,8 +212,10 @@ const { title, hideDock = false } = Astro.props;
           } else if (isOpen && diffX > 50) {
             isOpen = false;
             activeSurface.style.transform = 'translateX(0px)';
+            activeSurface.style.clipPath = '';
           } else {
             activeSurface.style.transform = isOpen ? `translateX(${maxSwipe}px)` : 'translateX(0px)';
+            activeSurface.style.clipPath = isOpen ? `inset(0 ${Math.round(-maxSwipe)}px 0 0)` : '';
           }
 
           const targetSurface = activeSurface;
