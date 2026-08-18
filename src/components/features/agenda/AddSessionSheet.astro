@@ -870,6 +870,93 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         }
       }
     }
+
+    async handleOpenEvent(e: any) {
+      const detail = e.detail || {};
+      const isEdit = !!detail.isEdit;
+      const session = detail.session;
+      const timeStr = detail.time || session?.selectedTime || '08:00';
+      const dateStr = detail.date || session?.selectedDate;
+      const patientName = detail.patientName || session?.patientName;
+      const effectiveDate = dateStr || (window as any).currentCalendarDate || new Date().toISOString().split('T')[0];
+
+      const titleEl = document.getElementById('sheet-title');
+      const submitBtnEl = document.getElementById('submit-btn');
+      const sessionIdInput = document.getElementById('sessionId') as HTMLInputElement;
+      const dateTimeContainer = document.getElementById('date-time-selectors');
+
+      if (sessionIdInput) {
+        sessionIdInput.value = isEdit && session ? session.id : '';
+      }
+
+      if (isEdit) {
+        if (titleEl) titleEl.textContent = 'Editează programarea';
+        if (submitBtnEl) submitBtnEl.textContent = 'Salvează Modificările';
+      } else {
+        if (titleEl) titleEl.textContent = 'Programare nouă';
+        if (submitBtnEl) submitBtnEl.textContent = 'Salvează';
+      }
+
+      dateTimeContainer?.classList.remove('hidden');
+
+      if (timeStr) this.selectTime(timeStr);
+      if (effectiveDate) this.selectDate(effectiveDate);
+
+      // Reset patient selector state
+      const pList = document.getElementById('patient-list');
+      const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
+      const settingsContainer = document.getElementById('settings-container');
+
+      const patientRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
+      patientRadios?.forEach(r => r.checked = false);
+      this.selectedPatientId = null;
+
+      if (patientName) {
+        const matchingRadio = Array.from(patientRadios || []).find(r =>
+          r.getAttribute('data-patient-name') === patientName || r.value === patientName
+        );
+        if (matchingRadio) {
+          matchingRadio.checked = true;
+          this.selectedPatientId = matchingRadio.value;
+          matchingRadio.dispatchEvent(new Event('change'));
+        }
+      }
+
+      if (!patientName) {
+        if (searchInput) searchInput.value = '';
+        if (pList) pList.style.gridTemplateRows = '0fr';
+        if (settingsContainer) {
+          settingsContainer.classList.add('hidden');
+          settingsContainer.classList.remove('flex');
+        }
+      }
+
+      if (isEdit && session) {
+        const recurringCb = this.form?.querySelector('input[name="recurring"]') as HTMLInputElement;
+        const reminderCb = this.form?.querySelector('input[name="reminder"]') as HTMLInputElement;
+        if (recurringCb) recurringCb.checked = !!session.recurring;
+        if (reminderCb) reminderCb.checked = !!session.reminder;
+      }
+
+      // Open the sheet immediately for smooth feedback
+      this.open();
+
+      // Load patients in the background, then pre-select if a name was provided
+      await this.populatePatients();
+
+      if (patientName) {
+        const refreshedRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
+        const matchingRadio = Array.from(refreshedRadios || []).find(r =>
+          r.getAttribute('data-patient-name') === patientName || r.value === patientName
+        );
+        if (matchingRadio) {
+          matchingRadio.checked = true;
+          this.selectedPatientId = matchingRadio.value;
+          matchingRadio.dispatchEvent(new Event('change'));
+        }
+      }
+    }
+
     bindEvents() {
       if (!this.sheet) return;
 
@@ -883,96 +970,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const dragHandle = document.getElementById('add-session-drag-handle');
       if (dragHandle) {
         this.bindHandleSwipe(dragHandle, () => this.close());
-      }
-
-      // Listen for custom event to open sheet
-      if (!(window as any)._addSessionWindowListenerBound) {
-        window.addEventListener('openAddSession', async (e: any) => {
-          const detail = e.detail || {};
-          const isEdit = !!detail.isEdit;
-          const session = detail.session;
-          const timeStr = detail.time || session?.selectedTime || '08:00';
-          const dateStr = detail.date || session?.selectedDate;
-          const patientName = detail.patientName || session?.patientName;
-          const effectiveDate = dateStr || (window as any).currentCalendarDate || new Date().toISOString().split('T')[0];
-
-          const titleEl = document.getElementById('sheet-title');
-          const submitBtnEl = document.getElementById('submit-btn');
-          const sessionIdInput = document.getElementById('sessionId') as HTMLInputElement;
-          const dateTimeContainer = document.getElementById('date-time-selectors');
-
-          if (sessionIdInput) {
-            sessionIdInput.value = isEdit && session ? session.id : '';
-          }
-
-          if (isEdit) {
-            if (titleEl) titleEl.textContent = 'Editează programarea';
-            if (submitBtnEl) submitBtnEl.textContent = 'Salvează Modificările';
-          } else {
-            if (titleEl) titleEl.textContent = 'Programare nouă';
-            if (submitBtnEl) submitBtnEl.textContent = 'Salvează';
-          }
-
-          dateTimeContainer?.classList.remove('hidden');
-
-          if (timeStr) this.selectTime(timeStr);
-          if (effectiveDate) this.selectDate(effectiveDate);
-
-          // Reset patient selector state
-          const pList = document.getElementById('patient-list');
-          const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
-          const settingsContainer = document.getElementById('settings-container');
-
-          const patientRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
-          patientRadios?.forEach(r => r.checked = false);
-          this.selectedPatientId = null;
-
-          if (patientName) {
-            const matchingRadio = Array.from(patientRadios || []).find(r =>
-              r.getAttribute('data-patient-name') === patientName || r.value === patientName
-            );
-            if (matchingRadio) {
-              matchingRadio.checked = true;
-              this.selectedPatientId = matchingRadio.value;
-              matchingRadio.dispatchEvent(new Event('change'));
-            }
-          }
-
-          if (!patientName) {
-            if (searchInput) searchInput.value = '';
-            if (pList) pList.style.gridTemplateRows = '0fr';
-            if (settingsContainer) {
-              settingsContainer.classList.add('hidden');
-              settingsContainer.classList.remove('flex');
-            }
-          }
-
-          if (isEdit && session) {
-            const recurringCb = this.form?.querySelector('input[name="recurring"]') as HTMLInputElement;
-            const reminderCb = this.form?.querySelector('input[name="reminder"]') as HTMLInputElement;
-            if (recurringCb) recurringCb.checked = !!session.recurring;
-            if (reminderCb) reminderCb.checked = !!session.reminder;
-          }
-
-          // Open the sheet immediately for smooth feedback
-          this.open();
-
-          // Load patients in the background, then pre-select if a name was provided
-          await this.populatePatients();
-
-          if (patientName) {
-            const refreshedRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
-            const matchingRadio = Array.from(refreshedRadios || []).find(r =>
-              r.getAttribute('data-patient-name') === patientName || r.value === patientName
-            );
-            if (matchingRadio) {
-              matchingRadio.checked = true;
-              this.selectedPatientId = matchingRadio.value;
-              matchingRadio.dispatchEvent(new Event('change'));
-            }
-          }
-        });
-      (window as any)._addSessionWindowListenerBound = true;
       }
 
       // Bind submit handlers
@@ -1153,14 +1150,22 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     }
   }
 
-  let globalAddSessionSheetManager: AddSessionSheetManager | null = null;
-
   function initAddSessionSheet() {
     if (!document.getElementById('add-session-sheet')) return;
+
+    // Only bind the window event listener once globally; route each open event
+    // to the current manager so it survives Astro view transitions.
+    if (!(window as any)._addSessionWindowListenerBound) {
+      window.addEventListener('openAddSession', (e: Event) => {
+        (window as any).currentAddSessionSheetManager?.handleOpenEvent(e);
+      });
+      (window as any)._addSessionWindowListenerBound = true;
+    }
+
     // Recreate the manager on every page navigation so its overlay is always
     // attached to the current document body (Astro's transition:persist moves
     // the sheet but not the dynamically-created overlay).
-    globalAddSessionSheetManager = new AddSessionSheetManager();
+    (window as any).currentAddSessionSheetManager = new AddSessionSheetManager();
   }
 
   // Initialize

@@ -236,15 +236,15 @@
       this.bindPickerSwipe('wrapup-time-picker-sheet', () => this.closeTimePicker());
     }
 
-    private bindEvents() {
-      window.addEventListener('openWrapUp', ((e: CustomEvent) => {
-        if (e.detail?.appointment) {
-          this.currentAppointment = e.detail.appointment;
-          this.initView();
-          this.open();
-        }
-      }) as EventListener);
+    handleOpenEvent(e: CustomEvent) {
+      if (e.detail?.appointment) {
+        this.currentAppointment = e.detail.appointment;
+        this.initView();
+        this.open();
+      }
+    }
 
+    private bindEvents() {
       // Use document delegation so clicks keep working after Astro view transitions
       // and even if the persisted sheet element is replaced.
       document.addEventListener('click', (e) => this.handleDocumentClick(e));
@@ -886,17 +886,27 @@
     }
   }
 
-  (window as any).__wrapUpManager = (window as any).__wrapUpManager || null;
-
-  document.addEventListener('astro:page-load', () => {
+  function initWrapUpSheet() {
     if (!document.getElementById('session-wrapup-sheet')) return;
 
-    const mgr = (window as any).__wrapUpManager as WrapUpSheetManager | null;
-    if (!mgr) {
-      (window as any).__wrapUpManager = new WrapUpSheetManager();
-    } else {
-      mgr.reconnect();
+    // Only bind the window event listener once globally; route each open event
+    // to the current manager so it survives Astro view transitions.
+    if (!(window as any)._wrapUpWindowListenerBound) {
+      window.addEventListener('openWrapUp', (e: Event) => {
+        (window as any).currentWrapUpSheetManager?.handleOpenEvent(e as CustomEvent);
+      });
+      (window as any)._wrapUpWindowListenerBound = true;
     }
-  });
+
+    // Recreate the manager on every page navigation so its element references
+    // and listeners are always attached to the current DOM.
+    (window as any).currentWrapUpSheetManager = new WrapUpSheetManager();
+  }
+
+  document.addEventListener('astro:page-load', initWrapUpSheet);
+  document.addEventListener('DOMContentLoaded', initWrapUpSheet);
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initWrapUpSheet();
+  }
 </script>
 

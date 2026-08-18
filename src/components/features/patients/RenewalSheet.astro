@@ -158,17 +158,17 @@
       this.bindContentSwipe();
     }
 
-    private bindEvents() {
-      window.addEventListener('openRenewalSheet', ((e: CustomEvent) => {
-        if (e.detail?.patientId) {
-          this.currentPatientId = e.detail.patientId;
-          this.selectedSessions = e.detail.currentTotal || 10;
-          this.pendingAppointment = e.detail.pendingAppointment || null;
-          this.loadPatientInfo(e.detail.patientName);
-          this.open();
-        }
-      }) as EventListener);
+    handleOpenEvent(e: CustomEvent) {
+      if (e.detail?.patientId) {
+        this.currentPatientId = e.detail.patientId;
+        this.selectedSessions = e.detail.currentTotal || 10;
+        this.pendingAppointment = e.detail.pendingAppointment || null;
+        this.loadPatientInfo(e.detail.patientName);
+        this.open();
+      }
+    }
 
+    private bindEvents() {
       document.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
         if (!target) return;
@@ -461,13 +461,26 @@
     }
   }
 
-  let globalRenewalSheetManager: RenewalSheetManager | null = null;
-  document.addEventListener('astro:page-load', () => {
+  function initRenewalSheet() {
     if (!document.getElementById('renewal-sheet')) return;
-    if (!globalRenewalSheetManager) {
-      globalRenewalSheetManager = new RenewalSheetManager();
-    } else {
-      globalRenewalSheetManager.reconnect();
+
+    // Only bind the window event listener once globally; route each open event
+    // to the current manager so it survives Astro view transitions.
+    if (!(window as any)._renewalSheetWindowListenerBound) {
+      window.addEventListener('openRenewalSheet', (e: Event) => {
+        (window as any).currentRenewalSheetManager?.handleOpenEvent(e as CustomEvent);
+      });
+      (window as any)._renewalSheetWindowListenerBound = true;
     }
-  });
+
+    // Recreate the manager on every page navigation so its element references
+    // and listeners are always attached to the current DOM.
+    (window as any).currentRenewalSheetManager = new RenewalSheetManager();
+  }
+
+  document.addEventListener('astro:page-load', initRenewalSheet);
+  document.addEventListener('DOMContentLoaded', initRenewalSheet);
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initRenewalSheet();
+  }
 </script>

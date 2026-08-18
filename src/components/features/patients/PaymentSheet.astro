@@ -147,15 +147,14 @@
       this.subtitleText = document.getElementById('payment-subtitle');
     }
 
-    private bindEvents() {
-      // Open sheet event
-      window.addEventListener('openPaymentSheet', ((e: CustomEvent) => {
-        this.reconnect();
-        this.currentPatientId = e.detail.patientId;
-        this.resetView();
-        this.open();
-      }) as EventListener);
+    handleOpenEvent(e: CustomEvent) {
+      this.reconnect();
+      this.currentPatientId = e.detail.patientId;
+      this.resetView();
+      this.open();
+    }
 
+    private bindEvents() {
       // Close handlers
       this.backdrop?.addEventListener('click', () => this.close());
 
@@ -494,15 +493,26 @@
     }
   }
 
-  let globalPaymentSheetManager: PaymentSheetManager | null = null;
-
-  document.addEventListener('astro:page-load', () => {
+  function initPaymentSheet() {
     if (!document.getElementById('payment-sheet')) return;
 
-    if (!globalPaymentSheetManager) {
-      globalPaymentSheetManager = new PaymentSheetManager();
-    } else {
-      globalPaymentSheetManager.reconnect();
+    // Only bind the window event listener once globally; route each open event
+    // to the current manager so it survives Astro view transitions.
+    if (!(window as any)._paymentSheetWindowListenerBound) {
+      window.addEventListener('openPaymentSheet', (e: Event) => {
+        (window as any).currentPaymentSheetManager?.handleOpenEvent(e as CustomEvent);
+      });
+      (window as any)._paymentSheetWindowListenerBound = true;
     }
-  });
+
+    // Recreate the manager on every page navigation so its element references
+    // and listeners are always attached to the current DOM.
+    (window as any).currentPaymentSheetManager = new PaymentSheetManager();
+  }
+
+  document.addEventListener('astro:page-load', initPaymentSheet);
+  document.addEventListener('DOMContentLoaded', initPaymentSheet);
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initPaymentSheet();
+  }
 </script>
