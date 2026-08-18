@@ -241,8 +241,11 @@ const { title, hideDock = false } = Astro.props;
         document.addEventListener('click', (e) => {
           const target = e.target as HTMLElement;
 
-          // Ignore action buttons inside swiped cards so edit/cancel/delete work
-          if (target.closest('[data-action-btn], [data-action-area]')) return;
+          // Ignore action buttons/areas inside swiped cards so edit/cancel/delete work.
+          // Do this first so we never close the current card when tapping an action.
+          if (target.closest('[data-action-btn], [data-action-area]')) {
+            return;
+          }
 
           closeOtherSwipedCards(target);
 
