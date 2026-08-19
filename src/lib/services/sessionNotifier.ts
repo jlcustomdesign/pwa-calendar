@@ -97,10 +97,13 @@ async function checkTodaySessionsForNotifications() {
 
           // Pe mobil notificările web nu apar mereu când aplicația e în foreground,
           // așa că deschidem și popup-ul în app ca fallback.
+          // Folosim setTimeout ca să dăm timp Sheet-ului de wrap-up să-și înregistreze listener-ul la load.
           if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-            window.dispatchEvent(new CustomEvent('openWrapUp', {
-              detail: { appointment: appt }
-            }));
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('openWrapUp', {
+                detail: { appointment: appt }
+              }));
+            }, 500);
           }
 
           await triggerWebNotification(
