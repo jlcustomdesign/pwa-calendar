@@ -329,6 +329,29 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
               class="w-full px-5 py-4 rounded-2xl bg-surface-base/80 border border-transparent text-text-main font-bold text-base sm:text-lg leading-relaxed placeholder-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all resize-none"
             >Salut &#123;nume&#125;! Îți reamintim că mai ai &#123;ramase&#125; ședințe rămase din pachetul tău Kineto. Te așteptăm cu drag!</textarea>
           </section>
+
+          <!-- Forma 3: Notificări automate pe telefon (Apple & Android) -->
+          <section class="bg-surface-card text-text-main rounded-[2rem] p-6 shadow-sm border border-transparent space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg sm:text-xl font-bold text-text-main">Notificări pe telefon</h3>
+                <p class="text-xs sm:text-sm font-medium text-text-muted mt-0.5">Alerte la începutul și finalul ședințelor</p>
+              </div>
+              <div id="notification-status-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-200 text-neutral-700">
+                Verificare...
+              </div>
+            </div>
+            <button
+              type="button"
+              id="btn-test-notification"
+              class="w-full py-3.5 px-6 rounded-2xl bg-brand-secondary text-white font-extrabold text-sm sm:text-base hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-md shadow-brand-secondary/20 flex items-center justify-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span>Activează / Testează notificările</span>
+            </button>
+          </section>
         </div>
       )}
 
@@ -717,6 +740,48 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const txtTemplate   = document.getElementById('whatsapp-template') as HTMLTextAreaElement | null;
     if (cbLastSession) cbLastSession.checked = (settings.reminder_threshold ?? 2) > 0;
     if (txtTemplate)   txtTemplate.value     = settings.whatsapp_template || '';
+
+    // 5.1 Push Notifications Test & Badge
+    const notifBadge = document.getElementById('notification-status-badge');
+    const btnTestNotif = document.getElementById('btn-test-notification');
+
+    function updateNotifBadge() {
+      if (!notifBadge) return;
+      if (!('Notification' in window)) {
+        notifBadge.textContent = 'Nesuportat';
+        notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-200 text-neutral-600';
+      } else if (Notification.permission === 'granted') {
+        notifBadge.textContent = 'Active';
+        notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-700 border border-emerald-300';
+      } else if (Notification.permission === 'denied') {
+        notifBadge.textContent = 'Blocate';
+        notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-300';
+      } else {
+        notifBadge.textContent = 'Inactiv';
+        notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300';
+      }
+    }
+    updateNotifBadge();
+
+    btnTestNotif?.addEventListener('click', async () => {
+      try {
+        const { requestNotificationPermission, triggerWebNotification } = await import('../../../lib/services/sessionNotifier');
+        const granted = await requestNotificationPermission();
+        updateNotifBadge();
+        if (granted) {
+          await triggerWebNotification(
+            '🔔 Test Notificare Kineto',
+            'Notificările funcționează perfect pe acest dispozitiv!'
+          );
+          showToast('Notificare trimisă cu succes!');
+        } else {
+          alert('Pentru a primi notificări pe iPhone: Mergi în Configurări (Settings) -> Notificări -> KinetoAgenda și activează Permite Notificări.');
+        }
+      } catch (err: any) {
+        console.error('Test notification error:', err);
+        showToast('Eroare la testarea notificărilor.');
+      }
+    });
 
     // 6. Categories
     const categoriesContainer = document.getElementById('categories-container');
