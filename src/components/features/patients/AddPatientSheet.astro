@@ -41,18 +41,19 @@
           <div>
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Tip Plan</label>
             <input type="hidden" name="plan" id="patientPlan" value="Abonament" />
-            <div class="grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
+            <div class="relative grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
+              <div id="plan-active-pill" class="absolute top-1 bottom-1 rounded-xl bg-brand-primary pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)]" style="opacity: 0;"></div>
               <button 
                 type="button" 
                 data-plan="Abonament" 
-                class="py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
               >
                 Abonament
               </button>
               <button 
                 type="button" 
                 data-plan="Ședință unică" 
-                class="py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
               >
                 Ședință unică
               </button>
@@ -63,18 +64,19 @@
           <div>
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Locație</label>
             <input type="hidden" name="location" id="patientLocation" value="Belaqva" />
-            <div class="grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
+            <div class="relative grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
+              <div id="location-active-pill" class="absolute top-1 bottom-1 rounded-xl bg-brand-primary pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)]" style="opacity: 0;"></div>
               <button 
                 type="button" 
                 data-location="Belaqva" 
-                class="py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
               >
                 Belaqva
               </button>
               <button 
                 type="button" 
                 data-location="Ghimbav" 
-                class="py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
               >
                 Ghimbav
               </button>
@@ -482,6 +484,7 @@
       const normSelected = clean(selectedPlan);
 
       const planChips = document.querySelectorAll<HTMLButtonElement>('[data-plan]');
+      let selectedChip: HTMLButtonElement | null = null;
       planChips.forEach(chip => {
         const chipPlan = clean(chip.dataset.plan || '');
         let isMatch = false;
@@ -495,11 +498,24 @@
         }
 
         if (isMatch) {
-          chip.className = 'py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-brand-primary text-black shadow-sm';
+          selectedChip = chip;
+          chip.className = 'relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate text-black';
         } else {
-          chip.className = 'py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black';
+          chip.className = 'relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black';
         }
       });
+
+      this.movePillTo('plan-active-pill', selectedChip);
+    }
+
+    private movePillTo(pillId: string, target: HTMLElement | null) {
+      const pill = document.getElementById(pillId);
+      if (!pill || !target) return;
+      const parent = target.offsetParent as HTMLElement;
+      if (!parent) return;
+      pill.style.opacity = '1';
+      pill.style.width = `${target.offsetWidth}px`;
+      pill.style.transform = `translateX(${target.offsetLeft}px)`;
     }
 
     updateLocationChips(selectedLoc: string) {
@@ -507,16 +523,20 @@
       const normSelected = clean(selectedLoc);
 
       const locationChips = document.querySelectorAll<HTMLButtonElement>('[data-location]');
+      let selectedChip: HTMLButtonElement | null = null;
       locationChips.forEach(chip => {
         const chipLoc = clean(chip.dataset.location || '');
         const isMatch = chipLoc === normSelected;
 
         if (isMatch) {
-          chip.className = 'py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-brand-primary text-black shadow-sm';
+          selectedChip = chip;
+          chip.className = 'relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate text-black';
         } else {
-          chip.className = 'py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black';
+          chip.className = 'relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black';
         }
       });
+
+      this.movePillTo('location-active-pill', selectedChip);
     }
 
     private isOneTimePlan(plan: string) {
