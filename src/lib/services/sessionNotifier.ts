@@ -53,10 +53,12 @@ export function initSessionNotifier() {
   if ('Notification' in window && Notification.permission === 'default') {
     const askPermissionOnFirstTouch = async () => {
       document.removeEventListener('click', askPermissionOnFirstTouch);
+      document.removeEventListener('touchend', askPermissionOnFirstTouch);
       document.removeEventListener('touchstart', askPermissionOnFirstTouch);
       await requestNotificationPermission();
     };
     document.addEventListener('click', askPermissionOnFirstTouch, { once: true });
+    document.addEventListener('touchend', askPermissionOnFirstTouch, { once: true });
     document.addEventListener('touchstart', askPermissionOnFirstTouch, { once: true });
   }
 
