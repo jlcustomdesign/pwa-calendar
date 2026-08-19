@@ -246,8 +246,7 @@ export interface PendingWrapUp {
 export async function getPendingWrapUps(): Promise<PendingWrapUp[]> {
   const now = new Date();
   const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-  const cutoffTime = new Date(now.getTime() - 60 * 60 * 1000);
-  const cutoffStr = String(cutoffTime.getHours()).padStart(2, '0') + ':' + String(cutoffTime.getMinutes()).padStart(2, '0');
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   const { data, error } = await (supabase as any)
     .from('programari')
@@ -262,9 +261,15 @@ export async function getPendingWrapUps(): Promise<PendingWrapUp[]> {
 
   if (error) throw new Error('Eroare la citirea sesiunilor de confirmat: ' + error.message);
 
-  return (data ?? []).filter((a: PendingWrapUp) =>
-    a.data < todayStr || (a.ora || '00:00') <= cutoffStr
-  );
+  return (data ?? []).filter((a: PendingWrapUp) => {
+    // Orice zi din trecut este automat pending.
+    if (a.data < todayStr) return true;
+
+    // Pentru ziua curentă, sesiunea este pending dacă s-a terminat (ora + 50 min).
+    const [h, m] = (a.ora || '00:00').split(':').map(Number);
+    const endMinutes = h * 60 + m + 50;
+    return endMinutes <= currentMinutes;
+  });
 }
 
 // ── Câte programări are pacientul în săptămâna datei (L–D) ────
