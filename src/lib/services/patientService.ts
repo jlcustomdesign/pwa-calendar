@@ -365,7 +365,7 @@ export async function getPatientPaymentHistoryDetails(id: string): Promise<Payme
           id: p.id,
           suma: Number(p.suma || 0),
           data_platii: dStr,
-          descriere: 'Plată pachet ședințe'
+          descriere: 'Plată parțială'
         });
       });
     }
@@ -386,7 +386,7 @@ export async function getPatientPaymentHistoryDetails(id: string): Promise<Payme
             history.push({
               suma: Number(item.suma || 0),
               data_platii: itemDate,
-              descriere: 'Plată înregistrată'
+              descriere: 'Plată parțială'
             });
           }
         });
@@ -406,7 +406,7 @@ export async function getPatientPaymentHistoryDetails(id: string): Promise<Payme
         history.push({
           suma: paidVal,
           data_platii: pDate,
-          descriere: patient.achitat ? 'Plată integrală abonament' : 'Plată înregistrată'
+          descriere: patient.achitat ? 'Achitat integral' : 'Plată parțială'
         });
       }
     } catch (e) {}

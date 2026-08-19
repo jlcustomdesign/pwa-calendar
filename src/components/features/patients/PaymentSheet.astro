@@ -12,50 +12,49 @@
       </div>
     </div>
 
-    <!-- Patient Financial Summary Card (Clean, airy, modern design) -->
-    <div id="payment-summary-box" class="mb-5 bg-neutral-50/90 rounded-3xl p-4 sm:p-5 border border-black/5 space-y-4 shadow-xs">
-      
+    <!-- Card 1: Unified Top Financial Summary Card -->
+    <div id="payment-summary-box" class="mb-6 bg-neutral-50 rounded-[2rem] p-5 border border-black/5 space-y-4 shadow-sm">
       <!-- Top Row: Patient Name & Status Badge -->
       <div class="flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <h3 class="font-black text-neutral-900 text-lg sm:text-xl tracking-tight truncate" id="payment-patient-name">Se încarcă…</h3>
+          <h3 class="font-black text-neutral-900 text-xl tracking-tight truncate" id="payment-patient-name">Se încarcă…</h3>
         </div>
-        <div id="payment-current-status-badge" class="shrink-0 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-200 text-neutral-800">
+        <div id="payment-current-status-badge" class="px-5 py-2.5 rounded-2xl text-sm sm:text-base font-black whitespace-nowrap bg-neutral-200 text-neutral-800 shadow-sm shrink-0">
           -
         </div>
       </div>
 
-      <!-- Financial Balance Card & Clean Progress Bar -->
-      <div class="bg-white rounded-2xl p-4 border border-black/5 shadow-xs space-y-3">
-        <div class="flex items-baseline justify-between">
-          <div>
-            <span class="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Suma Achitată</span>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <span class="text-2xl font-black text-neutral-900 tracking-tight" id="payment-total-paid">0 RON</span>
-              <span class="text-xs font-bold text-neutral-400">/ <span id="payment-total-cost">0 RON</span></span>
-            </div>
+      <!-- Financial Metrics: Clean 2-Card Layout + Rest Bar -->
+      <div class="space-y-2.5">
+        <div class="grid grid-cols-2 gap-2.5">
+          <!-- Card 1: Cost total -->
+          <div class="p-4 rounded-2xl bg-white border border-black/5 shadow-2xs">
+            <span class="block text-xs font-black text-black">Cost total</span>
+            <strong class="block text-xl font-black text-neutral-900 mt-0.5" id="payment-total-cost">0 RON</strong>
           </div>
 
-          <div class="text-right">
-            <span class="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Rest de plată</span>
-            <span class="text-base font-black text-rose-600 block mt-0.5" id="payment-remaining-due">0 RON</span>
+          <!-- Card 2: Achitat -->
+          <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200/60 shadow-2xs">
+            <span class="block text-xs font-black text-black">Achitat</span>
+            <strong class="block text-xl font-black text-emerald-700 mt-0.5" id="payment-total-paid">0 RON</strong>
           </div>
         </div>
 
-        <!-- Progress Bar -->
-        <div class="h-2 w-full bg-black/5 rounded-full overflow-hidden">
-          <div id="payment-progress-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-500 ease-out" style="width: 0%;"></div>
+        <!-- Card 3: Rest de plată -->
+        <div id="payment-remaining-row" class="flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white border border-black/5 shadow-2xs text-sm transition-colors duration-200">
+          <span class="font-black text-black text-sm" id="payment-remaining-label">Rest de plată</span>
+          <strong class="text-base font-black text-neutral-900" id="payment-remaining-due">0 RON</strong>
         </div>
       </div>
+    </div>
 
-      <!-- Payment History List -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between px-1">
-          <label class="text-[11px] font-extrabold uppercase tracking-wider text-neutral-400">Istoric Tranzacții</label>
-        </div>
-        <div id="payment-history-list" class="space-y-2 max-h-36 overflow-y-auto pr-0.5">
-          <div class="text-xs font-semibold text-neutral-400 py-2 text-center">Se încarcă istoricul…</div>
-        </div>
+    <!-- Card 2: Istoric Plăți (Matching Rounded Card) -->
+    <div class="mb-6 bg-neutral-50 rounded-[2rem] p-5 border border-black/5 space-y-3 shadow-sm">
+      <div class="flex items-center justify-between">
+        <span class="text-xs sm:text-sm font-black uppercase tracking-wider text-black">Istoric plăți</span>
+      </div>
+      <div id="payment-history-list" class="space-y-2.5 max-h-48 overflow-y-auto pr-0.5">
+        <div class="text-xs font-semibold text-neutral-400 py-2 text-center">Se încarcă istoricul…</div>
       </div>
     </div>
 
@@ -70,9 +69,6 @@
 
       <button type="button" id="btn-fully-paid" class="w-full py-4 px-6 rounded-2xl bg-emerald-100 text-emerald-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
         <span>Achitat integral</span>
-        <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
       </button>
 
       <button type="button" id="btn-reset-payment" class="w-full py-4 px-6 rounded-2xl bg-rose-100 text-rose-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
@@ -432,14 +428,14 @@
         const remaining = isFullyPaid ? 0 : Math.max(0, cost - totalPaid);
 
         let displayStatusLabel = 'Neachitat';
-        let statusBadgeClass = 'bg-rose-100 text-rose-800 border border-rose-200';
+        let statusBadgeClass = 'bg-white text-black border border-black/10 font-black';
 
         if (isFullyPaid) {
-          displayStatusLabel = 'Achitat integral';
-          statusBadgeClass = 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+          displayStatusLabel = 'Achitat';
+          statusBadgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-black';
         } else if (totalPaid > 0) {
-          displayStatusLabel = 'Achitat parțial';
-          statusBadgeClass = 'bg-amber-100 text-amber-900 border border-amber-200';
+          displayStatusLabel = `${totalPaid}/${cost} RON`;
+          statusBadgeClass = 'bg-orange-100 text-black border border-transparent font-black';
         }
 
         const nameEl = document.getElementById('payment-patient-name');
@@ -452,24 +448,27 @@
         if (nameEl) nameEl.textContent = patient.name;
         if (totalCostEl) totalCostEl.textContent = `${cost} RON`;
         if (totalPaidEl) totalPaidEl.textContent = `${totalPaid} RON`;
+        const remainingRowEl = document.getElementById('payment-remaining-row');
+        const remainingLabelEl = document.getElementById('payment-remaining-label');
+
         if (remainingDueEl) {
           remainingDueEl.textContent = `${remaining} RON`;
-          remainingDueEl.className = remaining > 0 
-            ? 'font-black text-rose-600' 
-            : 'font-black text-emerald-600';
+        }
+
+        if (remainingRowEl && remainingLabelEl && remainingDueEl) {
+          if (remaining > 0) {
+            remainingRowEl.className = 'flex items-center justify-between px-4 py-3.5 rounded-2xl bg-rose-50 border border-rose-200 shadow-2xs text-sm transition-colors duration-200';
+            remainingLabelEl.className = 'font-black text-rose-900 text-sm';
+            remainingDueEl.className = 'text-base font-black text-rose-600';
+          } else {
+            remainingRowEl.className = 'flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white border border-black/5 shadow-2xs text-sm transition-colors duration-200';
+            remainingLabelEl.className = 'font-black text-black text-sm';
+            remainingDueEl.className = 'text-base font-black text-neutral-900';
+          }
         }
         if (statusBadgeEl) {
           statusBadgeEl.textContent = displayStatusLabel;
-          statusBadgeEl.className = `px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${statusBadgeClass}`;
-        }
-
-        const percent = cost > 0 ? Math.min(100, Math.round((totalPaid / cost) * 100)) : (isFullyPaid ? 100 : 0);
-        const progressBar = document.getElementById('payment-progress-bar');
-        if (progressBar) {
-          progressBar.style.width = `${percent}%`;
-          progressBar.className = isFullyPaid 
-            ? 'h-full bg-emerald-500 rounded-full transition-all duration-500 ease-out'
-            : (totalPaid > 0 ? 'h-full bg-amber-400 rounded-full transition-all duration-500 ease-out' : 'h-full bg-neutral-200 rounded-full transition-all duration-500 ease-out');
+          statusBadgeEl.className = `px-5 py-2.5 rounded-2xl text-sm sm:text-base font-black whitespace-nowrap ${statusBadgeClass} shadow-sm shrink-0`;
         }
 
         // Fetch & render payment transaction history
@@ -484,17 +483,25 @@
               `;
             } else {
               historyListEl.innerHTML = historyItems.map(item => {
-                const dateStr = item.data_platii || 'Dată necunoscută';
-                const desc = item.descriere || 'Plată ședințe';
+                let dateStr = item.data_platii || 'Dată necunoscută';
+                if (dateStr && dateStr.includes('-')) {
+                  const parts = dateStr.split('T')[0].split('-');
+                  if (parts.length === 3) dateStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+                
+                let paymentTypeLabel = 'Plată parțială';
+                if (item.suma >= cost || (isFullyPaid && historyItems.length === 1) || item.descriere === 'Achitat integral') {
+                  paymentTypeLabel = 'Achitat integral';
+                }
+
                 return `
-                  <div class="flex items-center justify-between px-4 py-3 rounded-2xl bg-white border border-black/5 text-xs shadow-2xs">
-                    <div>
-                      <span class="block font-black text-neutral-900 text-xs">${desc}</span>
-                      <span class="block font-semibold text-neutral-400 text-[11px] mt-0.5">${dateStr}</span>
+                  <div class="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-black/5 text-xs shadow-2xs">
+                    <div class="min-w-0">
+                      <span class="block font-black text-neutral-900 text-sm truncate">${paymentTypeLabel}</span>
+                      <span class="block font-black text-black text-xs sm:text-sm mt-0.5">${dateStr}</span>
                     </div>
-                    <div class="text-right">
-                      <span class="block font-black text-emerald-600 text-sm">+${item.suma} RON</span>
-                      <span class="block text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">Înregistrat</span>
+                    <div class="text-right shrink-0 ml-3">
+                      <span class="block font-black text-emerald-600 text-base sm:text-lg">+${item.suma} RON</span>
                     </div>
                   </div>
                 `;

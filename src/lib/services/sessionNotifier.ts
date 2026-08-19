@@ -11,11 +11,54 @@ let checkIntervalId: any = null;
 const notifiedStarts = new Set<string>();
 const notifiedEnds = new Set<string>();
 
+export async function requestNotificationPermission(): Promise<boolean> {
+  if (typeof window === 'undefined' || !('Notification' in window)) return false;
+  try {
+    if (Notification.permission === 'granted') return true;
+    if (Notification.permission === 'denied') return false;
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      await triggerWebNotification(
+        '🔔 Notificări Active!',
+        'Vei primi notificări la începutul și finalul fiecărei ședințe.'
+      );
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.warn('requestPermission error:', e);
+    return false;
+  }
+}
+
 export function initSessionNotifier() {
   if (typeof window === 'undefined') return;
   if (isNotifierRunning) return;
 
   isNotifierRunning = true;
+
+  // Expunere pe window pentru testare și utilizare
+  (window as any).requestNotificationPermission = requestNotificationPermission;
+  (window as any).testNotification = async () => {
+    const granted = await requestNotificationPermission();
+    if (granted) {
+      await triggerWebNotification('🔔 Test Notificare', 'Notificările funcționează perfect pe acest dispozitiv!');
+    } else {
+      alert('Permisiunea pentru notificări este oprită în browser. Te rog să o activezi din setările browserului.');
+    }
+  };
+
+  // Pe browsere moderne (iOS / Android / Desktop), cererea de permisiune necesită un gest utilizator (click / tap).
+  // Înregistrăm un handler one-time pe prima interacțiune dacă permisiunea este 'default'.
+  if ('Notification' in window && Notification.permission === 'default') {
+    const askPermissionOnFirstTouch = async () => {
+      document.removeEventListener('click', askPermissionOnFirstTouch);
+      document.removeEventListener('touchstart', askPermissionOnFirstTouch);
+      await requestNotificationPermission();
+    };
+    document.addEventListener('click', askPermissionOnFirstTouch, { once: true });
+    document.addEventListener('touchstart', askPermissionOnFirstTouch, { once: true });
+  }
 
   // La pornirea/revenirea în app: deschide popup-ul de confirmare pentru ședințele trecute neconfirmate.
   // Se repetă la fiecare pornire până când ședința este confirmată.
