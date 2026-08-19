@@ -6,6 +6,55 @@ import { supabase } from '../supabase';
 import type { IstericSaptamanal } from '../database.types';
 import { toLocalISOString } from '../../utils/date';
 
+interface PaymentRecord {
+  pacient_id: string;
+  suma: number;
+  data_platii: string;
+}
+
+// ── Helper: preia toate plățile reale (din tabela `plati` + pacienți marcați `achitat: true`) ──
+async function fetchAllEffectivePayments(startStr?: string, endStr?: string): Promise<PaymentRecord[]> {
+  try {
+    let platiQuery = (supabase as any).from('plati').select('pacient_id, suma, data_platii');
+    if (startStr) platiQuery = platiQuery.gte('data_platii', startStr);
+    if (endStr)   platiQuery = platiQuery.lte('data_platii', endStr);
+
+    const { data: platiData } = await platiQuery;
+    const allPayments: PaymentRecord[] = (platiData || []).map((p: any) => ({
+      pacient_id: p.pacient_id,
+      suma: Number(p.suma || 0),
+      data_platii: (p.data_platii || '').split('T')[0]
+    }));
+
+    // Căutăm pacienții cu `achitat = true` care nu au încă rânduri în tabela `plati`
+    const patientsWithPlati = new Set(allPayments.map(p => p.pacient_id));
+
+    let patientsQuery = (supabase as any)
+      .from('pacienti')
+      .select('id, cost, created_at, achitat')
+      .eq('achitat', true);
+
+    if (startStr) patientsQuery = patientsQuery.gte('created_at', startStr);
+    if (endStr)   patientsQuery = patientsQuery.lte('created_at', endStr + 'T23:59:59');
+
+    const { data: patientsData } = await patientsQuery;
+    (patientsData || []).forEach((p: any) => {
+      if (!patientsWithPlati.has(p.id) && Number(p.cost || 0) > 0) {
+        allPayments.push({
+          pacient_id: p.id,
+          suma: Number(p.cost || 0),
+          data_platii: (p.created_at || '').split('T')[0]
+        });
+      }
+    });
+
+    return allPayments;
+  } catch (e) {
+    console.error('Eroare fetchAllEffectivePayments:', e);
+    return [];
+  }
+}
+
 // ── Statistici pentru AZI ─────────────────────────────────────
 export async function getTodayStats(date?: string) {
   const now = new Date();
@@ -19,34 +68,14 @@ export async function getTodayStats(date?: string) {
 
   if (programariError) throw new Error('Eroare la citirea programărilor zilnice: ' + programariError.message);
 
-  const { data: platiData } = await supabase
-    .from('plati')
-    .select('suma, pacient_id')
-    .eq('data_platii', targetDate);
-
+  const effectivePayments = await fetchAllEffectivePayments(targetDate, targetDate);
   const progList = (programariData || []) as any[];
-  const platiList = (platiData || []) as any[];
 
   const sedinte_total = progList.length;
-
-  // Ședința e finalizată DOAR dacă statusul ei este 'finalizat' sau 'finalizata'
   const finalizate = progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata').length;
   const absente = progList.filter(p => p.status === 'absent').length;
 
-  // 1. Încasări reale din plăți înregistrate azi
-  let venit_azi = platiList.reduce((sum, p) => sum + Number(p.suma || 0), 0);
-
-  // 2. Dacă nu sunt plăți înregistrate explicit azi, dar avem ședințe finalizate
-  // ale pacienților deja achitați integral (achitat = true), calculăm valoarea ședințelor finalizate azi
-  if (venit_azi === 0 && finalizate > 0) {
-    venit_azi = progList
-      .filter(p => (p.status === 'finalizat' || p.status === 'finalizata') && p.pacienti?.achitat === true)
-      .reduce((sum, p) => {
-        const costTotal = Number(p.pacienti?.cost || 0);
-        const sedinteTotal = Number(p.pacienti?.sedinte_total || 1);
-        return sum + (sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal);
-      }, 0);
-  }
+  let venit_azi = effectivePayments.reduce((sum, p) => sum + Number(p.suma || 0), 0);
 
   return { sedinte_total, finalizate, absente, venit_azi: Math.round(venit_azi), data: targetDate };
 }
@@ -76,14 +105,8 @@ export async function getWeekStats(baseDate?: string) {
 
   if (programariError) throw new Error('Eroare la citirea programărilor săptămânale: ' + programariError.message);
 
-  const { data: platiData } = await supabase
-    .from('plati')
-    .select('data_platii, suma, pacient_id')
-    .gte('data_platii', startStr)
-    .lte('data_platii', endStr);
-
+  const effectivePayments = await fetchAllEffectivePayments(startStr, endStr);
   const progList = (programariData || []) as any[];
-  const platiList = (platiData || []) as any[];
 
   const byDay: Record<string, { finalizate: number; absente: number; venit: number }> = {};
 
@@ -97,34 +120,14 @@ export async function getWeekStats(baseDate?: string) {
   progList.forEach((p: any) => {
     if (!byDay[p.data]) byDay[p.data] = { finalizate: 0, absente: 0, venit: 0 };
     const isDone = p.status === 'finalizat' || p.status === 'finalizata';
-
-    if (isDone) {
-      byDay[p.data].finalizate++;
-      // Dacă pacientul este deja achitat integral și nu avem plată separată
-      if (p.pacienti?.achitat === true) {
-        const costTotal = Number(p.pacienti?.cost || 0);
-        const sedinteTotal = Number(p.pacienti?.sedinte_total || 1);
-        const costPerSedinta = sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal;
-        byDay[p.data].venit += costPerSedinta;
-      }
-    }
-    if (p.status === 'absent') {
-      byDay[p.data].absente++;
-    }
+    if (isDone) byDay[p.data].finalizate++;
+    if (p.status === 'absent') byDay[p.data].absente++;
   });
 
-  // Plățile reale din tabela `plati` pe zile
-  const platiByDay: Record<string, number> = {};
-  platiList.forEach((p: any) => {
-    if (p.data_platii) {
-      const dStr = p.data_platii.split('T')[0];
-      platiByDay[dStr] = (platiByDay[dStr] || 0) + Number(p.suma || 0);
-    }
-  });
-
-  Object.keys(byDay).forEach(dStr => {
-    if (platiByDay[dStr] !== undefined && platiByDay[dStr] > 0) {
-      byDay[dStr].venit = platiByDay[dStr];
+  // Distribuim plățile reale pe zilele exacte
+  effectivePayments.forEach(p => {
+    if (p.data_platii && byDay[p.data_platii]) {
+      byDay[p.data_platii].venit += p.suma;
     }
   });
 
@@ -161,48 +164,24 @@ export async function getMonthStats(baseDate?: string) {
 
   if (programariError) throw new Error('Eroare la citirea programărilor lunare: ' + programariError.message);
 
-  const { data: platiData } = await supabase
-    .from('plati')
-    .select('suma, data_platii')
-    .gte('data_platii', startStr)
-    .lte('data_platii', endStr);
-
+  const effectivePayments = await fetchAllEffectivePayments(startStr, endStr);
   const progList = (programariData || []) as any[];
-  const platiList = (platiData || []) as any[];
 
   const total = progList.length;
   const finalizate = progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata').length;
   const absente = progList.filter(p => p.status === 'absent').length;
 
-  let venitPlati = platiList.reduce((sum, p) => sum + Number(p.suma || 0), 0);
-  let venitSedinte = progList
-    .filter(p => (p.status === 'finalizat' || p.status === 'finalizata') && p.pacienti?.achitat === true)
-    .reduce((sum, p) => {
-      const costTotal = Number(p.pacienti?.cost || 0);
-      const sedinteTotal = Number(p.pacienti?.sedinte_total || 1);
-      const costPerSedinta = sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal;
-      return sum + costPerSedinta;
-    }, 0);
-
-  let venit = venitPlati > 0 ? venitPlati : venitSedinte;
+  let venit = effectivePayments.reduce((sum, p) => sum + Number(p.suma || 0), 0);
 
   const byPeriod = [0, 0, 0, 0];
-  const itemsToDistribute = platiList.length > 0 
-    ? platiList 
-    : progList.filter(p => (p.status === 'finalizat' || p.status === 'finalizata') && p.pacienti?.achitat === true);
-
-  itemsToDistribute.forEach((item: any) => {
-    const dateField = item.data_platii || item.data;
-    if (!dateField) return;
-    const parts = dateField.split('T')[0].split('-');
+  effectivePayments.forEach(p => {
+    if (!p.data_platii) return;
+    const parts = p.data_platii.split('-');
     const d = parseInt(parts[2], 10);
-    const sedinteTotal = Number(item.pacienti?.sedinte_total || 1);
-    const costTotal = Number(item.pacienti?.cost || 0);
-    const amount = Number(item.suma || (sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal));
     if (!isNaN(d)) {
       let idx = Math.floor((d - 1) / 8);
       if (idx > 3) idx = 3;
-      byPeriod[idx] += amount;
+      byPeriod[idx] += p.suma;
     }
   });
 
@@ -230,45 +209,22 @@ export async function getQuarterStats(baseDate?: string) {
 
   if (programariError) throw new Error('Eroare la citirea programărilor trimestriale: ' + programariError.message);
 
-  const { data: platiData } = await supabase
-    .from('plati')
-    .select('suma, data_platii')
-    .gte('data_platii', startStr)
-    .lte('data_platii', endStr);
-
+  const effectivePayments = await fetchAllEffectivePayments(startStr, endStr);
   const progList = (programariData || []) as any[];
-  const platiList = (platiData || []) as any[];
 
   const total = progList.length;
   const finalizate = progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata').length;
   const absente = progList.filter(p => p.status === 'absent').length;
 
-  let venitPlati = platiList.reduce((sum, p) => sum + Number(p.suma || 0), 0);
-  let venitSedinte = progList
-    .filter(p => (p.status === 'finalizat' || p.status === 'finalizata') && p.pacienti?.achitat === true)
-    .reduce((sum, p) => {
-      const costTotal = Number(p.pacienti?.cost || 0);
-      const sedinteTotal = Number(p.pacienti?.sedinte_total || 1);
-      return sum + (sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal);
-    }, 0);
-
-  let venit = venitPlati > 0 ? venitPlati : venitSedinte;
+  let venit = effectivePayments.reduce((sum, p) => sum + Number(p.suma || 0), 0);
 
   const byMonth = [0, 0, 0];
-  const itemsToDistribute = platiList.length > 0 
-    ? platiList 
-    : progList.filter(p => (p.status === 'finalizat' || p.status === 'finalizata') && p.pacienti?.achitat === true);
-
-  itemsToDistribute.forEach((item: any) => {
-    const dateField = item.data_platii || item.data;
-    if (!dateField) return;
-    const parts = dateField.split('T')[0].split('-');
+  effectivePayments.forEach(p => {
+    if (!p.data_platii) return;
+    const parts = p.data_platii.split('-');
     const m = (parseInt(parts[1], 10) - 1) % 3;
-    const sedinteTotal = Number(item.pacienti?.sedinte_total || 1);
-    const costTotal = Number(item.pacienti?.cost || 0);
-    const amount = Number(item.suma || (sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal));
     if (!isNaN(m) && m >= 0 && m < 3) {
-      byMonth[m] += amount;
+      byMonth[m] += p.suma;
     }
   });
 
@@ -297,45 +253,22 @@ export async function getYearStats(baseDate?: string) {
 
   if (programariError) throw new Error('Eroare la citirea programărilor anuale: ' + programariError.message);
 
-  const { data: platiData } = await supabase
-    .from('plati')
-    .select('suma, data_platii')
-    .gte('data_platii', startStr)
-    .lte('data_platii', endStr);
-
+  const effectivePayments = await fetchAllEffectivePayments(startStr, endStr);
   const progList = (programariData || []) as any[];
-  const platiList = (platiData || []) as any[];
 
   const total = progList.length;
   const finalizate = progList.filter(p => p.status === 'finalizat' || p.status === 'finalizata').length;
   const absente = progList.filter(p => p.status === 'absent').length;
 
-  let venitPlati = platiList.reduce((sum, p) => sum + Number(p.suma || 0), 0);
-  let venitSedinte = progList
-    .filter(p => (p.status === 'finalizat' || p.status === 'finalizata') && p.pacienti?.achitat === true)
-    .reduce((sum, p) => {
-      const costTotal = Number(p.pacienti?.cost || 0);
-      const sedinteTotal = Number(p.pacienti?.sedinte_total || 1);
-      return sum + (sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal);
-    }, 0);
-
-  let venit = venitPlati > 0 ? venitPlati : venitSedinte;
+  let venit = effectivePayments.reduce((sum, p) => sum + Number(p.suma || 0), 0);
 
   const byMonth = Array(12).fill(0);
-  const itemsToDistribute = platiList.length > 0 
-    ? platiList 
-    : progList.filter(p => (p.status === 'finalizat' || p.status === 'finalizata') && p.pacienti?.achitat === true);
-
-  itemsToDistribute.forEach((item: any) => {
-    const dateField = item.data_platii || item.data;
-    if (!dateField) return;
-    const parts = dateField.split('T')[0].split('-');
+  effectivePayments.forEach(p => {
+    if (!p.data_platii) return;
+    const parts = p.data_platii.split('-');
     const m = parseInt(parts[1], 10) - 1;
-    const sedinteTotal = Number(item.pacienti?.sedinte_total || 1);
-    const costTotal = Number(item.pacienti?.cost || 0);
-    const amount = Number(item.suma || (sedinteTotal > 0 ? costTotal / sedinteTotal : costTotal));
     if (!isNaN(m) && m >= 0 && m < 12) {
-      byMonth[m] += amount;
+      byMonth[m] += p.suma;
     }
   });
 
