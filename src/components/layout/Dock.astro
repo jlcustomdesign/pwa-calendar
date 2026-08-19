@@ -60,9 +60,6 @@ const navItems = [
         {item.id === 'layers' && (
           <span id="patients-notification-dot" class="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500 hidden"></span>
         )}
-        {item.id === 'reports' && (
-          <span id="reports-notification-dot" class="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500 hidden"></span>
-        )}
       </a>
     );
   })}
@@ -144,19 +141,16 @@ const navItems = [
   async function updateDockBadges() {
     const homeDot = document.getElementById('home-notification-dot');
     const patientsDot = document.getElementById('patients-notification-dot');
-    const reportsDot = document.getElementById('reports-notification-dot');
 
     try {
-      const [{ getPendingWrapUps }, { getPatients, isRenewalDismissed }, { getUnpaidPatients }] = await Promise.all([
+      const [{ getPendingWrapUps }, { getPatients, isRenewalDismissed }] = await Promise.all([
         import('../../lib/services/appointmentService'),
         import('../../lib/services/patientService'),
-        import('../../lib/services/reportsService'),
       ]);
 
-      const [pendingWrapUps, patients, unpaid] = await Promise.all([
+      const [pendingWrapUps, patients] = await Promise.all([
         getPendingWrapUps(),
         getPatients(),
-        getUnpaidPatients(),
       ]);
 
       // Home: ședințe trecute care trebuie confirmate
@@ -169,13 +163,9 @@ const navItems = [
         return subscriptionAlert || unpaidPatient;
       });
       patientsDot?.classList.toggle('hidden', !needsAttentionPatients);
-
-      // Reports: restanțe globale
-      reportsDot?.classList.toggle('hidden', unpaid.count === 0);
     } catch {
       homeDot?.classList.add('hidden');
       patientsDot?.classList.add('hidden');
-      reportsDot?.classList.add('hidden');
     }
   }
 
