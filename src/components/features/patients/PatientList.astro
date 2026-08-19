@@ -455,33 +455,62 @@
         const summary = card.querySelector('.card-summary');
         const details = card.querySelector('.card-details') as HTMLElement;
         let isExpanded = false;
-        
-        summary?.addEventListener('click', (e) => {
+        let touchHandledToggle = false;
+
+        function readCardTranslateX() {
           const style = window.getComputedStyle(card);
-          const matrix = new WebKitCSSMatrix(style.transform);
-          const currentX = matrix.m41;
+          return new WebKitCSSMatrix(style.transform).m41;
+        }
 
-          // If the card is swiped open, close it on tap instead of toggling details
-          if (currentX < -50) {
-            isOpen = false;
-            currentTranslateX = 0;
-            card.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-            card.style.transform = 'translateX(0px)';
-            cardWrapper.dataset.wasSwiping = 'false';
-            return;
-          }
-
-          // Ignore only if a real swipe just happened and the card is still shifted
-          if (cardWrapper.dataset.wasSwiping === 'true' && Math.abs(currentX) > 20) {
-            cardWrapper.dataset.wasSwiping = 'false';
-            return;
-          }
-
+        function closeSwipedCard() {
+          isOpen = false;
+          currentTranslateX = 0;
+          card.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+          card.style.transform = 'translateX(0px)';
           cardWrapper.dataset.wasSwiping = 'false';
+        }
+
+        function toggleDetails() {
           isExpanded = !isExpanded;
           if (details) {
             details.style.gridTemplateRows = isExpanded ? '1fr' : '0fr';
           }
+        }
+
+        // Mobile: iOS Safari often swallows the first click on a div inside a swipe surface,
+        // so we handle the tap directly on touchend.
+        summary?.addEventListener('touchend', (e: any) => {
+          const currentX = readCardTranslateX();
+
+          // If the card is swiped open, close it on tap instead of toggling details
+          if (currentX < -50) {
+            closeSwipedCard();
+            return;
+          }
+
+          // If the card moved significantly during this touch, it was a swipe attempt — don't toggle
+          if (Math.abs(currentX) > 20) return;
+
+          // Stop the delayed ghost click so we don't toggle twice
+          e.preventDefault();
+          touchHandledToggle = true;
+          toggleDetails();
+        });
+
+        // Desktop / fallback click handler
+        summary?.addEventListener('click', (e) => {
+          if (touchHandledToggle) {
+            touchHandledToggle = false;
+            return;
+          }
+
+          const currentX = readCardTranslateX();
+          if (currentX < -50) {
+            closeSwipedCard();
+            return;
+          }
+
+          toggleDetails();
         });
 
         // Swipe logic (Touch + Mouse) - Single slide reveals ALL 3 action buttons
