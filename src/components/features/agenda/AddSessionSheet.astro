@@ -21,7 +21,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 ---
 
 <div id="add-session-sheet" data-sheet-root class="fixed inset-0 z-[100] pointer-events-none">
-  <div id="add-session-backdrop" class="absolute inset-0 bg-black/50 pointer-events-none transition-opacity duration-300 opacity-0"></div>
+  <div id="add-session-backdrop" class="absolute inset-0 bg-black/25 pointer-events-none transition-opacity duration-300 opacity-0"></div>
 
   <div id="add-session-content" data-sheet-content class="absolute bottom-0 left-0 right-0 bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden pointer-events-auto">
     <!-- Swipe handle -->
@@ -156,7 +156,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     </button>
   </div>
 </div>
-<div id="add-session-time-overlay" data-sheet-root class="fixed inset-0 bg-black/50 z-[115] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<div id="add-session-time-overlay" data-sheet-root class="fixed inset-0 bg-black/25 z-[115] opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
 <!-- Custom Date Picker Sheet -->
 <div 
@@ -195,7 +195,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     </button>
   </div>
 </div>
-<div id="custom-date-picker-overlay" data-sheet-root class="fixed inset-0 bg-black/50 z-[105] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<div id="custom-date-picker-overlay" data-sheet-root class="fixed inset-0 bg-black/25 z-[105] opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
 <script>
   import { getSettings } from '../../../utils/settings';

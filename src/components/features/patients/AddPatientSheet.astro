@@ -42,18 +42,18 @@
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Tip Plan</label>
             <input type="hidden" name="plan" id="patientPlan" value="Abonament" />
             <div class="relative grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
-              <div id="plan-active-pill" class="absolute top-1 bottom-1 rounded-xl bg-brand-primary pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)]" style="opacity: 0;"></div>
+              <div id="plan-active-pill" class="absolute top-1 bottom-1 rounded-xl bg-brand-primary pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)]" style="opacity: 1; transform: translateX(0px);"></div>
               <button 
                 type="button" 
                 data-plan="Abonament" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate text-black"
               >
                 Abonament
               </button>
               <button 
                 type="button" 
                 data-plan="Ședință unică" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black"
               >
                 Ședință unică
               </button>
@@ -65,18 +65,18 @@
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Locație</label>
             <input type="hidden" name="location" id="patientLocation" value="Belaqva" />
             <div class="relative grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
-              <div id="location-active-pill" class="absolute top-1 bottom-1 rounded-xl bg-brand-primary pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)]" style="opacity: 0;"></div>
+              <div id="location-active-pill" class="absolute top-1 bottom-1 rounded-xl bg-brand-primary pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)]" style="opacity: 1; transform: translateX(0px);"></div>
               <button 
                 type="button" 
                 data-location="Belaqva" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate text-black"
               >
                 Belaqva
               </button>
               <button 
                 type="button" 
                 data-location="Ghimbav" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black"
               >
                 Ghimbav
               </button>
@@ -284,6 +284,9 @@
       
       this.createOverlay();
       this.bindEvents();
+      // Set initial pill positions for default selections
+      this.updatePlanChips('Abonament');
+      this.updateLocationChips('Belaqva');
     }
 
     createOverlay() {
@@ -292,7 +295,7 @@
       existingOverlays.forEach(o => o.remove());
 
       this.overlay = document.createElement('div');
-      this.overlay.className = 'fixed inset-0 bg-black/50 z-[90] opacity-0 pointer-events-none transition-opacity duration-300 patient-sheet-overlay';
+      this.overlay.className = 'fixed inset-0 bg-black/25 z-[90] opacity-0 pointer-events-none transition-opacity duration-300 patient-sheet-overlay';
       document.body.appendChild(this.overlay);
       this.overlay.addEventListener('click', () => this.close());
     }
@@ -306,6 +309,7 @@
       this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
       this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
       this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
+      this.sheet.addEventListener('touchcancel', () => this.cancelDrag());
 
       // Dedicated drag handle close
       const dragHandle = document.getElementById('add-patient-drag-handle');
@@ -812,10 +816,18 @@
       this.dragEngaged = false;
       const deltaY = this.currentY - this.startY;
       this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
-      
-      if (deltaY > 150) {
+
+      if (deltaY > 100) {
         this.close();
       } else {
+        this.sheet.style.transform = 'translateY(0)';
+      }
+    }
+
+    cancelDrag() {
+      this.dragEngaged = false;
+      if (this.sheet) {
+        this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
         this.sheet.style.transform = 'translateY(0)';
       }
     }
