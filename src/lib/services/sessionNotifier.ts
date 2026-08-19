@@ -95,6 +95,14 @@ async function checkTodaySessionsForNotifications() {
             nextMessage = `Urmează ${nextName} la ora ${nextAppt.ora || ''}.`;
           }
 
+          // Pe mobil notificările web nu apar mereu când aplicația e în foreground,
+          // așa că deschidem și popup-ul în app ca fallback.
+          if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+            window.dispatchEvent(new CustomEvent('openWrapUp', {
+              detail: { appointment: appt }
+            }));
+          }
+
           await triggerWebNotification(
             `✅ Ședință Încheiată: ${patientName}`,
             `Ședința cu ${patientName} s-a terminat. ${nextMessage}`
