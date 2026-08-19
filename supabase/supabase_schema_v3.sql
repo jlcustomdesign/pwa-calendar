@@ -354,6 +354,26 @@ CREATE TRIGGER trg_incrementeaza_sedinte
 
 
 -- ============================================================
+-- 4b. PLĂȚI — înregistrări financiare separate pentru flexibilitate
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.plati (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  pacient_id  UUID        NOT NULL REFERENCES public.pacienti(id) ON DELETE CASCADE,
+  suma        NUMERIC(10, 2) NOT NULL,
+  data_platii DATE        NOT NULL DEFAULT CURRENT_DATE,
+  metoda      TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_plati_pacient ON public.plati (pacient_id);
+CREATE INDEX IF NOT EXISTS idx_plati_data     ON public.plati (data_platii);
+
+ALTER TABLE public.plati ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to plati" ON public.plati;
+CREATE POLICY "Allow all access to plati" ON public.plati FOR ALL USING (true) WITH CHECK (true);
+
+
+-- ============================================================
 -- 5. NOTIFICARI
 -- ============================================================
 CREATE TABLE public.notificari (
@@ -546,30 +566,31 @@ CREATE POLICY "admin citire istoric" ON public.istoric_saptamanal
 
 -- ============================================================
 -- 8. VIEW UTILĂ: pacienti_complet
---    Returnează numele complet (prenume || ' ' || nume) și toate
---    câmpurile, pentru a simplifica query-urile din frontend.
+--    Returnează numele complet (prenume || ' ' || nume), toate
+--    câmpurile pacientului și suma încasată totală din tabela plati.
 -- ============================================================
 CREATE OR REPLACE VIEW public.pacienti_view AS
 SELECT
-  id,
-  prenume || ' ' || nume                          AS name,   -- "Maria Popescu" — compatibil cu UI
-  nume,
-  prenume,
-  telefon,
-  locatie,
-  plan,
-  frecventa,
-  cost,
-  sedinte_total,
-  sedinte_folosite,
-  sedinte_ramase,
-  achitat,
-  status_abonament,
-  notite,
-  drive_link,
-  created_at,
-  updated_at
-FROM public.pacienti;
+  p.id,
+  p.prenume || ' ' || p.nume                       AS name,   -- "Maria Popescu" — compatibil cu UI
+  p.nume,
+  p.prenume,
+  p.telefon,
+  p.locatie,
+  p.plan,
+  p.frecventa,
+  p.cost,
+  p.sedinte_total,
+  p.sedinte_folosite,
+  p.sedinte_ramase,
+  p.achitat,
+  p.status_abonament,
+  p.notite,
+  p.drive_link,
+  p.created_at,
+  p.updated_at,
+  COALESCE((SELECT SUM(pl.suma) FROM public.plati pl WHERE pl.pacient_id = p.id), 0) AS suma_incasata
+FROM public.pacienti p;
 
 
 -- ============================================================

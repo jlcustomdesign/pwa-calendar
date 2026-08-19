@@ -180,7 +180,10 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
     .update({ achitat })
     .eq('id', id);
 
-  if (error) throw new Error('Eroare la actualizarea plății: ' + error.message);
+  if (error) {
+    console.error('setPaymentStatus error:', error, { id, achitat });
+    throw new Error('Eroare la actualizarea plății: ' + error.message);
+  }
 }
 
 // ── Adăugare plată custom (PaymentSheet) ──────────────────────
@@ -216,10 +219,16 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
   const cost = patient?.cost || 0;
 
   // 4. Actualizăm statusul în Supabase
-  if (markAchitat || (cost > 0 && totalPaid >= cost)) {
-    await (supabase as any).from('pacienti').update({ achitat: true }).eq('id', id);
-  } else {
-    await (supabase as any).from('pacienti').update({ achitat: false }).eq('id', id);
+  const shouldMarkAchitat = markAchitat || (cost > 0 && totalPaid >= cost);
+  console.log('[addPayment] updating achitat:', { id, amount, markAchitat, totalPaid, cost, shouldMarkAchitat });
+  const { error: updateErr } = await (supabase as any)
+    .from('pacienti')
+    .update({ achitat: shouldMarkAchitat })
+    .eq('id', id);
+
+  if (updateErr) {
+    console.error('[addPayment] achitat update error:', updateErr);
+    throw new Error('Eroare la actualizarea statusului de plată: ' + updateErr.message);
   }
 }
 

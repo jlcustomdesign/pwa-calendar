@@ -253,7 +253,8 @@ export interface Database {
       // ── pacienti_view ─────────────────────────────────────────
       pacienti_view: {
         Row: Database['public']['Tables']['pacienti']['Row'] & {
-          name: string; // prenume || ' ' || nume — câmpul complet pentru UI
+          name: string;          // prenume || ' ' || nume — câmpul complet pentru UI
+          suma_incasata: number; // suma totală plătită din tabela plati
         };
       };
     };

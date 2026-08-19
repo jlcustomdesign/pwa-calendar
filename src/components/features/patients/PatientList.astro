@@ -118,6 +118,10 @@
           if (e.detail?.source === 'patientListDelete') {
             return;
           }
+          // După o plată, așteptăm puțin ca replica de citire Supabase să fie la zi.
+          if (e.detail?.source === 'paymentSheet') {
+            await new Promise(r => setTimeout(r, 300));
+          }
           await this.render();
         });
         
@@ -286,9 +290,7 @@
         const costTotal = Number(patient.cost || 0);
         let paymentStatus = 'Neachitat';
 
-        if (patient.status_plata) {
-          paymentStatus = patient.status_plata;
-        } else if (patient.achitat || (costTotal > 0 && sumaIncasata >= costTotal)) {
+        if (patient.achitat || (costTotal > 0 && sumaIncasata >= costTotal)) {
           paymentStatus = 'Achitat integral';
         } else if (sumaIncasata > 0) {
           paymentStatus = 'Achitat parțial';

@@ -316,18 +316,22 @@
         const cost = patient.cost || 0;
         const totalPaid = await getPatientPayments(this.currentPatientId);
         const remaining = cost - totalPaid;
-        
+        console.log('[PaymentSheet] handleFullyPaid', { patientId: this.currentPatientId, cost, totalPaid, remaining, currentAchitat: patient.achitat });
+
         if (remaining > 0) {
            await addPayment(this.currentPatientId, remaining, true);
         } else {
            await setPaymentStatus(this.currentPatientId, true);
         }
         (window as any).showToast('Plata a fost marcată ca achitată integral.', 'success');
-        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        window.dispatchEvent(new CustomEvent('patientsUpdated', {
+          detail: { source: 'paymentSheet', patientId: this.currentPatientId, achitat: true }
+        }));
         window.dispatchEvent(new CustomEvent('sessionsUpdated'));
         window.dispatchEvent(new CustomEvent('paymentsUpdated', { detail: { patientId: this.currentPatientId } }));
         this.close();
       } catch (err: any) {
+        console.error('[PaymentSheet] handleFullyPaid error:', err);
         (window as any).showToast('Eroare la actualizarea plății: ' + (err.message || err), 'error');
       }
     }
