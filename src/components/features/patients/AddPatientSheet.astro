@@ -669,9 +669,13 @@
           savedPatientId = await addPatient(payload);
         }
 
-        // Înregistrăm plata parțială imediat după salvarea pacientului
-        if (isPartial && savedPatientId && partialAmount > 0) {
-          await addPayment(savedPatientId, partialAmount, false);
+        // Înregistrăm plata reală în tabela `plati` din baza de date
+        if (!patientId && savedPatientId) {
+          if (payload.achitat && payload.cost > 0) {
+            await addPayment(savedPatientId, payload.cost, true);
+          } else if (isPartial && partialAmount > 0) {
+            await addPayment(savedPatientId, partialAmount, false);
+          }
         }
 
         window.dispatchEvent(new CustomEvent('patientsUpdated'));

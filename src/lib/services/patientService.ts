@@ -313,17 +313,32 @@ export async function getPatientPayments(id: string): Promise<number> {
     }
   }
 
+  let dbTotal = 0;
+  let hasDbPayments = false;
   try {
     const { data, error } = await (supabase as any).from('plati').select('suma').eq('pacient_id', id);
     if (!error && data && data.length > 0) {
-      const dbTotal = data.reduce((total: number, plata: any) => total + (plata.suma || 0), 0);
-      return Math.max(localTotal, dbTotal);
+      dbTotal = data.reduce((total: number, plata: any) => total + (plata.suma || 0), 0);
+      hasDbPayments = true;
     }
   } catch (e) {
     console.error('Eroare citire plăți Supabase:', e);
   }
 
-  return localTotal;
+  const recordedTotal = Math.max(localTotal, dbTotal);
+  if (recordedTotal > 0 || hasDbPayments) {
+    return recordedTotal;
+  }
+
+  // Dacă pacientul este marcat ca achitat integral (ex: setat la creare), suma achitată este costul total
+  try {
+    const patient = await getPatient(id);
+    if (patient?.achitat === true || (patient as any)?.status_plata === 'Achitat' || (patient as any)?.status_plata === 'Achitat integral') {
+      return Number(patient.cost || 0);
+    }
+  } catch (e) {}
+
+  return recordedTotal;
 }
 
 export interface PaymentHistoryItem {
