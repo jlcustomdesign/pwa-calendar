@@ -54,18 +54,11 @@ async function promptMissedSessionWrapUp() {
     const confirmSession = (window as any).confirmSession;
     if (typeof confirmSession !== 'function') return;
 
-    // Delay scurt pentru a lăsa layout-ul și sheet-ul să fie gata.
-    setTimeout(() => confirmSession(missed.id), 800);
+    // Deschide imediat popup-ul existent de confirmare.
+    confirmSession(missed.id);
   } catch (err) {
     console.error('promptMissedSessionWrapUp error:', err);
   }
-}
-
-export async function sendTestNotification() {
-  await triggerWebNotification(
-    '🔔 Test Notificare: Kineto Agenda',
-    'Notificările pentru începutul și sfârșitul ședințelor sunt active și funcționează!'
-  );
 }
 
 async function checkTodaySessionsForNotifications() {
