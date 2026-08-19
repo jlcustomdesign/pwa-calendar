@@ -41,11 +41,11 @@ export async function sendTestNotification() {
 
 async function checkTodaySessionsForNotifications() {
   if (typeof window === 'undefined') return;
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
   const now = new Date();
   const todayStr = toLocalISOString(now);
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const canUseWebNotifications = 'Notification' in window && Notification.permission === 'granted';
 
   try {
     const appts = await getAppointmentsByDate(todayStr);
@@ -74,10 +74,12 @@ async function checkTodaySessionsForNotifications() {
       if (currentMinutes >= startTotalMin - 2 && currentMinutes < startTotalMin + 15) {
         if (!notifiedStarts.has(startKey)) {
           notifiedStarts.add(startKey);
-          await triggerWebNotification(
-            `🔔 Ședință Nouă: ${patientName}`,
-            `La ora ${timeStr} este programat ${patientName}. Locație: ${appt.pacienti?.locatie || 'Belaqva'}`
-          );
+          if (canUseWebNotifications) {
+            await triggerWebNotification(
+              `🔔 Ședință Nouă: ${patientName}`,
+              `La ora ${timeStr} este programat ${patientName}. Locație: ${appt.pacienti?.locatie || 'Belaqva'}`
+            );
+          }
         }
       }
 
@@ -95,8 +97,9 @@ async function checkTodaySessionsForNotifications() {
             nextMessage = `Urmează ${nextName} la ora ${nextAppt.ora || ''}.`;
           }
 
+          // Popup în app — funcționează INDIFERENT de permisiunea de notificări web.
           // Pe mobil notificările web nu apar mereu când aplicația e în foreground,
-          // așa că deschidem și popup-ul în app ca fallback.
+          // așa că deschidem sheet-ul de wrap-up direct în aplicație.
           // Folosim setTimeout ca să dăm timp Sheet-ului de wrap-up să-și înregistreze listener-ul la load.
           if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
             setTimeout(() => {
@@ -106,10 +109,12 @@ async function checkTodaySessionsForNotifications() {
             }, 500);
           }
 
-          await triggerWebNotification(
-            `✅ Ședință Încheiată: ${patientName}`,
-            `Ședința cu ${patientName} s-a terminat. ${nextMessage}`
-          );
+          if (canUseWebNotifications) {
+            await triggerWebNotification(
+              `✅ Ședință Încheiată: ${patientName}`,
+              `Ședința cu ${patientName} s-a terminat. ${nextMessage}`
+            );
+          }
         }
       }
     }
