@@ -87,12 +87,6 @@
       <!-- CARD 2: PREȚ & ȘEDINȚE                                 -->
       <!-- ═══════════════════════════════════════════════════════ -->
       <div class="rounded-3xl bg-black/[0.03] p-4 space-y-4 border border-black/5">
-        <!-- Pachete rapide -->
-        <div>
-          <label class="block text-xs font-black text-black mb-2 uppercase tracking-wider">Pachete & Prețuri</label>
-          <div id="patient-pricing-presets" class="flex flex-wrap gap-1.5"></div>
-        </div>
-
         <!-- Steppers: Preț / Ședință + Nr. Ședințe -->
         <div class="grid grid-cols-2 gap-3">
           <!-- Preț / Ședință -->
@@ -269,7 +263,6 @@
 
 <script>
   import { addPatient, updatePatient, addPayment } from '../../../lib/services/patientService';
-  import { getPricingPackages } from '../../../lib/services/pricingService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class AddPatientSheetManager {
@@ -281,7 +274,6 @@
     startX: number = 0;
     dragEngaged: boolean = false;
     scrollAtTop: boolean = true;
-    pricingPackages: any[] = [];
     currentPlanFilter: string = 'Abonament';
 
     constructor() {
@@ -290,88 +282,6 @@
       
       this.createOverlay();
       this.bindEvents();
-      this.loadPricingPackages();
-    }
-
-    async loadPricingPackages() {
-      try {
-        this.pricingPackages = await getPricingPackages();
-        this.renderPricingPresets();
-      } catch (err) {
-        console.error("Eroare la incarcarea pachetelor", err);
-      }
-    }
-
-    renderPricingPresets() {
-      const container = document.getElementById('patient-pricing-presets');
-      if (!container) return;
-      container.innerHTML = '';
-      
-      const clean = (s: string) => (s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-      const normSelected = clean(this.currentPlanFilter);
-      const isSubscription = normSelected.includes('abonament') || normSelected.includes('subscrip');
-
-      const filtered = this.pricingPackages.filter(p => {
-        if (isSubscription) {
-          return p.tip === 'Subscription';
-        } else {
-          return p.tip === 'One Time';
-        }
-      });
-
-      filtered.forEach((pkg) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.dataset.preset = pkg.id;
-        const defaultSessions = pkg.tip === 'Subscription' ? 10 : 1;
-        btn.dataset.pricePerSession = pkg.pret.toString();
-        btn.dataset.sessions = defaultSessions.toString();
-        btn.dataset.plan = this.currentPlanFilter;
-        btn.className = 'preset-chip px-3 py-2 rounded-xl text-xs font-black transition-all bg-white border border-black/10 text-black hover:bg-black/5 shadow-sm text-center cursor-pointer';
-        btn.textContent = `${pkg.nume} · ${pkg.pret} lei`;
-        container.appendChild(btn);
-      });
-
-      // Buton personalizat la final
-      const customBtn = document.createElement('button');
-      customBtn.type = 'button';
-      customBtn.dataset.preset = 'custom';
-      customBtn.className = 'preset-chip px-3 py-2 rounded-xl text-xs font-black transition-all bg-white border border-black/10 text-black hover:bg-black/5 shadow-sm text-center cursor-pointer';
-      customBtn.textContent = 'Personalizat';
-      container.appendChild(customBtn);
-
-      this.highlightMatchingPreset();
-    }
-
-    private highlightMatchingPreset() {
-      const priceInput = document.getElementById('patientPricePerSession') as HTMLInputElement | null;
-      const sessionsInput = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
-      const planInput = document.getElementById('patientPlan') as HTMLInputElement | null;
-      const price = priceInput?.value || '';
-      const sessions = sessionsInput?.value || '';
-      const plan = planInput?.value || this.currentPlanFilter;
-
-      let matched = false;
-      const chips = document.querySelectorAll<HTMLElement>('.preset-chip');
-      chips.forEach(chip => {
-        if (chip.dataset.preset === 'custom') return;
-        const p = chip.dataset.pricePerSession || '';
-        const s = chip.dataset.sessions || '';
-        const pl = chip.dataset.plan || '';
-        if (p === price && s === sessions && pl === plan) {
-          chip.className = 'preset-chip px-3 py-2 rounded-xl text-xs font-black transition-all bg-brand-primary text-black shadow-sm border border-transparent cursor-pointer';
-          matched = true;
-        } else {
-          chip.className = 'preset-chip px-3 py-2 rounded-xl text-xs font-black transition-all bg-white border border-black/10 text-black hover:bg-black/5 shadow-sm cursor-pointer';
-        }
-      });
-
-      const customChip = document.querySelector<HTMLElement>('.preset-chip[data-preset="custom"]');
-      if (customChip) {
-        customChip.className = matched
-          ? 'preset-chip px-3 py-2 rounded-xl text-xs font-black transition-all bg-white border border-black/10 text-black hover:bg-black/5 shadow-sm cursor-pointer'
-          : 'preset-chip px-3 py-2 rounded-xl text-xs font-black transition-all bg-brand-primary text-black shadow-sm border border-transparent cursor-pointer';
-      }
     }
 
     createOverlay() {
@@ -435,18 +345,6 @@
         dragHandle.addEventListener('touchcancel', onEnd);
       }
 
-      // Bind Preset Chips
-      const presetContainer = document.getElementById('patient-pricing-presets');
-      if (presetContainer) {
-        presetContainer.addEventListener('click', (e) => {
-          const btn = (e.target as HTMLElement).closest('.preset-chip') as HTMLButtonElement | null;
-          if (btn) {
-            e.preventDefault();
-            this.handlePresetClick(btn);
-          }
-        });
-      }
-
       // Bind Plan Chips
       const planChips = document.querySelectorAll<HTMLButtonElement>('[data-plan]');
       planChips.forEach(chip => {
@@ -459,7 +357,6 @@
           this.currentPlanFilter = planVal;
           this.updatePlanChips(planVal);
           this.applyPlanDefaults(planVal);
-          this.renderPricingPresets();
         });
       });
 
@@ -501,7 +398,6 @@
           const next = Math.max(0, current + dir);
           input.value = next.toString();
           this.calculateTotalCost();
-          this.highlightMatchingPreset();
         });
       });
 
@@ -509,11 +405,9 @@
       const sessionsInput2 = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
       priceInput?.addEventListener('input', () => {
         this.calculateTotalCost();
-        this.highlightMatchingPreset();
       });
       sessionsInput2?.addEventListener('input', () => {
         this.calculateTotalCost();
-        this.highlightMatchingPreset();
       });
 
       const saveBtn = document.getElementById('save-patient-btn');
@@ -791,7 +685,6 @@
           this.updatePaymentChips(editPaymentStatus);
           this.applyPlanDefaults(patient.plan || 'Abonament');
           this.togglePartialAmountBox(editPaymentStatus);
-          this.renderPricingPresets();
 
           // Show sticky renewal button in edit mode
           const stickyRenewBtn = document.getElementById('btn-renew-sticky');
@@ -803,18 +696,12 @@
           }
         } else if (this.form) {
           this.form.reset();
-          const defaultPresetBtn = document.querySelector('.preset-chip[data-preset="p1"]') as HTMLButtonElement | null;
-          if (defaultPresetBtn) {
-            this.handlePresetClick(defaultPresetBtn);
-          } else {
-            (this.form.querySelector('[name="pricePerSession"]') as HTMLInputElement).value = '150';
-            (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = '10';
-            (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = '1500';
-            this.currentPlanFilter = 'Abonament';
-            this.updatePlanChips('Abonament');
-            this.applyPlanDefaults('Abonament');
-            this.renderPricingPresets();
-          }
+          (this.form.querySelector('[name="pricePerSession"]') as HTMLInputElement).value = '150';
+          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = '10';
+          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = '1500';
+          this.currentPlanFilter = 'Abonament';
+          this.updatePlanChips('Abonament');
+          this.applyPlanDefaults('Abonament');
           this.updateLocationChips('Belaqva');
           this.updatePaymentChips('Neachitat');
           this.togglePartialAmountBox('Neachitat');
