@@ -163,9 +163,10 @@ export async function createAppointment(input: {
     .single();
 
   // Eroarea din trigger conține mesajul descriptiv în română
-  if (error) throw new Error(error.message);
-
-    // Hack eliminated to prevent 0/1 display and allow UI to show renewal button properly.
+  if (error) {
+    console.error('createAppointment error:', error, { payload });
+    throw new Error(error.message || 'Eroare la crearea programării');
+  }
 
   return data.id;
 }

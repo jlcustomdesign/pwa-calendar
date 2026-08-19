@@ -459,7 +459,9 @@ const { title, hideDock = false } = Astro.props;
             }
 
             await deleteAppointment(sessionId);
-            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            window.dispatchEvent(new CustomEvent('sessionsUpdated', {
+              detail: { source: 'dashboardDelete', deletedId: sessionId }
+            }));
             (window as any).showToast('Programarea a fost ștearsă cu succes.', 'success');
           } catch (err: any) {
             (window as any).showToast('Eroare la ștergerea programării: ' + (err.message || err), 'error');

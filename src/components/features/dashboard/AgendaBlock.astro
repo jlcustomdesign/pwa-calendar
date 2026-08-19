@@ -480,7 +480,11 @@
     window.removeEventListener('sessionsUpdated', (window as any)._agendaBlockSessionsHandler);
     window.removeEventListener('patientsUpdated', (window as any)._agendaBlockPatientsHandler);
   }
-  (window as any)._agendaBlockSessionsHandler = renderAgendaBlock;
+  (window as any)._agendaBlockSessionsHandler = (e: any) => {
+    // La ștergere, cardul este eliminat optimist; nu re-fetchăm întreaga agendă.
+    if (e.detail?.source === 'dashboardDelete') return;
+    renderAgendaBlock();
+  };
   (window as any)._agendaBlockPatientsHandler = renderAgendaBlock;
 
   window.addEventListener('sessionsUpdated', (window as any)._agendaBlockSessionsHandler);

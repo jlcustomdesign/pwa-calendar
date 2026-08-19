@@ -457,7 +457,11 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       window.removeEventListener('settingsUpdated', (window as any)._calendarSettingsHandler);
     }
     
-    (window as any)._calendarSessionsHandler = renderTimeline;
+    (window as any)._calendarSessionsHandler = (e: any) => {
+      // La ștergere, cardul este eliminat optimist; nu re-fetchăm întreg calendarul.
+      if (e.detail?.source === 'dashboardDelete') return;
+      renderTimeline();
+    };
     (window as any)._calendarPatientsHandler = renderTimeline;
     (window as any)._calendarSettingsHandler = renderTimeline;
 

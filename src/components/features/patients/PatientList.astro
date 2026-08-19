@@ -109,12 +109,16 @@
     bindEvents() {
       // Prevent duplicate global listeners
       if (!(window as any)._patientEventsBound) {
-        window.addEventListener('patientsUpdated', async () => {
+        window.addEventListener('patientsUpdated', async (e: any) => {
           const c = document.getElementById('patient-list-container');
-          if (c) {
-            this.container = c;
-            await this.render();
+          if (!c) return;
+          this.container = c;
+          // Dacă evenimentul vine de la o ștergere făcută de acest list, nu re-renderăm întreaga listă.
+          // Cardul a fost deja eliminat optimist din DOM; re-fetch-ul ar crea doar un flash și un call DB.
+          if (e.detail?.source === 'patientListDelete') {
+            return;
           }
+          await this.render();
         });
         
         // Global click listener for expanding/collapsing details
@@ -213,7 +217,9 @@
 
         await deletePatientDB(id);
         (window as any).showToast('Pacientul a fost șters cu succes.', 'success');
-        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        window.dispatchEvent(new CustomEvent('patientsUpdated', {
+          detail: { source: 'patientListDelete', deletedId: id }
+        }));
       } catch (err: any) {
         (window as any).showToast('Eroare la ștergerea pacientului: ' + err.message, 'error');
         this.render();
