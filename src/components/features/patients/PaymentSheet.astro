@@ -1,7 +1,7 @@
 ---
 ---
 <div id="payment-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
-  <div id="payment-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
+  <div id="payment-backdrop" class="absolute inset-0 bg-black/50 pointer-events-none transition-opacity duration-300 opacity-0"></div>
   <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto">
     <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8 cursor-grab active:cursor-grabbing" id="payment-drag-handle"></div>
     
@@ -13,36 +13,36 @@
     </div>
 
     <!-- Patient Financial Summary Card (Name, Cost, Achitat, Rest, Status Curent & Istoric Plăți) -->
-    <div id="payment-summary-box" class="mb-5 bg-neutral-100/90 p-5 rounded-2xl border border-black/5 space-y-3 shadow-sm">
+    <div id="payment-summary-box" class="mb-5 bg-white p-5 rounded-3xl border border-neutral-100 space-y-4 shadow-sm">
       <div id="payment-summary-content">
-        <div class="flex items-center justify-between gap-2 mb-2">
-          <div class="font-black text-neutral-900 text-lg tracking-tight" id="payment-patient-name">Se încarcă…</div>
-          <div id="payment-current-status-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-200 text-neutral-800">
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <div class="font-black text-neutral-900 text-xl tracking-tight" id="payment-patient-name">Se încarcă…</div>
+          <div id="payment-current-status-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-100 text-neutral-700">
             -
           </div>
         </div>
         
-        <div class="grid grid-cols-3 gap-2 pt-1 border-t border-black/5 text-center">
-          <div class="p-2 rounded-xl bg-white border border-black/5">
-            <span class="block text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Cost Total</span>
+        <div class="grid grid-cols-3 gap-3 pt-3 border-t border-neutral-100 text-center">
+          <div class="p-3 rounded-2xl bg-neutral-50">
+            <span class="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Cost Total</span>
             <strong class="font-black text-neutral-900 text-sm" id="payment-total-cost">0 RON</strong>
           </div>
-          <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-200/50">
-            <span class="block text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Achitat</span>
+          <div class="p-3 rounded-2xl bg-emerald-50">
+            <span class="block text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Achitat</span>
             <strong class="font-black text-emerald-700 text-sm" id="payment-total-paid">0 RON</strong>
           </div>
-          <div class="p-2 rounded-xl bg-rose-50 border border-rose-200/50">
-            <span class="block text-[11px] font-bold text-rose-800 uppercase tracking-wider">Rest</span>
+          <div class="p-3 rounded-2xl bg-rose-50">
+            <span class="block text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-1">Rest</span>
             <strong class="font-black text-rose-600 text-sm" id="payment-remaining-due">0 RON</strong>
           </div>
         </div>
       </div>
 
       <!-- Payment History List -->
-      <div class="pt-2 border-t border-black/5">
-        <label class="block text-xs font-black uppercase tracking-wider text-neutral-500 mb-2">Istoric Tranzacții / Plăți:</label>
-        <div id="payment-history-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
-          <div class="text-xs font-semibold text-neutral-400 py-2 text-center">Se încarcă istoricul…</div>
+      <div class="pt-3 border-t border-neutral-100">
+        <label class="block text-xs font-black uppercase tracking-wider text-neutral-900 mb-3">Istoric plăți</label>
+        <div id="payment-history-list" class="space-y-2 max-h-52 overflow-y-auto pr-1">
+          <div class="text-xs font-semibold text-neutral-400 py-3 text-center">Se încarcă istoricul…</div>
         </div>
       </div>
     </div>
@@ -457,23 +457,31 @@
             const historyItems = await getPatientPaymentHistoryDetails(this.currentPatientId);
             if (historyItems.length === 0) {
               historyListEl.innerHTML = `
-                <div class="p-3 rounded-xl bg-white border border-black/5 text-center text-xs font-bold text-neutral-500">
-                  Nicio plată înregistrată încă.
+                <div class="flex flex-col items-center justify-center py-6 px-4 rounded-2xl bg-neutral-50 text-center">
+                  <svg class="w-8 h-8 text-neutral-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                  <span class="text-xs font-bold text-neutral-500">Nicio plată înregistrată încă.</span>
                 </div>
               `;
             } else {
               historyListEl.innerHTML = historyItems.map(item => {
                 const dateStr = item.data_platii || 'Dată necunoscută';
-                const desc = item.descriere || 'Plată ședințe';
+                const desc = item.descriere || 'Plată pachet ședințe';
                 return `
-                  <div class="flex items-center justify-between p-3 rounded-xl bg-white border border-black/5 text-xs">
-                    <div>
-                      <span class="block font-extrabold text-neutral-900">${desc}</span>
-                      <span class="block font-medium text-neutral-500 text-[11px]">${dateStr}</span>
+                  <div class="flex items-center gap-3 p-3 rounded-2xl bg-white border border-neutral-100 shadow-sm">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                      <svg class="w-5 h-5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
                     </div>
-                    <div class="text-right">
-                      <span class="block font-black text-emerald-700">+${item.suma} RON</span>
-                      <span class="block text-[10px] font-bold uppercase text-neutral-400">Înregistrat</span>
+                    <div class="flex-1 min-w-0">
+                      <span class="block text-sm font-black text-neutral-900 truncate">${desc}</span>
+                      <span class="block text-[11px] font-bold text-neutral-500">${dateStr}</span>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <span class="block text-sm font-black text-emerald-700">+${item.suma} RON</span>
+                      <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">Achitat</span>
                     </div>
                   </div>
                 `;
@@ -489,7 +497,7 @@
     }
 
     private open() {
-      if (!this.sheet || !this.content || !this.backdrop) return;
+      if (!this.sheet || !this.content || !this.backdrop || this.isOpen) return;
       this.isOpen = true;
       this.loadPatientFinancials();
 
@@ -499,7 +507,7 @@
 
       // Fade the backdrop element itself (same pattern as the other sheets) —
       // fading a parent wrapper would disable the backdrop-blur mid-animation
-      this.backdrop.classList.remove('opacity-0');
+      this.backdrop.classList.remove('opacity-0', 'pointer-events-none');
       this.content.classList.remove('translate-y-full');
       lockBodyScroll();
     }
@@ -513,7 +521,7 @@
       this.content.style.transition = '';
       this.content.style.transform = '';
 
-      this.backdrop.classList.add('opacity-0');
+      this.backdrop.classList.add('opacity-0', 'pointer-events-none');
       this.content.classList.add('translate-y-full');
 
       // Remove focus to prevent keyboard from staying open on mobile
@@ -539,6 +547,11 @@
     if (!(window as any)._paymentSheetWindowListenerBound) {
       window.addEventListener('openPaymentSheet', (e: Event) => {
         (window as any).currentPaymentSheetManager?.handleOpenEvent(e as CustomEvent);
+      });
+      window.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          (window as any).currentPaymentSheetManager?.close();
+        }
       });
       (window as any)._paymentSheetWindowListenerBound = true;
     }

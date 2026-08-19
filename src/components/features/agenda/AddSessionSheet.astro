@@ -20,98 +20,100 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 }
 ---
 
-<div 
-  id="add-session-sheet" 
-  data-sheet-root
-  class="fixed inset-x-0 bottom-0 z-[100] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
->
-  <!-- Swipe handle -->
-  <div id="add-session-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
+<div id="add-session-sheet" data-sheet-root class="fixed inset-0 z-[100] pointer-events-none">
+  <div id="add-session-backdrop" class="absolute inset-0 bg-black/50 pointer-events-none transition-opacity duration-300 opacity-0"></div>
 
-  <div class="flex-1 overflow-y-auto px-1 pb-28">
-    <h3 id="sheet-title" class="text-2xl font-extrabold tracking-tight text-black mb-8">Programare nouă</h3>
+  <div id="add-session-content" data-sheet-content class="absolute bottom-0 left-0 right-0 bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden pointer-events-auto">
+    <!-- Swipe handle -->
+    <div id="add-session-drag-handle" class="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 shrink-0 cursor-grab active:cursor-grabbing"></div>
 
-    <form id="add-session-form" class="space-y-7">
-      <input type="hidden" name="sessionId" id="sessionId" value="" />
-      
-      <!-- Custom Patient Picker -->
-      <div class="space-y-2">
-        <!-- Search Patient Input (Always visible) -->
-        <div class="relative">
-          <input 
-            type="text" 
-            id="search-patient-input" 
-            placeholder="Căutare pacient..." 
-            class="w-full px-6 py-4 rounded-full border-2 border-brand-secondary bg-transparent text-lg font-bold text-black focus:outline-none focus:border-brand-secondary transition-all"
-          />
-          <div class="absolute inset-y-0 right-6 flex items-center pointer-events-none">
-            <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-          </div>
-        </div>
+    <div class="flex-1 overflow-y-auto px-1 pb-28">
+      <div class="flex items-center justify-between mb-8">
+        <h3 id="sheet-title" class="text-2xl font-extrabold tracking-tight text-black">Programare nouă</h3>
+      </div>
 
-        <div id="patient-list" class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] mt-4 px-2" style="grid-template-rows: 0fr;">
-          <div class="overflow-hidden">
-            <div id="patient-list-inner" class="flex flex-col gap-3 pt-2 pb-2 overflow-y-auto max-h-[40vh]">
-              <!-- Populated by JS -->
+      <form id="add-session-form" class="space-y-7">
+        <input type="hidden" name="sessionId" id="sessionId" value="" />
+        
+        <!-- Custom Patient Picker -->
+        <div class="space-y-2">
+          <!-- Search Patient Input (Always visible) -->
+          <div class="relative">
+            <input 
+              type="text" 
+              id="search-patient-input" 
+              placeholder="Căutare pacient..." 
+              class="w-full px-6 py-4 rounded-full border-2 border-brand-secondary bg-transparent text-lg font-bold text-black focus:outline-none focus:border-brand-secondary transition-all"
+            />
+            <div class="absolute inset-y-0 right-6 flex items-center pointer-events-none">
+              <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
             </div>
           </div>
+
+          <div id="patient-list" class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] mt-4 px-2" style="grid-template-rows: 0fr;">
+            <div class="overflow-hidden">
+              <div id="patient-list-inner" class="flex flex-col gap-3 pt-2 pb-2 overflow-y-auto max-h-[40vh]">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <div id="patient-subscription-warning" class="hidden mt-3 px-4 py-3 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black leading-snug uppercase tracking-wider text-center border border-transparent shadow-md">
+            Abonament terminat
+          </div>
+
         </div>
 
-        <div id="patient-subscription-warning" class="hidden mt-3 px-4 py-3 rounded-2xl bg-brand-secondary text-black text-xs sm:text-sm font-black leading-snug uppercase tracking-wider text-center border border-transparent shadow-md">
-          Abonament terminat
+        <!-- Date/Time Selectors (Butoane Principale) -->
+        <div id="date-time-selectors" class="space-y-3 pt-2">
+          <input type="hidden" name="selectedDate" id="selectedDate" value={todayStr} />
+          <input type="hidden" name="selectedTime" id="selectedTime" value="08:00" />
+
+          <!-- Button 1: Alege Data -->
+          <button 
+            type="button" 
+            id="btn-trigger-date-sheet"
+            class="w-full px-6 py-4 rounded-full border-2 border-brand-secondary bg-transparent text-lg font-bold text-black flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <div class="flex items-center gap-3">
+              <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <span class="text-lg font-bold text-black" id="display-date-label">Alege data</span>
+            </div>
+            <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <!-- Button 2: Alege Ora -->
+          <button 
+            type="button" 
+            id="btn-trigger-time-sheet"
+            class="w-full px-6 py-4 rounded-full border-2 border-brand-secondary bg-transparent text-lg font-bold text-black flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <div class="flex items-center gap-3">
+              <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="text-lg font-bold text-black" id="display-time-label">Alege ora</span>
+            </div>
+            <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
+      </form>
+    </div>
 
-      </div>
-
-      <!-- Date/Time Selectors (Butoane Principale) -->
-      <div id="date-time-selectors" class="space-y-3 pt-2">
-        <input type="hidden" name="selectedDate" id="selectedDate" value={todayStr} />
-        <input type="hidden" name="selectedTime" id="selectedTime" value="08:00" />
-
-        <!-- Button 1: Alege Data -->
-        <button 
-          type="button" 
-          id="btn-trigger-date-sheet"
-          class="w-full px-6 py-4 rounded-full border-2 border-brand-secondary bg-transparent text-lg font-bold text-black flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer"
-        >
-          <div class="flex items-center gap-3">
-            <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-            </svg>
-            <span class="text-lg font-bold text-black" id="display-date-label">Alege data</span>
-          </div>
-          <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-
-        <!-- Button 2: Alege Ora -->
-        <button 
-          type="button" 
-          id="btn-trigger-time-sheet"
-          class="w-full px-6 py-4 rounded-full border-2 border-brand-secondary bg-transparent text-lg font-bold text-black flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer"
-        >
-          <div class="flex items-center gap-3">
-            <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <span class="text-lg font-bold text-black" id="display-time-label">Alege ora</span>
-          </div>
-          <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </form>
-  </div>
-
-  <!-- Sticky Submit Button -->
-  <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-12">
-    <button type="submit" id="submit-btn" form="add-session-form" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-xl shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer">
-      Salvează
-    </button>
+    <!-- Sticky Submit Button -->
+    <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-12">
+      <button type="submit" id="submit-btn" form="add-session-form" class="w-full py-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-xl shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer">
+        Salvează
+      </button>
+    </div>
   </div>
 </div>
 
@@ -201,15 +203,18 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
   import { getPatients, getPatient, addPatient, updatePatient } from '../../../lib/services/patientService';
   import { createAppointment, updateAppointment } from '../../../lib/services/appointmentService';
+  import { escapeHtml } from '../../../utils/html';
 
   class AddSessionSheetManager {
     sheet: HTMLElement | null;
+    content: HTMLElement | null;
     form: HTMLFormElement | null;
     timeInput: HTMLInputElement | null;
     dateInput: HTMLInputElement | null;
     overlay: HTMLElement | null = null;
     datePickerSheet: HTMLElement | null;
     datePickerOverlay: HTMLElement | null;
+    isOpen: boolean = false;
     currentPickerDate: Date;
     startY: number;
     currentY: number;
@@ -226,6 +231,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
     constructor() {
       this.sheet = document.getElementById('add-session-sheet');
+      this.content = document.getElementById('add-session-content');
+      this.overlay = document.getElementById('add-session-backdrop');
       this.form = document.getElementById('add-session-form') as HTMLFormElement;
       this.timeInput = document.getElementById('selectedTime') as HTMLInputElement;
       this.dateInput = document.getElementById('selectedDate') as HTMLInputElement;
@@ -238,7 +245,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.currentY = 0;
       this.settings = getSettings();
 
-      this.createOverlay();
       this.populateDynamicContent();
       this.bindEvents();
       this.bindDateTimeSelectors();
@@ -299,6 +305,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         patients.forEach((patient: any) => {
           const catName = patient.name;
           const patientId = patient.id;
+          const safeCatName = escapeHtml(catName);
+          const safePatientId = escapeHtml(patientId);
           const isGhimbav = (patient.locatie || '').toLowerCase() === 'ghimbav';
           const totalSess = patient.sedinte_total ?? 0;
           const ramase = patient.sedinte_ramase ?? Math.max(0, totalSess - (patient.sedinte_folosite ?? 0));
@@ -313,10 +321,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           label.className = 'relative cursor-pointer w-full';
 
           label.innerHTML = `
-            <input type="radio" name="patientId" value="${patientId}" data-patient-name="${catName}" data-color-class="${colorClass}" data-sessions-left="${ramase}" data-total-sessions="${totalSess}" class="peer sr-only" />
+            <input type="radio" name="patientId" value="${safePatientId}" data-patient-name="${safeCatName}" data-color-class="${colorClass}" data-sessions-left="${ramase}" data-total-sessions="${totalSess}" class="peer sr-only" />
             <div class="px-6 py-4 rounded-[1.5rem] font-bold text-lg transition-opacity flex items-center justify-between ${colorClass}">
               <div class="flex flex-col min-w-0">
-                <span>${catName}</span>
+                <span>${safeCatName}</span>
                 ${subscriptionDone ? `<span class="text-[10px] font-black uppercase tracking-wider opacity-90 truncate">Abonament terminat — reînnoiește</span>` : ''}
               </div>
               <div class="w-6 h-6 rounded-full border-2 border-current opacity-0 peer-checked:opacity-100 flex items-center justify-center transition-opacity shrink-0">
@@ -364,17 +372,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           });
         });
       }
-    }
-
-    createOverlay() {
-      // Remove any existing overlay to prevent ghost backdrops after SPA navigation
-      document.querySelectorAll('.session-sheet-overlay').forEach(o => o.remove());
-
-      this.overlay = document.createElement('div');
-      this.overlay.className = 'session-sheet-overlay fixed inset-0 bg-black/50 z-[90] opacity-0 pointer-events-none transition-opacity duration-300';
-      document.body.appendChild(this.overlay);
-
-      this.overlay.addEventListener('click', () => this.close());
     }
 
     updateCustomTimeDisplay(totalMinutes: number) {
@@ -538,8 +535,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         this.renderDatePicker();
       });
 
-      closeBtn?.addEventListener('click', () => this.closeDatePicker());
-      this.datePickerOverlay?.addEventListener('click', () => this.closeDatePicker());
+      closeBtn?.addEventListener('click', () => (window as any).currentAddSessionSheetManager?.closeDatePicker());
+      this.datePickerOverlay?.addEventListener('click', () => (window as any).currentAddSessionSheetManager?.closeDatePicker());
 
       // Dedicated drag handle close
       const dragHandle = document.getElementById('date-picker-drag-handle');
@@ -562,7 +559,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           this.datePickerSheet.style.transform = `translateY(${deltaY}px)`;
         }
       }, { passive: true });
-      this.datePickerSheet?.addEventListener('touchend', (e: any) => {
+      const onDateTouchEnd = (e: any) => {
         dragging = false;
         const deltaY = (e.changedTouches[0].clientY || 0) - startY;
         if (this.datePickerSheet) {
@@ -573,7 +570,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             this.datePickerSheet.style.transform = 'translateY(0)';
           }
         }
-      });
+      };
+      this.datePickerSheet?.addEventListener('touchend', onDateTouchEnd);
+      this.datePickerSheet?.addEventListener('touchcancel', onDateTouchEnd);
     }
 
     openDatePicker() {
@@ -739,6 +738,19 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       }
     }
 
+    closeCustomTimeModal() {
+      const modal = document.getElementById('add-session-time-modal');
+      const overlay = document.getElementById('add-session-time-overlay');
+      if (!modal) return;
+      modal.style.transform = '';
+      modal.classList.add('translate-y-full');
+      overlay?.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        modal.dataset.open = 'false';
+        if (overlay) overlay.dataset.open = 'false';
+      }, 500);
+    }
+
     // --- Custom Time Modal Logic ---
     bindCustomTimeModal() {
       const modal = document.getElementById('add-session-time-modal');
@@ -749,26 +761,16 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const btnTimeSheet = document.getElementById('btn-trigger-time-sheet');
       const btnConfirm = document.getElementById('btn-confirm-session-time');
 
-      const closeModal = () => {
-        if (!modal) return;
-        const overlay = document.getElementById('add-session-time-overlay');
-        modal.style.transform = '';
-        modal.classList.add('translate-y-full');
-        overlay?.classList.add('opacity-0', 'pointer-events-none');
-        setTimeout(() => {
-          modal.dataset.open = 'false';
-          if (overlay) overlay.dataset.open = 'false';
-        }, 500);
-      };
+      const closeModal = () => (window as any).currentAddSessionSheetManager?.closeCustomTimeModal();
 
       if (btnOpen) {
-        btnOpen.addEventListener('click', () => this.openCustomTimeModal());
+        btnOpen.addEventListener('click', () => (window as any).currentAddSessionSheetManager?.openCustomTimeModal());
       }
       if (btnTimeSheet) {
         btnTimeSheet.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          this.openCustomTimeModal();
+          (window as any).currentAddSessionSheetManager?.openCustomTimeModal();
         });
       }
       const timeOverlay = document.getElementById('add-session-time-overlay');
@@ -797,7 +799,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           modal.style.transform = `translateY(${deltaY}px)`;
         }
       }, { passive: true });
-      modal?.addEventListener('touchend', (e: any) => {
+      const onTimeTouchEnd = (e: any) => {
         timeDragging = false;
         const deltaY = (e.changedTouches[0].clientY || 0) - timeStartY;
         if (modal) {
@@ -808,7 +810,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             modal.style.transform = 'translateY(0)';
           }
         }
-      });
+      };
+      modal?.addEventListener('touchend', onTimeTouchEnd);
+      modal?.addEventListener('touchcancel', onTimeTouchEnd);
 
       btnConfirm?.addEventListener('click', () => {
         const timeStr = `${this.selectedCustomHour}:${this.selectedCustomMinute}`;
@@ -968,32 +972,46 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     }
 
     bindEvents() {
-      if (!this.sheet) return;
-      if (this.sheet.dataset.addSessionEventsBound === 'true') return;
-      this.sheet.dataset.addSessionEventsBound = 'true';
+      if (!this.content) return;
+      if (this.content.dataset.addSessionEventsBound === 'true') return;
+      this.content.dataset.addSessionEventsBound = 'true';
 
       // Swipe-down to dismiss from anywhere on the sheet — only engages on a
       // clearly vertical downward swipe while the form is scrolled to the top
-      this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
-      this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
-      this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
+      this.content.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+      this.content.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+      this.content.addEventListener('touchend', () => this.handleTouchEnd());
+      this.content.addEventListener('touchcancel', () => {
+        this.dragEngaged = false;
+        if (this.content) {
+          this.content.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+          this.content.style.transform = 'translateY(0)';
+        }
+      });
 
       // Dedicated drag handle: always closes regardless of scroll position
       const dragHandle = document.getElementById('add-session-drag-handle');
       if (dragHandle) {
-        this.bindHandleSwipe(dragHandle, () => this.close());
+        this.bindHandleSwipe(dragHandle, () => (window as any).currentAddSessionSheetManager?.close());
       }
 
-      // Bind submit handlers
+      // Backdrop click closes the sheet
+      this.overlay?.addEventListener('click', () => (window as any).currentAddSessionSheetManager?.close());
+
+      // Bind submit handlers — route through the current manager so stale
+      // instances after Astro view transitions don't handle submissions.
       const submitBtnEl = document.getElementById('submit-btn');
       if (this.form) {
-        this.form.onsubmit = (e) => this.handleSubmit(e);
+        this.form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          (window as any).currentAddSessionSheetManager?.handleSubmit(e);
+        });
       }
       if (submitBtnEl) {
-        submitBtnEl.onclick = (e) => {
+        submitBtnEl.addEventListener('click', (e) => {
           e.preventDefault();
-          this.handleSubmit(e);
-        };
+          (window as any).currentAddSessionSheetManager?.handleSubmit(e);
+        });
       }
 
       // Handle showing patient list and search input
@@ -1023,32 +1041,46 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     }
 
     open() {
-      if (!this.sheet || !this.overlay) return;
+      if (!this.sheet || !this.content || !this.overlay) return;
+      if (this.isOpen) return;
+      this.isOpen = true;
+
+      // Close any nested pickers when opening the main sheet
+      this.closeDatePicker();
+      this.closeCustomTimeModal();
+
       // Ensure the sheet is in the layout before animating (prevents flash on load)
-      this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;
+      this.content.style.maxHeight = `${window.innerHeight * 0.9}px`;
       this.sheet.dataset.open = 'true';
       // Prevent the on-screen keyboard from opening automatically when the sheet slides up
       if (document.activeElement && 'blur' in document.activeElement) {
         (document.activeElement as HTMLElement).blur();
       }
-      void this.sheet.offsetWidth;
+      void this.content.offsetWidth;
       // Reset any inline transform from drag and set closed state
-      this.sheet.style.transform = '';
-      this.sheet.classList.add('translate-y-full');
+      this.content.style.transform = '';
+      this.content.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
       lockBodyScroll();
 
       // Remove closed state on the next frame so the browser actually animates
       requestAnimationFrame(() => {
-        this.sheet?.classList.remove('translate-y-full');
+        this.content?.classList.remove('translate-y-full');
         this.overlay?.classList.remove('opacity-0', 'pointer-events-none');
       });
     }
 
     close() {
-      if (!this.sheet || !this.overlay) return;
-      this.sheet.style.transform = '';
-      this.sheet.classList.add('translate-y-full');
+      if (!this.sheet || !this.content || !this.overlay) return;
+      if (!this.isOpen) return;
+      this.isOpen = false;
+
+      // Close any nested pickers when closing the main sheet
+      this.closeDatePicker();
+      this.closeCustomTimeModal();
+
+      this.content.style.transform = '';
+      this.content.classList.add('translate-y-full');
       this.overlay.classList.add('opacity-0', 'pointer-events-none');
       unlockBodyScroll();
 
@@ -1075,7 +1107,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
       // Only allow sheet drag when the scrollable form is at the top,
       // otherwise the gesture should scroll the form instead
-      const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
+      const scrollArea = this.content?.querySelector('.overflow-y-auto');
       this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
     }
 
@@ -1087,34 +1119,34 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       if (!this.dragEngaged) {
         if (this.scrollAtTop && deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
           this.dragEngaged = true;
-          if (this.sheet) this.sheet.style.transition = 'none';
+          if (this.content) this.content.style.transition = 'none';
         } else {
           return;
         }
       }
 
       this.currentY = y;
-      if (deltaY > 0 && this.sheet) {
+      if (deltaY > 0 && this.content) {
         if (e.cancelable) {
           e.preventDefault();
         }
-        this.sheet.style.transform = `translateY(${deltaY}px)`;
+        this.content.style.transform = `translateY(${deltaY}px)`;
       }
     }
 
     handleTouchEnd() {
-      if (!this.sheet || !this.dragEngaged) {
+      if (!this.content || !this.dragEngaged) {
         this.dragEngaged = false;
         return;
       }
       this.dragEngaged = false;
       const deltaY = this.currentY - this.startY;
-      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+      this.content.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
       
       if (deltaY > 120) {
         this.close();
       } else {
-        this.sheet.style.transform = 'translateY(0)';
+        this.content.style.transform = 'translateY(0)';
       }
     }
 
@@ -1125,7 +1157,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       let startY = 0;
       let currentY = 0;
       let dragging = false;
-      const sheet = handle.closest('.fixed') as HTMLElement | null;
+      const sheet = (handle.closest('[data-sheet-content]') || handle.closest('.fixed')) as HTMLElement | null;
 
       handle.addEventListener('touchstart', (e: any) => {
         e.stopPropagation();
@@ -1166,10 +1198,16 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   }
 
   function initAddSessionSheet() {
-    if (!document.getElementById('add-session-sheet')) return;
+    const sheet = document.getElementById('add-session-sheet');
+    if (!sheet) return;
 
-    // Only bind the window event listener once globally; route each open event
-    // to the current manager so it survives Astro view transitions.
+    // Avoid re-initializing for the same DOM instance (prevents double init on
+    // pages where both the immediate call and astro:page-load fire).
+    const existing = (window as any).currentAddSessionSheetManager;
+    if (existing?.sheet === sheet) return;
+
+    // Only bind global listeners once; route every action to the current
+    // manager instance so it survives Astro view transitions.
     if (!(window as any)._addSessionWindowListenerBound) {
       window.addEventListener('openAddSession', (e: Event) => {
         (window as any).currentAddSessionSheetManager?.handleOpenEvent(e);
@@ -1177,15 +1215,35 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       (window as any)._addSessionWindowListenerBound = true;
     }
 
-    // Recreate the manager on every page navigation so its overlay is always
-    // attached to the current document body (Astro's transition:persist moves
-    // the sheet but not the dynamically-created overlay).
+    if (!(window as any)._addSessionEscapeBound) {
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const mgr = (window as any).currentAddSessionSheetManager;
+        if (!mgr) return;
+
+        const timeModal = document.getElementById('add-session-time-modal');
+        const dateOpen = mgr.datePickerSheet?.dataset.open === 'true';
+        const timeOpen = timeModal?.dataset.open === 'true';
+
+        if (timeOpen) {
+          mgr.closeCustomTimeModal();
+        } else if (dateOpen) {
+          mgr.closeDatePicker();
+        } else if (mgr.isOpen) {
+          mgr.close();
+        }
+      });
+      (window as any)._addSessionEscapeBound = true;
+    }
+
+    // Recreate the manager on every page navigation so its element references
+    // are always attached to the current DOM.
     (window as any).currentAddSessionSheetManager = new AddSessionSheetManager();
   }
 
-  // Initialize
+  // Initialize on Astro page loads (including initial load) and as a fallback
+  // when the DOM is already ready.
   document.addEventListener('astro:page-load', initAddSessionSheet);
-  document.addEventListener('DOMContentLoaded', initAddSessionSheet);
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     initAddSessionSheet();
   }

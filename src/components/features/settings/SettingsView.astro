@@ -413,9 +413,8 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
         <div id="time-picker-dialog" class="bg-surface-card rounded-[2.5rem] p-6 shadow-2xl border border-transparent w-full max-w-sm space-y-4 transform scale-95 transition-all duration-200 relative">
           
           <!-- Modal Header -->
-          <div class="flex items-center justify-between pb-1 border-b border-transparent">
+          <div class="flex items-center pb-1 border-b border-transparent">
             <h3 id="modal-time-title" class="text-xl font-black text-text-main font-sans">Alege ora</h3>
-            <button type="button" id="btn-close-time-modal" class="w-8 h-8 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold flex items-center justify-center transition-colors">&times;</button>
           </div>
 
           <!-- 24H Time Preview Display (Culoare Negru Bold) -->
@@ -842,7 +841,6 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const modalTitle = document.getElementById('modal-time-title');
     const modalHourDisplay = document.getElementById('modal-hour-display');
     const modalMinuteDisplay = document.getElementById('modal-minute-display');
-    const btnCloseModal = document.getElementById('btn-close-time-modal');
     const btnConfirmTime = document.getElementById('btn-confirm-time');
     const hoursGrid = document.getElementById('hours-grid');
     const minutesGrid = document.getElementById('minutes-grid');
@@ -933,9 +931,35 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       });
     });
 
-    btnCloseModal?.addEventListener('click', closeTimeModal);
     timeModal?.addEventListener('click', (e) => {
       if (e.target === timeModal) closeTimeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && timeModal && !timeModal.classList.contains('opacity-0')) {
+        closeTimeModal();
+      }
+    });
+
+    // Swipe-down to close the centered time picker dialog
+    let timeStartY = 0;
+    let timeDragging = false;
+    timeDialog?.addEventListener('touchstart', (e) => {
+      timeStartY = e.touches[0].clientY;
+      timeDragging = false;
+    }, { passive: true });
+    timeDialog?.addEventListener('touchmove', (e) => {
+      const deltaY = e.touches[0].clientY - timeStartY;
+      if (!timeDragging && deltaY > 10) {
+        timeDragging = true;
+      }
+    }, { passive: true });
+    timeDialog?.addEventListener('touchend', (e) => {
+      const deltaY = e.changedTouches[0].clientY - timeStartY;
+      if (timeDragging && deltaY > 80) {
+        closeTimeModal();
+      }
+      timeDragging = false;
     });
 
     btnConfirmTime?.addEventListener('click', () => {

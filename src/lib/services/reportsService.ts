@@ -324,38 +324,25 @@ export async function getYearStats(baseDate?: string) {
 // ── Pacienți neachitați ───────────────────────────────────────
 export async function getUnpaidPatients() {
   const { data: rawPatients, error: pErr } = await supabase
-    .from('pacienti')
-    .select('id, prenume, nume, cost, achitat');
+    .from('pacienti_view')
+    .select('id, name, cost, achitat, suma_incasata');
 
   if (pErr) throw new Error('Eroare la citirea pacienților neachitați: ' + pErr.message);
 
-  const { data: rawPlati } = await supabase
-    .from('plati')
-    .select('pacient_id, suma');
-
   const patientsList = (rawPatients || []) as any[];
-  const platiList = (rawPlati || []) as any[];
-
-  // Calculăm plățile totale făcute de fiecare pacient
-  const paymentsByPatient: Record<string, number> = {};
-  platiList.forEach(p => {
-    if (p.pacient_id) {
-      paymentsByPatient[p.pacient_id] = (paymentsByPatient[p.pacient_id] || 0) + Number(p.suma || 0);
-    }
-  });
-
   const unpaidPatients: any[] = [];
   let totalDatorat = 0;
 
   patientsList.forEach(p => {
     const cost = Number(p.cost || 0);
-    const paid = paymentsByPatient[p.id] || 0;
+    const paid = Number(p.suma_incasata || 0);
     const isFullyPaid = p.achitat === true || (cost > 0 && paid >= cost);
 
     if (!isFullyPaid) {
       const rest = Math.max(0, cost - paid);
       unpaidPatients.push({
         ...p,
+        name: p.name,
         suma_restanta: rest > 0 ? rest : cost
       });
       totalDatorat += rest > 0 ? rest : cost;

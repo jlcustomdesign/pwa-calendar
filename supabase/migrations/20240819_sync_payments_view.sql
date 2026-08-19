@@ -18,7 +18,16 @@ ALTER TABLE public.plati ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow all access to plati" ON public.plati;
 CREATE POLICY "Allow all access to plati" ON public.plati FOR ALL USING (true) WITH CHECK (true);
 
--- 2. Refresh view with suma_incasata
+-- 1b. Ensure plati has the metoda column (schema drift fix)
+ALTER TABLE public.plati
+ADD COLUMN IF NOT EXISTS metoda TEXT;
+
+-- 2. Ensure sedinte_ramase exists on pacienti (matches schema v3)
+ALTER TABLE public.pacienti
+ADD COLUMN IF NOT EXISTS sedinte_ramase INTEGER
+GENERATED ALWAYS AS (sedinte_total - sedinte_folosite) STORED;
+
+-- 3. Refresh view with suma_incasata
 DROP VIEW IF EXISTS public.pacienti_view CASCADE;
 CREATE VIEW public.pacienti_view AS
 SELECT

@@ -87,6 +87,7 @@
 
 <script>
   import { getPatients, deletePatient as deletePatientDB, isRenewalDismissed } from '../../../lib/services/patientService';
+  import { escapeHtml, escapeJsString } from '../../../utils/html';
 
   class PatientListManager {
     container: HTMLElement | null;
@@ -336,6 +337,15 @@
         
         const planName = patient.plan === 'Subscription' || patient.plan === 'Abonament' ? 'Abonament' : (patient.plan === 'One Time' ? 'Ședință' : (patient.plan || 'Fără plan'));
 
+        // Escape user-controlled values before inserting into HTML
+        const safeName = escapeHtml(patient.name);
+        const safeNameJs = escapeJsString(patient.name || '');
+        const safePlanName = escapeHtml(planName);
+        const safeLocatie = escapeHtml(locatie || 'Belaqva');
+        const safeTelefon = escapeHtml(patient.telefon || '+1234567890');
+        const safeDriveLink = escapeHtml(patient.drive_link || '#');
+        const hasDriveLink = Boolean(patient.drive_link);
+
         const subscriptionDone = totalSessions > 0 && attendanceCount >= totalSessions;
         const displayCount = subscriptionDone ? totalSessions : attendanceCount;
         progressPercentage = subscriptionDone ? 100 : (totalSessions > 0 ? Math.min(100, Math.round((attendanceCount / totalSessions) * 100)) : 0);
@@ -355,11 +365,11 @@
 
         const renewalDismissed = isRenewalDismissed(patient.id);
         const subscriptionWarningHtml = subscriptionDone && !renewalDismissed
-          ? `<div class='pt-2 pb-5 space-y-2'><button type='button' class='w-full h-12 rounded-2xl bg-black hover:bg-neutral-800 text-white text-base font-black tracking-wide shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border border-transparent opacity-100' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${patient.name?.replace(/'/g, "\\'") || ""}")'><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg><span>Reînnoiește pachetul</span></button></div>`
+          ? `<div class='pt-2 pb-5 space-y-2'><button type='button' class='w-full h-12 rounded-2xl bg-black hover:bg-neutral-800 text-white text-base font-black tracking-wide shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border border-transparent opacity-100' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${safeNameJs}")'><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg><span>Reînnoiește pachetul</span></button></div>`
           : '';
 
         const notificationBellHtml = subscriptionDone && !renewalDismissed
-          ? `<button type='button' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${patient.name?.replace(/'/g, "\\'") || ""}")' class='shrink-0 px-3 py-1.5 rounded-full bg-black text-white text-xs font-black uppercase tracking-wider shadow-md active:scale-95 transition-all' title='Abonament terminat - Reînnoiește'>Reînnoiește</button>`
+          ? `<button type='button' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${safeNameJs}")' class='shrink-0 px-3 py-1.5 rounded-full bg-black text-white text-xs font-black uppercase tracking-wider shadow-md active:scale-95 transition-all' title='Abonament terminat - Reînnoiește'>Reînnoiește</button>`
           : '';
 
         card.innerHTML = `
@@ -367,7 +377,7 @@
             <!-- Top Row: Patient Name, Notification Bell & Book Session Button -->
             <div class='flex items-center gap-3 w-full justify-between'>
               <div class='flex-1 min-w-0'>
-                <h4 class='text-xl sm:text-2xl font-black tracking-tight truncate'>${patient.name}</h4>
+                <h4 class='text-xl sm:text-2xl font-black tracking-tight truncate'>${safeName}</h4>
               </div>
               <div class='flex items-center gap-2 shrink-0'>
                 ${notificationBellHtml}
@@ -393,14 +403,14 @@
                     <svg class='w-4 h-4 text-black opacity-75 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                       <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/>
                     </svg>
-                    <span class='text-black font-black'>${planName}</span>
+                    <span class='text-black font-black'>${safePlanName}</span>
                   </span>
                   <span class='flex items-center gap-2 shrink-0 text-black'>
                     <svg class='w-4 h-4 text-black opacity-75 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                       <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'/>
                       <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 11a3 3 0 11-6 0 3 3 0 016 0z'/>
                     </svg>
-                    <span class='text-black font-black'>${locatie || 'Belaqva'}</span>
+                    <span class='text-black font-black'>${safeLocatie}</span>
                   </span>
                 </div>
 
@@ -415,13 +425,13 @@
                   </button>
 
                   <div class='flex items-center gap-2 shrink-0'>
-                    <a href='tel:${patient.telefon || '+1234567890'}' class='w-12 h-12 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer' title='Sună pacientul' onclick='event.stopPropagation()'>
+                    <a href='tel:${safeTelefon}' class='w-12 h-12 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer' title='Sună pacientul' onclick='event.stopPropagation()'>
                       <svg class='w-5 h-5 text-black opacity-85' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                         <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z' />
                       </svg>
                     </a>
 
-                    <a href='${patient.drive_link || '#'}' target='${patient.drive_link ? '_blank' : '_self'}' rel='noopener noreferrer' class='w-12 h-12 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer' title='Deschide Dosar/Drive' onclick='event.stopPropagation(); if (!${JSON.stringify(patient.drive_link || '')}) { event.preventDefault(); if (window.showToast) { window.showToast("Pacientul nu are un link de dosar/Drive salvat.", "info"); } else { alert("Pacientul nu are un link de dosar/Drive salvat."); } }'>
+                    <a href='${safeDriveLink}' target='${hasDriveLink ? '_blank' : '_self'}' rel='noopener noreferrer' class='w-12 h-12 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer' title='Deschide Dosar/Drive' onclick='event.stopPropagation(); if (!${JSON.stringify(patient.drive_link || '')}) { event.preventDefault(); if (window.showToast) { window.showToast("Pacientul nu are un link de dosar/Drive salvat.", "info"); } else { alert("Pacientul nu are un link de dosar/Drive salvat."); } }'>
                       <svg class='w-5 h-5 text-black opacity-85' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                         <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' />
                       </svg>

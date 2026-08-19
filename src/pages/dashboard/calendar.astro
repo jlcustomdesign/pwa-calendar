@@ -61,6 +61,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
     import { getAppointmentsByDate, updateAppointment, swapAppointmentPatients } from '../../lib/services/appointmentService';
     import { getSettings } from '../../lib/services/settingsService';
     import { getPatientPayments, isRenewalDismissed } from '../../lib/services/patientService';
+    import { escapeHtml, escapeJsString } from '../../utils/html';
 
     function localDateStr(d = new Date()) {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -110,6 +111,10 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       const rawTime = session.selectedTime || session.time || "08:00";
       const cleanTimeStr = rawTime.substring(0, 5);
       const patientNameStr = session.patientName || "Pacient";
+      const safePatientName = escapeHtml(patientNameStr);
+      const safePatientNameJs = escapeJsString(session.patientName || '');
+      const safeLocation = escapeHtml(locationStr);
+      const safePhone = escapeHtml(session.patientPhone || '+1234567890');
       const timeParts = cleanTimeStr.split(':');
       const startH = parseInt(timeParts[0] || "8", 10);
       const startM = parseInt(timeParts[1] || "0", 10);
@@ -149,7 +154,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 <p class="text-xs sm:text-sm font-black text-black truncate">Abonament terminat</p>
                 <p class="text-[10px] font-bold text-black/70">0/${session.totalSessions || 10} ședințe</p>
               </div>
-              <button type="button" class="shrink-0 px-4 py-2.5 rounded-full bg-brand-secondary text-black text-xs font-black uppercase tracking-wide shadow-sm active:scale-95 transition-transform" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10}, '${patientNameStr.replace(/'/g, "\\'")}')">Reînnoiește</button>
+              <button type="button" class="shrink-0 px-4 py-2.5 rounded-full bg-brand-secondary text-black text-xs font-black uppercase tracking-wide shadow-sm active:scale-95 transition-transform" onclick="event.stopPropagation(); window.renewSubscription('${session.patientId}', ${session.totalSessions || 10}, '${safePatientNameJs}')">Reînnoiește</button>
               <button type="button" class="shrink-0 w-9 h-9 rounded-full bg-surface-card text-text-muted flex items-center justify-center active:scale-95 transition-transform" onclick="event.stopPropagation(); window.dismissSubscriptionWarning('${session.patientId}')" aria-label="Nu acum">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
@@ -177,6 +182,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       }
 
       const driveLink = session.driveLink || '';
+      const safeDriveLink = escapeHtml(driveLink || '#');
+      const hasDriveLink = Boolean(driveLink);
 
       return `
         <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden" data-session-id="${session.id}" data-session-time="${cleanTimeStr}" data-session-date="${session.selectedDate || currentCalendarDate}">
@@ -219,7 +226,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
               <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
                 <div class="flex items-center gap-3 w-full relative z-10 justify-between">
                   <div class="flex-1 min-w-0">
-                    <h4 class="text-xl font-bold tracking-tight leading-none truncate">${patientNameStr}</h4>
+                    <h4 class="text-xl font-bold tracking-tight leading-none truncate">${safePatientName}</h4>
                   </div>
                   ${statusIcon}
                 </div>
@@ -250,7 +257,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
-                        <span class="text-black font-black">${locationStr}</span>
+                        <span class="text-black font-black">${safeLocation}</span>
                       </span>
                     </div>
 
@@ -265,13 +272,13 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                       </button>
 
                       <div class="flex items-center gap-2">
-                        <a href="tel:${session.patientPhone || '+1234567890'}" class="w-11 h-11 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Sună pacientul" onclick="event.stopPropagation()">
+                        <a href="tel:${safePhone}" class="w-11 h-11 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Sună pacientul" onclick="event.stopPropagation()">
                           <svg class="w-5 h-5 text-black opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                           </svg>
                         </a>
 
-                        <a href="${driveLink || '#'}" target="${driveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="w-11 h-11 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Deschide Dosar/Drive" onclick="event.stopPropagation(); if (!'${driveLink}') { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
+                        <a href="${safeDriveLink}" target="${hasDriveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="w-11 h-11 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Deschide Dosar/Drive" onclick="event.stopPropagation(); if (!${hasDriveLink}) { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
                           <svg class="w-5 h-5 text-black opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                           </svg>

@@ -236,10 +236,35 @@
   let currentBaseDate = new Date();
   let currentDayDate = new Date();
 
+  let isDayPickerOpen = false;
+
+  function removeStaleDayPickerSheets(exclude?: Element) {
+    document.querySelectorAll('#day-picker-sheet').forEach(el => {
+      if (el !== exclude && el.parentElement === document.body) {
+        el.remove();
+      }
+    });
+  }
+
   // Muta sheet-ul in body pentru a nu fi limitat de containerele parinte
   const sheet = document.getElementById('day-picker-sheet');
   if (sheet) {
+    removeStaleDayPickerSheets(sheet);
     document.body.appendChild(sheet);
+  }
+
+  // Curăță sheet-ul supraviețuitor înainte de swap-ul Astro
+  document.addEventListener('astro:before-swap', () => {
+    removeStaleDayPickerSheets();
+  });
+
+  // Escape key handler, bound once globally
+  function handleDayPickerEscape(e: KeyboardEvent) {
+    if (e.key === 'Escape') closeDayPicker();
+  }
+  if (!(window as any)._dayPickerEscapeBound) {
+    document.addEventListener('keydown', handleDayPickerEscape);
+    (window as any)._dayPickerEscapeBound = true;
   }
   
   async function loadTodayStats() {
@@ -279,6 +304,8 @@
   let pickerViewDate = new Date();
 
   function openDayPicker() {
+    if (isDayPickerOpen) return;
+
     pickerViewDate = new Date(currentDayDate.getFullYear(), currentDayDate.getMonth(), currentDayDate.getDate());
     renderDayPicker();
 
@@ -287,6 +314,8 @@
     const content = document.getElementById('day-picker-content');
     const trigger = document.getElementById('today-date-display');
     if (!sheet || !overlay || !content) return;
+
+    if (sheet.dataset.open === 'true') return;
 
     if (sheet.parentElement !== document.body) {
       document.body.appendChild(sheet);
@@ -307,6 +336,7 @@
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
 
+    isDayPickerOpen = true;
     sheet.dataset.open = 'true';
     sheet.classList.add('pointer-events-auto');
     void sheet.offsetWidth;
@@ -319,18 +349,29 @@
   }
 
   function closeDayPicker() {
+    if (!isDayPickerOpen) return;
+
     const sheet = document.getElementById('day-picker-sheet');
     const overlay = document.getElementById('day-picker-overlay');
     const content = document.getElementById('day-picker-content');
     if (!sheet || !overlay || !content) return;
 
+    isDayPickerOpen = false;
+    sheet.dataset.open = 'false';
+
     unlockBodyScroll();
     overlay.classList.add('opacity-0', 'pointer-events-none');
     overlay.classList.remove('pointer-events-auto');
+
+    // Clear inline styles set by swipe gesture and positioning
+    content.style.transition = '';
+    content.style.transform = '';
+    content.style.left = '';
+    content.style.top = '';
+
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
     setTimeout(() => {
-      sheet.dataset.open = 'false';
       sheet.classList.remove('pointer-events-auto');
     }, 200);
   }
@@ -386,10 +427,16 @@
   function setupDayPicker() {
     const overlay = document.getElementById('day-picker-overlay');
     const content = document.getElementById('day-picker-content');
+
+    // Re-bind overlay click listener to the current DOM element each boot
+    if (overlay) {
+      overlay.removeEventListener('click', closeDayPicker);
+      overlay.addEventListener('click', closeDayPicker);
+    }
+
     if (!content || content.dataset.dayPickerBound === 'true') return;
     content.dataset.dayPickerBound = 'true';
 
-    overlay?.addEventListener('click', closeDayPicker);
     document.getElementById('day-picker-prev-month')?.addEventListener('click', () => {
       pickerViewDate.setMonth(pickerViewDate.getMonth() - 1);
       renderDayPicker();
