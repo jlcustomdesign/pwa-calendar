@@ -1,7 +1,7 @@
 /**
  * sessionNotifier.ts — Notificări Web Automate pentru începutul și sfârșitul ședințelor
  */
-import { getAppointmentsByDate } from './appointmentService';
+import { getAppointmentsByDate, getPendingWrapUps } from './appointmentService';
 import { toLocalISOString } from '../../utils/date';
 
 let isNotifierRunning = false;
@@ -14,22 +14,51 @@ const notifiedEnds = new Set<string>();
 export function initSessionNotifier() {
   if (typeof window === 'undefined') return;
   if (isNotifierRunning) return;
-  
+
   isNotifierRunning = true;
 
-  // Verifică imediat și apoi la fiecare 20 de secunde
+  // La pornirea/revenirea în app: deschide popup-ul de confirmare pentru ședințele trecute neconfirmate.
+  // Se repetă la fiecare pornire până când ședința este confirmată.
+  promptMissedSessionWrapUp();
+
+  // Verifică imediat și apoi la fiecare 20 de secunde (notificări realtime)
   checkTodaySessionsForNotifications();
   checkIntervalId = setInterval(checkTodaySessionsForNotifications, 20 * 1000);
 
   // Pe mobil: Când utilizatorul deblochează telefonul sau comută înapoi în aplicație, verificăm instant!
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+      promptMissedSessionWrapUp();
       checkTodaySessionsForNotifications();
     }
   });
   window.addEventListener('focus', () => {
+    promptMissedSessionWrapUp();
     checkTodaySessionsForNotifications();
   });
+}
+
+// Deschide popup-ul de wrap-up pentru cea mai recentă ședință trecută neconfirmată.
+// Folosește handler-ul existent `window.confirmSession` și funcția existentă `getPendingWrapUps`.
+async function promptMissedSessionWrapUp() {
+  if (typeof window === 'undefined') return;
+  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+
+  try {
+    const pending = await getPendingWrapUps();
+    if (!pending || pending.length === 0) return;
+
+    const missed = pending[pending.length - 1];
+    if (!missed?.id) return;
+
+    const confirmSession = (window as any).confirmSession;
+    if (typeof confirmSession !== 'function') return;
+
+    // Delay scurt pentru a lăsa layout-ul și sheet-ul să fie gata.
+    setTimeout(() => confirmSession(missed.id), 800);
+  } catch (err) {
+    console.error('promptMissedSessionWrapUp error:', err);
+  }
 }
 
 export async function sendTestNotification() {
