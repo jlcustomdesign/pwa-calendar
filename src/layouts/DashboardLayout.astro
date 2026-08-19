@@ -109,9 +109,32 @@ const { title, hideDock = false } = Astro.props;
         document.addEventListener('touchmove', (e: TouchEvent) => {
           if (e.touches.length === 0) return;
           const target = e.target as HTMLElement;
-          // Allow in-app horizontal gestures: session cards, patient list, calendar strip
-          if (target.closest('.swipe-surface') || target.closest('#patient-list-container') || target.closest('[data-calendar-strip]')) {
+          if (!target) return;
+
+          // Allow in-app horizontal gestures: session cards, patient list, calendar strip, swipeable filters, tabs, sheets
+          if (
+            target.closest('.swipe-surface') ||
+            target.closest('#patient-list-container') ||
+            target.closest('[data-calendar-strip]') ||
+            target.closest('.overflow-x-auto') ||
+            target.closest('.overflow-x-scroll') ||
+            target.closest('.filter-btn') ||
+            target.closest('#logs-filter') ||
+            target.closest('#reports-tabs-container') ||
+            target.closest('[data-sheet-root]') ||
+            target.closest('.no-scrollbar')
+          ) {
             return;
+          }
+
+          // Check if any parent element is horizontally scrollable
+          let el: HTMLElement | null = target;
+          while (el && el !== document.body) {
+            const overflowX = window.getComputedStyle(el).overflowX;
+            if ((overflowX === 'auto' || overflowX === 'scroll') && el.scrollWidth > el.clientWidth) {
+              return;
+            }
+            el = el.parentElement;
           }
 
           const x = e.touches[0].clientX;
@@ -119,7 +142,7 @@ const { title, hideDock = false } = Astro.props;
           const dx = x - startX;
           const dy = y - startY;
 
-          // Block any primarily horizontal swipe to stop history navigation
+          // Block any edge horizontal swipe to stop history navigation on plain non-scrollable containers
           if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 4) {
             if (e.cancelable) e.preventDefault();
           }

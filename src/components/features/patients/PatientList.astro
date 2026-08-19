@@ -50,13 +50,16 @@
       opacity: 0;
       margin-left: 0;
     }
-  </style>
-  <!-- Filters -->
-  <div class="flex gap-2 overflow-x-auto pb-2">
-    <button class="filter-btn active px-5 py-2.5 rounded-full bg-brand-primary text-black font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm" data-filter="all">Toți</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-transparent shadow-sm active:scale-95 transition-all" data-filter="ghimbav">Ghimbav</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-transparent shadow-sm active:scale-95 transition-all" data-filter="belaqva">Belaqva</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-transparent shadow-sm active:scale-95 transition-all" data-filter="unpaid">Neachitați</button>
+  <!-- Filters (Horizontal Swipeable) -->
+  <div 
+    id="patient-filters-bar"
+    class="flex gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar select-none touch-pan-x cursor-grab active:cursor-grabbing" 
+    style="-webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain;"
+  >
+    <button class="filter-btn active px-5 py-2.5 rounded-full bg-brand-primary text-black font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm shrink-0" data-filter="all">Toți</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="ghimbav">Ghimbav</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="belaqva">Belaqva</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="unpaid">Neachitați</button>
   </div>
 </div>
 
@@ -179,6 +182,30 @@
           this.render();
         });
       });
+
+      // Desktop drag-to-scroll for filters
+      const filtersBar = document.getElementById('patient-filters-bar');
+      if (filtersBar && filtersBar.dataset.dragBound !== 'true') {
+        filtersBar.dataset.dragBound = 'true';
+        let isDown = false;
+        let startX = 0;
+        let scrollLeft = 0;
+
+        filtersBar.addEventListener('mousedown', (e) => {
+          isDown = true;
+          startX = e.pageX - filtersBar.offsetLeft;
+          scrollLeft = filtersBar.scrollLeft;
+        });
+        filtersBar.addEventListener('mouseleave', () => { isDown = false; });
+        filtersBar.addEventListener('mouseup', () => { isDown = false; });
+        filtersBar.addEventListener('mousemove', (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - filtersBar.offsetLeft;
+          const walk = (x - startX) * 1.5;
+          filtersBar.scrollLeft = scrollLeft - walk;
+        });
+      }
     }
 
     async deletePatient(id: string) {
