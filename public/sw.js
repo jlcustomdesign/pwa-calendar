@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kineto-agenda-v7';
+const CACHE_NAME = 'kineto-agenda-v9';
 const SHELL_ASSETS = [
   '/',
   '/login',
@@ -71,6 +71,11 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   if (request.method !== 'GET' || (url.protocol !== 'http:' && url.protocol !== 'https:')) {
+    return;
+  }
+
+  // Pe localhost/dezvoltare nu folosim cache pentru a vedea modificările instant
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
     return;
   }
 
@@ -148,5 +153,30 @@ self.addEventListener('notificationclick', (event) => {
         return self.clients.openWindow(urlToOpen);
       }
     })
+  );
+});
+
+// Push event handler (pentru notificări Web Push în fundal / ecran blocat)
+self.addEventListener('push', (event) => {
+  let data = { title: '🔔 Agendă Kineto', body: 'Ai o nouă actualizare în program.' };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || '/favicon.svg',
+    badge: data.badge || '/favicon.svg',
+    tag: data.tag || 'kineto-push-alert',
+    data: { url: data.url || '/dashboard' },
+    vibrate: [200, 100, 200]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
   );
 });

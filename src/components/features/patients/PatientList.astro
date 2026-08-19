@@ -51,12 +51,16 @@
       margin-left: 0;
     }
   </style>
-  <!-- Filters -->
-  <div class="flex gap-2 overflow-x-auto pb-2">
-    <button class="filter-btn active px-5 py-2.5 rounded-full bg-brand-primary text-black font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm" data-filter="all">Toți</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-transparent shadow-sm active:scale-95 transition-all" data-filter="ghimbav">Ghimbav</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-transparent shadow-sm active:scale-95 transition-all" data-filter="belaqva">Belaqva</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-transparent shadow-sm active:scale-95 transition-all" data-filter="unpaid">Neachitați</button>
+  <!-- Filters (Horizontal Swipeable) -->
+  <div 
+    id="patient-filters-bar"
+    class="flex gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar select-none touch-pan-x cursor-grab active:cursor-grabbing" 
+    style="-webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain;"
+  >
+    <button class="filter-btn active px-5 py-2.5 rounded-full bg-brand-primary text-black font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm shrink-0" data-filter="all">Toți</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="ghimbav">Ghimbav</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="belaqva">Belaqva</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="unpaid">Neachitați</button>
   </div>
 </div>
 
@@ -125,27 +129,6 @@
           }
           await this.render();
         });
-        
-        // Global click listener for expanding/collapsing details
-        document.addEventListener('click', (e: any) => {
-          const toggleBtn = e.target.closest('[data-toggle-details]');
-          if (toggleBtn) {
-            const patientId = toggleBtn.getAttribute('data-toggle-details');
-            const detailsContent = document.getElementById(`details-${patientId}`);
-            const chevron = toggleBtn.querySelector('svg');
-            
-            if (detailsContent) {
-              const isHidden = detailsContent.classList.contains('hidden');
-              if (isHidden) {
-                detailsContent.classList.remove('hidden');
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
-              } else {
-                detailsContent.classList.add('hidden');
-                if (chevron) chevron.style.transform = 'rotate(0deg)';
-              }
-            }
-          }
-        });
         (window as any)._patientEventsBound = true;
       }
       
@@ -205,6 +188,30 @@
           this.render();
         });
       });
+
+      // Desktop drag-to-scroll for filters
+      const filtersBar = document.getElementById('patient-filters-bar');
+      if (filtersBar && filtersBar.dataset.dragBound !== 'true') {
+        filtersBar.dataset.dragBound = 'true';
+        let isDown = false;
+        let startX = 0;
+        let scrollLeft = 0;
+
+        filtersBar.addEventListener('mousedown', (e) => {
+          isDown = true;
+          startX = e.pageX - filtersBar.offsetLeft;
+          scrollLeft = filtersBar.scrollLeft;
+        });
+        filtersBar.addEventListener('mouseleave', () => { isDown = false; });
+        filtersBar.addEventListener('mouseup', () => { isDown = false; });
+        filtersBar.addEventListener('mousemove', (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - filtersBar.offsetLeft;
+          const walk = (x - startX) * 1.5;
+          filtersBar.scrollLeft = scrollLeft - walk;
+        });
+      }
     }
 
     async deletePatient(id: string) {
@@ -446,7 +453,7 @@
           </div>
         `;
 
-        // Event bindings
+        // Action buttons event bindings
         const editBtn = actionsBg.querySelector('.edit-btn');
         editBtn?.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -467,165 +474,6 @@
           if (confirmed) {
             this.deletePatient(patient.id);
           }
-        });
-
-        // Toggle Details
-        const summary = card.querySelector('.card-summary');
-        const details = card.querySelector('.card-details') as HTMLElement;
-        let isExpanded = false;
-        let touchHandledToggle = false;
-
-        function readCardTranslateX() {
-          const style = window.getComputedStyle(card);
-          return new WebKitCSSMatrix(style.transform).m41;
-        }
-
-        function closeSwipedCard() {
-          isOpen = false;
-          currentTranslateX = 0;
-          card.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-          card.style.transform = 'translateX(0px)';
-          cardWrapper.dataset.wasSwiping = 'false';
-        }
-
-        function toggleDetails() {
-          isExpanded = !isExpanded;
-          if (details) {
-            details.style.gridTemplateRows = isExpanded ? '1fr' : '0fr';
-          }
-        }
-
-        // Mobile: iOS Safari often swallows the first click on a div inside a swipe surface,
-        // so we handle the tap directly on touchend.
-        summary?.addEventListener('touchend', (e: any) => {
-          const currentX = readCardTranslateX();
-
-          // If the card is swiped open, close it on tap instead of toggling details
-          if (currentX < -50) {
-            closeSwipedCard();
-            return;
-          }
-
-          // If the card moved significantly during this touch, it was a swipe attempt — don't toggle
-          if (Math.abs(currentX) > 20) return;
-
-          // Stop the delayed ghost click so we don't toggle twice
-          e.preventDefault();
-          touchHandledToggle = true;
-          toggleDetails();
-        });
-
-        // Desktop / fallback click handler
-        summary?.addEventListener('click', (e) => {
-          if (touchHandledToggle) {
-            touchHandledToggle = false;
-            return;
-          }
-
-          const currentX = readCardTranslateX();
-          if (currentX < -50) {
-            closeSwipedCard();
-            return;
-          }
-
-          toggleDetails();
-        });
-
-        // Swipe logic (Touch + Mouse) - Single slide reveals ALL 3 action buttons
-        let startX = 0;
-        let startY = 0;
-        let isSwiping = false;
-        let isOpen = false;
-        let currentTranslateX = 0;
-        const FULL_SWIPE = -210; // Reveals all 3 buttons in 1 smooth slide
-
-        const onStart = (clientX: number, clientY: number) => {
-          const style = window.getComputedStyle(card);
-          const matrix = new WebKitCSSMatrix(style.transform);
-          if (Math.abs(matrix.m41) < 20) {
-            isOpen = false;
-          }
-          startX = clientX;
-          startY = clientY;
-          isSwiping = true;
-          cardWrapper.dataset.wasSwiping = 'false';
-          card.style.transition = 'none';
-        };
-
-        const onMove = (clientX: number, clientY: number) => {
-          if (!isSwiping) return;
-          const diffX = clientX - startX;
-          
-          // Only mark as a real swipe after meaningful horizontal movement;
-          // normal tap jitter is usually under 15px.
-          if (Math.abs(diffX) > 35) {
-            cardWrapper.dataset.wasSwiping = 'true';
-          }
-
-          let targetX = isOpen ? FULL_SWIPE + diffX : diffX;
-          if (targetX > 0) targetX = 0;
-          if (targetX < FULL_SWIPE - 20) targetX = FULL_SWIPE - 20;
-          
-          card.style.transform = `translateX(${targetX}px)`;
-        };
-
-        const onEnd = () => {
-          if (!isSwiping) return;
-          isSwiping = false;
-          card.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-
-          // Read current rendered translateX position
-          const style = window.getComputedStyle(card);
-          const matrix = new WebKitCSSMatrix(style.transform);
-          const currentX = matrix.m41;
-
-          // Single threshold: swipe left past -35px snaps to reveal ALL buttons directly
-          if (!isOpen && currentX < -35) {
-            isOpen = true;
-            currentTranslateX = FULL_SWIPE;
-            card.style.transform = `translateX(${FULL_SWIPE}px)`;
-          } else if (isOpen && currentX > -175) {
-            isOpen = false;
-            currentTranslateX = 0;
-            card.style.transform = 'translateX(0px)';
-          } else {
-            card.style.transform = isOpen ? `translateX(${FULL_SWIPE}px)` : 'translateX(0px)';
-            currentTranslateX = isOpen ? FULL_SWIPE : 0;
-          }
-        };
-
-        card.addEventListener('touchstart', (e: any) => {
-          onStart(e.touches[0].clientX, e.touches[0].clientY);
-        }, { passive: true });
-
-        card.addEventListener('touchmove', (e: any) => {
-          onMove(e.touches[0].clientX, e.touches[0].clientY);
-        }, { passive: true });
-
-        card.addEventListener('touchend', onEnd);
-        card.addEventListener('touchcancel', onEnd);
-
-        // Mouse support
-        let isMouseDown = false;
-        
-        const onWindowMouseMove = (e: MouseEvent) => {
-          if (isMouseDown) onMove(e.clientX, e.clientY);
-        };
-        const onWindowMouseUp = () => {
-          if (isMouseDown) {
-            isMouseDown = false;
-            onEnd();
-            window.removeEventListener('mousemove', onWindowMouseMove);
-            window.removeEventListener('mouseup', onWindowMouseUp);
-          }
-        };
-
-        card.addEventListener('mousedown', (e: MouseEvent) => {
-          if ((e.target as HTMLElement)?.closest('button, a, input')) return;
-          isMouseDown = true;
-          onStart(e.clientX, e.clientY);
-          window.addEventListener('mousemove', onWindowMouseMove);
-          window.addEventListener('mouseup', onWindowMouseUp);
         });
 
         cardWrapper.appendChild(actionsBg);

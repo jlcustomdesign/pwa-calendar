@@ -1,7 +1,7 @@
 ---
 ---
 <div id="payment-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
-  <div id="payment-backdrop" class="absolute inset-0 bg-black/50 pointer-events-none transition-opacity duration-300 opacity-0"></div>
+  <div id="payment-backdrop" class="absolute inset-0 bg-black/50 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
   <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto">
     <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8 cursor-grab active:cursor-grabbing" id="payment-drag-handle"></div>
     
@@ -12,36 +12,49 @@
       </div>
     </div>
 
-    <!-- Patient Financial Summary Card (Name, Cost, Achitat, Rest, Status Curent & Istoric Plăți) -->
-    <div id="payment-summary-box" class="mb-5 bg-surface-card rounded-3xl p-5 space-y-5">
+    <!-- Card 1: Unified Top Financial Summary Card -->
+    <div id="payment-summary-box" class="mb-6 bg-neutral-50 rounded-[2rem] p-5 border border-black/5 space-y-4 shadow-sm">
+      <!-- Top Row: Patient Name & Status Badge -->
       <div class="flex items-center justify-between gap-3">
-        <div class="font-black text-text-main text-xl tracking-tight" id="payment-patient-name">Se încarcă…</div>
-        <div id="payment-current-status-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-100 text-neutral-700">
+        <div class="min-w-0">
+          <h3 class="font-black text-neutral-900 text-xl tracking-tight truncate" id="payment-patient-name">Se încarcă…</h3>
+        </div>
+        <div id="payment-current-status-badge" class="px-5 py-2.5 rounded-2xl text-sm sm:text-base font-black whitespace-nowrap bg-neutral-200 text-neutral-800 shadow-sm shrink-0">
           -
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-3 text-center">
-        <div class="p-3 rounded-2xl bg-surface-base">
-          <span class="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Cost Total</span>
-          <strong class="font-black text-text-main text-sm" id="payment-total-cost">0 RON</strong>
+      <!-- Financial Metrics: Clean 2-Card Layout + Rest Bar -->
+      <div class="space-y-2.5">
+        <div class="grid grid-cols-2 gap-2.5">
+          <!-- Card 1: Cost total -->
+          <div class="p-4 rounded-2xl bg-white border border-black/5 shadow-2xs">
+            <span class="block text-xs font-black text-black">Cost total</span>
+            <strong class="block text-xl font-black text-neutral-900 mt-0.5" id="payment-total-cost">0 RON</strong>
+          </div>
+
+          <!-- Card 2: Achitat -->
+          <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200/60 shadow-2xs">
+            <span class="block text-xs font-black text-black">Achitat</span>
+            <strong class="block text-xl font-black text-emerald-700 mt-0.5" id="payment-total-paid">0 RON</strong>
+          </div>
         </div>
-        <div class="p-3 rounded-2xl bg-emerald-100">
-          <span class="block text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Achitat</span>
-          <strong class="font-black text-emerald-700 text-sm" id="payment-total-paid">0 RON</strong>
-        </div>
-        <div class="p-3 rounded-2xl bg-rose-100">
-          <span class="block text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-1">Rest</span>
-          <strong class="font-black text-rose-600 text-sm" id="payment-remaining-due">0 RON</strong>
+
+        <!-- Card 3: Rest de plată -->
+        <div id="payment-remaining-row" class="flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white border border-black/5 shadow-2xs text-sm transition-colors duration-200">
+          <span class="font-black text-black text-sm" id="payment-remaining-label">Rest de plată</span>
+          <strong class="text-base font-black text-neutral-900" id="payment-remaining-due">0 RON</strong>
         </div>
       </div>
+    </div>
 
-      <!-- Payment History List -->
-      <div>
-        <div class="text-xs font-black uppercase tracking-wider text-text-main mb-3">Istoric plăți</div>
-        <div id="payment-history-list" class="space-y-2 max-h-52 overflow-y-auto pr-1">
-          <div class="text-sm font-bold text-text-muted py-4 text-center">Se încarcă istoricul…</div>
-        </div>
+    <!-- Card 2: Istoric Plăți (Matching Rounded Card) -->
+    <div class="mb-6 bg-neutral-50 rounded-[2rem] p-5 border border-black/5 space-y-3 shadow-sm">
+      <div class="flex items-center justify-between">
+        <span class="text-xs sm:text-sm font-black uppercase tracking-wider text-black">Istoric plăți</span>
+      </div>
+      <div id="payment-history-list" class="space-y-2.5 max-h-48 overflow-y-auto pr-0.5">
+        <div class="text-xs font-semibold text-neutral-400 py-2 text-center">Se încarcă istoricul…</div>
       </div>
     </div>
 
@@ -56,9 +69,6 @@
 
       <button type="button" id="btn-fully-paid" class="w-full py-4 px-6 rounded-2xl bg-emerald-100 text-emerald-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
         <span>Achitat integral</span>
-        <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
       </button>
 
       <button type="button" id="btn-reset-payment" class="w-full py-4 px-6 rounded-2xl bg-rose-100 text-rose-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
@@ -314,22 +324,18 @@
         const cost = patient.cost || 0;
         const totalPaid = await getPatientPayments(this.currentPatientId);
         const remaining = cost - totalPaid;
-        console.log('[PaymentSheet] handleFullyPaid', { patientId: this.currentPatientId, cost, totalPaid, remaining, currentAchitat: patient.achitat });
-
+        
         if (remaining > 0) {
            await addPayment(this.currentPatientId, remaining, true);
         } else {
            await setPaymentStatus(this.currentPatientId, true);
         }
         (window as any).showToast('Plata a fost marcată ca achitată integral.', 'success');
-        window.dispatchEvent(new CustomEvent('patientsUpdated', {
-          detail: { source: 'paymentSheet', patientId: this.currentPatientId, achitat: true }
-        }));
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
         window.dispatchEvent(new CustomEvent('sessionsUpdated'));
         window.dispatchEvent(new CustomEvent('paymentsUpdated', { detail: { patientId: this.currentPatientId } }));
         this.close();
       } catch (err: any) {
-        console.error('[PaymentSheet] handleFullyPaid error:', err);
         (window as any).showToast('Eroare la actualizarea plății: ' + (err.message || err), 'error');
       }
     }
@@ -408,24 +414,28 @@
 
     private async loadPatientFinancials() {
       if (!this.currentPatientId) return;
-
       try {
         const patient = await getPatient(this.currentPatientId);
-        const totalPaid = await getPatientPayments(this.currentPatientId);
+        let totalPaid = await getPatientPayments(this.currentPatientId);
         const cost = Number(patient.cost || 0);
         const statusPlata = (patient as any).status_plata;
         const isFullyPaid = patient.achitat === true || statusPlata === 'Achitat integral' || statusPlata === 'Achitat' || (cost > 0 && totalPaid >= cost);
+        
+        if (isFullyPaid && totalPaid < cost) {
+          totalPaid = cost;
+        }
+
         const remaining = isFullyPaid ? 0 : Math.max(0, cost - totalPaid);
 
         let displayStatusLabel = 'Neachitat';
-        let statusBadgeClass = 'bg-rose-100 text-rose-800';
+        let statusBadgeClass = 'bg-white text-black border border-black/10 font-black';
 
         if (isFullyPaid) {
-          displayStatusLabel = 'Achitat integral';
-          statusBadgeClass = 'bg-emerald-100 text-emerald-800';
+          displayStatusLabel = 'Achitat';
+          statusBadgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-black';
         } else if (totalPaid > 0) {
-          displayStatusLabel = 'Achitat parțial';
-          statusBadgeClass = 'bg-amber-100 text-amber-900';
+          displayStatusLabel = `${totalPaid}/${cost} RON`;
+          statusBadgeClass = 'bg-orange-100 text-black border border-transparent font-black';
         }
 
         const nameEl = document.getElementById('payment-patient-name');
@@ -438,15 +448,27 @@
         if (nameEl) nameEl.textContent = patient.name;
         if (totalCostEl) totalCostEl.textContent = `${cost} RON`;
         if (totalPaidEl) totalPaidEl.textContent = `${totalPaid} RON`;
+        const remainingRowEl = document.getElementById('payment-remaining-row');
+        const remainingLabelEl = document.getElementById('payment-remaining-label');
+
         if (remainingDueEl) {
           remainingDueEl.textContent = `${remaining} RON`;
-          remainingDueEl.className = remaining > 0 
-            ? 'font-black text-rose-600' 
-            : 'font-black text-emerald-600';
+        }
+
+        if (remainingRowEl && remainingLabelEl && remainingDueEl) {
+          if (remaining > 0) {
+            remainingRowEl.className = 'flex items-center justify-between px-4 py-3.5 rounded-2xl bg-rose-50 border border-rose-200 shadow-2xs text-sm transition-colors duration-200';
+            remainingLabelEl.className = 'font-black text-rose-900 text-sm';
+            remainingDueEl.className = 'text-base font-black text-rose-600';
+          } else {
+            remainingRowEl.className = 'flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white border border-black/5 shadow-2xs text-sm transition-colors duration-200';
+            remainingLabelEl.className = 'font-black text-black text-sm';
+            remainingDueEl.className = 'text-base font-black text-neutral-900';
+          }
         }
         if (statusBadgeEl) {
           statusBadgeEl.textContent = displayStatusLabel;
-          statusBadgeEl.className = `px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${statusBadgeClass}`;
+          statusBadgeEl.className = `px-5 py-2.5 rounded-2xl text-sm sm:text-base font-black whitespace-nowrap ${statusBadgeClass} shadow-sm shrink-0`;
         }
 
         // Fetch & render payment transaction history
@@ -455,35 +477,38 @@
             const historyItems = await getPatientPaymentHistoryDetails(this.currentPatientId);
             if (historyItems.length === 0) {
               historyListEl.innerHTML = `
-                <div class="text-sm font-bold text-text-muted py-4 text-center">
+                <div class="py-3 px-4 rounded-2xl bg-white/70 border border-black/5 text-center text-xs font-semibold text-neutral-400">
                   Nicio plată înregistrată încă.
                 </div>
               `;
             } else {
               historyListEl.innerHTML = historyItems.map(item => {
-                const dateStr = item.data_platii || 'Dată necunoscută';
-                const desc = item.descriere || 'Plată pachet ședințe';
+                let dateStr = item.data_platii || 'Dată necunoscută';
+                if (dateStr && dateStr.includes('-')) {
+                  const parts = dateStr.split('T')[0].split('-');
+                  if (parts.length === 3) dateStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+                
+                let paymentTypeLabel = 'Plată parțială';
+                if (item.suma >= cost || (isFullyPaid && historyItems.length === 1) || item.descriere === 'Achitat integral') {
+                  paymentTypeLabel = 'Achitat integral';
+                }
+
                 return `
-                  <div class="flex items-center gap-3 p-3 rounded-2xl bg-surface-base">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-200 flex items-center justify-center shrink-0">
-                      <svg class="w-5 h-5 text-emerald-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
+                  <div class="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-black/5 text-xs shadow-2xs">
+                    <div class="min-w-0">
+                      <span class="block font-black text-neutral-900 text-sm truncate">${paymentTypeLabel}</span>
+                      <span class="block font-black text-black text-xs sm:text-sm mt-0.5">${dateStr}</span>
                     </div>
-                    <div class="flex-1 min-w-0">
-                      <span class="block text-sm font-black text-text-main truncate">${desc}</span>
-                      <span class="block text-[11px] font-bold text-text-muted">${dateStr}</span>
-                    </div>
-                    <div class="text-right shrink-0">
-                      <span class="block text-sm font-black text-emerald-800">+${item.suma} RON</span>
-                      <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white">Achitat</span>
+                    <div class="text-right shrink-0 ml-3">
+                      <span class="block font-black text-emerald-600 text-base sm:text-lg">+${item.suma} RON</span>
                     </div>
                   </div>
                 `;
               }).join('');
             }
           } catch (e) {
-            historyListEl.innerHTML = `<div class="text-sm font-bold text-state-danger text-center py-4">Eroare la citirea istoricului.</div>`;
+            historyListEl.innerHTML = `<div class="text-xs font-bold text-rose-500 text-center py-2">Eroare la citirea istoricului.</div>`;
           }
         }
       } catch (e) {
@@ -492,7 +517,7 @@
     }
 
     private open() {
-      if (!this.sheet || !this.content || !this.backdrop || this.isOpen) return;
+      if (!this.sheet || !this.content || !this.backdrop) return;
       this.isOpen = true;
       this.loadPatientFinancials();
 
@@ -502,7 +527,7 @@
 
       // Fade the backdrop element itself (same pattern as the other sheets) —
       // fading a parent wrapper would disable the backdrop-blur mid-animation
-      this.backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      this.backdrop.classList.remove('opacity-0');
       this.content.classList.remove('translate-y-full');
       lockBodyScroll();
     }
@@ -516,7 +541,7 @@
       this.content.style.transition = '';
       this.content.style.transform = '';
 
-      this.backdrop.classList.add('opacity-0', 'pointer-events-none');
+      this.backdrop.classList.add('opacity-0');
       this.content.classList.add('translate-y-full');
 
       // Remove focus to prevent keyboard from staying open on mobile
@@ -542,11 +567,6 @@
     if (!(window as any)._paymentSheetWindowListenerBound) {
       window.addEventListener('openPaymentSheet', (e: Event) => {
         (window as any).currentPaymentSheetManager?.handleOpenEvent(e as CustomEvent);
-      });
-      window.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          (window as any).currentPaymentSheetManager?.close();
-        }
       });
       (window as any)._paymentSheetWindowListenerBound = true;
     }
