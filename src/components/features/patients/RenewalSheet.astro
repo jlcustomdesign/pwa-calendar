@@ -2,15 +2,23 @@
 // RenewalSheet.astro — Bottom sheet custom pentru reînnoirea abonamentelor de ședințe
 ---
 
-<div id="renewal-sheet" data-sheet-root class="fixed inset-0 z-[130] pointer-events-none">
-  <div id="renewal-backdrop" class="absolute inset-0 bg-black/25 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
-  
-  <div id="renewal-content" class="absolute bottom-0 left-0 right-0 bg-surface-card rounded-t-[2.5rem] p-6 pb-8 sm:pb-6 pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto border-t border-transparent">
-    <!-- Drag handle -->
-    <div class="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-6 cursor-grab active:cursor-grabbing" id="renewal-drag-handle"></div>
+<!-- Overlay/Backdrop -->
+<div 
+  id="renewal-backdrop" 
+  class="fixed inset-0 bg-black/25 z-[125] transition-opacity duration-300 opacity-0 pointer-events-none"
+></div>
 
+<div 
+  id="renewal-sheet" 
+  data-sheet-root 
+  class="fixed inset-x-0 bottom-0 z-[130] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
+>
+  <!-- Drag handle -->
+  <div class="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing" id="renewal-drag-handle"></div>
+
+  <div class="flex-1 overflow-y-auto px-1 pt-1 pb-10 space-y-4">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between mb-2">
       <div>
         <h2 class="text-xl sm:text-2xl font-black tracking-tight text-text-main">Reînnoire abonament</h2>
         <p class="text-text-muted font-bold text-sm mt-0.5" id="renewal-patient-name">Selectează noul pachet de ședințe</p>
@@ -182,7 +190,7 @@
   class RenewalSheetManager {
     private sheet: HTMLElement | null = null;
     private backdrop: HTMLElement | null = null;
-    private content: HTMLElement | null = null;
+    private dragHandle: HTMLElement | null = null;
     private sessionsInput: HTMLInputElement | null = null;
     private priceInput: HTMLInputElement | null = null;
     private partialAmountInput: HTMLInputElement | null = null;
@@ -191,7 +199,13 @@
     private selectedPaymentStatus: 'Neachitat' | 'Parțial' | 'Achitat' = 'Neachitat';
     private currentPatientId: string | null = null;
     private pendingAppointment: any = null;
-    private isOpen: boolean = false;
+
+    // Gesture handling exactly like AddPatientSheet
+    private startY: number = 0;
+    private currentY: number = 0;
+    private startX: number = 0;
+    private dragEngaged: boolean = false;
+    private scrollAtTop: boolean = true;
 
     constructor() {
       this.reconnect();
@@ -201,16 +215,12 @@
     reconnect() {
       this.sheet = document.getElementById('renewal-sheet');
       this.backdrop = document.getElementById('renewal-backdrop');
-      this.content = document.getElementById('renewal-content');
+      this.dragHandle = document.getElementById('renewal-drag-handle');
       this.sessionsInput = document.getElementById('renewal-sessions-input') as HTMLInputElement;
       this.priceInput = document.getElementById('renewal-price-input') as HTMLInputElement;
       this.partialAmountInput = document.getElementById('renewal-partial-amount') as HTMLInputElement;
       this.partialBox = document.getElementById('renewal-partial-box');
       this.calculatedDisplay = document.getElementById('renewal-calculated-cost');
-
-      if (this.sheet?.dataset.open === 'true') this.isOpen = true;
-      this.bindDragHandle();
-      this.bindContentSwipe();
     }
 
     handleOpenEvent(e: CustomEvent) {
@@ -224,6 +234,16 @@
     }
 
     private bindEvents() {
+      this.reconnect();
+
+      if (this.sheet && !this.sheet.dataset.touchBound) {
+        this.sheet.dataset.touchBound = 'true';
+        this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+        this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+        this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
+        this.sheet.addEventListener('touchcancel', () => this.cancelDrag());
+      }
+
       if ((window as any)._renewalDocClickBound) return;
       (window as any)._renewalDocClickBound = true;
 
@@ -240,34 +260,94 @@
           mgr.calculateTotalCost();
         }
       });
+    }
 
-      this.bindDragHandle();
-      this.bindContentSwipe();
+    private handleTouchStart(e: TouchEvent) {
+      this.startY = e.touches[0].clientY;
+      this.currentY = this.startY;
+      this.startX = e.touches[0].clientX;
+      this.dragEngaged = false;
+
+      const target = e.target as HTMLElement;
+      const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'LABEL'].includes(target.tagName);
+      if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
+        this.scrollAtTop = false;
+        return;
+      }
+
+      const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
+      this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
+    }
+
+    private handleTouchMove(e: TouchEvent) {
+      const y = e.touches[0].clientY;
+      const deltaY = y - this.startY;
+      const deltaX = e.touches[0].clientX - this.startX;
+
+      if (!this.dragEngaged) {
+        if (this.scrollAtTop && deltaY > 8 && deltaY > Math.abs(deltaX) * 1.2) {
+          this.dragEngaged = true;
+          if (this.sheet) this.sheet.style.transition = 'none';
+        } else {
+          return;
+        }
+      }
+
+      this.currentY = y;
+      if (deltaY > 0 && this.sheet) {
+        if (e.cancelable) e.preventDefault();
+        this.sheet.style.transform = `translateY(${deltaY}px)`;
+      }
+    }
+
+    private handleTouchEnd() {
+      if (!this.sheet || !this.dragEngaged) {
+        this.dragEngaged = false;
+        return;
+      }
+      this.dragEngaged = false;
+      const deltaY = this.currentY - this.startY;
+      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+
+      if (deltaY > 60) {
+        this.close();
+      } else {
+        this.sheet.style.transform = 'translateY(0)';
+      }
+    }
+
+    private cancelDrag() {
+      this.dragEngaged = false;
+      if (this.sheet) {
+        this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+        this.sheet.style.transform = 'translateY(0)';
+      }
     }
 
     private handleDocumentClick(e: MouseEvent) {
       const target = e.target as HTMLElement;
       if (!target) return;
 
-      if (target.closest('#renewal-backdrop')) {
+      // Click on backdrop -> close
+      if (target.id === 'renewal-backdrop') {
         this.close();
         return;
       }
 
-      // Stepper button clicks
-      const stepperBtn = target.closest('[data-stepper]') as HTMLElement | null;
-      if (stepperBtn && target.closest('#renewal-sheet')) {
+      // Steppers
+      const stepperBtn = target.closest('[data-stepper]') as HTMLButtonElement | null;
+      if (stepperBtn) {
         const type = stepperBtn.dataset.stepper;
         const dir = parseInt(stepperBtn.dataset.dir || '1', 10);
-        this.stepValue(type, dir);
+        this.handleStepper(type, dir);
         return;
       }
 
-      // Payment mode buttons (Neachitat, Parțial, Achitat)
-      const payBtn = target.closest('[data-payment]') as HTMLElement | null;
-      if (payBtn && target.closest('#renewal-sheet')) {
-        const status = payBtn.dataset.payment as 'Neachitat' | 'Parțial' | 'Achitat';
-        this.setPaymentStatus(status);
+      // Payment mode toggle buttons
+      const payBtn = target.closest('.renewal-payment-btn') as HTMLButtonElement | null;
+      if (payBtn) {
+        const mode = payBtn.dataset.payment as 'Neachitat' | 'Parțial' | 'Achitat';
+        if (mode) this.setPaymentStatus(mode);
         return;
       }
 
@@ -278,222 +358,121 @@
       }
     }
 
-    private stepValue(type: string | undefined, dir: number) {
+    private handleStepper(type: string | undefined, dir: number) {
       if (type === 'sessions') {
-        const input = document.getElementById('renewal-sessions-input') as HTMLInputElement | null;
-        if (!input) return;
-        const cur = parseInt(input.value || '10', 10);
-        const next = Math.max(1, Math.min(100, cur + dir));
-        input.value = String(next);
-        this.calculateTotalCost();
+        const sInput = document.getElementById('renewal-sessions-input') as HTMLInputElement | null;
+        if (sInput) {
+          let val = parseInt(sInput.value || '10', 10) + dir;
+          if (val < 1) val = 1;
+          if (val > 100) val = 100;
+          sInput.value = val.toString();
+          this.calculateTotalCost();
+        }
       } else if (type === 'price') {
-        const input = document.getElementById('renewal-price-input') as HTMLInputElement | null;
-        if (!input) return;
-        const cur = parseInt(input.value || '150', 10);
-        const step = 10;
-        const next = Math.max(0, cur + dir * step);
-        input.value = String(next);
-        this.calculateTotalCost();
+        const pInput = document.getElementById('renewal-price-input') as HTMLInputElement | null;
+        if (pInput) {
+          let val = parseInt(pInput.value || '150', 10) + (dir * 10);
+          if (val < 0) val = 0;
+          pInput.value = val.toString();
+          this.calculateTotalCost();
+        }
       }
     }
 
     calculateTotalCost() {
       const sInput = document.getElementById('renewal-sessions-input') as HTMLInputElement | null;
       const pInput = document.getElementById('renewal-price-input') as HTMLInputElement | null;
-      const display = document.getElementById('renewal-calculated-cost');
+      const calcEl = document.getElementById('renewal-calculated-cost');
 
-      const sessions = Math.max(1, parseInt(sInput?.value || '0', 10) || 10);
-      const price = Math.max(0, parseInt(pInput?.value || '0', 10) || 0);
+      const sessions = Math.max(1, parseInt(sInput?.value || '10', 10));
+      const price = Math.max(0, parseInt(pInput?.value || '150', 10));
       const total = sessions * price;
 
-      if (display) {
-        display.textContent = String(total);
+      if (calcEl) {
+        calcEl.textContent = total.toString();
       }
-      return total;
     }
 
     private setPaymentStatus(status: 'Neachitat' | 'Parțial' | 'Achitat') {
       this.selectedPaymentStatus = status;
-      const buttons = document.querySelectorAll<HTMLElement>('#renewal-payment-mode-container [data-payment]');
-      buttons.forEach(btn => {
-        const bStatus = btn.dataset.payment;
-        if (bStatus === status) {
+      const buttons = document.querySelectorAll('.renewal-payment-btn');
+      const partialBox = document.getElementById('renewal-partial-box');
+
+      buttons.forEach((b) => {
+        const btn = b as HTMLElement;
+        const btnStatus = btn.dataset.payment;
+        if (btnStatus === status) {
           if (status === 'Neachitat') {
             btn.className = 'renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-rose-100 text-rose-700 shadow-sm';
           } else if (status === 'Parțial') {
-            btn.className = 'renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-amber-100 text-amber-900 shadow-sm';
+            btn.className = 'renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-amber-100 text-amber-900 border border-amber-200/60 shadow-sm';
           } else {
-            btn.className = 'renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-emerald-100 text-emerald-800 shadow-sm';
+            btn.className = 'renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-emerald-100 text-emerald-700 shadow-sm';
           }
         } else {
-          btn.className = 'renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black';
+          btn.className = 'renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black';
         }
       });
 
-      const pBox = document.getElementById('renewal-partial-box');
-      if (pBox) {
+      if (partialBox) {
         if (status === 'Parțial') {
-          pBox.classList.remove('hidden');
+          partialBox.classList.remove('hidden');
+          const pInput = document.getElementById('renewal-partial-amount') as HTMLInputElement | null;
+          if (pInput && !pInput.value) {
+            pInput.value = '500';
+          }
         } else {
-          pBox.classList.add('hidden');
+          partialBox.classList.add('hidden');
         }
       }
     }
 
-    private async loadPatientInfo(providedName?: string, defaultSessions: number = 10) {
+    private async loadPatientInfo(providedName?: string, count: number = 10) {
       const nameEl = document.getElementById('renewal-patient-name');
+      const sessionsInput = document.getElementById('renewal-sessions-input') as HTMLInputElement | null;
+      const priceInput = document.getElementById('renewal-price-input') as HTMLInputElement | null;
       const debtCard = document.getElementById('renewal-debt-card');
       const debtAmountEl = document.getElementById('renewal-debt-amount');
-      const sInput = document.getElementById('renewal-sessions-input') as HTMLInputElement | null;
-      const pInput = document.getElementById('renewal-price-input') as HTMLInputElement | null;
-      const partInput = document.getElementById('renewal-partial-amount') as HTMLInputElement | null;
 
-      if (partInput) partInput.value = '';
+      if (sessionsInput) sessionsInput.value = count.toString();
 
-      let defaultPrice = 150;
-      try {
-        const st = await getSettings();
-        if (st?.default_price) defaultPrice = st.default_price;
-      } catch (_) {}
-
-      if (sInput) sInput.value = String(defaultSessions || 10);
-      if (pInput) pInput.value = String(defaultPrice);
-
-      if (!this.currentPatientId) {
-        this.calculateTotalCost();
-        return;
-      }
+      // Reset debt card
+      if (debtCard) debtCard.classList.add('hidden');
+      if (debtAmountEl) debtAmountEl.textContent = '0 RON';
 
       try {
-        const patient = await getPatient(this.currentPatientId);
-        if (nameEl) nameEl.textContent = `Pacient: ${patient.name}`;
-
-        if (patient.sedinte_total && sInput) {
-          sInput.value = String(patient.sedinte_total);
+        const settings = await getSettings();
+        if (priceInput && settings?.default_price) {
+          priceInput.value = settings.default_price.toString();
         }
-        if (patient.cost && patient.sedinte_total && patient.sedinte_total > 0 && pInput) {
-          const derivedPrice = Math.round(Number(patient.cost) / Number(patient.sedinte_total));
-          if (derivedPrice > 0) pInput.value = String(derivedPrice);
-        }
+      } catch (e) {}
 
-        const totalPaid = await getPatientPayments(this.currentPatientId);
-        const costTotal = Number(patient.cost || 0);
-        const restDePlata = Math.max(0, costTotal - totalPaid);
+      if (this.currentPatientId) {
+        try {
+          const patient = await getPatient(this.currentPatientId);
+          if (patient) {
+            if (nameEl) nameEl.textContent = `Pacient: ${patient.nume} ${patient.prenume}`;
+            if (priceInput && patient.cost && patient.sedinte_total) {
+              const unitPrice = Math.round(patient.cost / patient.sedinte_total);
+              if (unitPrice > 0) priceInput.value = unitPrice.toString();
+            }
 
-        if (!patient.achitat && restDePlata > 0) {
-          if (debtAmountEl) debtAmountEl.textContent = `${restDePlata} RON`;
-          if (debtCard) debtCard.classList.remove('hidden');
-        } else {
-          if (debtCard) debtCard.classList.add('hidden');
+            // Calcul restanță anterioară (dacă nu e achitat integral)
+            const paymentsTotal = await getPatientPayments(this.currentPatientId);
+            const unpaidDebt = Math.max(0, (patient.cost || 0) - paymentsTotal);
+            if (unpaidDebt > 0 && debtCard && debtAmountEl) {
+              debtAmountEl.textContent = `${unpaidDebt} RON`;
+              debtCard.classList.remove('hidden');
+            }
+          }
+        } catch (e) {
+          if (providedName && nameEl) nameEl.textContent = `Pacient: ${providedName}`;
         }
-      } catch (e) {
+      } else {
         if (providedName && nameEl) nameEl.textContent = `Pacient: ${providedName}`;
       }
 
       this.calculateTotalCost();
-    }
-
-    private bindDragHandle() {
-      const dragHandle = document.getElementById('renewal-drag-handle');
-      const content = document.getElementById('renewal-content') || this.content;
-      if (!dragHandle || !content) return;
-
-      let startY = 0;
-      let startX = 0;
-      let dragging = false;
-
-      dragHandle.addEventListener('touchstart', (e: TouchEvent) => {
-        startY = e.touches[0].clientY;
-        startX = e.touches[0].clientX;
-        dragging = true;
-        content.style.transition = 'none';
-      }, { passive: true });
-
-      dragHandle.addEventListener('touchmove', (e: TouchEvent) => {
-        if (!dragging) return;
-        const deltaY = e.touches[0].clientY - startY;
-        if (deltaY > 0) {
-          if (e.cancelable) e.preventDefault();
-          content.style.transform = `translateY(${deltaY}px)`;
-        }
-      }, { passive: false });
-
-      const onEnd = (e: TouchEvent) => {
-        if (!dragging) return;
-        dragging = false;
-        const clientY = e.changedTouches?.[0]?.clientY ?? startY;
-        const deltaY = clientY - startY;
-        content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
-        if (deltaY > 50) {
-          const mgr = (window as any).currentRenewalSheetManager || this;
-          mgr.close();
-        } else {
-          content.style.transform = 'translateY(0)';
-        }
-      };
-
-      dragHandle.addEventListener('touchend', onEnd, { passive: true });
-      dragHandle.addEventListener('touchcancel', onEnd, { passive: true });
-    }
-
-    private bindContentSwipe() {
-      const content = document.getElementById('renewal-content') || this.content;
-      if (!content) return;
-
-      let startY = 0;
-      let startX = 0;
-      let dragEngaged = false;
-
-      content.addEventListener('touchstart', (e: TouchEvent) => {
-        const target = e.target as HTMLElement;
-        const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'LABEL'].includes(target.tagName);
-        if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
-          return;
-        }
-        startY = e.touches[0].clientY;
-        startX = e.touches[0].clientX;
-        dragEngaged = false;
-      }, { passive: true });
-
-      content.addEventListener('touchmove', (e: TouchEvent) => {
-        const isAtTop = content.scrollTop <= 0;
-        if (!isAtTop && !dragEngaged) return;
-
-        const y = e.touches[0].clientY;
-        const deltaY = y - startY;
-        const deltaX = e.touches[0].clientX - startX;
-
-        if (!dragEngaged) {
-          if (isAtTop && deltaY > 6 && deltaY > Math.abs(deltaX) * 1.1) {
-            dragEngaged = true;
-            content.style.transition = 'none';
-          } else {
-            return;
-          }
-        }
-
-        if (deltaY > 0) {
-          if (e.cancelable) e.preventDefault();
-          content.style.transform = `translateY(${deltaY}px)`;
-        }
-      }, { passive: false });
-
-      const onSwipeEnd = (e: TouchEvent) => {
-        if (!dragEngaged) return;
-        dragEngaged = false;
-        const clientY = e.changedTouches?.[0]?.clientY ?? startY;
-        const deltaY = clientY - startY;
-        content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
-        if (deltaY > 50) {
-          const mgr = (window as any).currentRenewalSheetManager || this;
-          mgr.close();
-        } else {
-          content.style.transform = 'translateY(0)';
-        }
-      };
-
-      content.addEventListener('touchend', onSwipeEnd, { passive: true });
-      content.addEventListener('touchcancel', onSwipeEnd, { passive: true });
     }
 
     private async handleConfirm() {
@@ -558,40 +537,23 @@
 
     open() {
       this.reconnect();
-      const sheet = document.getElementById('renewal-sheet') || this.sheet;
-      const backdrop = document.getElementById('renewal-backdrop') || this.backdrop;
-      const content = document.getElementById('renewal-content') || this.content;
-      if (!sheet || !backdrop || !content) return;
-      this.isOpen = true;
+      if (!this.sheet || !this.backdrop) return;
       this.calculateTotalCost();
       this.setPaymentStatus('Neachitat');
-      sheet.dataset.open = 'true';
-      content.style.transform = '';
-      void sheet.offsetWidth;
-
-      backdrop.classList.remove('opacity-0');
-      content.classList.remove('translate-y-full');
+      this.sheet.style.transform = '';
+      this.sheet.classList.remove('translate-y-full');
+      this.backdrop.classList.remove('opacity-0', 'pointer-events-none');
       lockBodyScroll();
     }
 
     close() {
-      const sheet = document.getElementById('renewal-sheet') || this.sheet;
-      const backdrop = document.getElementById('renewal-backdrop') || this.backdrop;
-      const content = document.getElementById('renewal-content') || this.content;
-      if (!sheet || !backdrop || !content) return;
-
-      this.isOpen = false;
+      this.reconnect();
+      if (!this.sheet || !this.backdrop) return;
+      this.sheet.style.transform = '';
+      this.sheet.classList.add('translate-y-full');
+      this.backdrop.classList.add('opacity-0', 'pointer-events-none');
       unlockBodyScroll();
-
-      content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
-      content.style.transform = '';
-      backdrop.classList.add('opacity-0');
-      content.classList.add('translate-y-full');
-
-      setTimeout(() => {
-        sheet.dataset.open = 'false';
-        this.currentPatientId = null;
-      }, 400);
+      this.currentPatientId = null;
     }
   }
 
@@ -608,9 +570,12 @@
     (window as any).currentRenewalSheetManager = new RenewalSheetManager();
   }
 
-  document.addEventListener('astro:page-load', initRenewalSheet);
-  document.addEventListener('DOMContentLoaded', initRenewalSheet);
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initRenewalSheet);
+  } else {
     initRenewalSheet();
   }
+
+  document.addEventListener('astro:page-load', initRenewalSheet);
+  document.addEventListener('astro:after-swap', initRenewalSheet);
 </script>
