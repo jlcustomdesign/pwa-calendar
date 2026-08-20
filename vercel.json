@@ -1,3 +1,9 @@
 {
-  "framework": "astro"
+  "framework": "astro",
+  "crons": [
+    {
+      "path": "/api/check-reminders",
+      "schedule": "* * * * *"
+    }
+  ]
 }
