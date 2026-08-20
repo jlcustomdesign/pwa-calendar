@@ -22,6 +22,7 @@ END $$;
 DROP VIEW IF EXISTS  public.pacienti_view        CASCADE;
 DROP TABLE IF EXISTS public.istoric_saptamanal   CASCADE;
 DROP TABLE IF EXISTS public.notificari            CASCADE;
+DROP TABLE IF EXISTS public.push_subscriptions    CASCADE;
 DROP TABLE IF EXISTS public.error_logs            CASCADE;
 DROP TABLE IF EXISTS public.plati                 CASCADE;
 DROP TABLE IF EXISTS public.programari            CASCADE;
@@ -546,8 +547,30 @@ ALTER TABLE public.pacienti           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.programari         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.plati              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.error_logs         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notificari         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.istoric_saptamanal ENABLE ROW LEVEL SECURITY;
+
+-- ------------------------------------------------------------
+-- TABELĂ: push_subscriptions (pentru Web Push pe mobil/desktop)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        REFERENCES auth.users(id) ON DELETE CASCADE,
+  endpoint    TEXT        NOT NULL UNIQUE,
+  p256dh      TEXT        NOT NULL,
+  auth        TEXT        NOT NULL,
+  user_agent  TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subs_user_id ON public.push_subscriptions (user_id);
+
+DROP TRIGGER IF EXISTS trg_push_subs_updated_at ON public.push_subscriptions;
+CREATE TRIGGER trg_push_subs_updated_at
+  BEFORE UPDATE ON public.push_subscriptions
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- Politici de acces
 DROP POLICY IF EXISTS "acces profiles" ON public.profiles;
@@ -567,6 +590,9 @@ CREATE POLICY "acces plati" ON public.plati FOR ALL USING (true) WITH CHECK (tru
 
 DROP POLICY IF EXISTS "acces error_logs" ON public.error_logs;
 CREATE POLICY "acces error_logs" ON public.error_logs FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "acces push_subscriptions" ON public.push_subscriptions;
+CREATE POLICY "acces push_subscriptions" ON public.push_subscriptions FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "acces notificari" ON public.notificari;
 CREATE POLICY "acces notificari" ON public.notificari FOR ALL USING (true) WITH CHECK (true);

@@ -610,13 +610,13 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const notifBadge = document.getElementById('notification-status-badge');
     const btnTestNotif = document.getElementById('btn-test-notification');
 
-    function updateNotifBadge() {
+    async function updateNotifBadge() {
       if (!notifBadge) return;
       if (!('Notification' in window)) {
         notifBadge.textContent = 'Nesuportat';
         notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-200 text-neutral-600';
       } else if (Notification.permission === 'granted') {
-        notifBadge.textContent = 'Active';
+        notifBadge.textContent = 'Active (Fundal)';
         notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-700 border border-emerald-300';
       } else if (Notification.permission === 'denied') {
         notifBadge.textContent = 'Blocate';
@@ -629,22 +629,29 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     updateNotifBadge();
 
     btnTestNotif?.addEventListener('click', async () => {
+      const originalText = btnTestNotif.innerHTML;
       try {
-        const { requestNotificationPermission, triggerWebNotification } = await import('../../../lib/services/sessionNotifier');
-        const granted = await requestNotificationPermission();
-        updateNotifBadge();
-        if (granted) {
-          await triggerWebNotification(
-            '🔔 Test Notificare Kineto',
-            'Notificările funcționează perfect pe acest dispozitiv!'
-          );
-          showToast('Notificare trimisă cu succes!');
+        btnTestNotif.innerHTML = '<span class="animate-pulse">Se activează...</span>';
+        (btnTestNotif as HTMLButtonElement).disabled = true;
+
+        const { subscribeToPushNotifications } = await import('../../../lib/services/pushService');
+        const res = await subscribeToPushNotifications();
+        await updateNotifBadge();
+
+        if (res.success) {
+          showToast('Notificările în fundal au fost activate cu succes!');
         } else {
-          alert('Pentru a primi notificări pe iPhone: Mergi în Configurări (Settings) -> Notificări -> KinetoAgenda și activează Permite Notificări.');
+          showToast(res.message || 'Eroare la activare.', 'error');
+          if (res.message && res.message.includes('refuzată')) {
+            alert('Pentru a primi notificări pe iPhone: Mergi în Configurări (Settings) -> Notificări -> KinetoAgenda și activează Permite Notificări.');
+          }
         }
       } catch (err: any) {
         console.error('Test notification error:', err);
-        showToast('Eroare la testarea notificărilor.');
+        showToast('Eroare la activarea notificărilor.', 'error');
+      } finally {
+        btnTestNotif.innerHTML = originalText;
+        (btnTestNotif as HTMLButtonElement).disabled = false;
       }
     });
 

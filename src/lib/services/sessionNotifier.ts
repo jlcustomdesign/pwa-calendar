@@ -14,10 +14,18 @@ const notifiedEnds = new Set<string>();
 export async function requestNotificationPermission(): Promise<boolean> {
   if (typeof window === 'undefined' || !('Notification' in window)) return false;
   try {
-    if (Notification.permission === 'granted') return true;
+    if (Notification.permission === 'granted') {
+      import('./pushService').then(({ subscribeToPushNotifications }) => {
+        subscribeToPushNotifications().catch(() => {});
+      }).catch(() => {});
+      return true;
+    }
     if (Notification.permission === 'denied') return false;
     const perm = await Notification.requestPermission();
     if (perm === 'granted') {
+      import('./pushService').then(({ subscribeToPushNotifications }) => {
+        subscribeToPushNotifications().catch(() => {});
+      }).catch(() => {});
       await triggerWebNotification(
         '🔔 Notificări Active!',
         'Vei primi notificări la începutul și finalul fiecărei ședințe.'
