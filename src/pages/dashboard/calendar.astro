@@ -362,7 +362,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       container.classList.remove('hidden');
 
       const startHour = parseInt((settings.work_start || '08:00').split(':')[0], 10) || 8;
-      const endHour = parseInt((settings.work_end || '20:00').split(':')[0], 10) || 20;
+      const endHour = parseInt((settings.work_end || '21:00').split(':')[0], 10) || 21;
       const lunchStart = (settings.lunch_start || '12:00').substring(0, 5);
       const lunchEnd = (settings.lunch_end || '12:30').substring(0, 5);
 
