@@ -116,7 +116,7 @@ CREATE TABLE public.settings (
   id                      UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
   therapist_name          VARCHAR(100)   DEFAULT 'Roxana',
   work_start              TIME           DEFAULT '08:00',
-  work_end                TIME           DEFAULT '20:00',
+  work_end                TIME           DEFAULT '18:00',
   lunch_start             TIME           DEFAULT '12:00',
   lunch_end               TIME           DEFAULT '12:30',
   session_duration        INT            DEFAULT 50  CHECK (session_duration > 0),

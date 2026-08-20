@@ -68,7 +68,7 @@ export async function getSettings(): Promise<Settings> {
       ...DEFAULT_SETTINGS,
       ...data,
       work_start: (data.work_start || '08:00').substring(0, 5),
-      work_end: (data.work_end || '20:00').substring(0, 5),
+      work_end: (data.work_end || '18:00').substring(0, 5),
       lunch_start: (data.lunch_start || '12:00').substring(0, 5),
       lunch_end: (data.lunch_end || '12:30').substring(0, 5),
     };
