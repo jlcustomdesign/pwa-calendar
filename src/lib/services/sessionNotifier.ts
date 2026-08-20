@@ -221,7 +221,8 @@ async function checkTodaySessionsForNotifications() {
           if (canUseWebNotifications) {
             await triggerWebNotification(
               `🔔 Începe: ${patientName}`,
-              `La ora ${timeStr} începe ședința cu ${patientName}.`
+              `La ora ${timeStr} începe ședința cu ${patientName}.`,
+              startKey
             );
           }
         }
@@ -254,7 +255,8 @@ async function checkTodaySessionsForNotifications() {
           if (canUseWebNotifications) {
             await triggerWebNotification(
               `✅ Ședință încheiată: ${patientName}`,
-              `Ședința de la ora ${timeStr} s-a încheiat.${nextMessage} Apasă pentru confirmare.`
+              `Ședința de la ora ${timeStr} s-a încheiat.${nextMessage} Apasă pentru confirmare.`,
+              endKey
             );
           }
         }
@@ -265,7 +267,7 @@ async function checkTodaySessionsForNotifications() {
   }
 }
 
-export async function triggerWebNotification(title: string, body: string) {
+export async function triggerWebNotification(title: string, body: string, tag = 'kineto-session-alert') {
   try {
     if (typeof window === 'undefined') return;
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -274,7 +276,8 @@ export async function triggerWebNotification(title: string, body: string) {
       body,
       icon: '/favicon.svg',
       badge: '/favicon.svg',
-      tag: 'kineto-session-alert',
+      tag,
+      renotify: true,
       data: { url: '/dashboard' },
       vibrate: [200, 100, 200]
     };
