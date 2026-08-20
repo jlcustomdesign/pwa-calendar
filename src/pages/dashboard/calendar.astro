@@ -373,9 +373,9 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       const lunchStartMin = (lsh || 0) * 60 + (lsm || 0);
       const lunchEndMin = (leh || 0) * 60 + (lem || 0);
 
-      function findSessionForHour(slotTimeStr: string) {
+      function findSessionsForHour(slotTimeStr: string) {
         const slotHour = parseInt(slotTimeStr.split(':')[0], 10);
-        return storedSessions.find((s: any) => {
+        return storedSessions.filter((s: any) => {
           if (!s.selectedTime) return false;
           const sessionHour = parseInt(s.selectedTime.split(':')[0], 10);
           return !isNaN(sessionHour) && sessionHour === slotHour;
@@ -388,7 +388,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       }
 
       // Group consecutive lunch slots into a single block so the lunch card spans all of them.
-      type SlotItem = { type: 'slot'; time: string; session: any } | { type: 'lunch'; slots: string[] };
+      type SlotItem = { type: 'slot'; time: string; sessions: any[] } | { type: 'lunch'; slots: string[] };
       const items: SlotItem[] = [];
       let i = 0;
       while (i < timeSlots.length) {
@@ -396,8 +396,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         const h = parseInt(slotTimeStr.split(':')[0], 10);
         const slotHourStart = h * 60;
         const slotHourEnd = (h + 1) * 60;
-        const session = findSessionForHour(slotTimeStr);
-        const isLunchSlot = !session && (slotHourStart < lunchEndMin) && (slotHourEnd > lunchStartMin);
+        const sessions = findSessionsForHour(slotTimeStr);
+        const isLunchSlot = sessions.length === 0 && (slotHourStart < lunchEndMin) && (slotHourEnd > lunchStartMin);
 
         if (isLunchSlot) {
           const lunchSlots: string[] = [];
@@ -406,8 +406,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
             const tjHour = parseInt(t.split(':')[0], 10);
             const tjStart = tjHour * 60;
             const tjEnd = (tjHour + 1) * 60;
-            const s = findSessionForHour(t);
-            if (!s && (tjStart < lunchEndMin) && (tjEnd > lunchStartMin)) {
+            const s = findSessionsForHour(t);
+            if (s.length === 0 && (tjStart < lunchEndMin) && (tjEnd > lunchStartMin)) {
               lunchSlots.push(t);
             } else {
               break;
@@ -416,7 +416,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           items.push({ type: 'lunch', slots: lunchSlots.length > 0 ? lunchSlots : [slotTimeStr] });
           i += Math.max(1, lunchSlots.length);
         } else {
-          items.push({ type: 'slot', time: slotTimeStr, session });
+          items.push({ type: 'slot', time: slotTimeStr, sessions });
           i++;
         }
       }
@@ -444,8 +444,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         }
 
         const slotTimeStr = item.time;
-        const session = item.session;
-        const displayTimeStr = session ? session.selectedTime : slotTimeStr;
+        const sessions = item.sessions;
+        const displayTimeStr = sessions.length ? sessions[0].selectedTime : slotTimeStr;
         const [hourStr, minStr] = displayTimeStr.split(':');
 
         return `
@@ -455,16 +455,18 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
               <span class="text-xs font-bold text-text-muted tracking-wider uppercase mt-0.5">${minStr || '00'}</span>
             </div>
 
-            <div class="flex-1 min-w-0 pb-2" data-slot-time="${slotTimeStr}">
-              ${session ? createSessionCardHTML(session) : `
-                <button
-                  type="button"
-                  class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
-                  onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', date: currentCalendarDate, showDateTime: false } }))"
-                >
-                  + Adaugă ședință
-                </button>
-              `}
+            <div class="flex-1 min-w-0 pb-2 flex flex-col gap-2" data-slot-time="${slotTimeStr}">
+              ${sessions.length > 0
+                ? sessions.map((s: any) => createSessionCardHTML(s)).join('')
+                : `
+                  <button
+                    type="button"
+                    class="w-full h-16 rounded-2xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm font-bold hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors active:scale-[0.98]"
+                    onclick="window.dispatchEvent(new CustomEvent('openAddSession', { detail: { time: '${slotTimeStr}', date: currentCalendarDate, showDateTime: false } }))"
+                  >
+                    + Adaugă ședință
+                  </button>
+                `}
             </div>
           </div>
         `;

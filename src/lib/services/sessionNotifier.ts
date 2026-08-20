@@ -209,26 +209,9 @@ async function checkTodaySessionsForNotifications() {
       const endTotalMin = startTotalMin + sessionDuration;
 
       const patientName = appt.pacienti ? `${appt.pacienti.prenume} ${appt.pacienti.nume}`.trim() : 'Pacient';
-      const startKey = `${todayStr}_${appt.id}_start`;
       const endKey = `${todayStr}_${appt.id}_end`;
 
-      // 1. Notificare ÎNCEPUT ȘEDINȚĂ
-      // Fereastră mică: cu 1 min înainte până la 2 min după start. Dacă ai deschis app mult după,
-      // nu vrei să primești notificări spam despre o ședință care a început deja.
-      if (currentMinutes >= startTotalMin - 1 && currentMinutes <= startTotalMin + 2) {
-        if (!notifiedKeys[startKey]) {
-          setNotifiedKey(startKey);
-          if (canUseWebNotifications) {
-            await triggerWebNotification(
-              `🔔 Începe: ${patientName}`,
-              `La ora ${timeStr} începe ședința cu ${patientName}.`,
-              startKey
-            );
-          }
-        }
-      }
-
-      // 2. Notificare SFÂRȘIT ȘEDINȚĂ
+      // Notificare SFÂRȘIT ȘEDINȚĂ
       // Fereastră de la final până la 5 min după.
       if (currentMinutes >= endTotalMin && currentMinutes <= endTotalMin + 5) {
         if (!notifiedKeys[endKey]) {
