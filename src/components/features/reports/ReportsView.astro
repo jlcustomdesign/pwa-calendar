@@ -45,10 +45,13 @@
       </div>
 
       <!-- Card 3: Încasat azi -->
-      <div class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-transparent flex flex-col items-center justify-center text-center transition-all hover:border-transparent">
-        <div id="today-income" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">0</div>
-        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">RON</div>
-      </div>
+      <button type="button" id="today-income-card" class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-transparent flex flex-col items-center justify-center text-center transition-all hover:border-transparent cursor-pointer active:scale-95 group">
+        <div id="today-income" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none group-hover:text-brand-secondary transition-colors">0</div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2 flex items-center gap-1">
+          <span>RON</span>
+          <svg class="w-3.5 h-3.5 text-text-muted opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </button>
     </div>
   </section>
 
@@ -152,7 +155,7 @@
           </div>
 
           <!-- Y-axis anchors (to the right of graph, matching graph height) -->
-          <div class="flex flex-col justify-between text-[10px] font-black text-text-muted text-left py-0.5 pb-8 w-auto shrink-0 pl-1" id="chart-y-labels">
+          <div class="hidden flex-col justify-between text-[10px] font-black text-text-muted text-left py-0.5 pb-8 w-auto shrink-0 pl-1" id="chart-y-labels">
             <span id="chart-y-max">--</span>
             <span id="chart-y-mid">--</span>
             <span>0</span>
@@ -161,11 +164,14 @@
 
         <!-- Total perioadă + Evoluție cap-coadă -->
         <div class="space-y-3 pt-1">
-          <div class="flex items-center justify-between px-4 py-3 rounded-2xl bg-surface-base">
-            <span class="text-sm font-black text-text-muted">Total perioadă</span>
-            <span id="chart-period-total" class="text-lg sm:text-xl font-black text-text-main">0 <span class="text-xs font-sans font-black text-text-main">RON</span></span>
-          </div>
-          <div id="chart-weekly-evolution" class="space-y-2">
+          <button type="button" id="chart-period-total-btn" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-surface-base hover:bg-surface-base/80 active:scale-[0.99] transition-all cursor-pointer group text-left">
+            <span class="text-sm font-black text-text-muted flex items-center gap-1.5">
+              <span>Total perioadă</span>
+              <svg class="w-3.5 h-3.5 text-text-muted opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            </span>
+            <span id="chart-period-total" class="text-lg sm:text-xl font-black text-text-main group-hover:text-brand-secondary transition-colors">0 <span class="text-xs font-sans font-black text-text-main">RON</span></span>
+          </button>
+          <div id="chart-weekly-evolution" class="space-y-1.5">
             <!-- Dynamic list generated in JS -->
           </div>
         </div>
@@ -189,8 +195,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Conținut Generic (Lunar/Trimestrial/Anual) - Eliminat deoarece folosim graficul pentru toate! -->
   </section>
 
   </div>
@@ -225,8 +229,41 @@
   </div>
 </div>
 
+<!-- Income Details Popup Sheet (Card cu proveniența banilor) -->
+<div id="income-details-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
+  <div id="income-details-backdrop" class="fixed inset-0 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300"></div>
+  <div id="income-details-content" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
+    <div class="w-12 h-1.5 bg-text-main/15 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
+    
+    <div class="flex items-start justify-between mb-4 shrink-0">
+      <div class="min-w-0 pr-2">
+        <h2 id="income-details-title" class="text-xl sm:text-2xl font-black text-text-main tracking-tight truncate">Încasări</h2>
+      </div>
+      <button type="button" id="income-details-close-btn" class="p-2 rounded-full bg-surface-base text-text-muted hover:text-text-main active:scale-95 transition-transform shrink-0" aria-label="Închide">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+
+    <!-- Summary Box -->
+    <div class="mb-4 bg-surface-base rounded-2xl p-4 flex items-center justify-between shrink-0 border border-border-subtle/30 shadow-2xs">
+      <div>
+        <span class="text-xs font-black uppercase tracking-wider text-text-main">Total</span>
+        <div id="income-details-total" class="text-2xl sm:text-3xl font-black text-text-main mt-0.5">0 <span class="text-sm font-sans font-black text-text-main">RON</span></div>
+      </div>
+      <div id="income-details-count-badge" class="px-3.5 py-1.5 rounded-xl bg-black/5 text-text-main text-xs sm:text-sm font-black border border-black/10">
+        0 plăți
+      </div>
+    </div>
+
+    <!-- Payment List -->
+    <div id="income-details-list" class="space-y-2.5 overflow-y-auto flex-1 pr-1 overscroll-contain">
+      <!-- Generated by JS -->
+    </div>
+  </div>
+</div>
+
 <script>
-  import { getTodayStats, getWeekStats, getMonthStats, getQuarterStats, getYearStats, getUnpaidPatients } from '../../../lib/services/reportsService';
+  import { getTodayStats, getWeekStats, getMonthStats, getQuarterStats, getYearStats, getUnpaidPatients, getDetailedPayments, type DetailedPayment } from '../../../lib/services/reportsService';
   import { toLocalISOString, formatDateRO } from '../../../utils/date';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
@@ -235,36 +272,34 @@
   
   let currentBaseDate = new Date();
   let currentDayDate = new Date();
+  let lastStatData: any = null;
 
   let isDayPickerOpen = false;
+  let isIncomeDetailsOpen = false;
 
-  function removeStaleDayPickerSheets(exclude?: Element) {
-    document.querySelectorAll('#day-picker-sheet').forEach(el => {
+  function removeStaleSheets(exclude?: Element) {
+    document.querySelectorAll('#day-picker-sheet, #income-details-sheet').forEach(el => {
       if (el !== exclude && el.parentElement === document.body) {
         el.remove();
       }
     });
   }
 
-  // Muta sheet-ul in body pentru a nu fi limitat de containerele parinte
-  const sheet = document.getElementById('day-picker-sheet');
-  if (sheet) {
-    removeStaleDayPickerSheets(sheet);
-    document.body.appendChild(sheet);
-  }
-
-  // Curăță sheet-ul supraviețuitor înainte de swap-ul Astro
+  // Curăță sheet-urile supraviețuitoare înainte de swap-ul Astro
   document.addEventListener('astro:before-swap', () => {
-    removeStaleDayPickerSheets();
+    removeStaleSheets();
   });
 
   // Escape key handler, bound once globally
-  function handleDayPickerEscape(e: KeyboardEvent) {
-    if (e.key === 'Escape') closeDayPicker();
+  function handleGlobalEscape(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      if (isIncomeDetailsOpen) closeIncomeDetails();
+      else if (isDayPickerOpen) closeDayPicker();
+    }
   }
-  if (!(window as any)._dayPickerEscapeBound) {
-    document.addEventListener('keydown', handleDayPickerEscape);
-    (window as any)._dayPickerEscapeBound = true;
+  if (!(window as any)._reportsEscapeBound) {
+    document.addEventListener('keydown', handleGlobalEscape);
+    (window as any)._reportsEscapeBound = true;
   }
   
   async function loadTodayStats() {
@@ -315,8 +350,6 @@
     const trigger = document.getElementById('today-date-display');
     if (!sheet || !overlay || !content) return;
 
-    if (sheet.dataset.open === 'true') return;
-
     if (sheet.parentElement !== document.body) {
       document.body.appendChild(sheet);
     }
@@ -338,86 +371,91 @@
 
     isDayPickerOpen = true;
     sheet.dataset.open = 'true';
-    sheet.classList.add('pointer-events-auto');
-    void sheet.offsetWidth;
-    lockBodyScroll();
+    sheet.classList.remove('pointer-events-none');
     overlay.classList.remove('opacity-0', 'pointer-events-none');
-    overlay.classList.add('pointer-events-auto', 'opacity-100');
+    overlay.classList.add('opacity-100', 'pointer-events-auto');
 
-    content.classList.remove('scale-95', 'opacity-0');
-    content.classList.add('scale-100', 'opacity-100');
+    requestAnimationFrame(() => {
+      content.classList.remove('scale-95', 'opacity-0');
+      content.classList.add('scale-100', 'opacity-100');
+    });
+
+    lockBodyScroll();
   }
 
   function closeDayPicker() {
-    if (!isDayPickerOpen) return;
-
     const sheet = document.getElementById('day-picker-sheet');
     const overlay = document.getElementById('day-picker-overlay');
     const content = document.getElementById('day-picker-content');
     if (!sheet || !overlay || !content) return;
 
-    isDayPickerOpen = false;
-    sheet.dataset.open = 'false';
-
-    unlockBodyScroll();
-    overlay.classList.add('opacity-0', 'pointer-events-none');
-    overlay.classList.remove('pointer-events-auto');
-
-    // Clear inline styles set by swipe gesture and positioning
-    content.style.transition = '';
-    content.style.transform = '';
-    content.style.left = '';
-    content.style.top = '';
-
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
+    overlay.classList.remove('opacity-100', 'pointer-events-auto');
+    overlay.classList.add('opacity-0', 'pointer-events-none');
+
     setTimeout(() => {
-      sheet.classList.remove('pointer-events-auto');
+      isDayPickerOpen = false;
+      sheet.dataset.open = 'false';
+      sheet.classList.add('pointer-events-none');
+      unlockBodyScroll();
     }, 200);
   }
 
   function renderDayPicker() {
     const grid = document.getElementById('day-picker-grid');
-    const label = document.getElementById('day-picker-month-year');
-    if (!grid || !label) return;
+    const monthYear = document.getElementById('day-picker-month-year');
+    if (!grid || !monthYear) return;
 
     const year = pickerViewDate.getFullYear();
     const month = pickerViewDate.getMonth();
-    label.textContent = pickerViewDate.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' })
-      .replace(/\b\w/g, c => c.toUpperCase());
+
+    const monthName = pickerViewDate.toLocaleDateString('ro-RO', { month: 'long' });
+    monthYear.textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
 
     grid.innerHTML = '';
 
     const firstDay = new Date(year, month, 1);
-    const startOffset = (firstDay.getDay() + 6) % 7; // Monday = 0
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const lastDay = new Date(year, month + 1, 0);
 
-    for (let i = 0; i < startOffset; i++) {
+    let startDayOfWeek = firstDay.getDay() - 1;
+    if (startDayOfWeek === -1) startDayOfWeek = 6;
+
+    for (let i = 0; i < startDayOfWeek; i++) {
       const empty = document.createElement('div');
+      empty.className = 'w-9 h-9';
       grid.appendChild(empty);
     }
 
-    for (let d = 1; d <= daysInMonth; d++) {
+    const todayStr = toLocalISOString(new Date());
+    const selectedStr = toLocalISOString(currentDayDate);
+
+    for (let day = 1; day <= lastDay.getDate(); day++) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = d.toString();
+      btn.textContent = day.toString();
 
-      const isSelected =
-        currentDayDate.getDate() === d &&
-        currentDayDate.getMonth() === month &&
-        currentDayDate.getFullYear() === year;
+      const btnDate = new Date(year, month, day);
+      const btnDateStr = toLocalISOString(btnDate);
 
-      const baseClass = 'aspect-square rounded-full text-sm font-black transition-all active:scale-95';
+      const isToday = btnDateStr === todayStr;
+      const isSelected = btnDateStr === selectedStr;
+
+      let btnClasses = 'w-9 h-9 rounded-xl text-xs font-black transition-all flex items-center justify-center ';
       if (isSelected) {
-        btn.className = `${baseClass} bg-brand-secondary text-white`;
+        btnClasses += 'bg-brand-primary text-text-inverse font-black shadow-sm';
+      } else if (isToday) {
+        btnClasses += 'border-2 border-brand-primary text-brand-primary font-black';
       } else {
-        btn.className = `${baseClass} text-text-main hover:bg-surface-base`;
+        btnClasses += 'hover:bg-surface-base text-text-main';
       }
 
+      btn.className = btnClasses;
+
       btn.addEventListener('click', () => {
-        currentDayDate = new Date(year, month, d);
-        loadTodayStats();
+        currentDayDate = btnDate;
         closeDayPicker();
+        loadTodayStats();
       });
 
       grid.appendChild(btn);
@@ -426,28 +464,33 @@
 
   function setupDayPicker() {
     const overlay = document.getElementById('day-picker-overlay');
+    const prevBtn = document.getElementById('day-picker-prev-month');
+    const nextBtn = document.getElementById('day-picker-next-month');
     const content = document.getElementById('day-picker-content');
 
-    // Re-bind overlay click listener to the current DOM element each boot
-    if (overlay) {
-      overlay.removeEventListener('click', closeDayPicker);
-      overlay.addEventListener('click', closeDayPicker);
+    if (overlay && overlay.dataset.reportsPickerBound !== 'true') {
+      overlay.dataset.reportsPickerBound = 'true';
+      overlay.addEventListener('click', () => closeDayPicker());
     }
 
-    if (!content || content.dataset.dayPickerBound === 'true') return;
-    content.dataset.dayPickerBound = 'true';
+    if (prevBtn && prevBtn.dataset.reportsPickerBound !== 'true') {
+      prevBtn.dataset.reportsPickerBound = 'true';
+      prevBtn.addEventListener('click', () => {
+        pickerViewDate.setMonth(pickerViewDate.getMonth() - 1);
+        renderDayPicker();
+      });
+    }
 
-    document.getElementById('day-picker-prev-month')?.addEventListener('click', () => {
-      pickerViewDate.setMonth(pickerViewDate.getMonth() - 1);
-      renderDayPicker();
-    });
-    document.getElementById('day-picker-next-month')?.addEventListener('click', () => {
-      pickerViewDate.setMonth(pickerViewDate.getMonth() + 1);
-      renderDayPicker();
-    });
+    if (nextBtn && nextBtn.dataset.reportsPickerBound !== 'true') {
+      nextBtn.dataset.reportsPickerBound = 'true';
+      nextBtn.addEventListener('click', () => {
+        pickerViewDate.setMonth(pickerViewDate.getMonth() + 1);
+        renderDayPicker();
+      });
+    }
 
-    // Swipe-down to close
-    if (content) {
+    if (content && content.dataset.reportsPickerBound !== 'true') {
+      content.dataset.reportsPickerBound = 'true';
       let startY = 0;
       content.addEventListener('touchstart', (e: any) => {
         startY = e.touches[0].clientY;
@@ -471,13 +514,221 @@
     }
   }
 
+  // ── INCOME DETAILS POPUP SHEET ────────────────────────────────
+  async function openIncomeDetails(title: string, subtitle: string, startDate: string, endDate?: string, expectedTotal?: number) {
+    const sheet = document.getElementById('income-details-sheet');
+    const backdrop = document.getElementById('income-details-backdrop');
+    const content = document.getElementById('income-details-content');
+    const titleEl = document.getElementById('income-details-title');
+    const subtitleEl = document.getElementById('income-details-subtitle');
+    const totalEl = document.getElementById('income-details-total');
+    const badgeEl = document.getElementById('income-details-count-badge');
+    const listEl = document.getElementById('income-details-list');
+
+    if (!sheet || !backdrop || !content || !listEl) return;
+
+    if (sheet.parentElement !== document.body) {
+      document.body.appendChild(sheet);
+    }
+
+    if (titleEl) titleEl.textContent = title;
+    if (subtitleEl) subtitleEl.textContent = subtitle;
+    if (totalEl) totalEl.innerHTML = `${expectedTotal !== undefined ? expectedTotal : '--'} <span class="text-sm font-sans font-black text-text-main">RON</span>`;
+    if (badgeEl) badgeEl.textContent = 'Se încarcă...';
+
+    listEl.innerHTML = `
+      <div class="py-10 text-center space-y-2">
+        <div class="w-8 h-8 border-3 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="text-xs font-bold text-text-muted">Se caută plățile...</p>
+      </div>
+    `;
+
+    // Animate open
+    isIncomeDetailsOpen = true;
+    sheet.dataset.open = 'true';
+    sheet.classList.remove('pointer-events-none');
+    backdrop.classList.remove('opacity-0', 'pointer-events-none');
+    backdrop.classList.add('opacity-100', 'pointer-events-auto');
+    content.classList.remove('translate-y-full');
+    content.classList.add('translate-y-0');
+    lockBodyScroll();
+
+    setupIncomeDetailsGestures();
+
+    try {
+      const payments = await getDetailedPayments(startDate, endDate);
+      const sumTotal = payments.reduce((acc, p) => acc + p.suma, 0);
+      const displayTotal = expectedTotal !== undefined && expectedTotal > 0 ? expectedTotal : sumTotal;
+
+      if (totalEl) totalEl.innerHTML = `${displayTotal} <span class="text-sm font-sans font-black text-text-main">RON</span>`;
+      if (badgeEl) badgeEl.textContent = `${payments.length} ${payments.length === 1 ? 'încasare' : 'încasări'}`;
+
+      if (payments.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-8 px-4 text-center rounded-2xl bg-surface-base/50 border border-dashed border-border-subtle/50 flex flex-col items-center justify-center space-y-2">
+            <div class="w-12 h-12 rounded-2xl bg-surface-card flex items-center justify-center text-text-muted shadow-2xs">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p class="text-sm font-black text-text-main">Nicio încasare înregistrată</p>
+            <p class="text-xs font-bold text-text-muted">Pentru această perioadă suma totală este 0 RON.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = payments.map(p => {
+        const nameParts = p.numeComplet.split(' ').filter(Boolean);
+        const initials = nameParts.length >= 2 
+          ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase() 
+          : (nameParts[0]?.slice(0, 2).toUpperCase() || 'PA');
+
+        // Belaqva = yellow (brand-primary), Ghimbav = pink (brand-secondary)
+        const loc = (p.locatie || '').toLowerCase();
+        const isGhimbav = loc === 'ghimbav';
+        const avatarBg = isGhimbav ? 'bg-brand-secondary' : 'bg-brand-primary';
+        const avatarText = isGhimbav ? 'text-white' : 'text-black';
+
+        // Plan in Romanian
+        const planRO = p.plan === 'Subscription' ? 'Abonament' : (p.plan === 'One Time' ? 'Ședință' : (p.plan || ''));
+
+        // Metoda badge (uppercase, styled by location)
+        // Date in DD.MM.YYYY Romanian format
+        let dateRO = p.dataPlatii || '';
+        if (dateRO && dateRO.includes('-')) {
+          const parts = dateRO.split('-');
+          if (parts.length === 3) dateRO = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+
+        return `
+          <div class="p-3.5 rounded-2xl bg-surface-base border border-border-subtle/30 flex items-center justify-between gap-3 shadow-2xs hover:border-brand-primary/30 transition-colors">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-xl ${avatarBg} ${avatarText} flex items-center justify-center font-black text-sm shrink-0 shadow-sm">
+                ${initials}
+              </div>
+              <div class="min-w-0">
+                <div class="font-black text-text-main text-sm sm:text-base truncate">${p.numeComplet}</div>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-base sm:text-lg font-black text-emerald-600">+${p.suma} RON</div>
+              <div class="text-xs font-bold text-text-main">${dateRO}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+    } catch (err) {
+      console.error('Eroare încărcare detalii plăți:', err);
+      listEl.innerHTML = `
+        <div class="p-4 rounded-2xl bg-rose-50 text-rose-700 text-xs font-bold text-center">
+          Eroare la încărcarea plăților. Te rugăm să încerci din nou.
+        </div>
+      `;
+    }
+  }
+
+  function closeIncomeDetails() {
+    const sheet = document.getElementById('income-details-sheet');
+    const backdrop = document.getElementById('income-details-backdrop');
+    const content = document.getElementById('income-details-content');
+
+    if (!sheet || !backdrop || !content) return;
+
+    isIncomeDetailsOpen = false;
+    sheet.dataset.open = 'false';
+    content.classList.remove('translate-y-0');
+    content.classList.add('translate-y-full');
+    backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+    backdrop.classList.add('opacity-0', 'pointer-events-none');
+    
+    setTimeout(() => {
+      sheet.classList.add('pointer-events-none');
+      unlockBodyScroll();
+    }, 300);
+  }
+
+  function setupIncomeDetailsGestures() {
+    const sheet = document.getElementById('income-details-sheet');
+    const backdrop = document.getElementById('income-details-backdrop');
+    const content = document.getElementById('income-details-content');
+    const closeBtn = document.getElementById('income-details-close-btn');
+
+    if (!sheet || !backdrop || !content) return;
+
+    if (sheet.dataset.gesturesBound === 'true') return;
+    sheet.dataset.gesturesBound = 'true';
+
+    backdrop.addEventListener('click', closeIncomeDetails);
+    closeBtn?.addEventListener('click', closeIncomeDetails);
+
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+
+    content.addEventListener('touchstart', (e: TouchEvent) => {
+      if (content.scrollTop === 0) {
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        isDragging = true;
+      }
+    }, { passive: true });
+
+    content.addEventListener('touchmove', (e: TouchEvent) => {
+      if (!isDragging) return;
+      currentY = e.touches[0].clientY;
+      const deltaY = currentY - startY;
+      if (deltaY > 0) {
+        content.style.transform = `translateY(${deltaY}px)`;
+      }
+    }, { passive: true });
+
+    content.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      const deltaY = currentY - startY;
+      content.style.transform = '';
+      if (deltaY > 80) {
+        closeIncomeDetails();
+      }
+    });
+  }
+
+  function setupTopIncomeCard() {
+    const todayIncomeCard = document.getElementById('today-income-card');
+    if (todayIncomeCard && todayIncomeCard.dataset.reportsIncomeBound !== 'true') {
+      todayIncomeCard.dataset.reportsIncomeBound = 'true';
+      todayIncomeCard.addEventListener('click', () => {
+        const d = currentDayDate;
+        const dayNameCap = d.toLocaleDateString('ro-RO', { weekday: 'long' }).charAt(0).toUpperCase() + d.toLocaleDateString('ro-RO', { weekday: 'long' }).slice(1);
+        const dayNum = d.getDate().toString().padStart(2, '0');
+        const monthNameCap = d.toLocaleDateString('ro-RO', { month: 'long' }).charAt(0).toUpperCase() + d.toLocaleDateString('ro-RO', { month: 'long' }).slice(1);
+        const dateStr = toLocalISOString(d);
+        const todayInc = parseInt(document.getElementById('today-income')?.textContent || '0', 10);
+        openIncomeDetails(`${dayNameCap}, ${dayNum} ${monthNameCap}`, 'Încasări colectate în această zi', dateStr, dateStr, todayInc);
+      });
+    }
+
+    const periodTotalBtn = document.getElementById('chart-period-total-btn');
+    if (periodTotalBtn && periodTotalBtn.dataset.reportsPeriodBound !== 'true') {
+      periodTotalBtn.dataset.reportsPeriodBound = 'true';
+      periodTotalBtn.addEventListener('click', () => {
+        const titleEl = document.getElementById('report-title')?.textContent || 'Perioadă';
+        const dateRangeEl = document.getElementById('report-date-range')?.textContent || '';
+        if (lastStatData && lastStatData.startStr && lastStatData.endStr) {
+          openIncomeDetails(`Încasări ${titleEl}`, dateRangeEl, lastStatData.startStr, lastStatData.endStr, lastStatData.venit);
+        }
+      });
+    }
+  }
+
   async function loadReportStats() {
     try {
       const dateStr = toLocalISOString(currentBaseDate);
       const titleEl = document.getElementById('report-title');
       const subtitleEl = document.getElementById('chart-subtitle');
       const dateRangeEl = document.getElementById('report-date-range');
-      const tabWeekContent = document.getElementById('tab-week-content');
 
       let statData: any;
 
@@ -503,6 +754,8 @@
         statData = await getYearStats(dateStr);
         if (dateRangeEl) dateRangeEl.textContent = `${currentBaseDate.getFullYear()}`;
       }
+
+      lastStatData = statData;
 
       if (statData) {
         // Update stats generic to the week template
@@ -530,7 +783,7 @@
     }
   }
 
-  function initInteractiveHatchChart(chartData: { label: string, val: number, dateStr?: string }[], startStr: string, periodType: TabType, statData?: any) {
+  function initInteractiveHatchChart(chartData: any[], startStr: string, periodType: TabType, statData?: any) {
     const container = document.getElementById('chart-x-labels');
     if (!container) return;
     
@@ -601,23 +854,15 @@
         break;
       }
     }
-    if (todayIdx < 0 && chartData.length > 0) {
-      if (chartData[0]?.dateStr && chartData[0].dateStr > todayStr) {
-        todayIdx = 0;
-      } else {
-        todayIdx = chartData.length - 1;
-      }
-    }
+    if (todayIdx === -1) todayIdx = chartData.length - 1;
 
-    const visiblePoints = todayIdx >= 0 ? points.slice(0, todayIdx + 1) : points;
+    const visiblePoints = points.slice(0, todayIdx + 1);
     const isAllZero = chartVals.every(v => v === 0);
 
     if (isAllZero || visiblePoints.length === 0) {
-      const strokePath = `M 15,115 L 335,115`;
-      const fillPath = `M 15,115 L 335,115 Z`;
-      if (pathStroke) pathStroke.setAttribute('d', strokePath);
-      if (pathGradient) pathGradient.setAttribute('d', fillPath);
-      if (pathHatch) pathHatch.setAttribute('d', fillPath);
+      if (pathStroke) pathStroke.setAttribute('d', '');
+      if (pathGradient) pathGradient.setAttribute('d', '');
+      if (pathHatch) pathHatch.setAttribute('d', '');
     } else if (visiblePoints.length === 1) {
       const p = visiblePoints[0];
       const strokePath = `M 0,${p.y} L ${p.x},${p.y}`;
@@ -661,17 +906,55 @@
         const isActive = idx === highlightIdx;
         const pct = total > 0 ? Math.round((item.val / total) * 100) : 0;
         return `
-          <div class="flex items-center justify-between py-1.5 px-3 rounded-xl ${isActive ? 'bg-surface-base' : ''} transition-colors">
-            <div class="flex items-center gap-3">
-              <span class="text-xs font-black uppercase tracking-wider text-text-muted w-8">${item.label}</span>
-              <div class="w-20 sm:w-24 h-1.5 bg-surface-base rounded-full overflow-hidden">
+          <button type="button" class="weekly-evolution-row w-full flex items-center justify-between py-2 px-3 rounded-2xl ${isActive ? 'bg-surface-base shadow-2xs font-bold' : 'hover:bg-surface-base/60'} transition-all cursor-pointer group text-left active:scale-[0.99]" data-idx="${idx}">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <span class="text-xs font-black uppercase tracking-wider text-text-muted w-8 shrink-0">${item.label}</span>
+              <div class="w-20 sm:w-24 h-2 bg-surface-card rounded-full overflow-hidden shrink-0 border border-border-subtle/30">
                 <div class="h-full rounded-full ${isActive ? 'bg-brand-secondary' : 'bg-text-main/30'}" style="width: ${Math.max(4, pct)}%"></div>
               </div>
+              <span class="text-xs font-bold text-text-muted truncate hidden sm:inline-block">${item.fullTitle || ''}</span>
             </div>
-            <span class="text-sm font-black ${isActive ? 'text-brand-secondary' : 'text-text-main'}">${item.val} RON</span>
-          </div>
+            <div class="flex items-center gap-1.5 shrink-0 pl-2">
+              <span class="text-sm font-black ${isActive ? 'text-brand-secondary' : 'text-text-main'} group-hover:text-brand-secondary transition-colors">${item.val} RON</span>
+              <svg class="w-3.5 h-3.5 text-text-muted/60 group-hover:text-brand-secondary group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            </div>
+          </button>
         `;
       }).join('');
+
+      // Add click handlers on evolution rows to open detailed popup
+      evolutionContainer.querySelectorAll('.weekly-evolution-row').forEach(rowBtn => {
+        rowBtn.addEventListener('click', () => {
+          const idx = parseInt((rowBtn as HTMLElement).dataset.idx || '-1', 10);
+          if (idx >= 0 && chartData[idx]) {
+            const item = chartData[idx];
+            // Also select on graph
+            const coord = dayCoords[idx];
+            if (coord) {
+              dot.style.left = coord.left;
+              dot.style.top = coord.top;
+              dotGlow.style.left = coord.left;
+              dotGlow.style.top = coord.top;
+              dot.classList.remove('hidden');
+              dotGlow.classList.remove('hidden');
+              valueDisplay.innerHTML = coord.val;
+            }
+
+            document.querySelectorAll('.day-btn').forEach(b => {
+              b.classList.remove('text-brand-secondary', 'font-black');
+              b.classList.add('text-text-muted');
+            });
+            const correspondingBtn = document.querySelector(`.day-btn[data-idx="${idx}"]`);
+            if (correspondingBtn) {
+              correspondingBtn.classList.remove('text-text-muted');
+              correspondingBtn.classList.add('text-brand-secondary', 'font-black');
+            }
+
+            renderWeeklyEvolution(idx);
+            openIncomeDetails(item.fullTitle || `Încasări ${item.label}`, `${item.val} RON colectați`, item.startDateStr || item.dateStr, item.endDateStr || item.dateStr, item.val);
+          }
+        });
+      });
     }
     renderWeeklyEvolution();
 
@@ -701,8 +984,6 @@
       });
     });
 
-
-
     const activeBtnIdx = todayIdx;
     const newDayBtns = document.querySelectorAll('.day-btn');
     if (activeBtnIdx >= 0 && newDayBtns[activeBtnIdx]) {
@@ -720,31 +1001,28 @@
     if (!tabsContainer || tabsContainer.dataset.reportsTabsBound === 'true') return;
     tabsContainer.dataset.reportsTabsBound = 'true';
 
-    function updatePill(target: HTMLElement) {
-      if (!activePill) return;
-      const width = target.offsetWidth;
-      const left = target.offsetLeft;
-      if (width === 0) {
-        requestAnimationFrame(() => {
-          if (target && target.offsetWidth > 0) updatePill(target);
-        });
-        return;
-      }
-      activePill.style.opacity = '1';
-      activePill.style.width = `${width}px`;
+    function updatePill(btn: HTMLElement) {
+      if (!activePill || !tabsContainer) return;
+      const btnRect = btn.getBoundingClientRect();
+      const containerRect = tabsContainer.getBoundingClientRect();
+      const left = btnRect.left - containerRect.left;
+      const width = btnRect.width;
+
       activePill.style.transform = `translate(${left}px, -50%)`;
+      activePill.style.width = `${width}px`;
+      activePill.style.opacity = '1';
     }
 
     function updateActivePill() {
-      const activeBtn = document.querySelector(`[data-tab="${activeTab}"]`) as HTMLElement;
+      const activeBtn = tabsContainer?.querySelector(`.tab-btn[data-tab="${activeTab}"]`) as HTMLElement;
       if (activeBtn) updatePill(activeBtn);
     }
 
     tabBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
         const target = e.currentTarget as HTMLElement;
-        const newTab = target.dataset.tab as TabType;
-        if (newTab !== activeTab) {
+        const newTab = target.getAttribute('data-tab') as TabType;
+        if (newTab && newTab !== activeTab) {
           activeTab = newTab;
 
           tabBtns.forEach(b => {
@@ -757,7 +1035,6 @@
           updatePill(target);
           loadReportStats();
         } else {
-          // If the user clicks the already active tab, just load stats (forces refresh on return)
           updatePill(target);
           loadReportStats();
         }
@@ -819,6 +1096,9 @@
     setupNavigation();
     setupDayNavigation();
     setupDayPicker();
+    setupTopIncomeCard();
+    setupIncomeDetailsGestures();
+    
     await Promise.all([
       loadTodayStats(),
       loadReportStats()

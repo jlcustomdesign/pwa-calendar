@@ -31,11 +31,7 @@ const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
   zile_lucratoare: [1, 2, 3, 4, 5],
   default_price: 150,
   default_total_sessions: 10,
-  reminder_threshold: 2,
-  whatsapp_template: 'Salut {nume}! Îți reamintim că mai mai ai {ramase} ședințe rămase. Te așteptăm cu drag!',
-  categories: ['Kinetoterapie', 'Masaj', 'Recuperare'],
-  pricing_presets: DEFAULT_PRICING_PRESETS,
-  updated_at: new Date().toISOString()
+  categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'],
 } as any;
 
 // ── Citire settings (cu cache local instant pentru 0ms delay pe mobil) ──
@@ -69,9 +65,12 @@ export async function getSettings(): Promise<Settings> {
     }
 
     const result = {
+      ...DEFAULT_SETTINGS,
       ...data,
-      work_start: data.work_start || '08:00',
-      work_end: data.work_end || '18:00',
+      work_start: (data.work_start || '08:00').substring(0, 5),
+      work_end: (data.work_end || '20:00').substring(0, 5),
+      lunch_start: (data.lunch_start || '12:00').substring(0, 5),
+      lunch_end: (data.lunch_end || '12:30').substring(0, 5),
     };
 
     if (typeof window !== 'undefined') {
@@ -137,30 +136,130 @@ export async function saveProfile(updates: {
   display_name?: string;
   telefon?: string;
   username?: string;
+  email?: string;
 }) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Utilizatorul nu este autentificat.');
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    throw new Error('Trebuie să fii autentificat pentru a salva profilul în baza de date.');
+  }
 
-  const { error } = await (supabase as any)
+  let username = updates.username ? updates.username.trim() : '';
+  if (!username) {
+    username = user.email ? `@${user.email.split('@')[0]}` : '@utilizator';
+  }
+  if (!username.startsWith('@')) {
+    username = `@${username}`;
+  }
+
+  const profileDataToSave = {
+    id: user.id,
+    display_name: updates.display_name !== undefined ? updates.display_name.trim() : '',
+    telefon: updates.telefon !== undefined ? updates.telefon.trim() : '',
+    username: username,
+    updated_at: new Date().toISOString()
+  };
+
+  // 1. Salvare în tabela `profiles` din Supabase (cu upsert)
+  const { error: upsertError } = await (supabase as any)
     .from('profiles')
-    .update(updates)
-    .eq('id', user.id);
+    .upsert(profileDataToSave, { onConflict: 'id' });
 
-  if (error) throw new Error('Eroare la salvarea profilului: ' + error.message);
+  if (upsertError) {
+    // Fallback: încercăm update dacă upsert are probleme de permisiune
+    const { error: updateError } = await (supabase as any)
+      .from('profiles')
+      .update({
+        display_name: profileDataToSave.display_name,
+        telefon: profileDataToSave.telefon,
+        username: profileDataToSave.username,
+        updated_at: profileDataToSave.updated_at
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      throw new Error('Eroare la salvarea în baza de date: ' + (updateError.message || upsertError.message));
+    }
+  }
+
+  // 2. Opțional: actualizează email-ul în Supabase Auth dacă a fost schimbat
+  if (updates.email && updates.email.trim() && updates.email.trim() !== user.email) {
+    try {
+      await supabase.auth.updateUser({ email: updates.email.trim() });
+    } catch (authErr: any) {
+      console.warn('Actualizare email în auth:', authErr?.message);
+    }
+  }
+
+  // 3. Sincronizează `therapist_name` în tabela `settings` din DB
+  if (profileDataToSave.display_name) {
+    try {
+      await saveSettings({ therapist_name: profileDataToSave.display_name });
+    } catch (sErr) {
+      console.warn('Sincronizare therapist_name în settings:', sErr);
+    }
+  }
+
+  // 4. Salvează în cache local pentru viteză
+  const fullProfile = { ...profileDataToSave, email: updates.email || user.email || '' };
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('kineto_profile_cache', JSON.stringify(fullProfile));
+      window.dispatchEvent(new CustomEvent('profileUpdated', { detail: fullProfile }));
+    } catch (e) {}
+  }
+
+  return fullProfile;
 }
 
 // ── Citire profil terapeut ─────────────────────────────────────
 export async function getProfile() {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
 
-  const { data, error } = await (supabase as any)
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .limit(1)
-    .maybeSingle();
+  let cached: any = null;
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('kineto_profile_cache');
+      if (raw) cached = JSON.parse(raw);
+    } catch (e) {}
+  }
 
-  if (error) throw new Error('Eroare la citirea profilului: ' + error.message);
-  return data ? { ...data, email: user.email } : null;
+  if (user?.id) {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        const fullProfile = {
+          ...data,
+          email: user.email || cached?.email || ''
+        };
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('kineto_profile_cache', JSON.stringify(fullProfile));
+          } catch (e) {}
+        }
+        return fullProfile;
+      }
+    } catch (err) {
+      console.warn('Eroare la citirea profilului din Supabase:', err);
+    }
+  }
+
+  if (cached) return cached;
+
+  if (user) {
+    return {
+      id: user.id,
+      display_name: user.user_metadata?.display_name || user.user_metadata?.name || '',
+      username: user.user_metadata?.username || (user.email ? `@${user.email.split('@')[0]}` : ''),
+      telefon: user.user_metadata?.telefon || user.user_metadata?.phone || '',
+      email: user.email || ''
+    };
+  }
+
+  return null;
 }

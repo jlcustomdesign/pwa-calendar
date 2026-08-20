@@ -243,21 +243,35 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.selectedCustomMinute = '00';
       this.startY = 0;
       this.currentY = 0;
-      this.settings = getSettings();
+      this.settings = null;
+      this.loadSettings();
 
-      this.populateDynamicContent();
       this.bindEvents();
       this.bindDateTimeSelectors();
       this.bindDatePicker();
       this.bindCustomTimeModal();
+
+      window.addEventListener('settingsUpdated', () => {
+        this.loadSettings();
+      });
     }
+
+    async loadSettings() {
+      try {
+        this.settings = await getSettings();
+        this.populateDynamicContent();
+      } catch (e) {
+        console.warn('Could not load settings in AddSessionSheet:', e);
+      }
+    }
+
     populateDynamicContent() {
       // Populate time slots
       const timeContainer = document.getElementById('time-slots-container');
       if (timeContainer) {
         timeContainer.innerHTML = '';
-        const workStartStr = this.settings?.work_start || this.settings?.schedule?.workStart || '08:00';
-        const workEndStr   = this.settings?.work_end   || this.settings?.schedule?.workEnd   || '20:00';
+        const workStartStr = this.settings?.work_start || '08:00';
+        const workEndStr   = this.settings?.work_end   || '20:00';
 
         const startHour = parseInt(workStartStr.split(':')[0], 10) || 8;
         const endHour   = parseInt(workEndStr.split(':')[0], 10)   || 20;
@@ -842,10 +856,23 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         return;
       }
 
-      // Check Lunch Break overlap from settings
-      const lunchStart = this.settings?.lunch_start || this.settings?.pause_start || '13:00';
-      const lunchEnd = this.settings?.lunch_end || this.settings?.pause_end || '14:00';
-      if (selectedTime >= lunchStart && selectedTime < lunchEnd) {
+      // Check Lunch Break overlap from dynamic settings
+      const currentSettings = await getSettings();
+      const lunchStart = (currentSettings.lunch_start || '12:00').substring(0, 5);
+      const lunchEnd = (currentSettings.lunch_end || '12:30').substring(0, 5);
+
+      const [lsh, lsm] = lunchStart.split(':').map(Number);
+      const [leh, lem] = lunchEnd.split(':').map(Number);
+      const lunchStartMin = (lsh || 0) * 60 + (lsm || 0);
+      const lunchEndMin = (leh || 0) * 60 + (lem || 0);
+
+      const [sth, stm] = selectedTime.split(':').map(Number);
+      const sessionDuration = currentSettings.session_duration || 50;
+      const sessionStartMin = (sth || 0) * 60 + (stm || 0);
+      const sessionEndMin = sessionStartMin + sessionDuration;
+
+      const isLunchOverlap = (sessionStartMin < lunchEndMin) && (sessionEndMin > lunchStartMin);
+      if (isLunchOverlap) {
         (window as any).showToast(`Ora ${selectedTime} se suprapune cu pauza de masă (${lunchStart} - ${lunchEnd}).`, 'warning', 'Pauză de masă');
         return;
       }

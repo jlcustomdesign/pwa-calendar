@@ -11,10 +11,10 @@
   >
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3.5">
-        <div class="w-12 h-12 rounded-full bg-brand-secondary text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-brand-secondary/25 shrink-0">
+        <div id="settings-profile-avatar" class="w-12 h-12 rounded-full bg-brand-secondary text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-brand-secondary/25 shrink-0">
           RV
         </div>
-        <h3 class="text-xl font-bold text-text-main group-hover:text-brand-secondary transition-colors">Profil</h3>
+        <h3 id="settings-profile-name" class="text-xl font-bold text-text-main group-hover:text-brand-secondary transition-colors">Profil</h3>
       </div>
 
       <div class="w-10 h-10 rounded-full bg-surface-base flex items-center justify-center text-text-muted group-hover:bg-brand-secondary group-hover:text-white transition-colors shrink-0">
@@ -195,8 +195,29 @@
 
 <script>
   import { logout } from '../../../lib/services/authService';
+  import { getProfile } from '../../../lib/services/settingsService';
+
+  async function updateProfileUI() {
+    try {
+      const profile = await getProfile();
+      const nameEl = document.getElementById('settings-profile-name');
+      const avatarEl = document.getElementById('settings-profile-avatar');
+
+      if (profile?.display_name) {
+        if (nameEl) nameEl.textContent = profile.display_name;
+        if (avatarEl) {
+          const parts = profile.display_name.trim().split(' ').filter(Boolean);
+          const initials = parts.length >= 2
+            ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+            : (parts[0]?.slice(0, 2).toUpperCase() || 'P');
+          avatarEl.textContent = initials;
+        }
+      }
+    } catch (e) {}
+  }
 
   function initSettingsHub() {
+    updateProfileUI();
     const logoutBtn = document.getElementById('btn-logout');
     if (logoutBtn && logoutBtn.dataset.settingsHubBound !== 'true') {
       logoutBtn.dataset.settingsHubBound = 'true';

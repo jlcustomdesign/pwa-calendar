@@ -167,18 +167,17 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       const restDePlata = Math.max(0, costTotal - sumaIncasata);
       const isPaid = restDePlata <= 0 || session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat';
 
-      let paymentBadgeClass = 'bg-white hover:bg-neutral-50 text-black border border-transparent font-extrabold shadow-sm';
-      let displayPaymentLabel = 'Status plată';
+      let paymentBadgeClass = 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-transparent font-extrabold shadow-sm';
+      let displayPaymentLabel = 'Neachitat';
       if (session.paymentStatus === 'Achitat parțial' || (sumaIncasata > 0 && restDePlata > 0)) {
         displayPaymentLabel = `${sumaIncasata}/${costTotal} RON`;
-        paymentBadgeClass = 'bg-orange-50 hover:bg-orange-100 text-orange-700 border border-transparent font-extrabold shadow-sm';
+        paymentBadgeClass = 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-200/60 font-black shadow-sm';
       } else if (session.paymentStatus === 'Achitat integral' || session.paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal && isPaid)) {
         displayPaymentLabel = 'Achitat';
         paymentBadgeClass = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-transparent font-extrabold shadow-sm';
-      } else if (session.paymentStatus === 'Neachitat') {
-        displayPaymentLabel = 'Neachitat';
       } else {
-        displayPaymentLabel = 'Status plată';
+        displayPaymentLabel = 'Neachitat';
+        paymentBadgeClass = 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-transparent font-extrabold shadow-sm';
       }
 
       const driveLink = session.driveLink || '';
@@ -289,7 +288,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
                   ${sessionStatus !== 'finalizat' && sessionStatus !== 'anulat' && sessionStatus !== 'absent' && (!session.selectedDate || session.selectedDate < todayStr || (session.selectedDate === todayStr && nowStr >= formattedEnd)) ? `
                     <div class="px-6 pb-6 pt-2">
-                      <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary hover:opacity-90' : 'bg-brand-secondary hover:opacity-90'} text-black font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
+                      <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary text-black' : 'bg-brand-secondary text-white'} font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent hover:opacity-95" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
                         <span>CONFIRMĂ ȘEDINȚA</span>
                       </button>
                     </div>
@@ -363,9 +362,14 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       container.classList.remove('hidden');
 
       const startHour = parseInt((settings.work_start || '08:00').split(':')[0], 10) || 8;
-      const endHour = parseInt((settings.work_end || '18:00').split(':')[0], 10) || 18;
-      const lunchStart = (settings.lunch_start || (settings as any).pause_start || '13:00').substring(0, 5);
-      const lunchEnd = (settings.lunch_end || (settings as any).pause_end || '14:00').substring(0, 5);
+      const endHour = parseInt((settings.work_end || '20:00').split(':')[0], 10) || 20;
+      const lunchStart = (settings.lunch_start || '12:00').substring(0, 5);
+      const lunchEnd = (settings.lunch_end || '12:30').substring(0, 5);
+
+      const [lsh, lsm] = lunchStart.split(':').map(Number);
+      const [leh, lem] = lunchEnd.split(':').map(Number);
+      const lunchStartMin = (lsh || 0) * 60 + (lsm || 0);
+      const lunchEndMin = (leh || 0) * 60 + (lem || 0);
 
       function findSessionForHour(slotTimeStr: string) {
         const slotHour = parseInt(slotTimeStr.split(':')[0], 10);
@@ -387,22 +391,28 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       let i = 0;
       while (i < timeSlots.length) {
         const slotTimeStr = timeSlots[i];
+        const h = parseInt(slotTimeStr.split(':')[0], 10);
+        const slotHourStart = h * 60;
+        const slotHourEnd = (h + 1) * 60;
         const session = findSessionForHour(slotTimeStr);
-        const isLunchSlot = !session && slotTimeStr >= lunchStart && slotTimeStr < lunchEnd;
+        const isLunchSlot = !session && (slotHourStart < lunchEndMin) && (slotHourEnd > lunchStartMin);
 
         if (isLunchSlot) {
           const lunchSlots: string[] = [];
           for (let j = i; j < timeSlots.length; j++) {
             const t = timeSlots[j];
+            const tjHour = parseInt(t.split(':')[0], 10);
+            const tjStart = tjHour * 60;
+            const tjEnd = (tjHour + 1) * 60;
             const s = findSessionForHour(t);
-            if (!s && t >= lunchStart && t < lunchEnd) {
+            if (!s && (tjStart < lunchEndMin) && (tjEnd > lunchStartMin)) {
               lunchSlots.push(t);
             } else {
               break;
             }
           }
-          items.push({ type: 'lunch', slots: lunchSlots });
-          i += lunchSlots.length;
+          items.push({ type: 'lunch', slots: lunchSlots.length > 0 ? lunchSlots : [slotTimeStr] });
+          i += Math.max(1, lunchSlots.length);
         } else {
           items.push({ type: 'slot', time: slotTimeStr, session });
           i++;
@@ -412,18 +422,19 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       container.innerHTML = items.map((item) => {
         if (item.type === 'lunch') {
           const slotCount = item.slots.length;
-          const heightClass = slotCount >= 2 ? 'h-32' : 'h-14';
-          const labelHour = item.slots[0].split(':')[0];
+          const heightClass = slotCount >= 2 ? 'h-32' : 'h-16';
+          const labelHour = lunchStart.split(':')[0];
+          const labelMin = lunchStart.split(':')[1] || '00';
           return `
             <div class="relative flex items-stretch gap-4 min-h-[4.5rem]">
               <div class="w-14 shrink-0 text-center flex flex-col items-center justify-center select-none relative pt-1">
                 <span class="text-2xl font-black text-black leading-none tracking-tight">${labelHour}</span>
-                <span class="text-xs font-bold text-text-muted tracking-wider uppercase mt-0.5">Pauză</span>
+                <span class="text-xs font-extrabold text-pink-600 tracking-wider uppercase mt-0.5">${labelMin !== '00' ? ':' + labelMin : 'Pauză'}</span>
               </div>
               <div class="flex-1 min-w-0 pb-2">
                 <div class="w-full ${heightClass} rounded-2xl flex items-center justify-between px-5 select-none" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
-                  <span class="text-sm font-black text-pink-600/70">Pauză de masă</span>
-                  <span class="text-base font-black text-pink-700/70">${lunchStart} – ${lunchEnd}</span>
+                  <span class="text-sm font-black text-pink-600/80">Pauză de masă</span>
+                  <span class="text-base font-black text-pink-700/80">${lunchStart} – ${lunchEnd}</span>
                 </div>
               </div>
             </div>

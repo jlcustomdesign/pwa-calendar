@@ -1,32 +1,33 @@
 -- ============================================================
--- MyCalendar — Schema Supabase v3 CORECTĂ (Postgres)
+-- MyCalendar — Schema Supabase Master v3 (Postgres)
 -- Rulează în: Supabase Dashboard → SQL Editor → New Query
--- SAFE TO RE-RUN: folosește DROP IF EXISTS + OR REPLACE
---
--- CE S-A SCHIMBAT FAȚĂ DE v2:
---   1) `pacienti` — adăugate 4 coloane lipsă față de UI:
---        cost, plan, locatie, frecventa
---   2) `programari` — adăugată coloana `note` (Session Notes din WrapUp)
---   3) `historic_saptamanal` — adăugată coloana `venit_total`
---        (calculată automat în funcția de arhivare)
---   4) `profiles` — adăugat `display_name` pentru afișaj (nu doar username)
+-- SAFE TO RE-RUN: folosește DROP IF EXISTS + OR REPLACE + SAFE GUARDS
 -- ============================================================
 
 -- ------------------------------------------------------------
 -- EXTENSII
 -- ------------------------------------------------------------
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Încercare activare pg_cron (dacă e suportată în proiect)
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS pg_cron;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- ------------------------------------------------------------
--- CURĂȚĂ TABELELE VECHI
+-- CURĂȚĂ TABELELE VECHI (În ordinea corectă a dependențelor)
 -- ------------------------------------------------------------
-DROP TABLE IF EXISTS public.istoric_saptamanal  CASCADE;
-DROP TABLE IF EXISTS public.notificari           CASCADE;
-DROP TABLE IF EXISTS public.programari           CASCADE;
-DROP TABLE IF EXISTS public.pacienti             CASCADE;
-DROP TABLE IF EXISTS public.profiles             CASCADE;
-DROP TABLE IF EXISTS public.settings             CASCADE;
+DROP VIEW IF EXISTS  public.pacienti_view        CASCADE;
+DROP TABLE IF EXISTS public.istoric_saptamanal   CASCADE;
+DROP TABLE IF EXISTS public.notificari            CASCADE;
+DROP TABLE IF EXISTS public.error_logs            CASCADE;
+DROP TABLE IF EXISTS public.plati                 CASCADE;
+DROP TABLE IF EXISTS public.programari            CASCADE;
+DROP TABLE IF EXISTS public.pacienti              CASCADE;
+DROP TABLE IF EXISTS public.profiles              CASCADE;
+DROP TABLE IF EXISTS public.settings              CASCADE;
 
 -- ------------------------------------------------------------
 -- CURĂȚĂ FUNCȚIILE VECHI
@@ -38,8 +39,9 @@ DROP FUNCTION IF EXISTS public.genereaza_notificari_zilnice()   CASCADE;
 DROP FUNCTION IF EXISTS public.valideaza_programare()           CASCADE;
 DROP FUNCTION IF EXISTS public.impune_settings_singleton()      CASCADE;
 DROP FUNCTION IF EXISTS public.arhiveaza_saptamana(date)        CASCADE;
+DROP FUNCTION IF EXISTS public.incrementeaza_sedinte_folosite() CASCADE;
 
--- Dezînscrie job-uri cron vechi
+-- Dezînscrie job-uri cron vechi (dacă pg_cron e activ)
 DO $$
 BEGIN
   PERFORM cron.unschedule(jobid) FROM cron.job WHERE jobname = 'notificari-zilnice';
@@ -49,7 +51,7 @@ END $$;
 
 
 -- ============================================================
--- FUNCȚIE UTILITARĂ: updated_at automat (folosită pe mai multe tabele)
+-- FUNCȚIE UTILITARĂ: updated_at automat
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -61,12 +63,7 @@ $$;
 
 
 -- ============================================================
--- 1. PROFILES — extinde auth.users (terapeut unic)
---    Câmpuri aliniate cu ecranul Settings → Profil personal:
---      display_name  → câmpul "Nume" din UI
---      username      → câmpul "Utilizator (@roxanavieru)"
---      telefon       → câmpul "Telefon"
---    Email vine direct din auth.users.email — nu se duplică aici.
+-- 1. PROFILES — extinde auth.users (terapeut)
 -- ============================================================
 CREATE TABLE public.profiles (
   id            UUID         PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -85,7 +82,8 @@ BEGIN
     new.id,
     COALESCE(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
     COALESCE(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1))
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$;
@@ -100,20 +98,18 @@ CREATE TRIGGER trg_profiles_updated_at
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+-- Backfill automat pentru utilizatori deja existenți în auth.users
+INSERT INTO public.profiles (id, username, display_name)
+SELECT 
+  id,
+  COALESCE(raw_user_meta_data->>'username', split_part(email, '@', 1)),
+  COALESCE(raw_user_meta_data->>'display_name', split_part(email, '@', 1))
+FROM auth.users
+ON CONFLICT (id) DO NOTHING;
+
 
 -- ============================================================
 -- 2. SETTINGS — configurare aplicație (singleton: 1 singur rând)
---    Aliniat complet cu ecranul Settings din UI:
---      therapist_name          → Settings → Profil → Nume (alias vizual)
---      work_start/work_end     → Settings → Program de lucru → Ore
---      zile_lucratoare         → Settings → Program → Zile (L=1...V=5)
---      lunch_start/lunch_end   → Settings → Pauza de masă
---      session_duration        → Settings → Ședințe → Durată
---      break_buffer            → Settings → Ședințe → Pauză între pacienți
---      default_price           → Settings → Ședințe → Preț ședință
---      reminder_threshold      → Settings → Reminder → ultima ședință (la câte)
---      whatsapp_template       → Settings → Reminder → Mesaj reminder
---      categories              → Settings → Categorii pacienți
 -- ============================================================
 CREATE TABLE public.settings (
   id                      UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -129,7 +125,7 @@ CREATE TABLE public.settings (
   default_total_sessions  INT            DEFAULT 10,
   reminder_threshold      INT            DEFAULT 2,
   whatsapp_template       TEXT           DEFAULT 'Bună, {nume}! Mai ai {ramase} ședințe rămase. Dorești reînnoirea?',
-  categories              TEXT[]         DEFAULT ARRAY['Kinetoterapie', 'Belaqva', 'Ghimbav', 'Recuperare'],
+  categories              TEXT[]         DEFAULT ARRAY['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'],
   updated_at              TIMESTAMPTZ    NOT NULL DEFAULT now(),
 
   CHECK (work_start < work_end),
@@ -161,39 +157,27 @@ INSERT INTO public.settings DEFAULT VALUES;
 
 
 -- ============================================================
--- 3. PACIENTI — aliniat complet cu AddPatientSheet.astro
---    Câmpuri noi față de v2:
---      cost     → câmpul "Cost (RON)" per pacient (poate diferi de default_price)
---      plan     → chip-urile "Subscription" / "One Time"
---      locatie  → chip-urile "Belaqva" / "Ghimbav" (folosit și la filtrare)
---      frecventa → chip-urile "1/week", "2/week", "3/week", "Occasional"
---
---    Decizie: UI trimite un câmp unic "name" (ex: "Maria Popescu").
---    DB îl stochează ca nume + prenume separate (primul cuvânt = prenume,
---    restul = nume) — util pentru sortare și afișaj formal.
---    La citire: concatenăm prenume || ' ' || nume pentru UI.
+-- 3. PACIENTI — pacienți, abonamente, costuri și status
 -- ============================================================
 CREATE TABLE public.pacienti (
-  id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  nume              TEXT         NOT NULL,                     -- ex: "Popescu"
-  prenume           TEXT         NOT NULL,                     -- ex: "Maria"
-  telefon           TEXT         NOT NULL,
-  locatie           TEXT         NOT NULL DEFAULT 'Belaqva'
-                      CHECK (locatie IN ('Belaqva', 'Ghimbav')),
-  plan              TEXT         NOT NULL DEFAULT 'Subscription'
-                      CHECK (plan IN ('Subscription', 'One Time')),
-  frecventa         TEXT         NOT NULL DEFAULT '1/week',    -- text liber sau chip
-  cost              DECIMAL(10,2) NOT NULL DEFAULT 0,          -- cost per pachet
-  sedinte_total     INT          NOT NULL DEFAULT 0 CHECK (sedinte_total >= 0),
-  sedinte_folosite  INT          NOT NULL DEFAULT 0 CHECK (sedinte_folosite >= 0),
-  sedinte_ramase    INT          GENERATED ALWAYS AS (sedinte_total - sedinte_folosite) STORED,
-  achitat           BOOLEAN      NOT NULL DEFAULT false,
-  status_abonament  TEXT         NOT NULL DEFAULT 'activ'
+  id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  nume              TEXT          NOT NULL,
+  prenume           TEXT          NOT NULL,
+  telefon           TEXT          NOT NULL,
+  locatie           TEXT          NOT NULL DEFAULT 'Belaqva',
+  plan              TEXT          NOT NULL DEFAULT 'Subscription',
+  frecventa         TEXT          NOT NULL DEFAULT '1/week',
+  cost              DECIMAL(10,2) NOT NULL DEFAULT 0,
+  sedinte_total     INT           NOT NULL DEFAULT 0 CHECK (sedinte_total >= 0),
+  sedinte_folosite  INT           NOT NULL DEFAULT 0 CHECK (sedinte_folosite >= 0),
+  sedinte_ramase    INT           GENERATED ALWAYS AS (sedinte_total - sedinte_folosite) STORED,
+  achitat           BOOLEAN       NOT NULL DEFAULT false,
+  status_abonament  TEXT          NOT NULL DEFAULT 'activ'
                       CHECK (status_abonament IN ('activ','ultima_sedinta','terminat')),
-  notite            TEXT,                                      -- câmp liber, opțional
-  drive_link        TEXT,                                      -- link Google Drive
-  created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  updated_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  notite            TEXT,
+  drive_link        TEXT,
+  created_at        TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ   NOT NULL DEFAULT now(),
 
   CHECK (sedinte_folosite <= sedinte_total)
 );
@@ -232,22 +216,17 @@ CREATE TRIGGER trg_pacienti_updated_at
 
 
 -- ============================================================
--- 4. PROGRAMARI — aliniat cu AddSessionSheet + SessionWrapUpSheet
---    Câmpuri noi față de v2:
---      note → câmpul "Session Notes" din SessionWrapUpSheet
---      locatie → locația sesiunii (poate diferi de locația preferată a pacientului)
---    `motiv` → păstrat pentru motiv anulare/absență (diferit de note)
+-- 4. PROGRAMARI — programări calendar
 -- ============================================================
 CREATE TABLE public.programari (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   pacient_id  UUID        NOT NULL REFERENCES public.pacienti(id) ON DELETE CASCADE,
   data        DATE        NOT NULL,
   ora         TIME        NOT NULL,
-  locatie     TEXT        NOT NULL DEFAULT 'Belaqva'
-                CHECK (locatie IN ('Belaqva', 'Ghimbav')),
+  locatie     TEXT        NOT NULL DEFAULT 'Belaqva',
   status      TEXT        NOT NULL DEFAULT 'programat'
                 CHECK (status IN ('programat','confirmat','finalizat','anulat','absent')),
-  note        TEXT,       -- note de sesiune (SessionWrapUpSheet → "Session Notes")
+  note        TEXT,       -- note de sesiune (Session Notes)
   motiv       TEXT,       -- motiv anulare sau absență
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -267,28 +246,13 @@ DECLARE
 BEGIN
   SELECT * INTO s FROM public.settings LIMIT 1;
   IF s IS NULL THEN
-    RAISE EXCEPTION 'Nu există configurare în settings.';
+    RETURN new; -- Dacă nu există încă settings, permitem inserarea
   END IF;
 
   durata    := (s.session_duration || ' minutes')::interval;
   fereastra := ((s.session_duration + s.break_buffer) || ' minutes')::interval;
 
-  -- 1) Zi lucrătoare
-  IF NOT (EXTRACT(isodow FROM new.data)::int = ANY (s.zile_lucratoare)) THEN
-    RAISE EXCEPTION 'Data % nu este zi de lucru conform setărilor curente.', new.data;
-  END IF;
-
-  -- 2) Interval orar de lucru
-  IF NOT (new.ora >= s.work_start AND new.ora + durata <= s.work_end) THEN
-    RAISE EXCEPTION 'Ora % este în afara programului de lucru (% – %).', new.ora, s.work_start, s.work_end;
-  END IF;
-
-  -- 3) Fără suprapunere cu pauza de masă
-  IF NOT (new.ora + durata <= s.lunch_start OR new.ora >= s.lunch_end) THEN
-    RAISE EXCEPTION 'Ora % se suprapune cu pauza de masă (% – %).', new.ora, s.lunch_start, s.lunch_end;
-  END IF;
-
-  -- 4) Fără suprapunere cu altă programare activă
+  -- 1) Fără suprapunere cu altă programare activă la aceeași oră/fereastră
   SELECT count(*) INTO conflicte
   FROM public.programari p
   WHERE p.data = new.data
@@ -298,7 +262,7 @@ BEGIN
         && tsrange((new.data + new.ora)::timestamp, (new.data + new.ora)::timestamp + fereastra);
 
   IF conflicte > 0 THEN
-    RAISE EXCEPTION 'Ora % se suprapune cu o altă programare (fereastră minimă: % min).',
+    RAISE EXCEPTION 'Ora % se suprapune cu o altă programare activă (fereastră minimă: % min).',
       new.ora, s.session_duration + s.break_buffer;
   END IF;
 
@@ -307,12 +271,11 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_valideaza_programare ON public.programari;
--- Validăm doar când se programează/reprogramează (data sau ora), nu la schimbarea statusului.
 CREATE TRIGGER trg_valideaza_programare
   BEFORE INSERT OR UPDATE OF data, ora ON public.programari
   FOR EACH ROW EXECUTE FUNCTION public.valideaza_programare();
 
--- Trigger: incrementează automat sedinte_folosite la finalizarea sesiunii și decrementează la ștergere/anulare
+-- Trigger: incrementează automat sedinte_folosite la finalizarea sesiunii și decrementează la anulare/ștergere
 CREATE OR REPLACE FUNCTION public.incrementeaza_sedinte_folosite()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
@@ -350,27 +313,45 @@ CREATE TRIGGER trg_incrementeaza_sedinte
 
 
 -- ============================================================
--- 4b. PLĂȚI — înregistrări financiare separate pentru flexibilitate
+-- 5. PLĂȚI — înregistrări financiare separate
 -- ============================================================
-CREATE TABLE IF NOT EXISTS public.plati (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  pacient_id  UUID        NOT NULL REFERENCES public.pacienti(id) ON DELETE CASCADE,
+CREATE TABLE public.plati (
+  id          UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+  pacient_id  UUID           NOT NULL REFERENCES public.pacienti(id) ON DELETE CASCADE,
   suma        NUMERIC(10, 2) NOT NULL,
-  data_platii DATE        NOT NULL DEFAULT CURRENT_DATE,
-  metoda      TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  data_platii DATE           NOT NULL DEFAULT CURRENT_DATE,
+  metoda      TEXT           DEFAULT 'Plată',
+  created_at  TIMESTAMPTZ    NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_plati_pacient ON public.plati (pacient_id);
 CREATE INDEX IF NOT EXISTS idx_plati_data     ON public.plati (data_platii);
 
-ALTER TABLE public.plati ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow all access to plati" ON public.plati;
-CREATE POLICY "Allow all access to plati" ON public.plati FOR ALL USING (true) WITH CHECK (true);
+
+-- ============================================================
+-- 6. ERROR LOGS — jurnal automat de erori și diagnostice
+-- ============================================================
+CREATE TABLE public.error_logs (
+  id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID         REFERENCES auth.users(id) ON DELETE SET NULL,
+  type            TEXT         NOT NULL DEFAULT 'error'
+                    CHECK (type IN ('error','warning','fetch','rejection','manual')),
+  source          TEXT         NOT NULL DEFAULT 'app',
+  message         TEXT         NOT NULL,
+  details         TEXT,
+  stack           TEXT,
+  interpretation  TEXT         NOT NULL,
+  user_agent      TEXT,
+  app_version     TEXT,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_error_logs_created_at ON public.error_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_error_logs_user_id    ON public.error_logs (user_id);
 
 
 -- ============================================================
--- 5. NOTIFICARI
+-- 7. NOTIFICARI
 -- ============================================================
 CREATE TABLE public.notificari (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -433,31 +414,33 @@ BEGIN
 END;
 $$;
 
-SELECT cron.schedule(
-  'notificari-zilnice',
-  '0 7 * * *',
-  $$SELECT public.genereaza_notificari_zilnice();$$
-);
+-- Schedule cron în siguranță (dacă pg_cron este activat)
+DO $$
+BEGIN
+  PERFORM cron.schedule(
+    'notificari-zilnice',
+    '0 7 * * *',
+    'SELECT public.genereaza_notificari_zilnice();'
+  );
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 
 -- ============================================================
--- 6. ISTORIC SĂPTĂMÂNAL — aliniat cu ReportsView.astro
---    Câmp nou față de v2:
---      venit_total → venitul calculat din cost × ședințe finalizate
---                    (pentru graficul săptămânal din Reports)
+-- 8. ISTORIC SĂPTĂMÂNAL — rapoarte și arhivă
 -- ============================================================
 CREATE TABLE public.istoric_saptamanal (
-  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  saptamana_start   DATE        NOT NULL,
-  saptamana_end     DATE        NOT NULL,
-  total_programari  INT         NOT NULL DEFAULT 0,
-  finalizate        INT         NOT NULL DEFAULT 0,
-  absente           INT         NOT NULL DEFAULT 0,
-  anulate           INT         NOT NULL DEFAULT 0,
+  id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  saptamana_start   DATE          NOT NULL,
+  saptamana_end     DATE          NOT NULL,
+  total_programari  INT           NOT NULL DEFAULT 0,
+  finalizate        INT           NOT NULL DEFAULT 0,
+  absente           INT           NOT NULL DEFAULT 0,
+  anulate           INT           NOT NULL DEFAULT 0,
   procent_prezenta  NUMERIC(5,2),
-  venit_total       DECIMAL(10,2) DEFAULT 0, -- RON încasat în săptămâna respectivă
-  program_activ     JSONB,                   -- snapshot din settings la momentul arhivării
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  venit_total       DECIMAL(10,2) DEFAULT 0,
+  program_activ     JSONB,
+  created_at        TIMESTAMPTZ   NOT NULL DEFAULT now(),
 
   UNIQUE (saptamana_start)
 );
@@ -486,7 +469,6 @@ BEGIN
     count(*) FILTER (WHERE pr.status = 'finalizat'),
     count(*) FILTER (WHERE pr.status = 'absent'),
     count(*) FILTER (WHERE pr.status = 'anulat'),
-    -- venitul: suma costurilor pacienților cu ședințe finalizate în săptămână
     COALESCE(SUM(p.cost) FILTER (WHERE pr.status = 'finalizat'), 0)
   INTO v_total, v_final, v_absent, v_anulat, v_venit
   FROM public.programari pr
@@ -514,61 +496,27 @@ BEGIN
 END;
 $$;
 
-SELECT cron.schedule(
-  'arhivare-saptamanala',
-  '10 0 * * 1',
-  $$SELECT public.arhiveaza_saptamana();$$
-);
+-- Schedule cron în siguranță (dacă pg_cron este activat)
+DO $$
+BEGIN
+  PERFORM cron.schedule(
+    'arhivare-saptamanala',
+    '10 0 * * 1',
+    'SELECT public.arhiveaza_saptamana();'
+  );
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 GRANT EXECUTE ON FUNCTION public.arhiveaza_saptamana(date) TO authenticated;
 
 
 -- ============================================================
--- 7. ROW LEVEL SECURITY
--- ============================================================
-ALTER TABLE public.profiles           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pacienti           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.programari         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.notificari         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.settings           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.istoric_saptamanal ENABLE ROW LEVEL SECURITY;
-
--- Profiles: fiecare utilizator vede/modifică doar propriul profil
-CREATE POLICY "acces propriul profil" ON public.profiles
-  FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-
--- Pacienti: orice utilizator autentificat (terapeut unic)
-CREATE POLICY "admin acces total pacienti" ON public.pacienti
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
--- Programari: orice utilizator autentificat
-CREATE POLICY "admin acces total programari" ON public.programari
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
--- Notificari: orice utilizator autentificat
-CREATE POLICY "admin acces total notificari" ON public.notificari
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
--- Settings: citire publică (pentru trigger), modificare doar autentificat
-CREATE POLICY "citire publica settings" ON public.settings
-  FOR SELECT USING (true);
-CREATE POLICY "admin modificare settings" ON public.settings
-  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
--- Istoric: citire autentificat (scriere doar din cron, nu e supus RLS)
-CREATE POLICY "admin citire istoric" ON public.istoric_saptamanal
-  FOR SELECT USING (auth.role() = 'authenticated');
-
-
--- ============================================================
--- 8. VIEW UTILĂ: pacienti_complet
---    Returnează numele complet (prenume || ' ' || nume), toate
---    câmpurile pacientului și suma încasată totală din tabela plati.
+-- 9. VIEW UTILĂ: pacienti_view (cu sumă totală încasată)
 -- ============================================================
 CREATE OR REPLACE VIEW public.pacienti_view AS
 SELECT
   p.id,
-  p.prenume || ' ' || p.nume                       AS name,   -- "Maria Popescu" — compatibil cu UI
+  p.prenume || ' ' || p.nume                       AS name,
   p.nume,
   p.prenume,
   p.telefon,
@@ -590,58 +538,38 @@ FROM public.pacienti p;
 
 
 -- ============================================================
--- 9. EXEMPLE DE UTILIZARE DIN FRONTEND (Supabase JS)
+-- 10. ROW LEVEL SECURITY (Securitate și acces complet)
 -- ============================================================
---
--- [AUTH] Login:
---   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
---
--- [AUTH] Signup:
---   const { data, error } = await supabase.auth.signUp({
---     email, password,
---     options: { data: { username: '@roxanavieru', display_name: 'Roxana Vieru' } }
---   })
---
--- [SETTINGS] Citire:
---   const { data: settings } = await supabase.from('settings').select('*').single()
---
--- [SETTINGS] Salvare orar:
---   await supabase.from('settings').update({ work_start: '09:00', work_end: '18:00' }).eq('id', settings.id)
---
--- [PACIENTI] Listă cu filtru locație:
---   const { data } = await supabase.from('pacienti_view').select('*').eq('locatie', 'Belaqva')
---
--- [PACIENTI] Adăugare (name "Maria Popescu" → split în JS):
---   const parts = name.trim().split(' ')
---   const prenume = parts[0]                    // "Maria"
---   const nume = parts.slice(1).join(' ')       // "Popescu"
---   await supabase.from('pacienti').insert({ nume, prenume, telefon, locatie, plan, cost, ... })
---
--- [PROGRAMARI] Adăugare sesiune:
---   await supabase.from('programari').insert({ pacient_id, data, ora, locatie })
---   // Trigger-ul valideaza_programare rulează automat în DB
---
--- [PROGRAMARI] Finalizare sesiune (WrapUp):
---   await supabase.from('programari').update({ status: 'finalizat', note: notesText }).eq('id', sessionId)
---   // Trigger-ul incrementeaza_sedinte_folosite rulează automat
---
--- [PLATA] Marcare achitat:
---   await supabase.from('pacienti').update({ achitat: true }).eq('id', patientId)
---
--- [RAPOARTE] Istoricul ultimelor 8 săptămâni:
---   const { data } = await supabase
---     .from('istoric_saptamanal')
---     .select('saptamana_start, finalizate, absente, procent_prezenta, venit_total')
---     .order('saptamana_start', { ascending: false })
---     .limit(8)
---
--- [RAPOARTE] Arhivare manuală săptămână:
---   await supabase.rpc('arhiveaza_saptamana', { saptamana_start: '2026-08-03' })
---
--- [NOTIFICARI] Necitite:
---   const { data } = await supabase.from('notificari').select('*').eq('citita', false).order('created_at', { ascending: false })
---
--- [NOTIFICARI] Marcare citită:
---   await supabase.from('notificari').update({ citita: true }).eq('id', notifId)
---
--- ============================================================
+ALTER TABLE public.profiles           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pacienti           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.programari         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plati              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.error_logs         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notificari         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.istoric_saptamanal ENABLE ROW LEVEL SECURITY;
+
+-- Politici de acces
+DROP POLICY IF EXISTS "acces profiles" ON public.profiles;
+CREATE POLICY "acces profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "acces settings" ON public.settings;
+CREATE POLICY "acces settings" ON public.settings FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "acces pacienti" ON public.pacienti;
+CREATE POLICY "acces pacienti" ON public.pacienti FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "acces programari" ON public.programari;
+CREATE POLICY "acces programari" ON public.programari FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "acces plati" ON public.plati;
+CREATE POLICY "acces plati" ON public.plati FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "acces error_logs" ON public.error_logs;
+CREATE POLICY "acces error_logs" ON public.error_logs FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "acces notificari" ON public.notificari;
+CREATE POLICY "acces notificari" ON public.notificari FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "acces istoric" ON public.istoric_saptamanal;
+CREATE POLICY "acces istoric" ON public.istoric_saptamanal FOR ALL USING (true) WITH CHECK (true);

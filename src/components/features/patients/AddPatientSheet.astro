@@ -89,6 +89,7 @@
       <!-- CARD 2: PREȚ & ȘEDINȚE                                 -->
       <!-- ═══════════════════════════════════════════════════════ -->
       <div class="rounded-3xl bg-black/[0.03] p-4 space-y-4 border border-black/5">
+
         <!-- Steppers: Preț / Ședință + Nr. Ședințe -->
         <div class="grid grid-cols-2 gap-3">
           <!-- Preț / Ședință -->
@@ -181,21 +182,21 @@
             <button 
               type="button" 
               data-payment="Neachitat" 
-              class="py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+              class="py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-rose-100 text-rose-700 shadow-sm"
             >
               Neachitat
             </button>
             <button 
               type="button" 
               data-payment="Plată parțială" 
-              class="py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+              class="py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black"
             >
               Parțial
             </button>
             <button 
               type="button" 
               data-payment="Achitat" 
-              class="py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-center truncate"
+              class="py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black"
             >
               Achitat
             </button>
@@ -265,6 +266,7 @@
 
 <script>
   import { addPatient, updatePatient, addPayment } from '../../../lib/services/patientService';
+  import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class AddPatientSheetManager {
@@ -409,11 +411,10 @@
 
       const priceInput = document.getElementById('patientPricePerSession') as HTMLInputElement | null;
       const sessionsInput2 = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
-      priceInput?.addEventListener('input', () => {
-        this.calculateTotalCost();
-      });
-      sessionsInput2?.addEventListener('input', () => {
-        this.calculateTotalCost();
+      
+      ['input', 'change', 'keyup', 'paste'].forEach(evt => {
+        priceInput?.addEventListener(evt, () => this.calculateTotalCost());
+        sessionsInput2?.addEventListener(evt, () => this.calculateTotalCost());
       });
 
       const saveBtn = document.getElementById('save-patient-btn');
@@ -424,10 +425,10 @@
       const priceInput = document.getElementById('patientPricePerSession') as HTMLInputElement | null;
       const sessionsInput = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
       const costInput = document.getElementById('patientCost') as HTMLInputElement | null;
-      if (!priceInput || !sessionsInput || !costInput) return;
+      if (!costInput) return;
 
-      const price = parseFloat(priceInput.value || '0') || 0;
-      const sessions = parseInt(sessionsInput.value || '0', 10) || 0;
+      const price = parseFloat(priceInput?.value || '0') || 0;
+      const sessions = parseInt(sessionsInput?.value || '0', 10) || 0;
       costInput.value = (price * sessions).toString();
     }
 
@@ -560,7 +561,11 @@
       } else {
         totalInput.readOnly = false;
         totalInput.classList.remove('opacity-50', 'cursor-not-allowed');
+        if (totalInput.value === '1' || !totalInput.value) {
+          totalInput.value = '10';
+        }
       }
+      this.calculateTotalCost();
     }
 
     updatePaymentChips(selectedPayment: string) {
@@ -583,7 +588,13 @@
         }
 
         if (isMatch) {
-          chip.className = 'py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-brand-primary text-black shadow-sm';
+          if (normSelected === 'neachitat' || normSelected === 'unpaid') {
+            chip.className = 'py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-rose-100 text-rose-700 shadow-sm';
+          } else if (normSelected.includes('par') || normSelected.includes('partial')) {
+            chip.className = 'py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-amber-100 text-amber-900 shadow-sm';
+          } else {
+            chip.className = 'py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-emerald-100 text-emerald-800 shadow-sm';
+          }
         } else {
           chip.className = 'py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black';
         }
@@ -720,9 +731,17 @@
           }
         } else if (this.form) {
           this.form.reset();
-          (this.form.querySelector('[name="pricePerSession"]') as HTMLInputElement).value = '150';
+          let defaultPriceVal = 150;
+          try {
+            const cachedRaw = localStorage.getItem('kineto_settings_cache');
+            if (cachedRaw) {
+              const parsed = JSON.parse(cachedRaw);
+              if (parsed?.default_price) defaultPriceVal = parsed.default_price;
+            }
+          } catch (_) {}
+          (this.form.querySelector('[name="pricePerSession"]') as HTMLInputElement).value = String(defaultPriceVal);
           (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = '10';
-          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = '1500';
+          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = String(defaultPriceVal * 10);
           this.currentPlanFilter = 'Abonament';
           this.updatePlanChips('Abonament');
           this.applyPlanDefaults('Abonament');

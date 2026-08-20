@@ -142,7 +142,16 @@ export async function getWeekStats(baseDate?: string) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const dateStr = toLocalISOString(d);
-    return { label: lbl, val: Math.round(byDay[dateStr]?.venit || 0), dateStr };
+    const dayNameFull = d.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' });
+    const capTitle = dayNameFull.charAt(0).toUpperCase() + dayNameFull.slice(1);
+    return { 
+      label: lbl, 
+      val: Math.round(byDay[dateStr]?.venit || 0), 
+      dateStr,
+      startDateStr: dateStr,
+      endDateStr: dateStr,
+      fullTitle: capTitle
+    };
   });
 
   return { total, finalizate, absente, venit: Math.round(venit), prezenta, chartData, startStr, endStr };
@@ -186,8 +195,20 @@ export async function getMonthStats(baseDate?: string) {
   });
 
   const chartData = byPeriod.map((val, i) => {
-    const d = new Date(refDate.getFullYear(), refDate.getMonth(), i * 8 + 1);
-    return { label: `S${i+1}`, val: Math.round(val), dateStr: toLocalISOString(d) };
+    const startDay = i * 8 + 1;
+    const lastDayOfMonth = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).getDate();
+    const endDay = i === 3 ? lastDayOfMonth : (i + 1) * 8;
+    const dStart = new Date(refDate.getFullYear(), refDate.getMonth(), startDay);
+    const dEnd = new Date(refDate.getFullYear(), refDate.getMonth(), endDay);
+    const monthName = refDate.toLocaleDateString('ro-RO', { month: 'long' });
+    return { 
+      label: `S${i+1}`, 
+      val: Math.round(val), 
+      dateStr: toLocalISOString(dStart),
+      startDateStr: toLocalISOString(dStart),
+      endDateStr: toLocalISOString(dEnd),
+      fullTitle: `Săptămâna ${i+1} (${startDay} - ${endDay} ${monthName})`
+    };
   });
 
   return { total, finalizate, absente, venit: Math.round(venit), chartData, startStr, endStr };
@@ -231,8 +252,17 @@ export async function getQuarterStats(baseDate?: string) {
   const monthNames = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const chartData = byMonth.map((val, i) => {
     const mIdx = currentQuarter * 3 + i;
-    const d = new Date(refDate.getFullYear(), mIdx, 1);
-    return { label: monthNames[mIdx], val: Math.round(val), dateStr: toLocalISOString(d) };
+    const dStart = new Date(refDate.getFullYear(), mIdx, 1);
+    const dEnd = new Date(refDate.getFullYear(), mIdx + 1, 0);
+    const monthName = dStart.toLocaleDateString('ro-RO', { month: 'long' });
+    return { 
+      label: monthNames[mIdx], 
+      val: Math.round(val), 
+      dateStr: toLocalISOString(dStart),
+      startDateStr: toLocalISOString(dStart),
+      endDateStr: toLocalISOString(dEnd),
+      fullTitle: `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${refDate.getFullYear()}`
+    };
   });
 
   return { total, finalizate, absente, venit: Math.round(venit), chartData, startStr, endStr };
@@ -274,11 +304,119 @@ export async function getYearStats(baseDate?: string) {
 
   const initialLetters = ['I', 'F', 'M', 'A', 'M', 'I', 'I', 'A', 'S', 'O', 'N', 'D'];
   const chartData = byMonth.map((val, i) => {
-    const d = new Date(refDate.getFullYear(), i, 1);
-    return { label: initialLetters[i], val: Math.round(val), dateStr: toLocalISOString(d) };
+    const dStart = new Date(refDate.getFullYear(), i, 1);
+    const dEnd = new Date(refDate.getFullYear(), i + 1, 0);
+    const monthName = dStart.toLocaleDateString('ro-RO', { month: 'long' });
+    return { 
+      label: initialLetters[i], 
+      val: Math.round(val), 
+      dateStr: toLocalISOString(dStart),
+      startDateStr: toLocalISOString(dStart),
+      endDateStr: toLocalISOString(dEnd),
+      fullTitle: `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${refDate.getFullYear()}`
+    };
   });
 
   return { total, finalizate, absente, venit: Math.round(venit), chartData, startStr, endStr };
+}
+
+// ── Detalii încasări pentru o zi sau o perioadă ───────────────
+export interface DetailedPayment {
+  id: string;
+  pacientId: string;
+  numeComplet: string;
+  telefon?: string;
+  suma: number;
+  dataPlatii: string;
+  oraPlatii?: string;
+  metoda: string;
+  plan?: string;
+  locatie?: string;
+}
+
+export async function getDetailedPayments(startStr: string, endStr?: string): Promise<DetailedPayment[]> {
+  const endDate = endStr || startStr;
+  try {
+    const { data: platiData, error: platiErr } = await (supabase as any)
+      .from('plati')
+      .select('id, pacient_id, suma, data_platii, metoda, created_at, pacienti(id, nume, prenume, telefon, plan, locatie)')
+      .gte('data_platii', startStr)
+      .lte('data_platii', endDate)
+      .order('created_at', { ascending: false });
+
+    if (platiErr) {
+      console.warn('Eroare citire plati:', platiErr);
+    }
+
+    const results: DetailedPayment[] = [];
+    const patientIdsWithPlati = new Set<string>();
+
+    (platiData || []).forEach((p: any) => {
+      patientIdsWithPlati.add(p.pacient_id);
+      const pacient = p.pacienti || {};
+      const numeComplet = `${pacient.prenume || ''} ${pacient.nume || ''}`.trim() || 'Pacient';
+      
+      let ora = '';
+      if (p.created_at) {
+        try {
+          const dt = new Date(p.created_at);
+          ora = dt.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+        } catch (_) {}
+      }
+
+      results.push({
+        id: p.id || `plati-${Math.random()}`,
+        pacientId: p.pacient_id,
+        numeComplet,
+        telefon: pacient.telefon || '',
+        suma: Number(p.suma || 0),
+        dataPlatii: p.data_platii,
+        oraPlatii: ora,
+        metoda: p.metoda || 'Plată',
+        plan: pacient.plan || '',
+        locatie: pacient.locatie || ''
+      });
+    });
+
+    // Căutăm și pacienții cu achitat = true creați în acest interval dacă nu au rând în plati
+    const { data: pacientiData } = await (supabase as any)
+      .from('pacienti')
+      .select('id, nume, prenume, telefon, plan, locatie, cost, created_at, achitat')
+      .eq('achitat', true)
+      .gte('created_at', startStr)
+      .lte('created_at', endDate + 'T23:59:59');
+
+    (pacientiData || []).forEach((p: any) => {
+      if (!patientIdsWithPlati.has(p.id) && Number(p.cost || 0) > 0) {
+        const numeComplet = `${p.prenume || ''} ${p.nume || ''}`.trim() || 'Pacient';
+        let ora = '';
+        if (p.created_at) {
+          try {
+            const dt = new Date(p.created_at);
+            ora = dt.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+          } catch (_) {}
+        }
+
+        results.push({
+          id: `pacient-cost-${p.id}`,
+          pacientId: p.id,
+          numeComplet,
+          telefon: p.telefon || '',
+          suma: Number(p.cost || 0),
+          dataPlatii: (p.created_at || '').split('T')[0],
+          oraPlatii: ora,
+          metoda: 'Pachet achitat',
+          plan: p.plan || '',
+          locatie: p.locatie || ''
+        });
+      }
+    });
+
+    return results;
+  } catch (err) {
+    console.error('Eroare getDetailedPayments:', err);
+    return [];
+  }
 }
 
 // ── Pacienți neachitați ───────────────────────────────────────

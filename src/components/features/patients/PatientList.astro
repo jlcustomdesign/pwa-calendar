@@ -51,16 +51,17 @@
       margin-left: 0;
     }
   </style>
-  <!-- Filters (Horizontal Swipeable) -->
+  <!-- Filters (Horizontal Swipeable - dynamically synced with Settings -> Categorii) -->
   <div 
     id="patient-filters-bar"
     class="flex gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar select-none touch-pan-x cursor-grab active:cursor-grabbing" 
     style="-webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain;"
   >
     <button class="filter-btn active px-5 py-2.5 rounded-full bg-brand-primary text-black font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm shrink-0" data-filter="all">Toți</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="ghimbav">Ghimbav</button>
     <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="belaqva">Belaqva</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="ghimbav">Ghimbav</button>
     <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="unpaid">Neachitați</button>
+    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="paid">Achitați</button>
   </div>
 </div>
 
@@ -91,6 +92,7 @@
 
 <script>
   import { getPatients, deletePatient as deletePatientDB, isRenewalDismissed } from '../../../lib/services/patientService';
+  import { getSettings } from '../../../lib/services/settingsService';
   import { escapeHtml, escapeJsString } from '../../../utils/html';
 
   class PatientListManager {
@@ -102,6 +104,7 @@
       this.container = document.getElementById('patient-list-container');
       this.clearOldLocalStorage();
       this.bindEvents();
+      this.loadCategoryFilters();
       this.render();
     }
 
@@ -129,6 +132,11 @@
           }
           await this.render();
         });
+
+        window.addEventListener('settingsUpdated', async () => {
+          await this.loadCategoryFilters();
+          await this.render();
+        });
         (window as any)._patientEventsBound = true;
       }
       
@@ -137,10 +145,8 @@
 
     bindLocalEvents() {
       const searchInput = document.getElementById('patient-search') as HTMLInputElement;
-      if (!searchInput || searchInput.dataset.patientLocalBound === 'true') return;
-      searchInput.dataset.patientLocalBound = 'true';
-
-      if (searchInput) {
+      if (searchInput && searchInput.dataset.patientLocalBound !== 'true') {
+        searchInput.dataset.patientLocalBound = 'true';
         searchInput.addEventListener('input', (e) => {
           this.currentSearchQuery = (e.target as HTMLInputElement).value.toLowerCase();
           this.render();
@@ -153,8 +159,6 @@
         searchInput.addEventListener('focus', () => {
           if (!searchRow || !addBtn) return;
           clearTimeout(addBtnResetTimer);
-          // Pin the current width first — CSS can't transition from width:auto,
-          // so measure it, force a reflow, then let the class animate to 52px
           addBtn.style.width = `${addBtn.offsetWidth}px`;
           void addBtn.offsetWidth;
           searchRow.classList.add('search-active');
@@ -163,31 +167,12 @@
           if (!searchRow || !addBtn) return;
           if (!searchInput.value.trim()) {
             searchRow.classList.remove('search-active');
-            // Restore natural pill width once the morph-back transition finished
             addBtnResetTimer = window.setTimeout(() => {
               addBtn.style.width = '';
             }, 650);
           }
         });
       }
-
-      const filterBtns = document.querySelectorAll('.filter-btn');
-      filterBtns.forEach(btn => {
-        if (btn.dataset.filterBound === 'true') return;
-        btn.dataset.filterBound = 'true';
-        btn.addEventListener('click', (e) => {
-          filterBtns.forEach(b => {
-            b.classList.remove('bg-brand-primary');
-            b.classList.add('bg-white', 'border', 'border-black/10', 'shadow-sm');
-          });
-          const target = e.currentTarget as HTMLElement;
-          target.classList.remove('bg-white', 'border', 'border-black/10');
-          target.classList.add('bg-brand-primary');
-          
-          this.currentFilter = target.getAttribute('data-filter') || 'all';
-          this.render();
-        });
-      });
 
       // Desktop drag-to-scroll for filters
       const filtersBar = document.getElementById('patient-filters-bar');
@@ -212,6 +197,79 @@
           filtersBar.scrollLeft = scrollLeft - walk;
         });
       }
+    }
+
+    async loadCategoryFilters() {
+      const filtersBar = document.getElementById('patient-filters-bar');
+      if (!filtersBar) return;
+
+      let rawCategories = ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'];
+      try {
+        const settings = await getSettings();
+        if (settings?.categories && settings.categories.length > 0) {
+          rawCategories = settings.categories;
+        }
+      } catch (e) {
+        console.warn('Eroare încărcare categorii setări:', e);
+      }
+
+      // Filter out any "Toți" from the custom categories list and deduplicate
+      const cleanCategories: string[] = [];
+      const seen = new Set<string>();
+
+      rawCategories.forEach(c => {
+        const trimmed = c.trim();
+        const norm = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (!trimmed || norm === 'toti' || norm === 'all' || seen.has(norm)) return;
+        seen.add(norm);
+        cleanCategories.push(trimmed);
+      });
+
+      // Clear bar completely
+      filtersBar.innerHTML = '';
+
+      // 1. Fixed unique master button: "Toți"
+      const allBtn = document.createElement('button');
+      const isAllActive = this.currentFilter === 'all';
+      allBtn.className = `filter-btn ${isAllActive ? 'active bg-brand-primary text-black' : 'bg-white text-black border border-black/10'} px-5 py-2.5 rounded-full font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm shrink-0 cursor-pointer`;
+      allBtn.setAttribute('data-filter', 'all');
+      allBtn.textContent = 'Toți';
+      filtersBar.appendChild(allBtn);
+
+      // 2. Individual category buttons
+      cleanCategories.forEach(cleanName => {
+        const norm = cleanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        let filterVal = norm;
+        if (norm.includes('belaqva') || norm.includes('belaqua')) filterVal = 'belaqva';
+        else if (norm.includes('ghimbav')) filterVal = 'ghimbav';
+        else if (norm.includes('neachitat') || norm.includes('unpaid')) filterVal = 'unpaid';
+        else if (norm.includes('achitat') || norm.includes('paid')) filterVal = 'paid';
+        else filterVal = `custom:${cleanName}`;
+
+        const isActive = this.currentFilter === filterVal;
+        const btn = document.createElement('button');
+        btn.className = `filter-btn ${isActive ? 'active bg-brand-primary text-black' : 'bg-white text-black border border-black/10'} px-5 py-2.5 rounded-full font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm shrink-0 cursor-pointer`;
+        btn.setAttribute('data-filter', filterVal);
+        btn.textContent = cleanName;
+        filtersBar.appendChild(btn);
+      });
+
+      // Bind click handlers
+      filtersBar.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          filtersBar.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.remove('active', 'bg-brand-primary');
+            b.classList.add('bg-white', 'border', 'border-black/10', 'shadow-sm');
+          });
+          const target = e.currentTarget as HTMLElement;
+          target.classList.remove('bg-white', 'border', 'border-black/10');
+          target.classList.add('active', 'bg-brand-primary');
+          
+          this.currentFilter = target.getAttribute('data-filter') || 'all';
+          this.render();
+        });
+      });
     }
 
     async deletePatient(id: string) {
@@ -268,11 +326,31 @@
 
       let patients: any[] = [];
       try {
+        let locationFilter: 'Belaqva' | 'Ghimbav' | undefined = undefined;
+        let achitatFilter: boolean | undefined = undefined;
+
+        if (this.currentFilter === 'ghimbav') locationFilter = 'Ghimbav';
+        else if (this.currentFilter === 'belaqva') locationFilter = 'Belaqva';
+        else if (this.currentFilter === 'unpaid') achitatFilter = false;
+        else if (this.currentFilter === 'paid') achitatFilter = true;
+
         patients = await getPatients({
-          locatie: this.currentFilter === 'ghimbav' ? 'Ghimbav' : (this.currentFilter === 'belaqva' ? 'Belaqva' : undefined),
-          achitat: this.currentFilter === 'unpaid' ? false : undefined,
+          locatie: locationFilter,
+          achitat: achitatFilter,
           search: this.currentSearchQuery || undefined
         });
+
+        // Filtru pentru categorii custom dacă utilizatorul a definit alte etichete
+        if (this.currentFilter.startsWith('custom:')) {
+          const customTerm = this.currentFilter.replace('custom:', '').toLowerCase().trim();
+          patients = patients.filter((p: any) => {
+            const plan = (p.plan || '').toLowerCase();
+            const loc = (p.locatie || '').toLowerCase();
+            const name = (p.name || '').toLowerCase();
+            const notes = (p.observatii || '').toLowerCase();
+            return plan.includes(customTerm) || loc.includes(customTerm) || name.includes(customTerm) || notes.includes(customTerm);
+          });
+        }
       } catch (e) {
         console.error('Eroare citire pacienti:', e);
       }
@@ -363,8 +441,8 @@
         let paymentBadgeBgClass = 'bg-rose-50 hover:bg-rose-100 border-rose-200/60';
 
         if (paymentStatus === 'Achitat parțial' || (sumaIncasata > 0 && restDePlata > 0)) {
-          paymentBadgeHtml = `<span class='text-sm font-black text-black'>${sumaIncasata}/${costTotal || sumaIncasata} RON</span>`;
-          paymentBadgeBgClass = 'bg-white hover:bg-neutral-50 border-black/5';
+          paymentBadgeHtml = `<span class='text-sm font-black text-amber-900'>${sumaIncasata}/${costTotal || sumaIncasata} RON</span>`;
+          paymentBadgeBgClass = 'bg-amber-50 hover:bg-amber-100 border-amber-200/60';
         } else if (isFullyPaid) {
           paymentBadgeHtml = `<span class='text-sm font-black text-emerald-900'>Achitat</span>`;
           paymentBadgeBgClass = 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200/60';

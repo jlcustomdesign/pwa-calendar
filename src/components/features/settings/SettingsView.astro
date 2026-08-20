@@ -73,7 +73,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 type="text"
                 id="display-name"
                 name="displayName"
-                value="Roxana Vieru"
+                value=""
                 placeholder="Numele tău..."
                 class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
               />
@@ -86,7 +86,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 type="tel"
                 id="phone-number"
                 name="phoneNumber"
-                value="+40 722 000 111"
+                value=""
                 placeholder="+40 7xx xxx xxx"
                 class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
               />
@@ -99,7 +99,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 type="email"
                 id="email-address"
                 name="email"
-                value="roxana.vieru@gmail.com"
+                value=""
                 placeholder="email@domeniu.com"
                 class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
               />
@@ -112,7 +112,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 type="text"
                 id="username"
                 name="username"
-                value="@roxanavieru"
+                value=""
                 placeholder="@nume"
                 class="text-right bg-transparent font-bold text-text-main text-base sm:text-lg focus:outline-none focus:text-brand-secondary transition-colors w-full max-w-[240px]"
               />
@@ -221,11 +221,11 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
             <div class="flex items-center justify-between py-1">
               <div class="text-base sm:text-lg font-bold text-text-main">Durata ședințelor</div>
               <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-transparent">
-                <button type="button" data-stepper-dec="sessionDuration" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                <button type="button" data-stepper-dec="sessionDuration" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer">
                   -
                 </button>
-                <input type="number" id="sessionDuration" name="sessionDuration" value="50" min="15" max="180" step="5" readonly class="w-12 text-center bg-transparent font-bold text-text-main text-base focus:outline-none" />
-                <button type="button" data-stepper-inc="sessionDuration" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                <input type="number" id="sessionDuration" name="sessionDuration" value="50" min="15" max="180" step="5" inputmode="numeric" class="w-14 text-center bg-transparent font-bold text-text-main text-base focus:outline-none focus:bg-white/80 rounded-lg" />
+                <button type="button" data-stepper-inc="sessionDuration" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer">
                   +
                 </button>
               </div>
@@ -235,50 +235,26 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
             <div class="flex items-center justify-between py-1 border-t border-transparent pt-3">
               <div class="text-base sm:text-lg font-bold text-text-main">Pauză între pacienți</div>
               <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-transparent">
-                <button type="button" data-stepper-dec="breakBetween" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                <button type="button" data-stepper-dec="breakBetween" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer">
                   -
                 </button>
-                <input type="number" id="breakBetween" name="breakBetween" value="10" min="0" max="60" step="5" readonly class="w-12 text-center bg-transparent font-bold text-text-main text-base focus:outline-none" />
-                <button type="button" data-stepper-inc="breakBetween" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform">
+                <input type="number" id="breakBetween" name="breakBetween" value="10" min="0" max="60" step="5" inputmode="numeric" class="w-14 text-center bg-transparent font-bold text-text-main text-base focus:outline-none focus:bg-white/80 rounded-lg" />
+                <button type="button" data-stepper-inc="breakBetween" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer">
                   +
                 </button>
               </div>
             </div>
 
-            <!-- Stepper: Preț ședință (Sters pentru a face loc pachetelor) -->
-            <!-- Pachete de prețuri -->
-            <div class="space-y-4 pt-4 border-t border-transparent mt-4">
-              <h3 class="text-lg font-bold text-text-main">Prețuri și Pachete</h3>
-              <div id="pricing-packages-container" class="flex flex-col gap-2.5 w-full">
-                <!-- Dynamically added custom pricing packages items -->
-              </div>
-
-              <!-- Casetă de introducere DIRECT vizibilă de la început -->
-              <div id="inline-pricing-input-box" class="flex flex-col gap-2 w-full pt-2">
-                <input
-                  type="text"
-                  id="new-pricing-name"
-                  placeholder="Nume (ex. Abonament 10 ședințe)"
-                  class="w-full px-4 py-3 rounded-2xl bg-surface-base/80 border border-transparent text-text-main font-bold text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all"
-                />
-                <div class="flex gap-2">
-                  <select id="new-pricing-type" class="flex-1 px-4 py-3 rounded-2xl bg-surface-base/80 border border-transparent text-text-main font-bold text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all appearance-none cursor-pointer">
-                    <option value="One Time">Ședință (One Time)</option>
-                    <option value="Subscription">Pachet (Subscription)</option>
-                  </select>
-                  <input
-                    type="number"
-                    id="new-pricing-price"
-                    placeholder="Preț / ședință (RON)"
-                    class="w-32 px-4 py-3 rounded-2xl bg-surface-base/80 border border-transparent text-text-main font-bold text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary/50 transition-all"
-                  />
-                </div>
-                <button
-                  type="button"
-                  id="btn-confirm-add-pricing"
-                  class="w-full py-3.5 rounded-2xl bg-brand-secondary text-white font-extrabold text-sm hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-md shadow-brand-secondary/20 shrink-0 mt-1"
-                >
-                  Adaugă
+            <!-- Stepper: Preț / ședință -->
+            <div class="flex items-center justify-between py-1 border-t border-transparent pt-3">
+              <div class="text-base sm:text-lg font-bold text-text-main">Preț / ședință</div>
+              <div class="flex items-center gap-2 bg-surface-base/70 p-1 rounded-2xl border border-transparent">
+                <button type="button" data-stepper-dec="defaultPrice" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer">
+                  -
+                </button>
+                <input type="number" id="defaultPrice" name="defaultPrice" value="150" min="0" max="2000" step="10" inputmode="numeric" class="w-16 text-center bg-transparent font-bold text-text-main text-base focus:outline-none focus:bg-white/80 rounded-lg" />
+                <button type="button" data-stepper-inc="defaultPrice" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer">
+                  +
                 </button>
               </div>
             </div>
@@ -330,26 +306,18 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
             >Salut &#123;nume&#125;! Îți reamintim că mai ai &#123;ramase&#125; ședințe rămase din pachetul tău Kineto. Te așteptăm cu drag!</textarea>
           </section>
 
-          <!-- Forma 3: Notificări automate pe telefon (Apple & Android) -->
-          <section class="bg-surface-card text-text-main rounded-[2rem] p-6 shadow-sm border border-transparent space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-lg sm:text-xl font-bold text-text-main">Notificări pe telefon</h3>
-                <p class="text-xs sm:text-sm font-medium text-text-muted mt-0.5">Alerte la începutul și finalul ședințelor</p>
-              </div>
-              <div id="notification-status-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-200 text-neutral-700">
-                Verificare...
-              </div>
-            </div>
+          <!-- Forma 3: Notificări pe telefon -->
+          <section class="bg-surface-card text-text-main rounded-[2rem] p-6 shadow-sm border border-transparent space-y-3.5">
+            <h3 class="text-lg sm:text-xl font-bold text-text-main">Notificări telefon</h3>
             <button
               type="button"
               id="btn-test-notification"
-              class="w-full py-3.5 px-6 rounded-2xl bg-brand-secondary text-white font-extrabold text-sm sm:text-base hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-md shadow-brand-secondary/20 flex items-center justify-center gap-2"
+              class="w-full py-3.5 px-5 rounded-2xl bg-brand-secondary text-white font-extrabold text-sm sm:text-base hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-md shadow-brand-secondary/20 flex items-center justify-center gap-2"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              <span>Activează / Testează notificările</span>
+              <span>Activează</span>
             </button>
           </section>
         </div>
@@ -360,7 +328,16 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
         <section class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm space-y-4">
           <div class="space-y-3">
             <div id="categories-container" class="flex flex-col gap-2.5 w-full">
-              <!-- Dynamically added custom category items (vertical bullet list) -->
+              <!-- Preset standard category items (SSR pre-rendered) -->
+              {['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'].map((cat) => (
+                <div data-category-chip={cat} class="flex items-center justify-between p-3.5 px-4 rounded-2xl bg-surface-base/60 hover:bg-surface-base border border-transparent transition-all animate-fadeIn w-full">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-2.5 h-2.5 rounded-full bg-brand-secondary shrink-0 shadow-sm shadow-brand-secondary/30"></div>
+                    <span class="text-text-main font-extrabold text-base tracking-tight truncate">{cat}</span>
+                  </div>
+                  <button type="button" data-delete-category class="w-7 h-7 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold text-xs flex items-center justify-center transition-all shrink-0 ml-2 cursor-pointer shadow-sm">&times;</button>
+                </div>
+              ))}
             </div>
 
             <!-- Casetă de introducere DIRECT vizibilă de la început -->
@@ -554,10 +531,12 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const inputEmail = document.getElementById('email-address') as HTMLInputElement | null;
     const inputUsername = document.getElementById('username') as HTMLInputElement | null;
 
-    if (inputName)     inputName.value     = profileData?.display_name || '';
-    if (inputPhone)    inputPhone.value    = profileData?.telefon       || '';
-    if (inputEmail)    inputEmail.value    = profileData?.email         || '';
-    if (inputUsername) inputUsername.value = profileData?.username      || '';
+    if (profileData) {
+      if (inputName)     inputName.value     = profileData.display_name ?? '';
+      if (inputPhone)    inputPhone.value    = profileData.telefon      ?? '';
+      if (inputEmail)    inputEmail.value    = profileData.email        ?? '';
+      if (inputUsername) inputUsername.value = profileData.username     ?? '';
+    }
 
     // 2. Schedule
     const inputWorkStart = document.getElementById('work-start') as HTMLInputElement | null;
@@ -613,126 +592,13 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     // 4. Packages
     const inputDuration = document.getElementById('sessionDuration') as HTMLInputElement | null;
     const inputBreakBetween = document.getElementById('breakBetween') as HTMLInputElement | null;
+    const inputDefaultPrice = document.getElementById('defaultPrice') as HTMLInputElement | null;
 
     if (inputDuration)     inputDuration.value     = (settings.session_duration ?? 50).toString();
     if (inputBreakBetween) inputBreakBetween.value  = (settings.break_buffer      ?? 10).toString();
+    if (inputDefaultPrice) inputDefaultPrice.value  = (settings.default_price     ?? 150).toString();
 
-    // 4.1 Pricing Packages Logic
-    const pricingPackagesContainer = document.getElementById('pricing-packages-container');
-    const btnConfirmAddPricing = document.getElementById('btn-confirm-add-pricing');
-    const newPricingNameInput = document.getElementById('new-pricing-name') as HTMLInputElement | null;
-    const newPricingTypeSelect = document.getElementById('new-pricing-type') as HTMLSelectElement | null;
-    const newPricingPriceInput = document.getElementById('new-pricing-price') as HTMLInputElement | null;
 
-    let localPricingPackages: any[] = [];
-
-    async function fetchPricingPackages() {
-      try {
-        localPricingPackages = await getPricingPackages();
-        renderAllPricingPackages();
-      } catch (err) {
-        console.error("Failed to fetch pricing packages", err);
-      }
-    }
-
-    function renderAllPricingPackages() {
-      if (!pricingPackagesContainer) return;
-      pricingPackagesContainer.innerHTML = '';
-      localPricingPackages.forEach(renderPricingPackageItem);
-    }
-
-    function renderPricingPackageItem(pkg: any) {
-      if (!pricingPackagesContainer) return;
-      const itemDiv = document.createElement('div');
-      itemDiv.setAttribute('data-pricing-id', pkg.id);
-      itemDiv.className = 'flex items-center justify-between p-3.5 px-4 rounded-2xl bg-surface-base/60 hover:bg-surface-base border border-transparent transition-all animate-fadeIn w-full';
-      
-      const leftBox = document.createElement('div');
-      leftBox.className = 'flex flex-col min-w-0 flex-1';
-
-      const titleRow = document.createElement('div');
-      titleRow.className = 'flex items-center justify-between mb-1';
-
-      const spanName = document.createElement('span');
-      spanName.className = 'text-text-main font-extrabold text-base tracking-tight truncate flex-1';
-      spanName.textContent = pkg.nume;
-
-      const spanPrice = document.createElement('span');
-      spanPrice.className = 'text-brand-secondary font-black text-base whitespace-nowrap ml-2';
-      spanPrice.textContent = `${pkg.pret} RON/sed`;
-
-      titleRow.appendChild(spanName);
-      titleRow.appendChild(spanPrice);
-
-      const spanType = document.createElement('span');
-      spanType.className = 'text-text-muted font-semibold text-xs';
-      spanType.textContent = pkg.tip === 'Subscription' ? 'Pachet' : 'Ședință';
-
-      leftBox.appendChild(titleRow);
-      leftBox.appendChild(spanType);
-
-      const delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.className = 'w-8 h-8 rounded-full bg-surface-base hover:bg-brand-secondary hover:text-white text-text-muted font-bold text-xs flex items-center justify-center transition-all shrink-0 ml-3 cursor-pointer shadow-sm';
-      delBtn.innerHTML = '&times;';
-      delBtn.addEventListener('click', async () => {
-        try {
-          delBtn.disabled = true;
-          delBtn.classList.add('opacity-50');
-          await deletePricingPackage(pkg.id);
-          localPricingPackages = localPricingPackages.filter(p => p.id !== pkg.id);
-          itemDiv.remove();
-          showToast('Pachet șters cu succes!');
-        } catch (err) {
-          console.error("Failed to delete package", err);
-          delBtn.disabled = false;
-          delBtn.classList.remove('opacity-50');
-        }
-      });
-
-      itemDiv.appendChild(leftBox);
-      itemDiv.appendChild(delBtn);
-
-      pricingPackagesContainer.appendChild(itemDiv);
-    }
-
-    if (pricingPackagesContainer) {
-      fetchPricingPackages();
-    }
-
-    btnConfirmAddPricing?.addEventListener('click', async () => {
-      if (!newPricingNameInput || !newPricingTypeSelect || !newPricingPriceInput || !pricingPackagesContainer) return;
-      const nume = newPricingNameInput.value.trim();
-      const tip = newPricingTypeSelect.value as 'Subscription' | 'One Time';
-      const pretStr = newPricingPriceInput.value;
-      const pret = parseInt(pretStr, 10);
-
-      if (!nume || isNaN(pret)) {
-        showToast('Numele și prețul sunt obligatorii.');
-        return;
-      }
-      
-      try {
-        btnConfirmAddPricing.textContent = 'Se adaugă...';
-        (btnConfirmAddPricing as HTMLButtonElement).disabled = true;
-        
-        const newPkg = await createPricingPackage({ nume, tip, pret });
-        if (newPkg) {
-          localPricingPackages.push(newPkg);
-          renderPricingPackageItem(newPkg);
-          
-          newPricingNameInput.value = '';
-          newPricingPriceInput.value = '';
-          showToast('Pachet adăugat cu succes!');
-        }
-      } catch (err) {
-        console.error("Failed to add pricing package", err);
-        showToast('Eroare la adăugarea pachetului.');
-      } finally {
-        btnConfirmAddPricing.textContent = 'Adaugă';
-        (btnConfirmAddPricing as HTMLButtonElement).disabled = false;
-      }
-    });
 
     // 5. Reminders
     const cbLastSession = document.getElementById('reminder-last-session-checkbox') as HTMLInputElement | null;
@@ -821,7 +687,27 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
     if (categoriesContainer) {
       categoriesContainer.innerHTML = '';
-      (settings.categories || []).forEach(renderCategory);
+      const standards = ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'];
+      let catList = [...standards];
+
+      if (settings.categories && Array.isArray(settings.categories) && settings.categories.length > 0) {
+        const cleanSaved = settings.categories.filter((c: string) => {
+          const norm = c.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+          return norm !== 'toti' && norm !== 'all';
+        });
+
+        const merged: string[] = [...standards];
+        cleanSaved.forEach((c: string) => {
+          const norm = c.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+          const isStandard = standards.some(s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() === norm);
+          if (!isStandard && c.trim()) {
+            merged.push(c.trim());
+          }
+        });
+        catList = merged;
+      }
+
+      catList.forEach(renderCategory);
     }
 
     btnConfirmAddCategory?.addEventListener('click', () => {
@@ -1077,11 +963,11 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
         if (section === 'profile') {
           await saveProfile({
-            display_name: inputName?.value || undefined,
-            telefon:      inputPhone?.value || undefined,
-            username:     inputUsername?.value || undefined,
+            display_name: inputName?.value?.trim() ?? '',
+            telefon:      inputPhone?.value?.trim() ?? '',
+            email:        inputEmail?.value?.trim() ?? '',
+            username:     inputUsername?.value?.trim() ?? '',
           });
-
         } else if (section === 'schedule') {
           const activeChips = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-day-chip]'))
             .map((chip, i) => chip.getAttribute('data-active') === 'true' ? i + 1 : null)
@@ -1101,9 +987,9 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
         } else if (section === 'packages') {
           savedSettings = await saveSettingsDB({
-            session_duration: parseInt(inputDuration?.value    || '50',  10),
-            break_buffer:     parseInt(inputBreakBetween?.value || '10', 10),
-            // default_price was removed, managed via pricing packages
+            session_duration: parseInt(inputDuration?.value     || '50',  10),
+            break_buffer:     parseInt(inputBreakBetween?.value  || '10',  10),
+            default_price:    parseInt(inputDefaultPrice?.value || '150', 10),
           });
 
         } else if (section === 'reminders') {

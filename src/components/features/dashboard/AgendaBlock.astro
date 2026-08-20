@@ -210,18 +210,18 @@
       const sumaIncasata = session.sumaIncasata || 0;
       const costTotal = session.costTotal || 0;
 
-      let paymentBadgeClass = 'bg-white hover:bg-neutral-50 text-black border border-transparent font-extrabold shadow-sm';
-      let displayPaymentLabel = 'Status plată';
+      let paymentBadgeClass = 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-transparent font-extrabold shadow-sm';
+      let displayPaymentLabel = 'Neachitat';
 
       if (sumaIncasata > 0 && restDePlata > 0) {
         displayPaymentLabel = `${sumaIncasata}/${costTotal} RON`;
-        paymentBadgeClass = 'bg-orange-100 hover:bg-orange-200 text-black border border-transparent font-extrabold shadow-sm';
+        paymentBadgeClass = 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-200/60 font-black shadow-sm';
       } else if (isPaid || paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal)) {
         displayPaymentLabel = 'Achitat';
         paymentBadgeClass = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-transparent font-extrabold shadow-sm';
-      } else if (paymentStatus === 'Neachitat' || sumaIncasata === 0) {
+      } else {
         displayPaymentLabel = 'Neachitat';
-        paymentBadgeClass = 'bg-white hover:bg-neutral-50 text-black border border-transparent font-extrabold shadow-sm';
+        paymentBadgeClass = 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-transparent font-extrabold shadow-sm';
       }
 
       const driveLink = session.driveLink || session.patientDriveLink || '';
@@ -337,7 +337,7 @@
 
                 ${sessionStatus !== 'finalizat' && sessionStatus !== 'anulat' && sessionStatus !== 'absent' && (!session.selectedDate || session.selectedDate <= todayStr) ? `
                   <div class="px-6 pb-6 pt-2">
-                    <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary hover:opacity-90' : 'bg-brand-secondary hover:opacity-90'} text-black font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent" onclick="event.stopPropagation(); if (typeof window.confirmSession === 'function') { window.confirmSession('${session.id}'); }">
+                    <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary text-black' : 'bg-brand-secondary text-white'} font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent hover:opacity-95" onclick="event.stopPropagation(); if (typeof window.confirmSession === 'function') { window.confirmSession('${session.id}'); }">
                       <span>CONFIRMĂ ȘEDINȚA</span>
                     </button>
                   </div>
