@@ -42,13 +42,22 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
       );
     }
 
+    // Citim durata ședinței din setări (default 50 min)
+    const { data: settings } = await (supabase as any)
+      .from('settings')
+      .select('session_duration')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const sessionDuration = settings?.session_duration || 50;
+
     let pushSentCount = 0;
 
     for (const appt of appts) {
       const cleanTime = (appt.ora || '08:00').substring(0, 5);
       const [h, m] = cleanTime.split(':').map(Number);
       const startMin = h * 60 + m;
-      const endMin = startMin + 50; // Ședință de 50 de minute
+      const endMin = startMin + sessionDuration;
 
       const patientName = appt.pacienti ? `${appt.pacienti.prenume} ${appt.pacienti.nume}`.trim() : 'Pacient';
 

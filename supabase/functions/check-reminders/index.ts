@@ -61,13 +61,21 @@ Deno.serve(async (_req) => {
       );
     }
 
+    const { data: settings } = await supabase
+      .from("settings")
+      .select("session_duration")
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const sessionDuration = settings?.session_duration || 50;
+
     let pushSentCount = 0;
 
     for (const appt of appts as any[]) {
       const cleanTime = (appt.ora || "08:00").substring(0, 5);
       const [h, m] = cleanTime.split(":").map(Number);
       const startMin = h * 60 + m;
-      const endMin = startMin + 50;
+      const endMin = startMin + sessionDuration;
 
       const patientName = appt.pacienti
         ? `${appt.pacienti.prenume || ""} ${appt.pacienti.nume || ""}`.trim()

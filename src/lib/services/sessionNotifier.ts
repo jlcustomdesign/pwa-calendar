@@ -2,16 +2,50 @@
  * sessionNotifier.ts — Notificări Web Automate pentru începutul și sfârșitul ședințelor
  */
 import { getAppointmentsByDate, getPendingWrapUps } from './appointmentService';
+import { getSettings } from './settingsService';
 import { toLocalISOString } from '../../utils/date';
 
 let isNotifierRunning = false;
 let checkIntervalId: any = null;
 
-// Sets pentru a preveni notificarea dublă în aceeași zi
-const notifiedStarts = new Set<string>();
-const notifiedEnds = new Set<string>();
-
 const WRAPUP_PROMPT_KEY = 'kineto-wrapup-prompted';
+const NOTIFIER_KEY = 'kineto-session-notifier';
+
+// Persistăm cheile de notificare în localStorage ca să nu se re-trimită
+// la fiecare revenire în app sau la fiecare reload de pagină.
+function getNotifiedKeys(): Record<string, boolean> {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem(NOTIFIER_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function setNotifiedKey(key: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const keys = getNotifiedKeys();
+    keys[key] = true;
+    localStorage.setItem(NOTIFIER_KEY, JSON.stringify(keys));
+  } catch {
+    // ignore
+  }
+}
+
+function clearOldNotifiedKeys(todayStr: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const keys = getNotifiedKeys();
+    const updated: Record<string, boolean> = {};
+    Object.entries(keys).forEach(([k, v]) => {
+      if (k.startsWith(`${todayStr}_`)) updated[k] = v;
+    });
+    localStorage.setItem(NOTIFIER_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+}
 
 export async function requestNotificationPermission(): Promise<boolean> {
   if (typeof window === 'undefined' || !('Notification' in window)) return false;
@@ -147,8 +181,18 @@ async function checkTodaySessionsForNotifications() {
   const canUseWebNotifications = 'Notification' in window && Notification.permission === 'granted';
 
   try {
-    const appts = await getAppointmentsByDate(todayStr);
+    const [appts, settings] = await Promise.all([
+      getAppointmentsByDate(todayStr),
+      getSettings()
+    ]);
+
     if (!appts || appts.length === 0) return;
+
+    // Curăță notificările din zilele trecute pentru a nu umple localStorage.
+    clearOldNotifiedKeys(todayStr);
+
+    const sessionDuration = settings?.session_duration || 50;
+    const notifiedKeys = getNotifiedKeys();
 
     // Sortează programările după oră
     const sorted = [...appts].sort((a, b) => (a.ora || '00:00').localeCompare(b.ora || '00:00'));
@@ -162,17 +206,18 @@ async function checkTodaySessionsForNotifications() {
       const startH = parseInt(parts[0] || '8', 10);
       const startM = parseInt(parts[1] || '0', 10);
       const startTotalMin = startH * 60 + startM;
-      const endTotalMin = startTotalMin + 50; // Ședință de 50 minute
+      const endTotalMin = startTotalMin + sessionDuration;
 
       const patientName = appt.pacienti ? `${appt.pacienti.prenume} ${appt.pacienti.nume}`.trim() : 'Pacient';
       const startKey = `${todayStr}_${appt.id}_start`;
       const endKey = `${todayStr}_${appt.id}_end`;
 
       // 1. Notificare ÎNCEPUT ȘEDINȚĂ
-      // Fereastră extinsă (cu 2 min înainte până la 15 min după) pentru a prinde notificarea chiar dacă telefonul a fost în standby
-      if (currentMinutes >= startTotalMin - 2 && currentMinutes < startTotalMin + 15) {
-        if (!notifiedStarts.has(startKey)) {
-          notifiedStarts.add(startKey);
+      // Fereastră mică: cu 1 min înainte până la 2 min după start. Dacă ai deschis app mult după,
+      // nu vrei să primești notificări spam despre o ședință care a început deja.
+      if (currentMinutes >= startTotalMin - 1 && currentMinutes <= startTotalMin + 2) {
+        if (!notifiedKeys[startKey]) {
+          setNotifiedKey(startKey);
           if (canUseWebNotifications) {
             await triggerWebNotification(
               `🔔 Începe: ${patientName}`,
@@ -183,10 +228,10 @@ async function checkTodaySessionsForNotifications() {
       }
 
       // 2. Notificare SFÂRȘIT ȘEDINȚĂ
-      // Fereastră extinsă de la finalul ședinței până la 15 min după
-      if (currentMinutes >= endTotalMin && currentMinutes < endTotalMin + 15) {
-        if (!notifiedEnds.has(endKey)) {
-          notifiedEnds.add(endKey);
+      // Fereastră de la final până la 5 min după.
+      if (currentMinutes >= endTotalMin && currentMinutes <= endTotalMin + 5) {
+        if (!notifiedKeys[endKey]) {
+          setNotifiedKey(endKey);
 
           // Caută dacă urmează un alt pacient
           const nextAppt = sorted.slice(i + 1).find(a => a.status !== 'anulat' && a.status !== 'absent');

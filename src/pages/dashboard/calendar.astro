@@ -68,6 +68,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
     }
     const todayStr = localDateStr();
     let currentCalendarDate = todayStr;
+    let currentSessionDuration = 50;
     (window as any).currentCalendarDate = currentCalendarDate;
 
     const handleDateSelected = (e: any) => {
@@ -119,7 +120,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       const startH = parseInt(timeParts[0] || "8", 10);
       const startM = parseInt(timeParts[1] || "0", 10);
       const totalStartMin = startH * 60 + startM;
-      const totalEndMin = totalStartMin + 50; // 50 min session duration
+      const totalEndMin = totalStartMin + currentSessionDuration;
       const endH = Math.floor(totalEndMin / 60);
       const endM = totalEndMin % 60;
       const formattedStart = `${startH.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
@@ -316,6 +317,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
       try {
         settings = await getSettings();
+        currentSessionDuration = settings.session_duration || 50;
         const appts = await getAppointmentsByDate(currentCalendarDate);
         storedSessions = await Promise.all(appts.map(async (a: any) => {
           const sumaIncasata = await getPatientPayments(a.pacient_id);
