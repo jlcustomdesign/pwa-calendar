@@ -1,0 +1,183 @@
+import { createClient } from "@supabase/supabase-js";
+import { buildPushHTTPRequest } from "@pushforge/builder";
+
+const VAPID_JWK = JSON.parse(
+  Deno.env.get("VAPID_PRIVATE_JWK") ||
+    '{"kty":"EC","crv":"P-256","x":"aj6zj_1tPqqWl7hl2NOvQB4WjE6zCGCQmH6sdI4cmyE","y":"hoSufsSByScAgLIQLmhE6EMvjTGGlB0rj7fgOdnRemY","d":"Ch1BUr0CZvFtDswk2nYEZJyyFEedcAXdHqr_t55JW98","key_ops":["sign"],"ext":true}'
+);
+
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@kinetoagenda.ro";
+
+function getRomaniaTimeStrings(now = new Date()) {
+  const timeStr = now.toLocaleTimeString("en-GB", { timeZone: "Europe/Bucharest", hour: "2-digit", minute: "2-digit" });
+  const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Europe/Bucharest" });
+  return { timeStr, dateStr };
+}
+
+Deno.serve(async (_req) => {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new Response(JSON.stringify({ error: "Missing Supabase env vars" }), { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { timeStr, dateStr } = getRomaniaTimeStrings();
+    const [curH, curM] = timeStr.split(":").map(Number);
+    const currentTotalMin = curH * 60 + curM;
+
+    const { data: appts, error: apptError } = await supabase
+      .from("programari")
+      .select("id, data, ora, status, pacient_id, pacienti (id, nume, prenume)")
+      .eq("data", dateStr)
+      .not("status", "in", '("anulat","absent")');
+
+    if (apptError) {
+      return new Response(JSON.stringify({ error: apptError.message }), { status: 500 });
+    }
+
+    if (!appts || appts.length === 0) {
+      return new Response(JSON.stringify({ checked: 0, sent: 0, time: timeStr, date: dateStr }), { status: 200 });
+    }
+
+    const { data: subscriptions, error: subError } = await supabase
+      .from("push_subscriptions")
+      .select("id, endpoint, p256dh, auth, user_id");
+
+    if (subError) {
+      return new Response(JSON.stringify({ error: subError.message }), { status: 500 });
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      return new Response(
+        JSON.stringify({ checked: appts.length, sent: 0, message: "Niciun dispozitiv abonat." }),
+        { status: 200 }
+      );
+    }
+
+    let pushSentCount = 0;
+
+    for (const appt of appts as any[]) {
+      const cleanTime = (appt.ora || "08:00").substring(0, 5);
+      const [h, m] = cleanTime.split(":").map(Number);
+      const startMin = h * 60 + m;
+      const endMin = startMin + 50;
+
+      const patientName = appt.pacienti
+        ? `${appt.pacienti.prenume || ""} ${appt.pacienti.nume || ""}`.trim()
+        : "Pacient";
+
+      // 1. Alertă Început Ședință
+      if (currentTotalMin >= startMin - 2 && currentTotalMin <= startMin + 5) {
+        const title = `🔔 Începe: ${patientName}`;
+        const { data: existing } = await supabase
+          .from("notificari")
+          .select("id")
+          .eq("titlu", title)
+          .gte("created_at", `${dateStr}T00:00:00`)
+          .maybeSingle();
+
+        if (!existing) {
+          await supabase.from("notificari").insert({
+            titlu: title,
+            mesaj: `Ședința de la ora ${cleanTime} începe acum.`,
+            tip: "reminder",
+            citita: false,
+            pacient_id: appt.pacient_id || null,
+          });
+
+          for (const sub of subscriptions as any[]) {
+            try {
+              const { endpoint, headers, body } = await buildPushHTTPRequest({
+                privateJWK: VAPID_JWK,
+                subscription: {
+                  endpoint: sub.endpoint,
+                  keys: { p256dh: sub.p256dh, auth: sub.auth },
+                },
+                message: {
+                  payload: {
+                    title: `🔔 Începe ședința: ${patientName}`,
+                    body: `La ora ${cleanTime} începe ședința cu ${patientName}.`,
+                    url: "/dashboard/calendar",
+                    tag: `start_${appt.id}_${dateStr}`,
+                    icon: "/favicon.svg",
+                    badge: "/favicon.svg",
+                  },
+                  adminContact: VAPID_SUBJECT,
+                  options: { ttl: 60 * 60 * 24 },
+                },
+              });
+
+              const res = await fetch(endpoint, { method: "POST", headers, body });
+              if (res.ok || res.status === 201) pushSentCount++;
+            } catch (_err) {
+              // ignore per-subscription errors
+            }
+          }
+        }
+      }
+
+      // 2. Alertă Final Ședință
+      if (currentTotalMin >= endMin - 2 && currentTotalMin <= endMin + 5) {
+        const title = `✅ Final: ${patientName}`;
+        const { data: existing } = await supabase
+          .from("notificari")
+          .select("id")
+          .eq("titlu", title)
+          .gte("created_at", `${dateStr}T00:00:00`)
+          .maybeSingle();
+
+        if (!existing) {
+          await supabase.from("notificari").insert({
+            titlu: title,
+            mesaj: `Ședința cu ${patientName} s-a încheiat. Confirmă prezența.`,
+            tip: "reminder",
+            citita: false,
+            pacient_id: appt.pacient_id || null,
+          });
+
+          for (const sub of subscriptions as any[]) {
+            try {
+              const { endpoint, headers, body } = await buildPushHTTPRequest({
+                privateJWK: VAPID_JWK,
+                subscription: {
+                  endpoint: sub.endpoint,
+                  keys: { p256dh: sub.p256dh, auth: sub.auth },
+                },
+                message: {
+                  payload: {
+                    title: `✅ Ședință încheiată: ${patientName}`,
+                    body: `Ședința de la ora ${cleanTime} s-a încheiat. Apasă pentru a confirma prezența.`,
+                    url: "/dashboard/calendar",
+                    tag: `end_${appt.id}_${dateStr}`,
+                    icon: "/favicon.svg",
+                    badge: "/favicon.svg",
+                  },
+                  adminContact: VAPID_SUBJECT,
+                  options: { ttl: 60 * 60 * 24 },
+                },
+              });
+
+              const res = await fetch(endpoint, { method: "POST", headers, body });
+              if (res.ok || res.status === 201) pushSentCount++;
+            } catch (_err) {
+              // ignore per-subscription errors
+            }
+          }
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, checked: appts.length, sent: pushSentCount, time: timeStr }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  } catch (err: any) {
+    console.error("check-reminders edge function error:", err);
+    return new Response(
+      JSON.stringify({ error: err.message || "Eroare server" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+});

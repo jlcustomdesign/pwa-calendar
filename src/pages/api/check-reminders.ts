@@ -19,7 +19,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
     // Citim programările de azi
     const { data: appts, error: apptError } = await (supabase as any)
       .from('programari')
-      .select('id, data, ora, status, tip_serviciu, sedinta_numar, user_id, pacienti (id, nume, prenume)')
+      .select('id, data, ora, status, pacient_id, pacienti (id, nume, prenume)')
       .eq('data', roDateStr)
       .not('status', 'in', '("anulat","absent")');
 
@@ -69,9 +69,9 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
           await (supabase as any).from('notificari').insert({
             titlu: `🔔 Începe: ${patientName}`,
             mesaj: `Ședința de la ora ${cleanTime} începe acum.`,
-            tip: 'sedinta_start',
-            citit: false,
-            user_id: appt.user_id || null
+            tip: 'reminder',
+            citita: false,
+            pacient_id: appt.pacient_id || null
           });
 
           // Trimite Push la toate dispozitivele
@@ -107,9 +107,9 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
           await (supabase as any).from('notificari').insert({
             titlu: `✅ Final: ${patientName}`,
             mesaj: `Ședința cu ${patientName} s-a încheiat. Confirmă prezența.`,
-            tip: 'sedinta_sfarsit',
-            citit: false,
-            user_id: appt.user_id || null
+            tip: 'reminder',
+            citita: false,
+            pacient_id: appt.pacient_id || null
           });
 
           for (const sub of subscriptions) {

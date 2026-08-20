@@ -156,13 +156,39 @@ const { title, hideDock = false } = Astro.props;
         let currentX = 0;
         let isSwiping = false;
         let isHorizontalSwipe = false;
-        let isOpen = false;
         let wasSwiping = false;
 
         function getMaxSwipe(surface: HTMLElement | null): number {
           if (!surface) return -205;
           if (surface.closest('#patient-list-container')) return -210;
           return -205;
+        }
+
+        function isCardOpen(surface: HTMLElement): boolean {
+          const maxSwipe = getMaxSwipe(surface);
+          return surface.dataset.swipeOpen === 'true' || surface.style.transform.includes(`${maxSwipe}px`);
+        }
+
+        function closeCard(surface: HTMLElement) {
+          surface.dataset.swipeOpen = 'false';
+          surface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), clip-path 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          surface.style.transform = 'translateX(0px)';
+          surface.style.clipPath = '';
+        }
+
+        function openCard(surface: HTMLElement) {
+          const maxSwipe = getMaxSwipe(surface);
+          surface.dataset.swipeOpen = 'true';
+          surface.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), clip-path 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          surface.style.transform = `translateX(${maxSwipe}px)`;
+          surface.style.clipPath = `inset(0 0 0 ${Math.round(-maxSwipe)}px)`;
+          const cardRoot = surface.closest('session-card, .swipe-surface') as HTMLElement | null;
+          if (cardRoot) {
+            const details = cardRoot.querySelector('.card-details') as HTMLElement | null;
+            const icon = cardRoot.querySelector('.expand-icon') as HTMLElement | null;
+            if (details) details.style.gridTemplateRows = '0fr';
+            if (icon) icon.style.transform = 'rotate(0deg)';
+          }
         }
 
         function handleSwipeStart(surface: HTMLElement, clientX: number, clientY: number) {
@@ -174,8 +200,6 @@ const { title, hideDock = false } = Astro.props;
           isSwiping = true;
           isHorizontalSwipe = false;
           wasSwiping = false;
-          const maxSwipe = getMaxSwipe(surface);
-          isOpen = surface.style.transform.includes(`${maxSwipe}px`);
           surface.style.transition = 'none';
         }
 
@@ -201,6 +225,7 @@ const { title, hideDock = false } = Astro.props;
 
           currentX = clientX;
           const maxSwipe = getMaxSwipe(activeSurface);
+          const isOpen = isCardOpen(activeSurface);
           let targetX = isOpen ? maxSwipe + diffX : diffX;
           if (targetX > 0) targetX = targetX * 0.2;
           if (targetX < maxSwipe - 20) targetX = maxSwipe + (targetX - maxSwipe) * 0.2;
@@ -218,25 +243,18 @@ const { title, hideDock = false } = Astro.props;
 
           const maxSwipe = getMaxSwipe(activeSurface);
           const diffX = currentX - startX;
+          const isOpen = isCardOpen(activeSurface);
 
           if (!isOpen && diffX < -50) {
-            isOpen = true;
-            activeSurface.style.transform = `translateX(${maxSwipe}px)`;
-            activeSurface.style.clipPath = `inset(0 0 0 ${Math.round(-maxSwipe)}px)`;
-            const cardRoot = activeSurface.closest('session-card, .swipe-surface') as HTMLElement | null;
-            if (cardRoot) {
-              const details = cardRoot.querySelector('.card-details') as HTMLElement | null;
-              const icon = cardRoot.querySelector('.expand-icon') as HTMLElement | null;
-              if (details) details.style.gridTemplateRows = '0fr';
-              if (icon) icon.style.transform = 'rotate(0deg)';
-            }
+            openCard(activeSurface);
           } else if (isOpen && diffX > 50) {
-            isOpen = false;
-            activeSurface.style.transform = 'translateX(0px)';
-            activeSurface.style.clipPath = '';
+            closeCard(activeSurface);
           } else {
-            activeSurface.style.transform = isOpen ? `translateX(${maxSwipe}px)` : 'translateX(0px)';
-            activeSurface.style.clipPath = isOpen ? `inset(0 0 0 ${Math.round(-maxSwipe)}px)` : '';
+            if (isOpen) {
+              openCard(activeSurface);
+            } else {
+              closeCard(activeSurface);
+            }
           }
 
           const targetSurface = activeSurface;
@@ -246,6 +264,18 @@ const { title, hideDock = false } = Astro.props;
             if (wrapper) wrapper.dataset.wasSwiping = 'false';
           }, 100);
 
+          activeSurface = null;
+        }
+
+        function cancelSwipe() {
+          if (!activeSurface) return;
+          isSwiping = false;
+          isHorizontalSwipe = false;
+          if (isCardOpen(activeSurface)) {
+            openCard(activeSurface);
+          } else {
+            closeCard(activeSurface);
+          }
           activeSurface = null;
         }
 
@@ -261,10 +291,23 @@ const { title, hideDock = false } = Astro.props;
           if (wasSwiping) return;
 
           const summary = target.closest('.card-summary') as HTMLElement | null;
-          if (!summary) return;
+          if (!summary) {
+            // Tap outside any card summary closes any open swiped card.
+            const tappedSurface = target.closest('.swipe-surface') as HTMLElement | null;
+            if (!tappedSurface) {
+              document.querySelectorAll<HTMLElement>('.swipe-surface[data-swipe-open="true"]').forEach(closeCard);
+            }
+            return;
+          }
 
           const card = (summary.closest('.swipe-surface, session-card, [data-patient-id]') || summary.parentElement) as HTMLElement | null;
           if (!card) return;
+
+          // If the card is swiped open, tapping the summary closes it instead of expanding.
+          if (card.dataset.swipeOpen === 'true') {
+            closeCard(card);
+            return;
+          }
 
           const details = card.querySelector('.card-details') as HTMLElement | null;
           const icon = card.querySelector('.expand-icon') as HTMLElement | null;
@@ -296,6 +339,10 @@ const { title, hideDock = false } = Astro.props;
           if (isSwiping) handleSwipeEnd();
         }, { passive: true });
 
+        document.addEventListener('touchcancel', () => {
+          if (isSwiping) cancelSwipe();
+        }, { passive: true });
+
         // Mouse drag events for Desktop mouse interaction
         let isMouseDown = false;
         document.addEventListener('mousedown', (e: MouseEvent) => {
@@ -318,6 +365,13 @@ const { title, hideDock = false } = Astro.props;
           if (isMouseDown) {
             isMouseDown = false;
             handleSwipeEnd();
+          }
+        });
+
+        document.addEventListener('mouseleave', () => {
+          if (isMouseDown && isSwiping) {
+            isMouseDown = false;
+            cancelSwipe();
           }
         });
       }
