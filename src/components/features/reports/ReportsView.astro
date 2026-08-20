@@ -231,17 +231,14 @@
 
 <!-- Income Details Popup Sheet (Card cu proveniența banilor) -->
 <div id="income-details-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
-  <div id="income-details-backdrop" class="fixed inset-0 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300"></div>
-  <div id="income-details-content" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
+  <div id="income-details-backdrop" class="fixed inset-0 bg-black/25 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+  <div id="income-details-content" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
     <div class="w-12 h-1.5 bg-text-main/15 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
     
     <div class="flex items-start justify-between mb-4 shrink-0">
       <div class="min-w-0 pr-2">
         <h2 id="income-details-title" class="text-xl sm:text-2xl font-black text-text-main tracking-tight truncate">Încasări</h2>
       </div>
-      <button type="button" id="income-details-close-btn" class="p-2 rounded-full bg-surface-base text-text-muted hover:text-text-main active:scale-95 transition-transform shrink-0" aria-label="Închide">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
     </div>
 
     <!-- Summary Box -->
@@ -389,6 +386,7 @@
     const content = document.getElementById('day-picker-content');
     if (!sheet || !overlay || !content) return;
 
+    content.style.transform = ''; // reset any inline drag transform
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
     overlay.classList.remove('opacity-100', 'pointer-events-auto');
@@ -492,12 +490,21 @@
     if (content && content.dataset.reportsPickerBound !== 'true') {
       content.dataset.reportsPickerBound = 'true';
       let startY = 0;
+      let isDragging = false;
+
+      const resetDrag = () => {
+        isDragging = false;
+        content.style.transform = '';
+      };
+
       content.addEventListener('touchstart', (e: any) => {
         startY = e.touches[0].clientY;
+        isDragging = false;
       }, { passive: true });
       content.addEventListener('touchmove', (e: any) => {
         const deltaY = e.touches[0].clientY - startY;
         if (deltaY > 0) {
+          isDragging = true;
           content.style.transition = 'none';
           content.style.transform = `translateY(${deltaY}px) scale(1)`;
         }
@@ -505,12 +512,15 @@
       content.addEventListener('touchend', (e: any) => {
         const deltaY = (e.changedTouches[0].clientY || 0) - startY;
         content.style.transition = 'transform 200ms ease-out, opacity 200ms ease-out';
-        if (deltaY > 60) {
+        if (isDragging && deltaY > 60) {
+          content.style.transform = '';
           closeDayPicker();
         } else {
           content.style.transform = 'translateY(0) scale(1)';
         }
+        isDragging = false;
       });
+      content.addEventListener('touchcancel', resetDrag);
     }
   }
 
@@ -638,6 +648,7 @@
 
     isIncomeDetailsOpen = false;
     sheet.dataset.open = 'false';
+    content.style.transform = ''; // reset any inline drag transform
     content.classList.remove('translate-y-0');
     content.classList.add('translate-y-full');
     backdrop.classList.remove('opacity-100', 'pointer-events-auto');
@@ -653,7 +664,6 @@
     const sheet = document.getElementById('income-details-sheet');
     const backdrop = document.getElementById('income-details-backdrop');
     const content = document.getElementById('income-details-content');
-    const closeBtn = document.getElementById('income-details-close-btn');
 
     if (!sheet || !backdrop || !content) return;
 
@@ -661,11 +671,15 @@
     sheet.dataset.gesturesBound = 'true';
 
     backdrop.addEventListener('click', closeIncomeDetails);
-    closeBtn?.addEventListener('click', closeIncomeDetails);
 
     let startY = 0;
     let currentY = 0;
     let isDragging = false;
+
+    const resetDrag = () => {
+      isDragging = false;
+      content.style.transform = '';
+    };
 
     content.addEventListener('touchstart', (e: TouchEvent) => {
       if (content.scrollTop === 0) {
@@ -693,6 +707,8 @@
         closeIncomeDetails();
       }
     });
+
+    content.addEventListener('touchcancel', resetDrag);
   }
 
   function setupTopIncomeCard() {

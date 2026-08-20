@@ -867,6 +867,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       renderHoursGrid();
       renderMinutesGrid();
 
+      timeDialog.style.transform = ''; // ensure no stale drag transform
       lockBodyScroll();
       timeModal.classList.remove('opacity-0', 'pointer-events-none');
       timeDialog.classList.remove('scale-95');
@@ -876,6 +877,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     function closeTimeModal() {
       if (!timeModal || !timeDialog) return;
       unlockBodyScroll();
+      timeDialog.style.transform = ''; // reset any inline drag transform
       timeModal.classList.add('opacity-0', 'pointer-events-none');
       timeDialog.classList.remove('scale-100');
       timeDialog.classList.add('scale-95');
@@ -905,22 +907,36 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     timeDialog?.addEventListener('touchstart', (e) => {
       timeStartY = e.touches[0].clientY;
       timeDragging = false;
+      if (timeDialog) timeDialog.style.transition = 'none';
     }, { passive: true });
     timeDialog?.addEventListener('touchmove', (e) => {
       const deltaY = e.touches[0].clientY - timeStartY;
       if (!timeDragging && deltaY > 10) {
         timeDragging = true;
       }
+      if (timeDragging && deltaY > 0 && timeDialog) {
+        timeDialog.style.transform = `translateY(${deltaY * 0.6}px) scale(${Math.max(0.95, 1 - deltaY / 2000)})`;
+      }
     }, { passive: true });
     timeDialog?.addEventListener('touchend', (e) => {
       const deltaY = e.changedTouches[0].clientY - timeStartY;
-      if (timeDragging && deltaY > 80) {
-        closeTimeModal();
+      if (timeDialog) {
+        timeDialog.style.transition = 'transform 200ms ease-out';
+        if (timeDragging && deltaY > 60) {
+          timeDialog.style.transform = 'translateY(120%) scale(0.95)';
+          setTimeout(() => closeTimeModal(), 200);
+        } else {
+          timeDialog.style.transform = '';
+        }
       }
       timeDragging = false;
     });
     timeDialog?.addEventListener('touchcancel', () => {
       timeDragging = false;
+      if (timeDialog) {
+        timeDialog.style.transition = 'transform 200ms ease-out';
+        timeDialog.style.transform = '';
+      }
     });
 
     btnConfirmTime?.addEventListener('click', () => {
