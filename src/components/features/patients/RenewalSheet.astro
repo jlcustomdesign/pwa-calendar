@@ -2,26 +2,17 @@
 // RenewalSheet.astro — Bottom sheet custom pentru reînnoirea abonamentelor de ședințe
 ---
 
-<!-- Overlay/Backdrop -->
-<div 
-  id="renewal-backdrop" 
-  class="fixed inset-0 bg-black/25 z-[125] transition-opacity duration-300 opacity-0 pointer-events-none"
-></div>
+<div id="renewal-sheet" data-sheet-root class="fixed inset-0 z-[130] pointer-events-none">
+  <div id="renewal-backdrop" class="absolute inset-0 bg-black/25 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
+  <div id="renewal-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto">
+    <!-- Drag handle -->
+    <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8 cursor-grab active:cursor-grabbing" id="renewal-drag-handle"></div>
 
-<div 
-  id="renewal-sheet" 
-  data-sheet-root 
-  class="fixed inset-x-0 bottom-0 z-[130] bg-surface-card rounded-t-[2.5rem] p-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
->
-  <!-- Drag handle -->
-  <div class="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing" id="renewal-drag-handle"></div>
-
-  <div class="flex-1 overflow-y-auto px-1 pt-1 pb-10 space-y-4">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-2">
+    <div class="flex items-center justify-between mb-4">
       <div>
-        <h2 class="text-xl sm:text-2xl font-black tracking-tight text-text-main">Reînnoire abonament</h2>
-        <p class="text-text-muted font-bold text-sm mt-0.5" id="renewal-patient-name">Selectează noul pachet de ședințe</p>
+        <h2 class="text-2xl font-bold tracking-tight text-neutral-900">Reînnoire abonament</h2>
+        <p class="text-neutral-500 font-medium mt-1 text-sm" id="renewal-patient-name">Selectează noul pachet de ședințe</p>
       </div>
     </div>
 
@@ -190,7 +181,7 @@
   class RenewalSheetManager {
     private sheet: HTMLElement | null = null;
     private backdrop: HTMLElement | null = null;
-    private dragHandle: HTMLElement | null = null;
+    private content: HTMLElement | null = null;
     private sessionsInput: HTMLInputElement | null = null;
     private priceInput: HTMLInputElement | null = null;
     private partialAmountInput: HTMLInputElement | null = null;
@@ -199,13 +190,13 @@
     private selectedPaymentStatus: 'Neachitat' | 'Parțial' | 'Achitat' = 'Neachitat';
     private currentPatientId: string | null = null;
     private pendingAppointment: any = null;
+    private isOpen: boolean = false;
 
-    // Gesture handling exactly like AddPatientSheet
+    // Touch / Swipe gesture handling (identical to PaymentSheet)
     private startY: number = 0;
     private currentY: number = 0;
     private startX: number = 0;
     private dragEngaged: boolean = false;
-    private scrollAtTop: boolean = true;
 
     constructor() {
       this.reconnect();
@@ -215,15 +206,18 @@
     reconnect() {
       this.sheet = document.getElementById('renewal-sheet');
       this.backdrop = document.getElementById('renewal-backdrop');
-      this.dragHandle = document.getElementById('renewal-drag-handle');
+      this.content = document.getElementById('renewal-content');
       this.sessionsInput = document.getElementById('renewal-sessions-input') as HTMLInputElement;
       this.priceInput = document.getElementById('renewal-price-input') as HTMLInputElement;
       this.partialAmountInput = document.getElementById('renewal-partial-amount') as HTMLInputElement;
       this.partialBox = document.getElementById('renewal-partial-box');
       this.calculatedDisplay = document.getElementById('renewal-calculated-cost');
+
+      if (this.sheet?.dataset.open === 'true') this.isOpen = true;
     }
 
     handleOpenEvent(e: CustomEvent) {
+      this.reconnect();
       if (e.detail?.patientId) {
         this.currentPatientId = e.detail.patientId;
         const count = e.detail.currentTotal || 10;
@@ -234,39 +228,68 @@
     }
 
     private bindEvents() {
-      this.reconnect();
+      const root = document.getElementById('renewal-sheet');
+      if (!root) return;
 
-      if (this.sheet) {
-        this.sheet.addEventListener('touchstart', (e: any) => {
+      if (root.dataset.renewalEventsBound !== 'true') {
+        root.dataset.renewalEventsBound = 'true';
+        root.addEventListener('click', (e) => {
           const mgr = (window as any).currentRenewalSheetManager || this;
-          mgr.handleTouchStart(e);
-        }, { passive: true });
-
-        this.sheet.addEventListener('touchmove', (e: any) => {
-          const mgr = (window as any).currentRenewalSheetManager || this;
-          mgr.handleTouchMove(e);
-        }, { passive: false });
-
-        this.sheet.addEventListener('touchend', (e: any) => {
-          const mgr = (window as any).currentRenewalSheetManager || this;
-          mgr.handleTouchEnd(e);
-        }, { passive: true });
-
-        this.sheet.addEventListener('touchcancel', () => {
-          const mgr = (window as any).currentRenewalSheetManager || this;
-          mgr.cancelDrag();
-        }, { passive: true });
+          mgr.handleClick(e);
+        });
       }
 
-      if ((window as any)._renewalDocClickBound) return;
-      (window as any)._renewalDocClickBound = true;
+      // Swipe-down to dismiss on content (exact PaymentSheet logic)
+      if (this.content && this.content.dataset.renewalSwipeBound !== 'true') {
+        this.content.dataset.renewalSwipeBound = 'true';
+        this.content.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+        this.content.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+        this.content.addEventListener('touchend', () => this.handleTouchEnd());
+        this.content.addEventListener('touchcancel', () => this.cancelDrag());
+      }
 
-      document.addEventListener('click', (e) => {
-        const mgr = (window as any).currentRenewalSheetManager || this;
-        mgr.handleDocumentClick(e);
-      });
+      // Dedicated drag handle close (exact PaymentSheet logic)
+      const dragHandle = document.getElementById('renewal-drag-handle');
+      if (dragHandle && this.content && dragHandle.dataset.renewalDragBound !== 'true') {
+        dragHandle.dataset.renewalDragBound = 'true';
+        let startY = 0;
+        let currentY = 0;
+        let dragging = false;
+        const content = this.content;
 
-      // Steppers & input calculation listeners
+        dragHandle.addEventListener('touchstart', (e: any) => {
+          startY = e.touches[0].clientY;
+          currentY = startY;
+          dragging = true;
+          content.style.transition = 'none';
+        }, { passive: true });
+
+        dragHandle.addEventListener('touchmove', (e: any) => {
+          if (!dragging) return;
+          currentY = e.touches[0].clientY;
+          const deltaY = currentY - startY;
+          if (deltaY > 0) {
+            content.style.transform = `translateY(${deltaY}px)`;
+          }
+        }, { passive: true });
+
+        const onEnd = () => {
+          if (!dragging) return;
+          dragging = false;
+          const deltaY = currentY - startY;
+          content.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
+          if (deltaY > 80) {
+            this.close();
+          } else {
+            content.style.transform = 'translateY(0)';
+          }
+        };
+
+        dragHandle.addEventListener('touchend', onEnd);
+        dragHandle.addEventListener('touchcancel', onEnd);
+      }
+
+      // Input calculation listeners
       document.addEventListener('input', (e) => {
         const target = e.target as HTMLElement;
         if (target && (target.id === 'renewal-sessions-input' || target.id === 'renewal-price-input')) {
@@ -277,84 +300,62 @@
     }
 
     private handleTouchStart(e: TouchEvent) {
-      if (!e.touches || e.touches.length === 0) return;
       this.startY = e.touches[0].clientY;
       this.currentY = this.startY;
       this.startX = e.touches[0].clientX;
       this.dragEngaged = false;
-
-      const target = e.target as HTMLElement;
-      // If user drags directly on the handle or header, always engage
-      if (target && (target.id === 'renewal-drag-handle' || target.closest('#renewal-drag-handle'))) {
-        this.scrollAtTop = true;
-        this.dragEngaged = true;
-        if (this.sheet) this.sheet.style.transition = 'none';
-        return;
-      }
-
-      const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'LABEL'].includes(target.tagName);
-      if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
-        this.scrollAtTop = false;
-        return;
-      }
-
-      const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
-      this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
     }
 
     private handleTouchMove(e: TouchEvent) {
-      if (!e.touches || e.touches.length === 0) return;
       const y = e.touches[0].clientY;
       const deltaY = y - this.startY;
       const deltaX = e.touches[0].clientX - this.startX;
 
       if (!this.dragEngaged) {
-        if (this.scrollAtTop && deltaY > 5 && deltaY > Math.abs(deltaX)) {
+        if (deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
           this.dragEngaged = true;
-          if (this.sheet) this.sheet.style.transition = 'none';
+          if (this.content) this.content.style.transition = 'none';
         } else {
           return;
         }
       }
 
       this.currentY = y;
-      if (deltaY > 0 && this.sheet) {
+      if (deltaY > 0 && this.content) {
         if (e.cancelable) e.preventDefault();
-        this.sheet.style.transform = `translateY(${deltaY}px)`;
+        this.content.style.transform = `translateY(${deltaY}px)`;
       }
     }
 
-    private handleTouchEnd(e?: TouchEvent) {
-      if (!this.sheet || !this.dragEngaged) {
+    private handleTouchEnd() {
+      if (!this.content || !this.dragEngaged) {
         this.dragEngaged = false;
         return;
       }
       this.dragEngaged = false;
-      const clientY = e?.changedTouches?.[0]?.clientY ?? this.currentY;
-      const deltaY = clientY - this.startY;
-      this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
-
-      if (deltaY > 50) {
+      const deltaY = this.currentY - this.startY;
+      this.content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+      if (deltaY > 80) {
         this.close();
       } else {
-        this.sheet.style.transform = 'translateY(0)';
+        this.content.style.transform = 'translateY(0)';
       }
     }
 
     private cancelDrag() {
       this.dragEngaged = false;
-      if (this.sheet) {
-        this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
-        this.sheet.style.transform = 'translateY(0)';
+      if (this.content) {
+        this.content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+        this.content.style.transform = 'translateY(0)';
       }
     }
 
-    private handleDocumentClick(e: MouseEvent) {
+    private handleClick(e: MouseEvent) {
       const target = e.target as HTMLElement;
       if (!target) return;
 
       // Click on backdrop -> close
-      if (target.id === 'renewal-backdrop') {
+      if (target.closest('#renewal-backdrop')) {
         this.close();
         return;
       }
@@ -561,24 +562,36 @@
     }
 
     open() {
-      this.reconnect();
-      if (!this.sheet || !this.backdrop) return;
+      if (!this.sheet || !this.content || !this.backdrop) return;
+      this.isOpen = true;
       this.calculateTotalCost();
       this.setPaymentStatus('Neachitat');
-      this.sheet.style.transform = '';
-      this.sheet.classList.remove('translate-y-full');
-      this.backdrop.classList.remove('opacity-0', 'pointer-events-none');
+
+      this.sheet.dataset.open = 'true';
+      void this.sheet.offsetWidth;
+
+      this.backdrop.classList.remove('opacity-0');
+      this.content.classList.remove('translate-y-full');
       lockBodyScroll();
     }
 
     close() {
-      this.reconnect();
-      if (!this.sheet || !this.backdrop) return;
-      this.sheet.style.transform = '';
-      this.sheet.classList.add('translate-y-full');
-      this.backdrop.classList.add('opacity-0', 'pointer-events-none');
+      if (!this.sheet || !this.content || !this.backdrop || !this.isOpen) return;
+      this.isOpen = false;
       unlockBodyScroll();
-      this.currentPatientId = null;
+
+      this.content.style.transition = '';
+      this.content.style.transform = '';
+
+      this.backdrop.classList.add('opacity-0');
+      this.content.classList.add('translate-y-full');
+
+      setTimeout(() => {
+        if (!this.isOpen && this.sheet) {
+          this.sheet.dataset.open = 'false';
+          this.currentPatientId = null;
+        }
+      }, 500);
     }
   }
 
@@ -595,12 +608,9 @@
     (window as any).currentRenewalSheetManager = new RenewalSheetManager();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initRenewalSheet);
-  } else {
+  document.addEventListener('astro:page-load', initRenewalSheet);
+  document.addEventListener('DOMContentLoaded', initRenewalSheet);
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
     initRenewalSheet();
   }
-
-  document.addEventListener('astro:page-load', initRenewalSheet);
-  document.addEventListener('astro:after-swap', initRenewalSheet);
 </script>
