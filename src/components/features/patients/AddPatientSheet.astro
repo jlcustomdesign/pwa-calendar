@@ -794,7 +794,7 @@
       
       // If an input is focused OR the user is tapping on an input, prevent sheet dragging to avoid jumps
       const target = e.target as HTMLElement;
-      const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'LABEL'].includes(target.tagName);
+      const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
       if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
         this.scrollAtTop = false;
         return;

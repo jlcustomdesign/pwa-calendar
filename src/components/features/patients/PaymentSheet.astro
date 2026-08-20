@@ -362,7 +362,7 @@
       }
 
       // Otherwise, only allow swipe if the content is at the top
-      this.scrollAtTop = !this.content || this.content.scrollTop <= 0;
+      this.scrollAtTop = !this.sheet || this.sheet.scrollTop <= 0;
     }
 
     private handleTouchMove(e: TouchEvent) {
@@ -374,39 +374,39 @@
       if (!this.dragEngaged) {
         if (this.scrollAtTop && deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
           this.dragEngaged = true;
-          if (this.content) this.content.style.transition = 'none';
+          if (this.sheet) this.sheet.style.transition = 'none';
         } else {
           return;
         }
       }
 
       this.currentY = y;
-      if (deltaY > 0 && this.content) {
+      if (deltaY > 0 && this.sheet) {
         if (e.cancelable) e.preventDefault();
-        this.content.style.transform = `translateY(${deltaY}px)`;
+        this.sheet.style.transform = `translateY(${deltaY}px)`;
       }
     }
 
     private handleTouchEnd() {
-      if (!this.content || !this.dragEngaged) {
+      if (!this.sheet || !this.dragEngaged) {
         this.dragEngaged = false;
         return;
       }
       this.dragEngaged = false;
       const deltaY = this.currentY - this.startY;
-      this.content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+      this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
       if (deltaY > 80) {
         this.close();
       } else {
-        this.content.style.transform = 'translateY(0)';
+        this.sheet.style.transform = 'translateY(0)';
       }
     }
 
     private cancelDrag() {
       this.dragEngaged = false;
-      if (this.content) {
-        this.content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
-        this.content.style.transform = 'translateY(0)';
+      if (this.sheet) {
+        this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+        this.sheet.style.transform = 'translateY(0)';
       }
     }
 
@@ -515,7 +515,7 @@
     }
 
     private open() {
-      if (!this.sheet || !this.content || !this.backdrop) return;
+      if (!this.sheet || !this.sheet || !this.overlay) return;
       this.isOpen = true;
       this.loadPatientFinancials();
 
@@ -525,22 +525,22 @@
 
       // Fade the backdrop element itself (same pattern as the other sheets) —
       // fading a parent wrapper would disable the backdrop-blur mid-animation
-      this.backdrop.classList.remove('opacity-0');
-      this.content.classList.remove('translate-y-full');
+      this.overlay.classList.remove('opacity-0');
+      this.sheet.classList.remove('translate-y-full');
       lockBodyScroll();
     }
 
     private close() {
-      if (!this.sheet || !this.content || !this.backdrop || !this.isOpen) return;
+      if (!this.sheet || !this.sheet || !this.overlay || !this.isOpen) return;
       this.isOpen = false;
       unlockBodyScroll();
 
       // Clear any inline drag styles so the class-based transition takes over
-      this.content.style.transition = '';
-      this.content.style.transform = '';
+      this.sheet.style.transition = '';
+      this.sheet.style.transform = '';
 
-      this.backdrop.classList.add('opacity-0');
-      this.content.classList.add('translate-y-full');
+      this.overlay.classList.add('opacity-0');
+      this.sheet.classList.add('translate-y-full');
 
       // Remove focus to prevent keyboard from staying open on mobile
       if (this.customInput && document.activeElement === this.customInput) {
