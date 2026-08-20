@@ -133,14 +133,14 @@ async function checkTodaySessionsForNotifications() {
       const appt = sorted[i];
       if (appt.status === 'anulat' || appt.status === 'absent') continue;
 
-      const timeStr = appt.ora || '08:00';
+      const timeStr = (appt.ora || '08:00').substring(0, 5);
       const parts = timeStr.split(':');
       const startH = parseInt(parts[0] || '8', 10);
       const startM = parseInt(parts[1] || '0', 10);
       const startTotalMin = startH * 60 + startM;
       const endTotalMin = startTotalMin + 50; // Ședință de 50 minute
 
-      const patientName = appt.pacienti ? `${appt.pacienti.prenume} ${appt.pacienti.nume}` : 'Pacient';
+      const patientName = appt.pacienti ? `${appt.pacienti.prenume} ${appt.pacienti.nume}`.trim() : 'Pacient';
       const startKey = `${todayStr}_${appt.id}_start`;
       const endKey = `${todayStr}_${appt.id}_end`;
 
@@ -151,8 +151,8 @@ async function checkTodaySessionsForNotifications() {
           notifiedStarts.add(startKey);
           if (canUseWebNotifications) {
             await triggerWebNotification(
-              `🔔 Ședință Nouă: ${patientName}`,
-              `La ora ${timeStr} este programat ${patientName}. Locație: ${appt.pacienti?.locatie || 'Belaqva'}`
+              `🔔 Începe: ${patientName}`,
+              `La ora ${timeStr} începe ședința cu ${patientName}.`
             );
           }
         }
@@ -166,16 +166,14 @@ async function checkTodaySessionsForNotifications() {
 
           // Caută dacă urmează un alt pacient
           const nextAppt = sorted.slice(i + 1).find(a => a.status !== 'anulat' && a.status !== 'absent');
-          let nextMessage = 'Nicio altă ședință imediată.';
+          let nextMessage = '';
           if (nextAppt) {
-            const nextName = nextAppt.pacienti ? `${nextAppt.pacienti.prenume} ${nextAppt.pacienti.nume}` : 'Pacient';
-            nextMessage = `Urmează ${nextName} la ora ${nextAppt.ora || ''}.`;
+            const nextName = nextAppt.pacienti ? `${nextAppt.pacienti.prenume} ${nextAppt.pacienti.nume}`.trim() : 'Pacient';
+            const nextTime = (nextAppt.ora || '').substring(0, 5);
+            nextMessage = ` Urmează ${nextName} la ora ${nextTime}.`;
           }
 
           // Popup în app — funcționează INDIFERENT de permisiunea de notificări web.
-          // Pe mobil notificările web nu apar mereu când aplicația e în foreground,
-          // așa că deschidem sheet-ul de wrap-up direct în aplicație.
-          // Folosim setTimeout ca să dăm timp Sheet-ului de wrap-up să-și înregistreze listener-ul la load.
           if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
             setTimeout(() => {
               window.dispatchEvent(new CustomEvent('openWrapUp', {
@@ -186,8 +184,8 @@ async function checkTodaySessionsForNotifications() {
 
           if (canUseWebNotifications) {
             await triggerWebNotification(
-              `✅ Ședință Încheiată: ${patientName}`,
-              `Ședința cu ${patientName} s-a terminat. ${nextMessage}`
+              `✅ Ședință încheiată: ${patientName}`,
+              `Ședința de la ora ${timeStr} s-a încheiat.${nextMessage} Apasă pentru confirmare.`
             );
           }
         }

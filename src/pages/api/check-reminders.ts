@@ -45,7 +45,8 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
     let pushSentCount = 0;
 
     for (const appt of appts) {
-      const [h, m] = (appt.ora || '08:00').split(':').map(Number);
+      const cleanTime = (appt.ora || '08:00').substring(0, 5);
+      const [h, m] = cleanTime.split(':').map(Number);
       const startMin = h * 60 + m;
       const endMin = startMin + 50; // Ședință de 50 de minute
 
@@ -67,7 +68,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
           // Înregistrează în tabela `notificari`
           await (supabase as any).from('notificari').insert({
             titlu: `🔔 Începe: ${patientName}`,
-            mesaj: `Ședința de la ora ${appt.ora} începe acum.`,
+            mesaj: `Ședința de la ora ${cleanTime} începe acum.`,
             tip: 'sedinta_start',
             citit: false,
             user_id: appt.user_id || null
@@ -79,8 +80,8 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
               await sendPushToSubscription(
                 { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
                 {
-                  title: `🔔 Începe ședința cu ${patientName}`,
-                  body: `Ora ${appt.ora} — Ședința de kinetoterapie începe acum.`,
+                  title: `🔔 Începe ședința: ${patientName}`,
+                  body: `La ora ${cleanTime} începe ședința cu ${patientName}.`,
                   url: '/dashboard/calendar',
                   tag: notifTag
                 }
@@ -105,7 +106,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
         if (!existingNotif) {
           await (supabase as any).from('notificari').insert({
             titlu: `✅ Final: ${patientName}`,
-            mesaj: `Ședința cu ${patientName} s-a încheiat. Confirmă prezența și evoluția.`,
+            mesaj: `Ședința cu ${patientName} s-a încheiat. Confirmă prezența.`,
             tip: 'sedinta_sfarsit',
             citit: false,
             user_id: appt.user_id || null
@@ -117,7 +118,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
                 { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
                 {
                   title: `✅ Ședință încheiată: ${patientName}`,
-                  body: `Ședința s-a încheiat. Apasă pentru a confirma prezența.`,
+                  body: `Ședința de la ora ${cleanTime} s-a încheiat. Apasă pentru a confirma prezența.`,
                   url: '/dashboard/calendar',
                   tag: notifTag
                 }
