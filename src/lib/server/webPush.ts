@@ -7,22 +7,24 @@ export const VAPID_PUBLIC_KEY =
   process.env.PUBLIC_VAPID_PUBLIC_KEY ||
   'BGo-s4_9bT6qlpe4ZdjTr0AeFoxOswhgkJh-rHSOHJshhoSufsSByScAgLIQLmhE6EMvjTGGlB0rj7fgOdnRemY';
 
-export const VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY ||
-  'Ch1BUr0CZvFtDswk2nYEZJyyFEedcAXdHqr_t55JW98';
+export const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 
 export const VAPID_SUBJECT =
   process.env.VAPID_SUBJECT ||
   'mailto:admin@kinetoagenda.ro';
 
-try {
-  webPush.setVapidDetails(
-    VAPID_SUBJECT,
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY
-  );
-} catch (err) {
-  console.warn('VAPID details init warning:', err);
+if (VAPID_PRIVATE_KEY) {
+  try {
+    webPush.setVapidDetails(
+      VAPID_SUBJECT,
+      VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY
+    );
+  } catch (err) {
+    console.warn('VAPID details init warning:', err);
+  }
+} else {
+  console.warn('VAPID_PRIVATE_KEY is not set; web push is disabled.');
 }
 
 export interface PushPayload {
@@ -38,6 +40,10 @@ export async function sendPushToSubscription(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: PushPayload
 ) {
+  if (!VAPID_PRIVATE_KEY) {
+    throw new Error('VAPID_PRIVATE_KEY is not configured; cannot send push notification.');
+  }
+
   const pushSubscription = {
     endpoint: subscription.endpoint,
     keys: {
