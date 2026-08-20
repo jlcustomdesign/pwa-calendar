@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
   id: 'default',
   therapist_name: 'Roxana',
   work_start: '08:00',
-  work_end: '21:00',
+  work_end: '18:00',
   lunch_start: '13:00',
   lunch_end: '14:00',
   session_duration: 50,
@@ -68,7 +68,7 @@ export async function getSettings(): Promise<Settings> {
       ...DEFAULT_SETTINGS,
       ...data,
       work_start: (data.work_start || '08:00').substring(0, 5),
-      work_end: (data.work_end || '21:00').substring(0, 5),
+      work_end: (data.work_end || '18:00').substring(0, 5),
       lunch_start: (data.lunch_start || '12:00').substring(0, 5),
       lunch_end: (data.lunch_end || '12:30').substring(0, 5),
     };

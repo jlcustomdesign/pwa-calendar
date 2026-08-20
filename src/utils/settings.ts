@@ -8,7 +8,7 @@ export interface AppSettings {
   schedule: {
     workDays: boolean[]; // 0=Mon, 1=Tue, etc.
     workStart: string; // e.g., "08:00"
-    workEnd: string;   // e.g., "21:00"
+    workEnd: string;   // e.g., "19:00"
   };
   breakTime: {
     breakStart: string;
@@ -36,7 +36,7 @@ export const defaultSettings: AppSettings = {
   schedule: {
     workDays: [true, false, false, false, false], // Default Mon selected
     workStart: "08:00",
-    workEnd: "21:00"
+    workEnd: "19:00"
   },
   breakTime: {
     breakStart: "13:00",

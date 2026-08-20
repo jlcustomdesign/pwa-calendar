@@ -271,10 +271,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       if (timeContainer) {
         timeContainer.innerHTML = '';
         const workStartStr = this.settings?.work_start || '08:00';
-        const workEndStr   = this.settings?.work_end   || '21:00';
+        const workEndStr   = this.settings?.work_end   || '20:00';
 
         const startHour = parseInt(workStartStr.split(':')[0], 10) || 8;
-        const endHour   = parseInt(workEndStr.split(':')[0], 10)   || 21;
+        const endHour   = parseInt(workEndStr.split(':')[0], 10)   || 20;
         
         let i = 0;
         for (let h = startHour; h <= endHour; h++) {

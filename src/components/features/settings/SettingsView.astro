@@ -183,7 +183,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 >
                   <span id="display-work-end" class="tracking-wider">19:00</span>
                 </button>
-                <input type="hidden" id="work-end" name="workEnd" value="21:00" />
+                <input type="hidden" id="work-end" name="workEnd" value="19:00" />
               </div>
             </div>
 
@@ -545,9 +545,9 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const displayWorkEnd = document.getElementById('display-work-end');
 
     if (inputWorkStart)   inputWorkStart.value          = formatTimeStr(settings.work_start) || '08:00';
-    if (inputWorkEnd)     inputWorkEnd.value             = formatTimeStr(settings.work_end)   || '21:00';
+    if (inputWorkEnd)     inputWorkEnd.value             = formatTimeStr(settings.work_end)   || '19:00';
     if (displayWorkStart) displayWorkStart.textContent   = formatTimeStr(settings.work_start) || '08:00';
-    if (displayWorkEnd)   displayWorkEnd.textContent     = formatTimeStr(settings.work_end)   || '21:00';
+    if (displayWorkEnd)   displayWorkEnd.textContent     = formatTimeStr(settings.work_end)   || '19:00';
 
     const dayChips = document.querySelectorAll<HTMLButtonElement>('[data-day-chip]');
     dayChips.forEach((chip, index) => {
@@ -999,7 +999,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           savedSettings = await saveSettingsDB({
             zile_lucratoare: activeChips,
             work_start: inputWorkStart?.value || '08:00',
-            work_end:   inputWorkEnd?.value   || '21:00',
+            work_end:   inputWorkEnd?.value   || '19:00',
           });
 
         } else if (section === 'break') {
