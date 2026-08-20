@@ -11,6 +11,8 @@ let checkIntervalId: any = null;
 const notifiedStarts = new Set<string>();
 const notifiedEnds = new Set<string>();
 
+const WRAPUP_PROMPT_KEY = 'kineto-wrapup-prompted';
+
 export async function requestNotificationPermission(): Promise<boolean> {
   if (typeof window === 'undefined' || !('Notification' in window)) return false;
   try {
@@ -70,8 +72,8 @@ export function initSessionNotifier() {
     document.addEventListener('touchstart', askPermissionOnFirstTouch, { once: true });
   }
 
-  // La pornirea/revenirea în app: deschide popup-ul de confirmare pentru ședințele trecute neconfirmate.
-  // Se repetă la fiecare pornire până când ședința este confirmată.
+  // La pornirea/revenirea în app: deschide popup-ul de confirmare pentru ședințele de azi
+  // trecute neconfirmate. Nu mai re-promptăm sesiuni istorice la fiecare deschidere.
   promptMissedSessionWrapUp();
 
   // Verifică imediat și apoi la fiecare 20 de secunde (notificări realtime)
@@ -91,8 +93,9 @@ export function initSessionNotifier() {
   });
 }
 
-// Deschide popup-ul de wrap-up pentru cea mai recentă ședință trecută neconfirmată.
-// Folosește handler-ul existent `window.confirmSession` și funcția existentă `getPendingWrapUps`.
+// Deschide popup-ul de wrap-up pentru cea mai recentă ședință de azi, trecută neconfirmată.
+// Nu mai deschide sesiuni istorice la fiecare revenire în app și nu repeta același ID
+// dacă utilizatorul a închis popup-ul fără confirmare.
 async function promptMissedSessionWrapUp() {
   if (typeof window === 'undefined') return;
   if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
@@ -101,11 +104,32 @@ async function promptMissedSessionWrapUp() {
     const pending = await getPendingWrapUps();
     if (!pending || pending.length === 0) return;
 
-    const missed = pending[pending.length - 1];
+    const todayStr = toLocalISOString(new Date());
+    // Auto-prompt doar pentru ședințele de azi. Sesiunile mai vechi rămân vizibile în calendar,
+    // dar nu mai blochează experiența la fiecare deschidere a aplicației.
+    const todayPending = pending.filter((a: any) => a.data === todayStr);
+    if (todayPending.length === 0) return;
+
+    const missed = todayPending[todayPending.length - 1];
     if (!missed?.id) return;
+
+    // Evită re-prompt-ul aceluiași ID în aceeași zi (ex: utilizatorul a închis sheet-ul).
+    try {
+      const lastPrompted = JSON.parse(localStorage.getItem(WRAPUP_PROMPT_KEY) || '{}');
+      if (lastPrompted.id === missed.id && lastPrompted.date === todayStr) return;
+    } catch {
+      // ignore localStorage errors
+    }
 
     const confirmSession = (window as any).confirmSession;
     if (typeof confirmSession !== 'function') return;
+
+    // Marchează ID-ul ca fiind deja auto-promptuit azi.
+    try {
+      localStorage.setItem(WRAPUP_PROMPT_KEY, JSON.stringify({ id: missed.id, date: todayStr }));
+    } catch {
+      // ignore localStorage errors
+    }
 
     // Deschide imediat popup-ul existent de confirmare.
     confirmSession(missed.id);
