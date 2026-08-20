@@ -236,12 +236,26 @@
     private bindEvents() {
       this.reconnect();
 
-      if (this.sheet && !this.sheet.dataset.touchBound) {
-        this.sheet.dataset.touchBound = 'true';
-        this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
-        this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
-        this.sheet.addEventListener('touchend', () => this.handleTouchEnd());
-        this.sheet.addEventListener('touchcancel', () => this.cancelDrag());
+      if (this.sheet) {
+        this.sheet.addEventListener('touchstart', (e: any) => {
+          const mgr = (window as any).currentRenewalSheetManager || this;
+          mgr.handleTouchStart(e);
+        }, { passive: true });
+
+        this.sheet.addEventListener('touchmove', (e: any) => {
+          const mgr = (window as any).currentRenewalSheetManager || this;
+          mgr.handleTouchMove(e);
+        }, { passive: false });
+
+        this.sheet.addEventListener('touchend', (e: any) => {
+          const mgr = (window as any).currentRenewalSheetManager || this;
+          mgr.handleTouchEnd(e);
+        }, { passive: true });
+
+        this.sheet.addEventListener('touchcancel', () => {
+          const mgr = (window as any).currentRenewalSheetManager || this;
+          mgr.cancelDrag();
+        }, { passive: true });
       }
 
       if ((window as any)._renewalDocClickBound) return;
@@ -263,12 +277,21 @@
     }
 
     private handleTouchStart(e: TouchEvent) {
+      if (!e.touches || e.touches.length === 0) return;
       this.startY = e.touches[0].clientY;
       this.currentY = this.startY;
       this.startX = e.touches[0].clientX;
       this.dragEngaged = false;
 
       const target = e.target as HTMLElement;
+      // If user drags directly on the handle or header, always engage
+      if (target && (target.id === 'renewal-drag-handle' || target.closest('#renewal-drag-handle'))) {
+        this.scrollAtTop = true;
+        this.dragEngaged = true;
+        if (this.sheet) this.sheet.style.transition = 'none';
+        return;
+      }
+
       const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'LABEL'].includes(target.tagName);
       if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
         this.scrollAtTop = false;
@@ -280,12 +303,13 @@
     }
 
     private handleTouchMove(e: TouchEvent) {
+      if (!e.touches || e.touches.length === 0) return;
       const y = e.touches[0].clientY;
       const deltaY = y - this.startY;
       const deltaX = e.touches[0].clientX - this.startX;
 
       if (!this.dragEngaged) {
-        if (this.scrollAtTop && deltaY > 8 && deltaY > Math.abs(deltaX) * 1.2) {
+        if (this.scrollAtTop && deltaY > 5 && deltaY > Math.abs(deltaX)) {
           this.dragEngaged = true;
           if (this.sheet) this.sheet.style.transition = 'none';
         } else {
@@ -300,16 +324,17 @@
       }
     }
 
-    private handleTouchEnd() {
+    private handleTouchEnd(e?: TouchEvent) {
       if (!this.sheet || !this.dragEngaged) {
         this.dragEngaged = false;
         return;
       }
       this.dragEngaged = false;
-      const deltaY = this.currentY - this.startY;
-      this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+      const clientY = e?.changedTouches?.[0]?.clientY ?? this.currentY;
+      const deltaY = clientY - this.startY;
+      this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
 
-      if (deltaY > 60) {
+      if (deltaY > 50) {
         this.close();
       } else {
         this.sheet.style.transform = 'translateY(0)';
@@ -319,7 +344,7 @@
     private cancelDrag() {
       this.dragEngaged = false;
       if (this.sheet) {
-        this.sheet.style.transition = 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)';
+        this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
         this.sheet.style.transform = 'translateY(0)';
       }
     }
