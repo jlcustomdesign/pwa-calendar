@@ -242,10 +242,18 @@
       // Swipe-down to dismiss on content (exact PaymentSheet logic)
       if (this.content && this.content.dataset.renewalSwipeBound !== 'true') {
         this.content.dataset.renewalSwipeBound = 'true';
-        this.content.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
-        this.content.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
-        this.content.addEventListener('touchend', () => this.handleTouchEnd());
-        this.content.addEventListener('touchcancel', () => this.cancelDrag());
+        this.content.addEventListener('touchstart', (e: any) => {
+          ((window as any).currentRenewalSheetManager || this).handleTouchStart(e);
+        }, { passive: true });
+        this.content.addEventListener('touchmove', (e: any) => {
+          ((window as any).currentRenewalSheetManager || this).handleTouchMove(e);
+        }, { passive: false });
+        this.content.addEventListener('touchend', (e: any) => {
+          ((window as any).currentRenewalSheetManager || this).handleTouchEnd(e);
+        }, { passive: true });
+        this.content.addEventListener('touchcancel', () => {
+          ((window as any).currentRenewalSheetManager || this).cancelDrag();
+        }, { passive: true });
       }
 
       // Dedicated drag handle close (exact PaymentSheet logic)

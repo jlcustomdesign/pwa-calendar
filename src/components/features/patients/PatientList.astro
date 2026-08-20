@@ -236,7 +236,7 @@
       allBtn.textContent = 'Toți';
       filtersBar.appendChild(allBtn);
 
-      // 2. Individual category buttons
+      // Individual category buttons
       cleanCategories.forEach(cleanName => {
         const norm = cleanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -255,21 +255,24 @@
         filtersBar.appendChild(btn);
       });
 
-      // Bind click handlers
-      filtersBar.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+      // Bind delegated click handler ONCE on the filtersBar if not already bound
+      if (filtersBar.dataset.clickBound !== 'true') {
+        filtersBar.dataset.clickBound = 'true';
+        filtersBar.addEventListener('click', (e) => {
+          const target = (e.target as HTMLElement).closest('.filter-btn') as HTMLElement;
+          if (!target) return;
+
           filtersBar.querySelectorAll('.filter-btn').forEach(b => {
             b.classList.remove('active', 'bg-brand-primary');
             b.classList.add('bg-white', 'border', 'border-black/10', 'shadow-sm');
           });
-          const target = e.currentTarget as HTMLElement;
           target.classList.remove('bg-white', 'border', 'border-black/10');
           target.classList.add('active', 'bg-brand-primary');
           
           this.currentFilter = target.getAttribute('data-filter') || 'all';
           this.render();
         });
-      });
+      }
     }
 
     async deletePatient(id: string) {

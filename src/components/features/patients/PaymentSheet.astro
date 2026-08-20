@@ -182,10 +182,18 @@
       // as long as the gesture is a clearly vertical downward swipe
       if (this.content && this.content.dataset.paymentSwipeBound !== 'true') {
         this.content.dataset.paymentSwipeBound = 'true';
-        this.content.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
-        this.content.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
-        this.content.addEventListener('touchend', () => this.handleTouchEnd());
-        this.content.addEventListener('touchcancel', () => this.cancelDrag());
+        this.content.addEventListener('touchstart', (e: any) => {
+          ((window as any).currentPaymentSheetManager || this).handleTouchStart(e);
+        }, { passive: true });
+        this.content.addEventListener('touchmove', (e: any) => {
+          ((window as any).currentPaymentSheetManager || this).handleTouchMove(e);
+        }, { passive: false });
+        this.content.addEventListener('touchend', (e: any) => {
+          ((window as any).currentPaymentSheetManager || this).handleTouchEnd(e);
+        }, { passive: true });
+        this.content.addEventListener('touchcancel', () => {
+          ((window as any).currentPaymentSheetManager || this).cancelDrag();
+        }, { passive: true });
       }
 
       // Dedicated drag handle close
