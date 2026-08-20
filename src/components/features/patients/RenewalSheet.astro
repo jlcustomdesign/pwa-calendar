@@ -307,20 +307,34 @@
       });
     }
 
+    private scrollAtTop: boolean = true;
+
     private handleTouchStart(e: TouchEvent) {
+      if (!e.touches || e.touches.length === 0) return;
       this.startY = e.touches[0].clientY;
       this.currentY = this.startY;
       this.startX = e.touches[0].clientX;
       this.dragEngaged = false;
+
+      const target = e.target as HTMLElement;
+      // If user drags directly on the handle, always engage swipe
+      if (target && (target.id === 'renewal-drag-handle' || target.closest('#renewal-drag-handle'))) {
+        this.scrollAtTop = true;
+        return;
+      }
+
+      // Otherwise, only allow swipe if the content is at the top
+      this.scrollAtTop = !this.content || this.content.scrollTop <= 0;
     }
 
     private handleTouchMove(e: TouchEvent) {
+      if (!e.touches || e.touches.length === 0) return;
       const y = e.touches[0].clientY;
       const deltaY = y - this.startY;
       const deltaX = e.touches[0].clientX - this.startX;
 
       if (!this.dragEngaged) {
-        if (deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
+        if (this.scrollAtTop && deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
           this.dragEngaged = true;
           if (this.content) this.content.style.transition = 'none';
         } else {
@@ -335,7 +349,7 @@
       }
     }
 
-    private handleTouchEnd() {
+    private handleTouchEnd(e?: TouchEvent) {
       if (!this.content || !this.dragEngaged) {
         this.dragEngaged = false;
         return;
