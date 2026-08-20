@@ -88,18 +88,30 @@
 
       const btn = document.getElementById('btn-enable-notifications-home');
       btn?.addEventListener('click', async () => {
+        const originalText = btn.innerHTML;
         try {
-          const { requestNotificationPermission } = await import('../../../lib/services/sessionNotifier');
-          const granted = await requestNotificationPermission();
-          if (granted) {
+          btn.innerHTML = '<span class="animate-pulse">Se activează...</span>';
+          (btn as HTMLButtonElement).disabled = true;
+
+          const { subscribeToPushNotifications } = await import('../../../lib/services/pushService');
+          const res = await subscribeToPushNotifications();
+
+          if (res.success) {
             banner.innerHTML = '';
             banner.classList.add('hidden');
             (window as any).showToast?.('Notificările au fost activate cu succes pe acest dispozitiv!', 'success');
           } else {
-            alert('Pentru a primi notificări pe iPhone/Safari: Mergi în Configurări (Settings) -> Notificări -> KinetoAgenda și activează Permite Notificări.');
+            (window as any).showToast?.(res.message || 'Eroare la activare.', 'error');
+            if (res.message && res.message.includes('refuzată')) {
+              alert('Pentru a primi notificări pe iPhone/Safari: Mergi în Configurări (Settings) -> Notificări -> KinetoAgenda și activează Permite Notificări.');
+            }
           }
         } catch (e) {
           console.error(e);
+          (window as any).showToast?.('Eroare la activarea notificărilor.', 'error');
+        } finally {
+          btn.innerHTML = originalText;
+          (btn as HTMLButtonElement).disabled = false;
         }
       });
       return;
