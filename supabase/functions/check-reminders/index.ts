@@ -1,12 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
 import { buildPushHTTPRequest } from "@pushforge/builder";
 
-const VAPID_JWK = JSON.parse(
-  Deno.env.get("VAPID_PRIVATE_JWK") ||
-    '{"kty":"EC","crv":"P-256","x":"aj6zj_1tPqqWl7hl2NOvQB4WjE6zCGCQmH6sdI4cmyE","y":"hoSufsSByScAgLIQLmhE6EMvjTGGlB0rj7fgOdnRemY","d":"Ch1BUr0CZvFtDswk2nYEZJyyFEedcAXdHqr_t55JW98","key_ops":["sign"],"ext":true}'
-);
+async function loadVaultSecrets(supabase: any) {
+  const { data: secrets, error } = await supabase.rpc("get_vapid_secrets");
 
-const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@kinetoagenda.ro";
+  if (error) throw new Error("Vault read error: " + error.message);
+
+  return {
+    vapidJwk: JSON.parse(secrets?.VAPID_PRIVATE_JWK || "{}"),
+    vapidSubject: secrets?.VAPID_SUBJECT || "mailto:admin@kinetoagenda.ro",
+  };
+}
 
 function getRomaniaTimeStrings(now = new Date()) {
   const timeStr = now.toLocaleTimeString("en-GB", { timeZone: "Europe/Bucharest", hour: "2-digit", minute: "2-digit" });
@@ -23,6 +27,7 @@ Deno.serve(async (_req) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { vapidJwk, vapidSubject } = await loadVaultSecrets(supabase);
     const { timeStr, dateStr } = getRomaniaTimeStrings();
     const [curH, curM] = timeStr.split(":").map(Number);
     const currentTotalMin = curH * 60 + curM;
@@ -90,7 +95,7 @@ Deno.serve(async (_req) => {
           for (const sub of subscriptions as any[]) {
             try {
               const { endpoint, headers, body } = await buildPushHTTPRequest({
-                privateJWK: VAPID_JWK,
+                privateJWK: vapidJwk,
                 subscription: {
                   endpoint: sub.endpoint,
                   keys: { p256dh: sub.p256dh, auth: sub.auth },
@@ -104,7 +109,7 @@ Deno.serve(async (_req) => {
                     icon: "/favicon.svg",
                     badge: "/favicon.svg",
                   },
-                  adminContact: VAPID_SUBJECT,
+                  adminContact: vapidSubject,
                   options: { ttl: 60 * 60 * 24 },
                 },
               });
@@ -140,7 +145,7 @@ Deno.serve(async (_req) => {
           for (const sub of subscriptions as any[]) {
             try {
               const { endpoint, headers, body } = await buildPushHTTPRequest({
-                privateJWK: VAPID_JWK,
+                privateJWK: vapidJwk,
                 subscription: {
                   endpoint: sub.endpoint,
                   keys: { p256dh: sub.p256dh, auth: sub.auth },
@@ -154,7 +159,7 @@ Deno.serve(async (_req) => {
                     icon: "/favicon.svg",
                     badge: "/favicon.svg",
                   },
-                  adminContact: VAPID_SUBJECT,
+                  adminContact: vapidSubject,
                   options: { ttl: 60 * 60 * 24 },
                 },
               });

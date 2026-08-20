@@ -58,3 +58,6 @@ convex/_generated/
 
 # macOS DS_Store
 .DS_Store
+
+# Supabase CLI temp files
+supabase/.temp/
