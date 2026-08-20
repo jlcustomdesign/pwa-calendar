@@ -424,8 +424,8 @@
         if (!dragging) return;
         dragging = false;
         const deltaY = currentY - startY;
-        content.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
-        if (deltaY > 80) {
+        content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 60) {
           this.close();
         } else {
           content.style.transform = 'translateY(0)';
@@ -447,7 +447,9 @@
       const content = this.content;
 
       content.addEventListener('touchstart', (e: TouchEvent) => {
-        if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        const target = e.target as HTMLElement;
+        const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'LABEL'].includes(target.tagName);
+        if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
           return;
         }
         startY = e.touches[0].clientY;
@@ -465,7 +467,7 @@
         const deltaX = e.touches[0].clientX - startX;
 
         if (!dragEngaged) {
-          if (deltaY > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+          if (isAtTop && deltaY > 8 && deltaY > Math.abs(deltaX)) {
             dragEngaged = true;
             content.style.transition = 'none';
           } else {
@@ -473,6 +475,7 @@
           }
         }
 
+        currentY = y;
         if (deltaY > 0) {
           if (e.cancelable) e.preventDefault();
           content.style.transform = `translateY(${deltaY}px)`;
@@ -483,8 +486,8 @@
         if (!dragEngaged) return;
         dragEngaged = false;
         const deltaY = currentY - startY;
-        content.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
-        if (deltaY > 100) {
+        content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+        if (deltaY > 60) {
           this.close();
         } else {
           content.style.transform = 'translateY(0)';
