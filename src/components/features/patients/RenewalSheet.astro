@@ -198,7 +198,8 @@
     private startY: number = 0;
     private currentY: number = 0;
     private startX: number = 0;
-    private dragEngaged: boolean = false;
+    private dragEngaged = false;
+    private startTime = 0;
     private scrollAtTop: boolean = true;
 
     constructor() {
@@ -290,6 +291,7 @@
 
     private handleTouchStart(e: TouchEvent) {
       if (!e.touches || e.touches.length === 0) return;
+      this.startTime = Date.now();
       this.startY = e.touches[0].clientY;
       this.currentY = this.startY;
       this.startX = e.touches[0].clientX;
@@ -342,8 +344,12 @@
       }
       this.dragEngaged = false;
       const deltaY = this.currentY - this.startY;
+      const timeElapsed = Date.now() - this.startTime;
+      const velocity = deltaY / timeElapsed;
       this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
-      if (deltaY > 80) {
+      
+      // Close if dragged down more than 80px OR flicked fast
+      if (deltaY > 80 || (velocity > 0.4 && deltaY > 20)) {
         this.close();
       } else {
         this.sheet.style.transform = 'translateY(0)';
