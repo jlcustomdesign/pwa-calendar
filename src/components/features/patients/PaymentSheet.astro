@@ -515,17 +515,20 @@
     }
 
     private open() {
-      if (!this.sheet || !this.sheet || !this.overlay) return;
+      if (!this.sheet || !this.overlay) return;
       this.isOpen = true;
       this.loadPatientFinancials();
 
+      this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;
+      if (document.activeElement && 'blur' in document.activeElement) {
+        (document.activeElement as HTMLElement).blur();
+      }
+
       this.sheet.dataset.open = 'true';
-      // Trigger reflow
       void this.sheet.offsetWidth;
 
-      // Fade the backdrop element itself (same pattern as the other sheets) —
-      // fading a parent wrapper would disable the backdrop-blur mid-animation
-      this.overlay.classList.remove('opacity-0');
+      this.overlay.classList.remove('opacity-0', 'pointer-events-none');
+      this.overlay.classList.add('pointer-events-auto');
       this.sheet.classList.remove('translate-y-full');
       lockBodyScroll();
     }

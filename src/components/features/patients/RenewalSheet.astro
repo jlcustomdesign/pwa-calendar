@@ -569,6 +569,11 @@
       this.calculateTotalCost();
       this.setPaymentStatus('Neachitat');
 
+      this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;
+      if (document.activeElement && 'blur' in document.activeElement) {
+        (document.activeElement as HTMLElement).blur();
+      }
+
       this.sheet.dataset.open = 'true';
       void this.sheet.offsetWidth;
 
