@@ -1,10 +1,13 @@
 ---
 ---
-<div id="payment-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
-  <div id="payment-backdrop" class="absolute inset-0 bg-black/25 pointer-events-auto transition-opacity duration-300 opacity-0"></div>
-  <div id="payment-content" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 pb-safe pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[90vh] overflow-y-auto">
-    <div class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-8 cursor-grab active:cursor-grabbing" id="payment-drag-handle"></div>
-    
+<div 
+  id="payment-sheet" 
+  data-sheet-root 
+  class="fixed inset-x-0 bottom-0 z-[130] bg-white rounded-t-[2.5rem] pt-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
+>
+  <div id="payment-drag-handle" class="w-12 h-1.5 bg-black/10 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
+
+  <div class="flex-1 overflow-y-auto px-6 pt-1 pb-36 space-y-5">
     <div class="flex items-center justify-between mb-4">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">Status plată</h2>
@@ -13,7 +16,7 @@
     </div>
 
     <!-- Card 1: Unified Top Financial Summary Card -->
-    <div id="payment-summary-box" class="mb-6 bg-neutral-50 rounded-[2rem] p-5 border border-black/5 space-y-4 shadow-sm">
+    <div id="payment-summary-box" class="bg-neutral-50 rounded-[2rem] p-5 border border-black/5 space-y-4 shadow-sm">
       <!-- Top Row: Patient Name & Status Badge -->
       <div class="flex items-center justify-between gap-3">
         <div class="min-w-0">
@@ -49,7 +52,7 @@
     </div>
 
     <!-- Card 2: Istoric Plăți (Matching Rounded Card) -->
-    <div class="mb-6 bg-neutral-50 rounded-[2rem] p-5 border border-black/5 space-y-3 shadow-sm">
+    <div class="bg-neutral-50 rounded-[2rem] p-5 border border-black/5 space-y-3 shadow-sm">
       <div class="flex items-center justify-between">
         <span class="text-xs sm:text-sm font-black uppercase tracking-wider text-black">Istoric plăți</span>
       </div>
@@ -59,7 +62,7 @@
     </div>
 
     <!-- View 1: Initial Options -->
-    <div id="payment-options-view" class="space-y-4">
+    <div id="payment-options-view" class="space-y-4 pt-2 pb-6">
       <button type="button" id="btn-partially-paid" class="w-full py-4 px-6 rounded-2xl bg-amber-100 text-amber-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
         <span>Plată parțială</span>
         <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,30 +81,30 @@
         </svg>
       </button>
     </div>
+  </div>
 
-    <!-- View 2: Custom Amount Form -->
-    <div id="custom-amount-view" class="space-y-4 hidden">
-      <div class="relative">
-        <label for="custom-amount-input" class="block text-sm font-semibold text-neutral-700 mb-2" id="custom-amount-label">Introdu suma nouă (RON)</label>
-        <div class="relative flex items-center">
-          <input 
-            type="number" 
-            id="custom-amount-input" 
-            class="w-full bg-neutral-100 border-none rounded-2xl py-4 pl-4 pr-16 text-lg font-bold text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:ring-black transition-all"
-            placeholder="0"
-          >
-          <span class="absolute right-4 text-neutral-500 font-bold text-lg pointer-events-none">RON</span>
-        </div>
+  <!-- View 2: Custom Amount Form (Sticky to bottom when visible) -->
+  <div id="custom-amount-view" class="absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-black/5 shadow-2xl flex-col gap-2.5 pb-safe z-10 hidden">
+    <div class="relative w-full">
+      <label for="custom-amount-input" class="block text-sm font-semibold text-neutral-700 mb-2" id="custom-amount-label">Introdu suma nouă (RON)</label>
+      <div class="relative flex items-center">
+        <input 
+          type="number" 
+          id="custom-amount-input" 
+          class="w-full bg-neutral-100 border-none rounded-2xl py-4 pl-4 pr-16 text-lg font-bold text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:ring-black transition-all"
+          placeholder="0"
+        >
+        <span class="absolute right-4 text-neutral-500 font-bold text-lg pointer-events-none">RON</span>
       </div>
-      
-      <div class="flex gap-3 pt-2">
-        <button type="button" id="btn-cancel-custom" class="flex-1 py-4 px-6 rounded-2xl bg-neutral-100 text-neutral-700 font-bold text-lg active:scale-95 transition-transform">
-          Înapoi
-        </button>
-        <button type="button" id="btn-confirm-custom" class="flex-[2] py-4 px-6 rounded-2xl bg-black text-white font-bold text-lg active:scale-95 transition-transform flex items-center justify-center shadow-lg shadow-black/20">
-          <span>Confirmă plata</span>
-        </button>
-      </div>
+    </div>
+    
+    <div class="flex w-full gap-3 pt-2 mt-4">
+      <button type="button" id="btn-cancel-custom" class="flex-1 py-4 px-6 rounded-2xl bg-neutral-100 text-neutral-700 font-bold text-lg active:scale-95 transition-transform">
+        Înapoi
+      </button>
+      <button type="button" id="btn-confirm-custom" class="flex-[2] py-4 px-6 rounded-2xl bg-black text-white font-bold text-lg active:scale-95 transition-transform flex items-center justify-center shadow-lg shadow-black/20">
+        <span>Confirmă plata</span>
+      </button>
     </div>
   </div>
 </div>
@@ -111,15 +114,14 @@
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   class PaymentSheetManager {
-    private sheet: HTMLElement | null;
-    private backdrop: HTMLElement | null;
-    private content: HTMLElement | null;
+    private sheet: HTMLElement | null = null;
+    private overlay: HTMLElement | null = null;
     
-    private optionsView: HTMLElement | null;
-    private customView: HTMLElement | null;
-    private customInput: HTMLInputElement | null;
-    private customLabel: HTMLElement | null;
-    private subtitleText: HTMLElement | null;
+    private optionsView: HTMLElement | null = null;
+    private customView: HTMLElement | null = null;
+    private customInput: HTMLInputElement | null = null;
+    private customLabel: HTMLElement | null = null;
+    private subtitleText: HTMLElement | null = null;
     
     private currentPatientId: string | null = null;
     private previousAmount: number = 0;
@@ -129,32 +131,31 @@
     private currentY = 0;
     private startX = 0;
     private dragEngaged = false;
+    private scrollAtTop: boolean = true;
 
     constructor() {
-      this.sheet = document.getElementById('payment-sheet');
-      this.backdrop = document.getElementById('payment-backdrop');
-      this.content = document.getElementById('payment-content');
-      
-      this.optionsView = document.getElementById('payment-options-view');
-      this.customView = document.getElementById('custom-amount-view');
-      this.customInput = document.getElementById('custom-amount-input') as HTMLInputElement;
-      this.customLabel = document.getElementById('custom-amount-label');
-      this.subtitleText = document.getElementById('payment-subtitle');
-      
+      this.reconnect();
+      this.createOverlay();
       this.bindEvents();
     }
 
     private reconnect() {
       this.sheet = document.getElementById('payment-sheet');
-      this.backdrop = document.getElementById('payment-backdrop');
-      this.content = document.getElementById('payment-content');
       this.optionsView = document.getElementById('payment-options-view');
       this.customView = document.getElementById('custom-amount-view');
       this.customInput = document.getElementById('custom-amount-input') as HTMLInputElement;
       this.customLabel = document.getElementById('custom-amount-label');
       this.subtitleText = document.getElementById('payment-subtitle');
-      // Keep the open flag in sync when the persisted sheet is reused after navigation.
       if (this.sheet?.dataset.open === 'true') this.isOpen = true;
+    }
+
+    createOverlay() {
+      const existingOverlays = document.querySelectorAll('.payment-sheet-overlay');
+      existingOverlays.forEach(o => o.remove());
+
+      this.overlay = document.createElement('div');
+      this.overlay.className = 'fixed inset-0 bg-black/25 z-[120] opacity-0 pointer-events-none transition-opacity duration-300 payment-sheet-overlay';
+      document.body.appendChild(this.overlay);
     }
 
     handleOpenEvent(e: CustomEvent) {
@@ -165,75 +166,43 @@
     }
 
     private bindEvents() {
-      const root = document.getElementById('payment-sheet');
-      if (!root) return;
+      if (!this.sheet) return;
 
-      // One delegated click listener for the whole sheet, routing to the current
-      // manager so it always sees the latest currentPatientId.
-      if (root.dataset.paymentEventsBound !== 'true') {
-        root.dataset.paymentEventsBound = 'true';
-        root.addEventListener('click', (e) => {
+      if (this.sheet.dataset.paymentEventsBound !== 'true') {
+        this.sheet.dataset.paymentEventsBound = 'true';
+        this.sheet.addEventListener('click', (e) => {
           const mgr = (window as any).currentPaymentSheetManager || this;
           mgr.handleClick(e);
         });
       }
 
-      // Swipe-down to dismiss — works from anywhere on the sheet,
-      // as long as the gesture is a clearly vertical downward swipe
-      if (this.content && this.content.dataset.paymentSwipeBound !== 'true') {
-        this.content.dataset.paymentSwipeBound = 'true';
-        this.content.addEventListener('touchstart', (e: any) => {
+      // Backdrop click
+      if (this.overlay && this.overlay.dataset.clickBound !== 'true') {
+        this.overlay.dataset.clickBound = 'true';
+        this.overlay.addEventListener('click', () => {
+          const mgr = (window as any).currentPaymentSheetManager || this;
+          mgr.close();
+        });
+      }
+
+      // Swipe gesture
+      if (this.sheet.dataset.paymentSwipeBound !== 'true') {
+        this.sheet.dataset.paymentSwipeBound = 'true';
+        this.sheet.addEventListener('touchstart', (e: any) => {
           ((window as any).currentPaymentSheetManager || this).handleTouchStart(e);
         }, { passive: true });
-        this.content.addEventListener('touchmove', (e: any) => {
+        this.sheet.addEventListener('touchmove', (e: any) => {
           ((window as any).currentPaymentSheetManager || this).handleTouchMove(e);
         }, { passive: false });
-        this.content.addEventListener('touchend', (e: any) => {
+        this.sheet.addEventListener('touchend', (e: any) => {
           ((window as any).currentPaymentSheetManager || this).handleTouchEnd(e);
         }, { passive: true });
-        this.content.addEventListener('touchcancel', () => {
+        this.sheet.addEventListener('touchcancel', () => {
           ((window as any).currentPaymentSheetManager || this).cancelDrag();
         }, { passive: true });
       }
 
-      // Dedicated drag handle close
-      const dragHandle = document.getElementById('payment-drag-handle');
-      if (dragHandle && this.content && dragHandle.dataset.paymentDragBound !== 'true') {
-        dragHandle.dataset.paymentDragBound = 'true';
-        let startY = 0;
-        let currentY = 0;
-        let dragging = false;
-        const content = this.content;
-        dragHandle.addEventListener('touchstart', (e: any) => {
-          startY = e.touches[0].clientY;
-          currentY = startY;
-          dragging = true;
-          content.style.transition = 'none';
-        }, { passive: true });
-        dragHandle.addEventListener('touchmove', (e: any) => {
-          if (!dragging) return;
-          currentY = e.touches[0].clientY;
-          const deltaY = currentY - startY;
-          if (deltaY > 0) {
-            content.style.transform = `translateY(${deltaY}px)`;
-          }
-        }, { passive: true });
-        const onEnd = () => {
-          if (!dragging) return;
-          dragging = false;
-          const deltaY = currentY - startY;
-          content.style.transition = 'transform 400ms cubic-bezier(0.32, 0.72, 0, 1)';
-          if (deltaY > 80) {
-            this.close();
-          } else {
-            content.style.transform = 'translateY(0)';
-          }
-        };
-        dragHandle.addEventListener('touchend', onEnd);
-        dragHandle.addEventListener('touchcancel', onEnd);
-      }
-
-      // Allow pressing Enter to confirm (bound once per input element)
+      // Allow pressing Enter to confirm
       if (this.customInput && this.customInput.dataset.paymentInputBound !== 'true') {
         this.customInput.dataset.paymentInputBound = 'true';
         this.customInput.addEventListener('keydown', (e) => {
