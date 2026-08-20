@@ -395,56 +395,54 @@
 
     private bindDragHandle() {
       const dragHandle = document.getElementById('renewal-drag-handle');
-      if (!dragHandle || !this.content) return;
-      if (dragHandle.dataset.renewalBound === 'true') return;
-      dragHandle.dataset.renewalBound = 'true';
+      const content = document.getElementById('renewal-content') || this.content;
+      if (!dragHandle || !content) return;
+
       let startY = 0;
-      let currentY = 0;
+      let startX = 0;
       let dragging = false;
-      const content = this.content;
 
       dragHandle.addEventListener('touchstart', (e: TouchEvent) => {
         startY = e.touches[0].clientY;
-        currentY = startY;
+        startX = e.touches[0].clientX;
         dragging = true;
         content.style.transition = 'none';
       }, { passive: true });
 
       dragHandle.addEventListener('touchmove', (e: TouchEvent) => {
         if (!dragging) return;
-        currentY = e.touches[0].clientY;
-        const deltaY = currentY - startY;
+        const deltaY = e.touches[0].clientY - startY;
         if (deltaY > 0) {
           if (e.cancelable) e.preventDefault();
           content.style.transform = `translateY(${deltaY}px)`;
         }
       }, { passive: false });
 
-      const onEnd = () => {
+      const onEnd = (e: TouchEvent) => {
         if (!dragging) return;
         dragging = false;
-        const deltaY = currentY - startY;
+        const clientY = e.changedTouches?.[0]?.clientY ?? startY;
+        const deltaY = clientY - startY;
         content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
-        if (deltaY > 60) {
-          this.close();
+        if (deltaY > 50) {
+          const mgr = (window as any).currentRenewalSheetManager || this;
+          mgr.close();
         } else {
           content.style.transform = 'translateY(0)';
         }
       };
 
-      dragHandle.addEventListener('touchend', onEnd);
-      dragHandle.addEventListener('touchcancel', onEnd);
+      dragHandle.addEventListener('touchend', onEnd, { passive: true });
+      dragHandle.addEventListener('touchcancel', onEnd, { passive: true });
     }
 
     private bindContentSwipe() {
-      if (!this.content) return;
-      if (this.content.dataset.renewalSwipeBound === 'true') return;
-      this.content.dataset.renewalSwipeBound = 'true';
+      const content = document.getElementById('renewal-content') || this.content;
+      if (!content) return;
+
       let startY = 0;
-      let currentY = 0;
       let startX = 0;
       let dragEngaged = false;
-      const content = this.content;
 
       content.addEventListener('touchstart', (e: TouchEvent) => {
         const target = e.target as HTMLElement;
@@ -453,7 +451,6 @@
           return;
         }
         startY = e.touches[0].clientY;
-        currentY = startY;
         startX = e.touches[0].clientX;
         dragEngaged = false;
       }, { passive: true });
@@ -467,7 +464,7 @@
         const deltaX = e.touches[0].clientX - startX;
 
         if (!dragEngaged) {
-          if (isAtTop && deltaY > 8 && deltaY > Math.abs(deltaX)) {
+          if (isAtTop && deltaY > 6 && deltaY > Math.abs(deltaX) * 1.1) {
             dragEngaged = true;
             content.style.transition = 'none';
           } else {
@@ -475,27 +472,28 @@
           }
         }
 
-        currentY = y;
         if (deltaY > 0) {
           if (e.cancelable) e.preventDefault();
           content.style.transform = `translateY(${deltaY}px)`;
         }
       }, { passive: false });
 
-      const onSwipeEnd = () => {
+      const onSwipeEnd = (e: TouchEvent) => {
         if (!dragEngaged) return;
         dragEngaged = false;
-        const deltaY = currentY - startY;
+        const clientY = e.changedTouches?.[0]?.clientY ?? startY;
+        const deltaY = clientY - startY;
         content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
-        if (deltaY > 60) {
-          this.close();
+        if (deltaY > 50) {
+          const mgr = (window as any).currentRenewalSheetManager || this;
+          mgr.close();
         } else {
           content.style.transform = 'translateY(0)';
         }
       };
 
-      content.addEventListener('touchend', onSwipeEnd);
-      content.addEventListener('touchcancel', onSwipeEnd);
+      content.addEventListener('touchend', onSwipeEnd, { passive: true });
+      content.addEventListener('touchcancel', onSwipeEnd, { passive: true });
     }
 
     private async handleConfirm() {
@@ -524,29 +522,27 @@
           this.currentPatientId,
           count,
           totalCost,
-          {
-            status: this.selectedPaymentStatus,
-            paidAmount: paidAmount
-          }
+          this.selectedPaymentStatus === 'Achitat',
+          paidAmount
         );
 
-        if (this.pendingAppointment) {
+        if (this.pendingAppointment && this.pendingAppointment.data && this.pendingAppointment.ora) {
           try {
             await createAppointment({
               pacient_id: this.currentPatientId,
               data: this.pendingAppointment.data,
               ora: this.pendingAppointment.ora,
-              locatie: this.pendingAppointment.locatie,
+              locatie: this.pendingAppointment.locatie || 'Belaqva',
+              tip_serviciu: this.pendingAppointment.tip_serviciu || 'Kinetoterapie',
+              sedinta_numar: 1,
+              status: 'programat'
             });
-            (window as any).showToast?.(`Abonament reînnoit și ședința programată pe ${this.pendingAppointment.data} la ${this.pendingAppointment.ora}!`, 'success');
-          } catch (appErr: any) {
-            (window as any).showToast?.('Abonament reînnoit, dar nu s-a putut salva programarea: ' + (appErr?.message || appErr), 'warning');
+          } catch (apptErr) {
+            console.warn('Eroare creare programare la reinnoire:', apptErr);
           }
-          this.pendingAppointment = null;
-        } else {
-          (window as any).showToast?.(`Abonamentul a fost reînnoit (${count} ședințe - ${totalCost} RON).`, 'success');
         }
 
+        (window as any).showToast?.('Abonament reînnoit cu succes!');
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
         window.dispatchEvent(new CustomEvent('sessionsUpdated'));
         this.close();
@@ -562,34 +558,40 @@
 
     open() {
       this.reconnect();
-      if (!this.sheet || !this.backdrop || !this.content) return;
+      const sheet = document.getElementById('renewal-sheet') || this.sheet;
+      const backdrop = document.getElementById('renewal-backdrop') || this.backdrop;
+      const content = document.getElementById('renewal-content') || this.content;
+      if (!sheet || !backdrop || !content) return;
       this.isOpen = true;
       this.calculateTotalCost();
       this.setPaymentStatus('Neachitat');
-      this.sheet.dataset.open = 'true';
-      void this.sheet.offsetWidth;
+      sheet.dataset.open = 'true';
+      content.style.transform = '';
+      void sheet.offsetWidth;
 
-      this.backdrop.classList.remove('opacity-0');
-      this.content.classList.remove('translate-y-full');
+      backdrop.classList.remove('opacity-0');
+      content.classList.remove('translate-y-full');
       lockBodyScroll();
     }
 
     close() {
-      if (!this.sheet || !this.backdrop || !this.content || !this.isOpen) return;
+      const sheet = document.getElementById('renewal-sheet') || this.sheet;
+      const backdrop = document.getElementById('renewal-backdrop') || this.backdrop;
+      const content = document.getElementById('renewal-content') || this.content;
+      if (!sheet || !backdrop || !content) return;
+
       this.isOpen = false;
       unlockBodyScroll();
 
-      this.content.style.transition = '';
-      this.content.style.transform = '';
-      this.backdrop.classList.add('opacity-0');
-      this.content.classList.add('translate-y-full');
+      content.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+      content.style.transform = '';
+      backdrop.classList.add('opacity-0');
+      content.classList.add('translate-y-full');
 
       setTimeout(() => {
-        if (!this.isOpen && this.sheet) {
-          this.sheet.dataset.open = 'false';
-          this.currentPatientId = null;
-        }
-      }, 500);
+        sheet.dataset.open = 'false';
+        this.currentPatientId = null;
+      }, 400);
     }
   }
 
