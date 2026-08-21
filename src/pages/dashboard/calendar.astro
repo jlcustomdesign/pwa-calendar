@@ -49,7 +49,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
   </div>
 
   <!-- Lunch Break Edit Modal -->
-  <div id="lunch-edit-modal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200" aria-hidden="true">
+  <div id="lunch-edit-modal" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200" aria-hidden="true">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="lunch-edit-backdrop"></div>
     <div id="lunch-edit-dialog" class="relative w-full max-w-sm mx-4 mb-6 sm:mb-0 bg-white rounded-[2rem] p-6 shadow-2xl transform translate-y-4 transition-transform duration-200">
       <div class="text-center mb-5">
@@ -191,6 +191,16 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
     bindLunchEditEvents();
     document.addEventListener('astro:page-load', bindLunchEditEvents);
+
+    // Delegated open for lunch card (re-rendered by renderTimeline)
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const lunchCard = target.closest('[data-lunch-card]');
+      if (lunchCard) {
+        e.stopPropagation();
+        openLunchEdit();
+      }
+    });
 
     if ((window as any)._calendarDateSelectedHandler) {
       window.removeEventListener('calendarDateSelected', (window as any)._calendarDateSelectedHandler);
@@ -546,7 +556,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 <span class="text-xs font-extrabold text-pink-600 tracking-wider uppercase mt-0.5">${labelMin !== '00' ? ':' + labelMin : 'Pauză'}</span>
               </div>
               <div class="flex-1 min-w-0 pb-2">
-                <div class="w-full ${heightClass} rounded-2xl flex items-center justify-between px-5 select-none relative cursor-pointer active:scale-[0.99] transition-transform" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);" onclick="window.openLunchEdit()">
+                <div data-lunch-card class="w-full ${heightClass} rounded-2xl flex items-center justify-between px-5 select-none relative cursor-pointer active:scale-[0.99] transition-transform" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
                   <span class="text-sm font-black text-pink-600/80">Pauză de masă</span>
                   <div class="flex items-center gap-2">
                     <span class="text-base font-black text-pink-700/80">${lunchStart} – ${lunchEnd}</span>

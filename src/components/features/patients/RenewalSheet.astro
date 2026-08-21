@@ -131,6 +131,7 @@
         <button 
           type="button" 
           data-payment="Neachitat" 
+          onclick="window.selectRenewalPayment('Neachitat')"
           class="renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-rose-100 text-rose-700 shadow-sm"
         >
           Neachitat
@@ -138,6 +139,7 @@
         <button 
           type="button" 
           data-payment="Parțial" 
+          onclick="window.selectRenewalPayment('Parțial')"
           class="renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black"
         >
           Parțial
@@ -145,6 +147,7 @@
         <button 
           type="button" 
           data-payment="Achitat" 
+          onclick="window.selectRenewalPayment('Achitat')"
           class="renewal-payment-btn py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black"
         >
           Achitat
@@ -474,7 +477,7 @@
       }
     }
 
-    private setPaymentStatus(status: 'Neachitat' | 'Parțial' | 'Achitat') {
+    setPaymentStatus(status: 'Neachitat' | 'Parțial' | 'Achitat') {
       this.selectedPaymentStatus = status;
       const buttons = document.querySelectorAll('.renewal-payment-btn');
       const partialBox = document.getElementById('renewal-partial-box');
@@ -656,6 +659,14 @@
       }, 500);
     }
   }
+
+  // Global selector for payment status (used by inline onclick fallback).
+  (window as any).selectRenewalPayment = (status: 'Neachitat' | 'Parțial' | 'Achitat') => {
+    const mgr = (window as any).currentRenewalSheetManager;
+    if (mgr && typeof mgr.setPaymentStatus === 'function') {
+      mgr.setPaymentStatus(status);
+    }
+  };
 
   function initRenewalSheet() {
     if (!(window as any)._renewalSheetWindowListenerBound) {
