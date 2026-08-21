@@ -45,81 +45,30 @@
     <!-- CARD: PREȚ & ȘEDINȚE (Clean Design) -->
     <div class="rounded-3xl bg-black/[0.03] p-4 space-y-4 border border-black/5">
       <div class="grid grid-cols-2 gap-3">
-        <!-- Preț / Ședință -->
         <div>
-          <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Preț / Ședință</label>
-          <div class="flex items-center rounded-2xl bg-white border border-pink-200/80 p-1 shadow-sm focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
-            <button 
-              type="button" 
-              data-stepper="price" 
-              data-dir="-1" 
-              class="w-8 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 active:scale-95 text-pink-700 font-black text-lg flex items-center justify-center transition-all shrink-0 cursor-pointer"
-            >
-              −
-            </button>
-            <input
-              type="number"
-              id="renewal-price-input"
-              value="150"
-              min="0"
-              max="2000"
-              step="10"
-              inputmode="numeric"
-              placeholder="150"
-              class="w-full min-w-0 px-1 py-1.5 bg-transparent border-0 text-center font-extrabold text-black text-base focus:outline-none"
-            />
-            <button 
-              type="button" 
-              data-stepper="price" 
-              data-dir="1" 
-              class="w-8 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 active:scale-95 text-pink-700 font-black text-lg flex items-center justify-center transition-all shrink-0 cursor-pointer"
-            >
-              +
-            </button>
-          </div>
+          <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Preț abonament</label>
+          <input
+            type="number"
+            id="renewal-price-input"
+            value="1500"
+            min="0"
+            inputmode="numeric"
+            placeholder="1500"
+            class="w-full px-3 py-2.5 rounded-2xl bg-white border border-pink-200/80 text-center font-extrabold text-black text-base focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all shadow-sm"
+          />
         </div>
-
-        <!-- Nr. Ședințe -->
         <div>
-          <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Nr. Ședințe</label>
-          <div class="flex items-center rounded-2xl bg-white border border-pink-200/80 p-1 shadow-sm focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
-            <button 
-              type="button" 
-              data-stepper="sessions" 
-              data-dir="-1" 
-              class="w-8 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 active:scale-95 text-pink-700 font-black text-lg flex items-center justify-center transition-all shrink-0 cursor-pointer"
-            >
-              −
-            </button>
-            <input
-              type="number"
-              id="renewal-sessions-input"
-              value="10"
-              min="1"
-              max="100"
-              step="1"
-              inputmode="numeric"
-              placeholder="10"
-              class="w-full min-w-0 px-1 py-1.5 bg-transparent border-0 text-center font-extrabold text-black text-base focus:outline-none"
-            />
-            <button 
-              type="button" 
-              data-stepper="sessions" 
-              data-dir="1" 
-              class="w-8 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 active:scale-95 text-pink-700 font-black text-lg flex items-center justify-center transition-all shrink-0 cursor-pointer"
-            >
-              +
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Cost Total Calculat Automat -->
-      <div class="flex items-center justify-between p-3.5 px-4 rounded-2xl bg-white border border-black/5 shadow-2xs">
-        <span class="text-xs font-black uppercase tracking-wider text-text-muted">Total calculat:</span>
-        <div class="flex items-baseline gap-1">
-          <span id="renewal-calculated-cost" class="text-xl sm:text-2xl font-black text-text-main">1500</span>
-          <span class="text-xs font-black text-text-muted">RON</span>
+          <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Nr. ședințe</label>
+          <input
+            type="number"
+            id="renewal-sessions-input"
+            value="10"
+            min="1"
+            max="100"
+            inputmode="numeric"
+            placeholder="10"
+            class="w-full px-3 py-2.5 rounded-2xl bg-white border border-pink-200/80 text-center font-extrabold text-black text-base focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all shadow-sm"
+          />
         </div>
       </div>
     </div>
@@ -421,15 +370,6 @@
       const target = e.target as HTMLElement;
       if (!target) return;
 
-      // Steppers
-      const stepperBtn = target.closest('[data-stepper]') as HTMLButtonElement | null;
-      if (stepperBtn) {
-        const type = stepperBtn.dataset.stepper;
-        const dir = parseInt(stepperBtn.dataset.dir || '1', 10);
-        this.handleStepper(type, dir);
-        return;
-      }
-
       // Payment mode toggle buttons
       const payBtn = target.closest('.renewal-payment-btn') as HTMLButtonElement | null;
       if (payBtn) {
@@ -445,38 +385,12 @@
       }
     }
 
-    private handleStepper(type: string | undefined, dir: number) {
-      if (type === 'sessions') {
-        const sInput = document.getElementById('renewal-sessions-input') as HTMLInputElement | null;
-        if (sInput) {
-          let val = parseInt(sInput.value || '10', 10) + dir;
-          if (val < 1) val = 1;
-          if (val > 100) val = 100;
-          sInput.value = val.toString();
-          this.calculateTotalCost();
-        }
-      } else if (type === 'price') {
-        const pInput = document.getElementById('renewal-price-input') as HTMLInputElement | null;
-        if (pInput) {
-          let val = parseInt(pInput.value || '150', 10) + (dir * 10);
-          if (val < 0) val = 0;
-          pInput.value = val.toString();
-          this.calculateTotalCost();
-        }
-      }
-    }
-
     calculateTotalCost() {
-      const sInput = document.getElementById('renewal-sessions-input') as HTMLInputElement | null;
       const pInput = document.getElementById('renewal-price-input') as HTMLInputElement | null;
       const calcEl = document.getElementById('renewal-calculated-cost');
-
-      const sessions = Math.max(1, parseInt(sInput?.value || '10', 10));
-      const price = Math.max(0, parseInt(pInput?.value || '150', 10));
-      const total = sessions * price;
-
+      const price = Math.max(0, parseFloat(pInput?.value || '0'));
       if (calcEl) {
-        calcEl.textContent = total.toString();
+        calcEl.textContent = price.toString();
       }
     }
 
@@ -530,7 +444,8 @@
       try {
         const settings = await getSettings();
         if (priceInput && settings?.default_price) {
-          priceInput.value = settings.default_price.toString();
+          const defaultTotal = (settings.default_price || 150) * (settings.default_total_sessions || 10);
+          priceInput.value = defaultTotal.toString();
         }
       } catch (e) {}
 
@@ -539,9 +454,8 @@
           const patient = await getPatient(this.currentPatientId);
           if (patient) {
             if (nameEl) nameEl.textContent = `Pacient: ${patient.nume} ${patient.prenume}`;
-            if (priceInput && patient.cost && patient.sedinte_total) {
-              const unitPrice = Math.round(patient.cost / patient.sedinte_total);
-              if (unitPrice > 0) priceInput.value = unitPrice.toString();
+            if (priceInput && patient.cost) {
+              priceInput.value = String(patient.cost);
             }
 
             // Calcul restanță anterioară (dacă nu e achitat integral)
@@ -573,9 +487,15 @@
       const partInput = document.getElementById('renewal-partial-amount') as HTMLInputElement | null;
 
       const count = Math.max(1, parseInt(sInput?.value || '10', 10));
-      const pricePerSession = Math.max(0, parseInt(pInput?.value || '150', 10));
-      const totalCost = count * pricePerSession;
-      const paidAmount = this.selectedPaymentStatus === 'Parțial' ? Math.max(0, parseInt(partInput?.value || '0', 10)) : 0;
+      const totalCost = Math.max(0, parseFloat(pInput?.value || '0'));
+      const paidAmount = this.selectedPaymentStatus === 'Parțial' ? Math.max(0, parseFloat(partInput?.value || '0')) : 0;
+
+      let paymentOption: any = false;
+      if (this.selectedPaymentStatus === 'Achitat') {
+        paymentOption = true;
+      } else if (this.selectedPaymentStatus === 'Parțial') {
+        paymentOption = { status: 'Parțial' as const, paidAmount };
+      }
 
       const btn = document.getElementById('btn-confirm-renewal') as HTMLButtonElement | null;
       if (btn) {
@@ -588,8 +508,7 @@
           this.currentPatientId,
           count,
           totalCost,
-          this.selectedPaymentStatus === 'Achitat',
-          paidAmount
+          paymentOption
         );
 
         if (this.pendingAppointment && this.pendingAppointment.data && this.pendingAppointment.ora) {

@@ -22,153 +22,30 @@
       <!-- CARD 1: INFORMAȚII GENERALE & PLAN                     -->
       <!-- ═══════════════════════════════════════════════════════ -->
       <div class="rounded-3xl bg-black/[0.03] p-4 space-y-4 border border-black/5">
-        <!-- Nume complet -->
-        <div>
-          <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Nume complet</label>
-          <input
-            type="text"
-            name="name"
-            id="patientName"
-            required
-            placeholder="ex: Alexandru Popa"
-            class="w-full px-5 py-3.5 rounded-2xl bg-white border border-black/10 text-base font-extrabold text-black placeholder:text-text-muted/60 focus:outline-none focus:border-black focus:ring-2 focus:ring-black/10 transition-all shadow-sm"
-          />
-        </div>
 
-        <!-- Tip Plan & Locație (Segmented Controls) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <!-- Tip Plan -->
-          <div>
-            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Tip Plan</label>
-            <input type="hidden" name="plan" id="patientPlan" value="Abonament" />
-            <div class="relative grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
-              <div id="plan-active-pill" class="absolute top-1 bottom-1 rounded-xl bg-brand-primary pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)]" style="opacity: 1; transform: translateX(0px);"></div>
-              <button 
-                type="button" 
-                data-plan="Abonament" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate text-black"
-              >
-                Abonament
-              </button>
-              <button 
-                type="button" 
-                data-plan="Ședință unică" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black"
-              >
-                Ședință unică
-              </button>
-            </div>
-          </div>
-
-          <!-- Locație -->
-          <div>
-            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Locație</label>
-            <input type="hidden" name="location" id="patientLocation" value="Belaqva" />
-            <div class="relative grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
-              <div id="location-active-pill" class="absolute top-1 bottom-1 rounded-xl bg-brand-primary pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)]" style="opacity: 1; transform: translateX(0px);"></div>
-              <button 
-                type="button" 
-                data-location="Belaqva" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate text-black"
-              >
-                Belaqva
-              </button>
-              <button 
-                type="button" 
-                data-location="Ghimbav" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black"
-              >
-                Ghimbav
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- CARD 2: PREȚ & ȘEDINȚE                                 -->
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <div class="rounded-3xl bg-black/[0.03] p-4 space-y-4 border border-black/5">
-
-        <!-- Steppers: Preț / Ședință + Nr. Ședințe -->
+        <!-- Preț abonament & Nr. ședințe -->
         <div class="grid grid-cols-2 gap-3">
-          <!-- Preț / Ședință -->
           <div>
-            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Preț / Ședință</label>
-            <div class="flex items-center rounded-2xl bg-white border border-pink-200/80 p-1 shadow-sm focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
-              <button 
-                type="button" 
-                data-stepper="pricePerSession" 
-                data-dir="-1" 
-                class="w-8 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 active:scale-95 text-pink-700 font-black text-lg flex items-center justify-center transition-all shrink-0 cursor-pointer"
-              >
-                −
-              </button>
-              <input
-                type="number"
-                name="pricePerSession"
-                id="patientPricePerSession"
-                placeholder="150"
-                class="w-full min-w-0 px-1 py-1.5 bg-transparent border-0 text-center font-extrabold text-black text-base focus:outline-none"
-              />
-              <button 
-                type="button" 
-                data-stepper="pricePerSession" 
-                data-dir="1" 
-                class="w-8 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 active:scale-95 text-pink-700 font-black text-lg flex items-center justify-center transition-all shrink-0 cursor-pointer"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          <!-- Nr. Ședințe -->
-          <div>
-            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Nr. Ședințe</label>
-            <div class="flex items-center rounded-2xl bg-white border border-pink-200/80 p-1 shadow-sm focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
-              <button 
-                type="button" 
-                data-stepper="totalSessions" 
-                data-dir="-1" 
-                class="w-8 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 active:scale-95 text-pink-700 font-black text-lg flex items-center justify-center transition-all shrink-0 cursor-pointer"
-              >
-                −
-              </button>
-              <input
-                type="number"
-                name="totalSessions"
-                id="patientTotalSessions"
-                placeholder="10"
-                class="w-full min-w-0 px-1 py-1.5 bg-transparent border-0 text-center font-extrabold text-black text-base focus:outline-none"
-              />
-              <button 
-                type="button" 
-                data-stepper="totalSessions" 
-                data-dir="1" 
-                class="w-8 h-9 rounded-xl bg-pink-100 hover:bg-pink-200 active:scale-95 text-pink-700 font-black text-lg flex items-center justify-center transition-all shrink-0 cursor-pointer"
-              >
-                +
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Total -->
-        <div class="flex items-center justify-between pt-2.5 border-t border-black/10 px-1">
-          <span class="text-sm font-black text-black uppercase tracking-wider">Total</span>
-          <div class="flex items-baseline gap-1">
+            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Preț abonament</label>
             <input
               type="number"
               name="cost"
               id="patientCost"
-              readonly
-              placeholder="0"
-              class="w-28 text-right bg-transparent border-0 text-xl font-black text-black focus:outline-none cursor-default"
+              placeholder="1500"
+              class="w-full px-3 py-2.5 rounded-2xl bg-white border border-pink-200/80 text-center font-extrabold text-black text-base focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all shadow-sm"
             />
-            <span class="text-base font-black text-black">RON</span>
+          </div>
+          <div>
+            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Nr. ședințe</label>
+            <input
+              type="number"
+              name="totalSessions"
+              id="patientTotalSessions"
+              placeholder="10"
+              class="w-full px-3 py-2.5 rounded-2xl bg-white border border-pink-200/80 text-center font-extrabold text-black text-base focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all shadow-sm"
+            />
           </div>
         </div>
-      </div>
 
       <!-- ═══════════════════════════════════════════════════════ -->
       <!-- CARD 3: CONTACT & STATUS PLATĂ                         -->
@@ -394,80 +271,9 @@
         });
       });
 
-      // Bind session/price steppers and auto-calculate total
-      const stepperBtns = this.form?.querySelectorAll<HTMLButtonElement>('[data-stepper]');
-      stepperBtns?.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const target = btn.dataset.stepper;
-          const dir = parseInt(btn.dataset.dir || '0', 10);
-          const input = document.getElementById(target === 'pricePerSession' ? 'patientPricePerSession' : 'patientTotalSessions') as HTMLInputElement | null;
-          if (!input) return;
-          const current = parseInt(input.value || '0', 10) || 0;
-          const next = Math.max(0, current + dir);
-          input.value = next.toString();
-          this.calculateTotalCost();
-        });
-      });
-
-      const priceInput = document.getElementById('patientPricePerSession') as HTMLInputElement | null;
-      const sessionsInput2 = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
-      
-      ['input', 'change', 'keyup', 'paste'].forEach(evt => {
-        priceInput?.addEventListener(evt, () => this.calculateTotalCost());
-        sessionsInput2?.addEventListener(evt, () => this.calculateTotalCost());
-      });
 
       const saveBtn = document.getElementById('save-patient-btn');
       saveBtn?.addEventListener('click', () => this.savePatient(false));
-    }
-
-    private calculateTotalCost() {
-      const priceInput = document.getElementById('patientPricePerSession') as HTMLInputElement | null;
-      const sessionsInput = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
-      const costInput = document.getElementById('patientCost') as HTMLInputElement | null;
-      if (!costInput) return;
-
-      const price = parseFloat(priceInput?.value || '0') || 0;
-      const sessions = parseInt(sessionsInput?.value || '0', 10) || 0;
-      costInput.value = (price * sessions).toString();
-    }
-
-    private handlePresetClick(btn: HTMLButtonElement) {
-      const presetId = btn.dataset.preset;
-      const pricePerSession = btn.dataset.pricePerSession;
-      const sessions = btn.dataset.sessions;
-      const plan = btn.dataset.plan;
-
-      const costInput = document.getElementById('patientCost') as HTMLInputElement | null;
-      const pricePerSessionInput = document.getElementById('patientPricePerSession') as HTMLInputElement | null;
-      const sessionsInput = document.getElementById('patientTotalSessions') as HTMLInputElement | null;
-      const planInput = document.getElementById('patientPlan') as HTMLInputElement | null;
-
-      if (presetId === 'custom') {
-        if (pricePerSessionInput) { pricePerSessionInput.value = ''; pricePerSessionInput.focus(); }
-        if (sessionsInput) { sessionsInput.value = ''; }
-        if (costInput) { costInput.value = ''; }
-        this.renderPricingPresets();
-        return;
-      }
-
-      if (plan && planInput) {
-        planInput.value = plan;
-        this.updatePlanChips(plan);
-        this.applyPlanDefaults(plan);
-      }
-
-      if (pricePerSession && pricePerSessionInput) {
-        pricePerSessionInput.value = pricePerSession;
-      }
-
-      if (sessions && sessionsInput) {
-        sessionsInput.value = sessions;
-      }
-
-      this.calculateTotalCost();
-      this.renderPricingPresets();
     }
 
     private togglePartialAmountBox(paymentVal: string) {
@@ -566,7 +372,6 @@
           totalInput.value = '10';
         }
       }
-      this.calculateTotalCost();
     }
 
     updatePaymentChips(selectedPayment: string) {
@@ -704,15 +509,13 @@
           }
           const cost = patient.cost != null ? Number(patient.cost) : 0;
           const sessions = patient.sedinte_total != null ? Number(patient.sedinte_total) : 0;
-          const pricePerSession = sessions > 0 ? Math.round(cost / sessions) : 0;
 
           (this.form.querySelector('[name="name"]') as HTMLInputElement).value = patient.name || '';
           (this.form.querySelector('[name="phone"]') as HTMLInputElement).value = patient.telefon || '';
           (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = patient.plan || 'Abonament';
           (this.form.querySelector('[name="location"]') as HTMLInputElement).value = patient.locatie || 'Belaqva';
-          (this.form.querySelector('[name="pricePerSession"]') as HTMLInputElement).value = pricePerSession > 0 ? String(pricePerSession) : '';
-          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = sessions > 0 ? String(sessions) : '';
           (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = cost > 0 ? String(cost) : '';
+          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = sessions > 0 ? String(sessions) : '';
           (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = editPaymentStatus;
           (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.drive_link || '';
           this.currentPlanFilter = patient.plan || 'Abonament';
@@ -740,9 +543,8 @@
               if (parsed?.default_price) defaultPriceVal = parsed.default_price;
             }
           } catch (_) {}
-          (this.form.querySelector('[name="pricePerSession"]') as HTMLInputElement).value = String(defaultPriceVal);
-          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = '10';
           (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = String(defaultPriceVal * 10);
+          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = '10';
           this.currentPlanFilter = 'Abonament';
           this.updatePlanChips('Abonament');
           this.applyPlanDefaults('Abonament');
