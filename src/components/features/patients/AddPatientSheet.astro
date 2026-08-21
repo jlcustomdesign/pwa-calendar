@@ -803,10 +803,13 @@
         return;
       }
 
-      // Only allow sheet drag when the scrollable form is at the top,
-      // otherwise the gesture should scroll the form instead
+      // Allow drag from the top 100px (header / drag handle) always,
+      // otherwise only when the scrollable form is at the top.
+      const touchY = e.touches[0].clientY;
+      const sheetRect = this.sheet?.getBoundingClientRect();
+      const isInHeader = sheetRect ? (touchY - sheetRect.top) < 120 : false;
       const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
-      this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
+      this.scrollAtTop = isInHeader || !scrollArea || scrollArea.scrollTop <= 0;
     }
 
     handleTouchMove(e: TouchEvent) {

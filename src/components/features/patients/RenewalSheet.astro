@@ -362,8 +362,11 @@
         return;
       }
 
+      const touchY = e.touches[0].clientY;
+      const sheetRect = this.sheet?.getBoundingClientRect();
+      const isInHeader = sheetRect ? (touchY - sheetRect.top) < 120 : false;
       const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
-      this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
+      this.scrollAtTop = isInHeader || !scrollArea || scrollArea.scrollTop <= 0;
     }
 
     private handleTouchMove(e: TouchEvent) {

@@ -49,9 +49,9 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
   </div>
 
   <!-- Lunch Break Edit Modal -->
-  <div id="lunch-edit-modal" class="fixed inset-0 z-[200] flex items-end sm:items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200" aria-hidden="true">
+  <div id="lunch-edit-modal" class="fixed inset-0 z-[200] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200" aria-hidden="true">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="lunch-edit-backdrop"></div>
-    <div id="lunch-edit-dialog" class="relative w-full max-w-sm mx-4 mb-6 sm:mb-0 bg-white rounded-[2rem] p-6 shadow-2xl transform translate-y-4 transition-transform duration-200">
+    <div id="lunch-edit-dialog" class="relative z-10 w-[calc(100%-2rem)] max-w-sm mx-auto bg-white rounded-[2rem] p-6 shadow-2xl pointer-events-auto">
       <div class="text-center mb-5">
         <h3 class="text-xl font-black text-black">Pauza de masă</h3>
         <p class="text-sm font-semibold text-text-muted mt-1">Ajustează intervalul</p>
