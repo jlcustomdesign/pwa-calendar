@@ -535,16 +535,20 @@
           }
         } else if (this.form) {
           this.form.reset();
-          let defaultPriceVal = 150;
+          let defaultPricePerSession = 150;
+          let defaultSessionsVal = 10;
           try {
             const cachedRaw = localStorage.getItem('kineto_settings_cache');
             if (cachedRaw) {
               const parsed = JSON.parse(cachedRaw);
-              if (parsed?.default_price) defaultPriceVal = parsed.default_price;
+              if (parsed?.default_price) defaultPricePerSession = parsed.default_price;
+              if (parsed?.default_total_sessions) defaultSessionsVal = parsed.default_total_sessions;
             }
           } catch (_) {}
-          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = String(defaultPriceVal * 10);
-          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = '10';
+          // For subscriptions the price field is the TOTAL package price, not per session
+          const defaultTotalPrice = defaultPricePerSession * defaultSessionsVal;
+          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = String(defaultTotalPrice);
+          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = String(defaultSessionsVal);
           this.currentPlanFilter = 'Abonament';
           this.updatePlanChips('Abonament');
           this.applyPlanDefaults('Abonament');
