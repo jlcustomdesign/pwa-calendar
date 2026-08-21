@@ -130,34 +130,42 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
     };
 
     // Editează pauza de masă direct din calendar.
-    const lunchEditModal = document.getElementById('lunch-edit-modal');
-    const lunchEditDialog = document.getElementById('lunch-edit-dialog');
-    const lunchEditBackdrop = document.getElementById('lunch-edit-backdrop');
-    const lunchEditStart = document.getElementById('lunch-edit-start') as HTMLInputElement | null;
-    const lunchEditEnd = document.getElementById('lunch-edit-end') as HTMLInputElement | null;
-    const lunchEditSave = document.getElementById('lunch-edit-save');
-    const lunchEditCancel = document.getElementById('lunch-edit-cancel');
+    function getLunchEditEls() {
+      return {
+        modal: document.getElementById('lunch-edit-modal'),
+        dialog: document.getElementById('lunch-edit-dialog'),
+        backdrop: document.getElementById('lunch-edit-backdrop'),
+        start: document.getElementById('lunch-edit-start') as HTMLInputElement | null,
+        end: document.getElementById('lunch-edit-end') as HTMLInputElement | null,
+        save: document.getElementById('lunch-edit-save'),
+        cancel: document.getElementById('lunch-edit-cancel'),
+      };
+    }
 
     function openLunchEdit() {
-      if (!lunchEditModal || !lunchEditDialog || !lunchEditStart || !lunchEditEnd) return;
+      const els = getLunchEditEls();
+      if (!els.modal || !els.dialog || !els.start || !els.end) return;
       getSettings().then((settings) => {
-        lunchEditStart.value = (settings.lunch_start || '12:00').substring(0, 5);
-        lunchEditEnd.value = (settings.lunch_end || '12:30').substring(0, 5);
-        lunchEditModal.classList.remove('opacity-0', 'pointer-events-none');
-        lunchEditDialog.classList.remove('translate-y-4');
+        if (!els.start || !els.end || !els.modal || !els.dialog) return;
+        els.start.value = (settings.lunch_start || '12:00').substring(0, 5);
+        els.end.value = (settings.lunch_end || '12:30').substring(0, 5);
+        els.modal.classList.remove('opacity-0', 'pointer-events-none');
+        els.dialog.classList.remove('translate-y-4');
       });
     }
 
     function closeLunchEdit() {
-      if (!lunchEditModal || !lunchEditDialog) return;
-      lunchEditModal.classList.add('opacity-0', 'pointer-events-none');
-      lunchEditDialog.classList.add('translate-y-4');
+      const els = getLunchEditEls();
+      if (!els.modal || !els.dialog) return;
+      els.modal.classList.add('opacity-0', 'pointer-events-none');
+      els.dialog.classList.add('translate-y-4');
     }
 
     async function saveLunchEdit() {
-      if (!lunchEditStart || !lunchEditEnd) return;
-      const start = lunchEditStart.value;
-      const end = lunchEditEnd.value;
+      const els = getLunchEditEls();
+      if (!els.start || !els.end) return;
+      const start = els.start.value;
+      const end = els.end.value;
       if (start >= end) {
         (window as any).showToast?.('Ora de început trebuie să fie înainte de ora de sfârșit.', 'error');
         return;
@@ -174,9 +182,15 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
     (window as any).openLunchEdit = openLunchEdit;
 
-    lunchEditSave?.addEventListener('click', saveLunchEdit);
-    lunchEditCancel?.addEventListener('click', closeLunchEdit);
-    lunchEditBackdrop?.addEventListener('click', closeLunchEdit);
+    function bindLunchEditEvents() {
+      const els = getLunchEditEls();
+      els.save?.addEventListener('click', saveLunchEdit);
+      els.cancel?.addEventListener('click', closeLunchEdit);
+      els.backdrop?.addEventListener('click', closeLunchEdit);
+    }
+
+    bindLunchEditEvents();
+    document.addEventListener('astro:page-load', bindLunchEditEvents);
 
     if ((window as any)._calendarDateSelectedHandler) {
       window.removeEventListener('calendarDateSelected', (window as any)._calendarDateSelectedHandler);

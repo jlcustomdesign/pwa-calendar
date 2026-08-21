@@ -242,15 +242,18 @@
     }
 
     private bindEvents() {
-      if (!this.sheet) return;
-
-      if (this.sheet.dataset.renewalEventsBound !== 'true') {
-        this.sheet.dataset.renewalEventsBound = 'true';
-        this.sheet.addEventListener('click', (e) => {
-          const mgr = (window as any).currentRenewalSheetManager || this;
-          mgr.handleClick(e);
+      // Delegated click listener on document so it survives sheet re-renders.
+      if (!(window as any)._renewalDocumentClickBound) {
+        (window as any)._renewalDocumentClickBound = true;
+        document.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement;
+          if (!target?.closest('#renewal-sheet')) return;
+          const mgr = (window as any).currentRenewalSheetManager;
+          if (mgr) mgr.handleClick(e);
         });
       }
+
+      if (!this.sheet) return;
 
       // Backdrop click
       if (this.overlay && this.overlay.dataset.clickBound !== 'true') {
@@ -350,7 +353,8 @@
 
       const target = e.target as HTMLElement;
       const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
-      if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
+      const isButtonTarget = target && (target.tagName === 'BUTTON' || target.closest('button') || target.closest('.renewal-payment-btn'));
+      if (isButtonTarget || isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
         this.scrollAtTop = false;
         return;
       }
