@@ -48,10 +48,10 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
   </div>
   </div>
 
-  <!-- Lunch Break Edit Modal -->
-  <div id="lunch-edit-modal" class="fixed inset-0 z-[200] opacity-0 pointer-events-none transition-opacity duration-200" aria-hidden="true">
+  <!-- Lunch Break Edit Modal (native dialog for guaranteed visibility) -->
+  <dialog id="lunch-edit-modal" class="fixed inset-0 m-auto p-0 bg-transparent max-w-full max-h-full w-full h-full">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="lunch-edit-backdrop"></div>
-    <div id="lunch-edit-dialog" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[calc(100%-2rem)] max-w-sm max-h-[80vh] overflow-y-auto bg-white rounded-[2rem] p-6 shadow-2xl pointer-events-auto">
+    <div id="lunch-edit-dialog" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-sm max-h-[80vh] overflow-y-auto bg-white rounded-[2rem] p-6 shadow-2xl">
       <div class="text-center mb-5">
         <h3 class="text-xl font-black text-black">Pauza de masă</h3>
         <p class="text-sm font-semibold text-text-muted mt-1">Ajustează intervalul</p>
@@ -71,7 +71,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         <button type="button" id="lunch-edit-save" class="flex-1 py-3.5 rounded-full bg-brand-primary text-black font-extrabold text-sm shadow-md active:scale-95 transition-transform">Salvează</button>
       </div>
     </div>
-  </div>
+  </dialog>
 
   <style>
     /* Long-press drag & drop: oprește callout-ul iOS și selecția textului pe carduri */
@@ -144,21 +144,29 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
     function openLunchEdit() {
       const els = getLunchEditEls();
-      if (!els.modal || !els.dialog || !els.start || !els.end) return;
+      if (!els.modal || !els.start || !els.end) return;
+      const dialogEl = els.modal as HTMLDialogElement;
       getSettings().then((settings) => {
-        if (!els.start || !els.end || !els.modal || !els.dialog) return;
+        if (!els.start || !els.end || !els.modal) return;
         els.start.value = (settings.lunch_start || '12:00').substring(0, 5);
         els.end.value = (settings.lunch_end || '12:30').substring(0, 5);
-        els.modal.classList.remove('opacity-0', 'pointer-events-none');
-        els.dialog.classList.remove('translate-y-4');
+        if (typeof dialogEl.showModal === 'function') {
+          if (!dialogEl.open) dialogEl.showModal();
+        } else {
+          dialogEl.setAttribute('open', '');
+        }
       });
     }
 
     function closeLunchEdit() {
       const els = getLunchEditEls();
-      if (!els.modal || !els.dialog) return;
-      els.modal.classList.add('opacity-0', 'pointer-events-none');
-      els.dialog.classList.add('translate-y-4');
+      if (!els.modal) return;
+      const dialogEl = els.modal as HTMLDialogElement;
+      if (typeof dialogEl.close === 'function') {
+        dialogEl.close();
+      } else {
+        dialogEl.removeAttribute('open');
+      }
     }
 
     async function saveLunchEdit() {
@@ -186,7 +194,14 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       const els = getLunchEditEls();
       els.save?.addEventListener('click', saveLunchEdit);
       els.cancel?.addEventListener('click', closeLunchEdit);
-      els.backdrop?.addEventListener('click', closeLunchEdit);
+      // Backdrop click closes; dialog content click does not.
+      els.modal?.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target === els.modal || target === els.backdrop) {
+          closeLunchEdit();
+        }
+      });
+      els.modal?.addEventListener('cancel', closeLunchEdit);
     }
 
     bindLunchEditEvents();
