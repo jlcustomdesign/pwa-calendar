@@ -49,7 +49,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
   </div>
 
   <!-- Lunch Break Edit Modal (native dialog for guaranteed visibility) -->
-  <dialog id="lunch-edit-modal" class="fixed inset-0 m-auto p-0 bg-transparent max-w-full max-h-full w-full h-full">
+  <dialog id="lunch-edit-modal" tabindex="-1" class="fixed inset-0 m-auto p-0 bg-transparent max-w-full max-h-full w-full h-full outline-none">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="lunch-edit-backdrop"></div>
     <div id="lunch-edit-dialog" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-sm max-h-[85vh] overflow-y-auto bg-white rounded-[2rem] p-6 shadow-2xl">
       <div class="text-center mb-4">
@@ -260,7 +260,11 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         highlightLunchSelection('start');
         highlightLunchSelection('end');
         if (typeof els.modal!.showModal === 'function') {
-          if (!els.modal!.open) els.modal!.showModal();
+          if (!els.modal!.open) {
+            els.modal!.showModal();
+            // Prevent the first hour button from stealing focus/looking selected.
+            els.modal!.focus();
+          }
         } else {
           els.modal!.setAttribute('open', '');
         }
