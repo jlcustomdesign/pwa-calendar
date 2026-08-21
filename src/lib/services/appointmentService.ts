@@ -4,6 +4,7 @@
  */
 import { supabase } from '../supabase';
 import type { Programare, ProgramareInsert } from '../database.types';
+import { getSettings } from './settingsService';
 
 // ── Citire programare unică (editare) ─────────────────────────
 export async function getAppointment(id: string): Promise<Programare & { pacienti: any }> {
@@ -266,13 +267,16 @@ export async function getPendingWrapUps(): Promise<PendingWrapUp[]> {
 
   if (error) throw new Error('Eroare la citirea sesiunilor de confirmat: ' + error.message);
 
+  const settings = await getSettings();
+  const sessionDuration = settings?.session_duration || 50;
+
   return (data ?? []).filter((a: PendingWrapUp) => {
     // Orice zi din trecut este automat pending.
     if (a.data < todayStr) return true;
 
-    // Pentru ziua curentă, sesiunea este pending dacă s-a terminat (ora + 50 min).
+    // Pentru ziua curentă, sesiunea este pending dacă s-a terminat (ora + session_duration min).
     const [h, m] = (a.ora || '00:00').split(':').map(Number);
-    const endMinutes = h * 60 + m + 50;
+    const endMinutes = h * 60 + m + sessionDuration;
     return endMinutes <= currentMinutes;
   });
 }

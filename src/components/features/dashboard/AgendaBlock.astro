@@ -33,10 +33,12 @@
   import { getPatients, getPatientPayments, isRenewalDismissed } from '../../../lib/services/patientService';
   import { escapeHtml, escapeJsString } from '../../../utils/html';
   import { isPushSubscribed } from '../../../lib/services/pushService';
+  import { getSettings } from '../../../lib/services/settingsService';
 
   const _d = new Date();
   const todayStr = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
   let currentAgendaDate = todayStr;
+  let currentSessionDuration = 50;
   let lastFetchedSessions: any[] = [];
   const autoPromptedSessions = new Set<string>((() => {
     try {
@@ -180,7 +182,7 @@
       const startH = parseInt(timeParts[0] || "8", 10);
       const startM = parseInt(timeParts[1] || "0", 10);
       const totalStartMin = startH * 60 + startM;
-      const totalEndMin = totalStartMin + 50;
+      const totalEndMin = totalStartMin + currentSessionDuration;
       const endH = Math.floor(totalEndMin / 60);
       const endM = totalEndMin % 60;
       const formattedStart = `${startH}:${startM.toString().padStart(2, '0')}`;
@@ -369,6 +371,13 @@
     const skeleton = document.getElementById('agenda-skeleton');
     if (!list) return;
 
+    try {
+      const settings = await getSettings();
+      currentSessionDuration = settings?.session_duration || 50;
+    } catch (e) {
+      currentSessionDuration = 50;
+    }
+
     // Render instant cache first to prevent mobile delay
     const cacheKey = `kineto_agenda_cache_${currentAgendaDate}`;
     let usedCache = false;
@@ -490,7 +499,7 @@
       const startH = parseInt(timeParts[0] || "8", 10);
       const startM = parseInt(timeParts[1] || "0", 10);
       const totalStartMin = startH * 60 + startM;
-      const totalEndMin = totalStartMin + 50; // 50 min session
+      const totalEndMin = totalStartMin + currentSessionDuration; // session_duration min session
       
       const nowH = parseInt(nowStr.split(':')[0], 10);
       const nowM = parseInt(nowStr.split(':')[1], 10);
