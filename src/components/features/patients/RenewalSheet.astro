@@ -357,7 +357,7 @@
       const target = e.target as HTMLElement;
       const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
       const isButtonTarget = target && (target.tagName === 'BUTTON' || target.closest('button') || target.closest('.renewal-payment-btn'));
-      if (isButtonTarget || isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
+      if (isButtonTarget || isInputTarget) {
         this.scrollAtTop = false;
         return;
       }

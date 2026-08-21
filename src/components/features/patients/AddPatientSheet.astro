@@ -794,11 +794,11 @@
       this.startX = e.touches[0].clientX;
       this.dragEngaged = false;
       
-      // If an input is focused OR the user is tapping on an input/button, prevent sheet dragging to avoid jumps
+      // If the user is tapping on an input/button, prevent sheet dragging to avoid jumps
       const target = e.target as HTMLElement;
       const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
       const isButtonTarget = target && (target.tagName === 'BUTTON' || target.closest('button'));
-      if (isButtonTarget || isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
+      if (isButtonTarget || isInputTarget) {
         this.scrollAtTop = false;
         return;
       }

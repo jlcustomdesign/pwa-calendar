@@ -70,6 +70,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         <div id="date-time-selectors" class="space-y-3 pt-2">
           <input type="hidden" name="selectedDate" id="selectedDate" value={todayStr} />
           <input type="hidden" name="selectedTime" id="selectedTime" value="08:00" />
+          <input type="time" id="native-time-picker" class="sr-only" />
 
           <!-- Button 1: Alege Data -->
           <button 
@@ -780,13 +781,26 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       if (btnOpen) {
         btnOpen.addEventListener('click', () => (window as any).currentAddSessionSheetManager?.openCustomTimeModal());
       }
+      const nativeTimePicker = document.getElementById('native-time-picker') as HTMLInputElement | null;
       if (btnTimeSheet) {
         btnTimeSheet.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          (window as any).currentAddSessionSheetManager?.openCustomTimeModal();
+          if (nativeTimePicker) {
+            const currentTime = (document.getElementById('selectedTime') as HTMLInputElement | null)?.value || '08:00';
+            nativeTimePicker.value = currentTime;
+            nativeTimePicker.showPicker?.() || nativeTimePicker.click();
+          } else {
+            (window as any).currentAddSessionSheetManager?.openCustomTimeModal();
+          }
         });
       }
+      nativeTimePicker?.addEventListener('change', (e) => {
+        const target = e.target as HTMLInputElement;
+        if (target.value) {
+          (window as any).currentAddSessionSheetManager?.selectTime(target.value);
+        }
+      });
       const timeOverlay = document.getElementById('add-session-time-overlay');
       if (timeOverlay) {
         timeOverlay.addEventListener('click', closeModal);
