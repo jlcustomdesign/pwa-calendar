@@ -48,6 +48,31 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
   </div>
   </div>
 
+  <!-- Lunch Break Edit Modal -->
+  <div id="lunch-edit-modal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200" aria-hidden="true">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="lunch-edit-backdrop"></div>
+    <div id="lunch-edit-dialog" class="relative w-full max-w-sm mx-4 mb-6 sm:mb-0 bg-white rounded-[2rem] p-6 shadow-2xl transform translate-y-4 transition-transform duration-200">
+      <div class="text-center mb-5">
+        <h3 class="text-xl font-black text-black">Pauza de masă</h3>
+        <p class="text-sm font-semibold text-text-muted mt-1">Ajustează intervalul</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="space-y-2">
+          <label for="lunch-edit-start" class="text-xs font-black text-text-muted uppercase tracking-wider block text-center">Început</label>
+          <input type="time" id="lunch-edit-start" class="w-full px-4 py-3.5 rounded-2xl bg-black/5 text-black font-extrabold text-lg text-center focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
+        </div>
+        <div class="space-y-2">
+          <label for="lunch-edit-end" class="text-xs font-black text-text-muted uppercase tracking-wider block text-center">Sfârșit</label>
+          <input type="time" id="lunch-edit-end" class="w-full px-4 py-3.5 rounded-2xl bg-black/5 text-black font-extrabold text-lg text-center focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button type="button" id="lunch-edit-cancel" class="flex-1 py-3.5 rounded-full bg-black/5 text-black font-extrabold text-sm active:scale-95 transition-transform">Anulează</button>
+        <button type="button" id="lunch-edit-save" class="flex-1 py-3.5 rounded-full bg-brand-primary text-black font-extrabold text-sm shadow-md active:scale-95 transition-transform">Salvează</button>
+      </div>
+    </div>
+  </div>
+
   <style>
     /* Long-press drag & drop: oprește callout-ul iOS și selecția textului pe carduri */
     [data-session-id] {
@@ -103,6 +128,55 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         (window as any).showToast?.('Eroare la mutarea pauzei: ' + (err.message || err), 'error');
       }
     };
+
+    // Editează pauza de masă direct din calendar.
+    const lunchEditModal = document.getElementById('lunch-edit-modal');
+    const lunchEditDialog = document.getElementById('lunch-edit-dialog');
+    const lunchEditBackdrop = document.getElementById('lunch-edit-backdrop');
+    const lunchEditStart = document.getElementById('lunch-edit-start') as HTMLInputElement | null;
+    const lunchEditEnd = document.getElementById('lunch-edit-end') as HTMLInputElement | null;
+    const lunchEditSave = document.getElementById('lunch-edit-save');
+    const lunchEditCancel = document.getElementById('lunch-edit-cancel');
+
+    function openLunchEdit() {
+      if (!lunchEditModal || !lunchEditDialog || !lunchEditStart || !lunchEditEnd) return;
+      getSettings().then((settings) => {
+        lunchEditStart.value = (settings.lunch_start || '12:00').substring(0, 5);
+        lunchEditEnd.value = (settings.lunch_end || '12:30').substring(0, 5);
+        lunchEditModal.classList.remove('opacity-0', 'pointer-events-none');
+        lunchEditDialog.classList.remove('translate-y-4');
+      });
+    }
+
+    function closeLunchEdit() {
+      if (!lunchEditModal || !lunchEditDialog) return;
+      lunchEditModal.classList.add('opacity-0', 'pointer-events-none');
+      lunchEditDialog.classList.add('translate-y-4');
+    }
+
+    async function saveLunchEdit() {
+      if (!lunchEditStart || !lunchEditEnd) return;
+      const start = lunchEditStart.value;
+      const end = lunchEditEnd.value;
+      if (start >= end) {
+        (window as any).showToast?.('Ora de început trebuie să fie înainte de ora de sfârșit.', 'error');
+        return;
+      }
+      try {
+        await saveSettings({ lunch_start: start, lunch_end: end });
+        window.dispatchEvent(new CustomEvent('settingsUpdated'));
+        (window as any).showToast?.(`Pauza de masă: ${start} – ${end}`, 'success');
+        closeLunchEdit();
+      } catch (err: any) {
+        (window as any).showToast?.('Eroare la salvare: ' + (err.message || err), 'error');
+      }
+    }
+
+    (window as any).openLunchEdit = openLunchEdit;
+
+    lunchEditSave?.addEventListener('click', saveLunchEdit);
+    lunchEditCancel?.addEventListener('click', closeLunchEdit);
+    lunchEditBackdrop?.addEventListener('click', closeLunchEdit);
 
     if ((window as any)._calendarDateSelectedHandler) {
       window.removeEventListener('calendarDateSelected', (window as any)._calendarDateSelectedHandler);
@@ -458,12 +532,11 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 <span class="text-xs font-extrabold text-pink-600 tracking-wider uppercase mt-0.5">${labelMin !== '00' ? ':' + labelMin : 'Pauză'}</span>
               </div>
               <div class="flex-1 min-w-0 pb-2">
-                <div class="w-full ${heightClass} rounded-2xl flex items-center justify-between px-5 select-none relative" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
+                <div class="w-full ${heightClass} rounded-2xl flex items-center justify-between px-5 select-none relative cursor-pointer active:scale-[0.99] transition-transform" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);" onclick="window.openLunchEdit()">
                   <span class="text-sm font-black text-pink-600/80">Pauză de masă</span>
                   <div class="flex items-center gap-2">
-                    <button type="button" onclick="window.shiftLunchBreak(-30)" class="w-7 h-7 rounded-full bg-white/80 text-pink-600 flex items-center justify-center text-xs font-black shadow-sm active:scale-95" aria-label="Mută mai devreme">−</button>
                     <span class="text-base font-black text-pink-700/80">${lunchStart} – ${lunchEnd}</span>
-                    <button type="button" onclick="window.shiftLunchBreak(30)" class="w-7 h-7 rounded-full bg-white/80 text-pink-600 flex items-center justify-center text-xs font-black shadow-sm active:scale-95" aria-label="Mută mai târziu">+</button>
+                    <svg class="w-4 h-4 text-pink-600/80" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                   </div>
                 </div>
               </div>
