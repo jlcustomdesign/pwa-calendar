@@ -122,7 +122,10 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
           <!-- Card: Notificări telefon -->
           <div class="bg-surface-card text-text-main rounded-[2.5rem] p-6 shadow-sm border border-transparent space-y-4">
-            <h3 class="text-lg sm:text-xl font-bold text-text-main">Notificări telefon</h3>
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-lg sm:text-xl font-bold text-text-main">Notificări telefon</h3>
+              <span id="notification-status-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">Inactiv</span>
+            </div>
             <button
               type="button"
               id="btn-test-notification"
@@ -131,7 +134,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              <span>Activează</span>
+              <span id="btn-test-notification-text">Activează</span>
             </button>
           </div>
 
@@ -501,6 +504,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
   import { getSettings as getSettingsDB, saveSettings as saveSettingsDB, getProfile, saveProfile } from '../../../lib/services/settingsService';
   import { getPricingPackages, createPricingPackage, deletePricingPackage } from '../../../lib/services/pricingService';
   import { exportPatientsCSV } from '../../../lib/services/patientService';
+  import { isPushSubscribed } from '../../../lib/services/pushService';
   import { setSettingsCache } from '../../../lib/store';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
@@ -653,26 +657,46 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     // 5.1 Push Notifications Test & Badge
     const notifBadge = document.getElementById('notification-status-badge');
     const btnTestNotif = document.getElementById('btn-test-notification');
+    const btnTestNotifText = document.getElementById('btn-test-notification-text');
 
     async function updateNotifBadge() {
       if (!notifBadge) return;
+      const subscribed = await isPushSubscribed();
       if (!('Notification' in window)) {
         notifBadge.textContent = 'Nesuportat';
         notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-neutral-200 text-neutral-600';
-      } else if (Notification.permission === 'granted') {
+        if (btnTestNotifText) btnTestNotifText.textContent = 'Nesuportat';
+        if (btnTestNotif) (btnTestNotif as HTMLButtonElement).disabled = true;
+      } else if (subscribed) {
         notifBadge.textContent = 'Active (Fundal)';
         notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-700 border border-emerald-300';
+        if (btnTestNotifText) btnTestNotifText.textContent = 'Dezactivează';
       } else if (Notification.permission === 'denied') {
         notifBadge.textContent = 'Blocate';
         notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-300';
+        if (btnTestNotifText) btnTestNotifText.textContent = 'Blocate';
       } else {
         notifBadge.textContent = 'Inactiv';
         notifBadge.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300';
+        if (btnTestNotifText) btnTestNotifText.textContent = 'Activează';
       }
     }
     updateNotifBadge();
 
     btnTestNotif?.addEventListener('click', async () => {
+      const subscribed = await isPushSubscribed();
+      if (subscribed) {
+        const { unsubscribeFromPush } = await import('../../../lib/services/pushService');
+        const res = await unsubscribeFromPush();
+        await updateNotifBadge();
+        if (res.success) {
+          showToast('Notificările au fost dezactivate.');
+        } else {
+          showToast('Eroare la dezactivare.', 'error');
+        }
+        return;
+      }
+
       const originalText = btnTestNotif.innerHTML;
       try {
         btnTestNotif.innerHTML = '<span class="animate-pulse">Se activează...</span>';

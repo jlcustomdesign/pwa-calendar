@@ -32,6 +32,7 @@
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
   import { getPatients, getPatientPayments, isRenewalDismissed } from '../../../lib/services/patientService';
   import { escapeHtml, escapeJsString } from '../../../utils/html';
+  import { isPushSubscribed } from '../../../lib/services/pushService';
 
   const _d = new Date();
   const todayStr = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
@@ -65,11 +66,11 @@
     const banner = document.getElementById('home-action-notifications');
     if (!banner) return;
 
-    // Check if notification permission is not granted on this device
-    const hasNotificationSupport = typeof window !== 'undefined' && 'Notification' in window;
-    const isGranted = hasNotificationSupport && Notification.permission === 'granted';
+    // Check if this device is not actually subscribed to push notifications
+    const hasNotificationSupport = typeof window !== 'undefined' && 'Notification' in window && 'PushManager' in window;
+    const isSubscribed = hasNotificationSupport && await isPushSubscribed();
 
-    if (hasNotificationSupport && !isGranted) {
+    if (hasNotificationSupport && !isSubscribed) {
       banner.innerHTML = `
         <div class="flex items-center justify-between gap-3 p-4 rounded-2xl bg-brand-secondary/15 border border-brand-secondary/30 text-black">
           <div class="flex items-center gap-3">
