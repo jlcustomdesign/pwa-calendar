@@ -7,6 +7,13 @@ export const prerender = false;
 export const ALL: APIRoute = async ({ request, cookies }) => {
   try {
     const supabase = createSupabaseServerClient(cookies, request.headers);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Neautentificat' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Calculăm data curentă în fusul orar local (România: UTC+2 / UTC+3)
     const now = new Date();
@@ -16,10 +23,11 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
     const [curH, curM] = roTimeStr.split(':').map(Number);
     const currentTotalMin = curH * 60 + curM;
 
-    // Citim programările de azi
+    // Citim programările de azi ale utilizatorului curent
     const { data: appts, error: apptError } = await (supabase as any)
       .from('programari')
       .select('id, data, ora, status, pacient_id, pacienti (id, nume, prenume)')
+      .eq('user_id', user.id)
       .eq('data', roDateStr)
       .not('status', 'in', '("anulat","absent")');
 
@@ -30,10 +38,11 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Citim toate dispozitivele înregistrate pentru notificări Push
+    // Citim dispozitivele utilizatorului curent
     const { data: subscriptions } = await (supabase as any)
       .from('push_subscriptions')
-      .select('id, endpoint, p256dh, auth, user_id');
+      .select('id, endpoint, p256dh, auth')
+      .eq('user_id', user.id);
 
     if (!subscriptions || subscriptions.length === 0) {
       return new Response(
@@ -42,11 +51,11 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Citim durata ședinței din setări (default 50 min)
+    // Citim durata ședinței din setările utilizatorului curent
     const { data: settings } = await (supabase as any)
       .from('settings')
       .select('session_duration')
-      .order('id', { ascending: false })
+      .eq('user_id', user.id)
       .limit(1)
       .maybeSingle();
     const sessionDuration = settings?.session_duration || 50;
@@ -70,6 +79,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
           .from('notificari')
           .select('id')
           .eq('titlu', `🔔 Începe: ${patientName}`)
+          .eq('user_id', user.id)
           .gte('created_at', `${roDateStr}T00:00:00`)
           .maybeSingle();
 
@@ -80,10 +90,11 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
             mesaj: `Ședința de la ora ${cleanTime} începe acum.`,
             tip: 'reminder',
             citita: false,
+            user_id: user.id,
             pacient_id: appt.pacient_id || null
           });
 
-          // Trimite Push la toate dispozitivele
+          // Trimite Push la toate dispozitivele utilizatorului
           for (const sub of subscriptions) {
             try {
               await sendPushToSubscription(
@@ -109,6 +120,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
           .from('notificari')
           .select('id')
           .eq('titlu', `✅ Final: ${patientName}`)
+          .eq('user_id', user.id)
           .gte('created_at', `${roDateStr}T00:00:00`)
           .maybeSingle();
 
@@ -118,6 +130,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
             mesaj: `Ședința cu ${patientName} s-a încheiat. Confirmă prezența.`,
             tip: 'reminder',
             citita: false,
+            user_id: user.id,
             pacient_id: appt.pacient_id || null
           });
 

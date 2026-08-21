@@ -115,6 +115,9 @@ export async function addPatient(input: {
     throw new Error(`Există deja un pacient cu numele "${nameTrimmed}". Te rugăm să adaugi o deosebire (ex. o inițială sau locația) pentru a salva corect!`);
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Trebuie să fii autentificat pentru a adăuga un pacient.');
+
   const payload: PacientInsert = {
     prenume,
     nume,
@@ -126,6 +129,7 @@ export async function addPatient(input: {
     achitat:       input.achitat ?? false,
     drive_link:    input.drive_link ?? null,
     notite:        input.notite ?? null,
+    user_id:       user.id,
   };
 
   const { data, error } = await (supabase as any)
@@ -203,10 +207,12 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
 
   // 2. Salvare plată direct în Supabase
   try {
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await (supabase as any).from('plati').insert({
       pacient_id: id,
       suma: amount,
-      data_platii: new Date().toISOString().split('T')[0]
+      data_platii: new Date().toISOString().split('T')[0],
+      user_id: user?.id
     });
     if (error) console.warn('Supabase plati warning:', error.message);
   } catch (err) {

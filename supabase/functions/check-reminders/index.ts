@@ -34,7 +34,7 @@ Deno.serve(async (_req) => {
 
     const { data: appts, error: apptError } = await supabase
       .from("programari")
-      .select("id, data, ora, status, pacient_id, pacienti (id, nume, prenume)")
+      .select("id, data, ora, status, pacient_id, user_id, pacienti (id, nume, prenume)")
       .eq("data", dateStr)
       .not("status", "in", '("anulat","absent")');
 
@@ -61,121 +61,141 @@ Deno.serve(async (_req) => {
       );
     }
 
-    const { data: settings } = await supabase
+    const { data: allSettings } = await supabase
       .from("settings")
-      .select("session_duration")
-      .order("id", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const sessionDuration = settings?.session_duration || 50;
+      .select("user_id, session_duration");
+    const settingsByUser = new Map((allSettings || []).map((s: any) => [s.user_id, s.session_duration || 50]));
+
+    const apptsByUser = new Map<string, any[]>();
+    for (const appt of appts as any[]) {
+      const uid = appt.user_id || "__unknown__";
+      if (!apptsByUser.has(uid)) apptsByUser.set(uid, []);
+      apptsByUser.get(uid)!.push(appt);
+    }
+
+    const subsByUser = new Map<string, any[]>();
+    for (const sub of subscriptions as any[]) {
+      const uid = sub.user_id || "__unknown__";
+      if (!subsByUser.has(uid)) subsByUser.set(uid, []);
+      subsByUser.get(uid)!.push(sub);
+    }
 
     let pushSentCount = 0;
 
-    for (const appt of appts as any[]) {
-      const cleanTime = (appt.ora || "08:00").substring(0, 5);
-      const [h, m] = cleanTime.split(":").map(Number);
-      const startMin = h * 60 + m;
-      const endMin = startMin + sessionDuration;
+    for (const [userId, userAppts] of apptsByUser) {
+      const userSubs = subsByUser.get(userId) || [];
+      const sessionDuration = settingsByUser.get(userId) || 50;
 
-      const patientName = appt.pacienti
-        ? `${appt.pacienti.prenume || ""} ${appt.pacienti.nume || ""}`.trim()
-        : "Pacient";
+      for (const appt of userAppts) {
+        const cleanTime = (appt.ora || "08:00").substring(0, 5);
+        const [h, m] = cleanTime.split(":").map(Number);
+        const startMin = h * 60 + m;
+        const endMin = startMin + sessionDuration;
 
-      // 1. Alertă Început Ședință
-      if (currentTotalMin >= startMin - 2 && currentTotalMin <= startMin + 5) {
-        const title = `🔔 Începe: ${patientName}`;
-        const { data: existing } = await supabase
-          .from("notificari")
-          .select("id")
-          .eq("titlu", title)
-          .gte("created_at", `${dateStr}T00:00:00`)
-          .maybeSingle();
+        const patientName = appt.pacienti
+          ? `${appt.pacienti.prenume || ""} ${appt.pacienti.nume || ""}`.trim()
+          : "Pacient";
 
-        if (!existing) {
-          await supabase.from("notificari").insert({
-            titlu: title,
-            mesaj: `Ședința de la ora ${cleanTime} începe acum.`,
-            tip: "reminder",
-            citita: false,
-            pacient_id: appt.pacient_id || null,
-          });
+        // 1. Alertă Început Ședință
+        if (currentTotalMin >= startMin - 2 && currentTotalMin <= startMin + 5) {
+          const title = `🔔 Începe: ${patientName}`;
+          const { data: existing } = await supabase
+            .from("notificari")
+            .select("id")
+            .eq("titlu", title)
+            .eq("user_id", userId)
+            .gte("created_at", `${dateStr}T00:00:00`)
+            .maybeSingle();
 
-          for (const sub of subscriptions as any[]) {
-            try {
-              const { endpoint, headers, body } = await buildPushHTTPRequest({
-                privateJWK: vapidJwk,
-                subscription: {
-                  endpoint: sub.endpoint,
-                  keys: { p256dh: sub.p256dh, auth: sub.auth },
-                },
-                message: {
-                  payload: {
-                    title: `🔔 Începe ședința: ${patientName}`,
-                    body: `La ora ${cleanTime} începe ședința cu ${patientName}.`,
-                    url: "/dashboard/calendar",
-                    tag: `start_${appt.id}_${dateStr}`,
-                    icon: "/favicon.svg",
-                    badge: "/favicon.svg",
+          if (!existing) {
+            await supabase.from("notificari").insert({
+              titlu: title,
+              mesaj: `Ședința de la ora ${cleanTime} începe acum.`,
+              tip: "reminder",
+              citita: false,
+              user_id: userId,
+              pacient_id: appt.pacient_id || null,
+            });
+
+            for (const sub of userSubs) {
+              try {
+                const { endpoint, headers, body } = await buildPushHTTPRequest({
+                  privateJWK: vapidJwk,
+                  subscription: {
+                    endpoint: sub.endpoint,
+                    keys: { p256dh: sub.p256dh, auth: sub.auth },
                   },
-                  adminContact: vapidSubject,
-                  options: { ttl: 60 * 60 * 24 },
-                },
-              });
+                  message: {
+                    payload: {
+                      title: `🔔 Începe ședința: ${patientName}`,
+                      body: `La ora ${cleanTime} începe ședința cu ${patientName}.`,
+                      url: "/dashboard/calendar",
+                      tag: `start_${appt.id}_${dateStr}`,
+                      icon: "/favicon.svg",
+                      badge: "/favicon.svg",
+                    },
+                    adminContact: vapidSubject,
+                    options: { ttl: 60 * 60 * 24 },
+                  },
+                });
 
-              const res = await fetch(endpoint, { method: "POST", headers, body });
-              if (res.ok || res.status === 201) pushSentCount++;
-            } catch (_err) {
-              // ignore per-subscription errors
+                const res = await fetch(endpoint, { method: "POST", headers, body });
+                if (res.ok || res.status === 201) pushSentCount++;
+              } catch (_err) {
+                // ignore per-subscription errors
+              }
             }
           }
         }
-      }
 
-      // 2. Alertă Final Ședință
-      if (currentTotalMin >= endMin - 2 && currentTotalMin <= endMin + 5) {
-        const title = `✅ Final: ${patientName}`;
-        const { data: existing } = await supabase
-          .from("notificari")
-          .select("id")
-          .eq("titlu", title)
-          .gte("created_at", `${dateStr}T00:00:00`)
-          .maybeSingle();
+        // 2. Alertă Final Ședință
+        if (currentTotalMin >= endMin - 2 && currentTotalMin <= endMin + 5) {
+          const title = `✅ Final: ${patientName}`;
+          const { data: existing } = await supabase
+            .from("notificari")
+            .select("id")
+            .eq("titlu", title)
+            .eq("user_id", userId)
+            .gte("created_at", `${dateStr}T00:00:00`)
+            .maybeSingle();
 
-        if (!existing) {
-          await supabase.from("notificari").insert({
-            titlu: title,
-            mesaj: `Ședința cu ${patientName} s-a încheiat. Confirmă prezența.`,
-            tip: "reminder",
-            citita: false,
-            pacient_id: appt.pacient_id || null,
-          });
+          if (!existing) {
+            await supabase.from("notificari").insert({
+              titlu: title,
+              mesaj: `Ședința cu ${patientName} s-a încheiat. Confirmă prezența.`,
+              tip: "reminder",
+              citita: false,
+              user_id: userId,
+              pacient_id: appt.pacient_id || null,
+            });
 
-          for (const sub of subscriptions as any[]) {
-            try {
-              const { endpoint, headers, body } = await buildPushHTTPRequest({
-                privateJWK: vapidJwk,
-                subscription: {
-                  endpoint: sub.endpoint,
-                  keys: { p256dh: sub.p256dh, auth: sub.auth },
-                },
-                message: {
-                  payload: {
-                    title: `✅ Ședință încheiată: ${patientName}`,
-                    body: `Ședința de la ora ${cleanTime} s-a încheiat. Apasă pentru a confirma prezența.`,
-                    url: "/dashboard/calendar",
-                    tag: `end_${appt.id}_${dateStr}`,
-                    icon: "/favicon.svg",
-                    badge: "/favicon.svg",
+            for (const sub of userSubs) {
+              try {
+                const { endpoint, headers, body } = await buildPushHTTPRequest({
+                  privateJWK: vapidJwk,
+                  subscription: {
+                    endpoint: sub.endpoint,
+                    keys: { p256dh: sub.p256dh, auth: sub.auth },
                   },
-                  adminContact: vapidSubject,
-                  options: { ttl: 60 * 60 * 24 },
-                },
-              });
+                  message: {
+                    payload: {
+                      title: `✅ Ședință încheiată: ${patientName}`,
+                      body: `Ședința de la ora ${cleanTime} s-a încheiat. Apasă pentru a confirma prezența.`,
+                      url: "/dashboard/calendar",
+                      tag: `end_${appt.id}_${dateStr}`,
+                      icon: "/favicon.svg",
+                      badge: "/favicon.svg",
+                    },
+                    adminContact: vapidSubject,
+                    options: { ttl: 60 * 60 * 24 },
+                  },
+                });
 
-              const res = await fetch(endpoint, { method: "POST", headers, body });
-              if (res.ok || res.status === 201) pushSentCount++;
-            } catch (_err) {
-              // ignore per-subscription errors
+                const res = await fetch(endpoint, { method: "POST", headers, body });
+                if (res.ok || res.status === 201) pushSentCount++;
+              } catch (_err) {
+                // ignore per-subscription errors
+              }
             }
           }
         }

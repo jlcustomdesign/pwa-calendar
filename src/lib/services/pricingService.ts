@@ -15,9 +15,12 @@ export async function getPricingPackages(): Promise<PricingPackage[]> {
 }
 
 export async function createPricingPackage(pkg: PricingPackageInsert): Promise<PricingPackage | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Trebuie să fii autentificat pentru a crea un pachet.');
+
   const { data, error } = await supabase
     .from('pricing_packages')
-    .insert(pkg as any)
+    .insert({ ...pkg, user_id: user.id } as any)
     .select()
     .single();
 

@@ -43,6 +43,7 @@ export interface Database {
       settings: {
         Row: {
           id:                     string;
+          user_id:                string;
           therapist_name:         string;
           work_start:             string;   // "HH:MM"
           work_end:               string;
@@ -80,6 +81,7 @@ export interface Database {
           status_abonament: 'activ' | 'ultima_sedinta' | 'terminat' | 'inactiv';
           notite:           string | null;
           drive_link:       string | null;
+          user_id:          string;
           created_at:       string;
           updated_at:       string;
         };
@@ -99,6 +101,7 @@ export interface Database {
           status_abonament?: 'activ' | 'ultima_sedinta' | 'terminat' | 'inactiv';
           notite?:          string | null;
           drive_link?:      string | null;
+          user_id?:         string;
           created_at?:      string;
           updated_at?:      string;
         };
@@ -110,6 +113,7 @@ export interface Database {
         Row: {
           id:         string;
           pacient_id: string;
+          user_id:    string;
           data:       string;   // "YYYY-MM-DD"
           ora:        string;   // "HH:MM"
           locatie:    'Belaqva' | 'Ghimbav';
@@ -121,6 +125,7 @@ export interface Database {
         Insert: {
           id?:        string;
           pacient_id: string;
+          user_id?:   string;
           data:       string;
           ora:        string;
           locatie?:   'Belaqva' | 'Ghimbav';
@@ -137,6 +142,7 @@ export interface Database {
         Row: {
           id:              string;
           pacient_id:      string | null;
+          user_id:         string;
           titlu:           string;
           mesaj:           string | null;
           tip:             'info' | 'abonament' | 'plata' | 'reminder';
@@ -147,6 +153,7 @@ export interface Database {
         Insert: {
           id?:              string;
           pacient_id?:      string | null;
+          user_id?:         string;
           titlu:            string;
           mesaj?:           string | null;
           tip?:             'info' | 'abonament' | 'plata' | 'reminder';
@@ -161,6 +168,7 @@ export interface Database {
       istoric_saptamanal: {
         Row: {
           id:               string;
+          user_id:          string;
           saptamana_start:  string;  // "YYYY-MM-DD"
           saptamana_end:    string;
           total_programari: number;
@@ -181,6 +189,7 @@ export interface Database {
         Row: {
           id:          string;
           pacient_id:  string;
+          user_id:     string;
           suma:        number;
           data_platii: string;
           metoda:      string | null;
@@ -189,6 +198,7 @@ export interface Database {
         Insert: {
           id?:         string;
           pacient_id:  string;
+          user_id?:    string;
           suma:        number;
           data_platii?: string;
           metoda?:     string | null;
@@ -232,6 +242,7 @@ export interface Database {
       pricing_packages: {
         Row: {
           id:          string;
+          user_id:     string;
           nume:        string;
           tip:         'Subscription' | 'One Time';
           pret:        number;
@@ -239,6 +250,7 @@ export interface Database {
         };
         Insert: {
           id?:         string;
+          user_id?:    string;
           nume:        string;
           tip:         'Subscription' | 'One Time';
           pret:        number;

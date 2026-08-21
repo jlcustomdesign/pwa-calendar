@@ -44,10 +44,17 @@ export async function getSettings(): Promise<Settings> {
     } catch (e) {}
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    if (cached) return cached;
+    return DEFAULT_SETTINGS;
+  }
+
   try {
     const { data, error } = await (supabase as any)
       .from('settings')
       .select('*')
+      .eq('user_id', user.id)
       .limit(1)
       .maybeSingle();
 
@@ -57,11 +64,12 @@ export async function getSettings(): Promise<Settings> {
     }
 
     if (!data) {
-      const fallback = cached || {
+      const fallback = {
         ...DEFAULT_SETTINGS,
+        user_id: user.id,
         updated_at: new Date().toISOString()
       };
-      return fallback;
+      return fallback as Settings;
     }
 
     const result = {
@@ -89,10 +97,13 @@ export async function getSettings(): Promise<Settings> {
 
 // ── Salvare settings (UPDATE pe singurul rând existent, INSERT dacă lipsește) ────────
 export async function saveSettings(updates: Partial<Settings>): Promise<Settings> {
-  // Obținem rândul singleton fără a da eroare dacă tabela e goală.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Trebuie să fii autentificat pentru a salva setările.');
+
   const { data: existing } = await (supabase as any)
     .from('settings')
     .select('id')
+    .eq('user_id', user.id)
     .limit(1)
     .maybeSingle();
 
@@ -100,10 +111,9 @@ export async function saveSettings(updates: Partial<Settings>): Promise<Settings
   let error: any;
 
   if (!existing) {
-    // Tabela e goală: inserăm un rând nou cu defaults + updates.
     const insertResult = await (supabase as any)
       .from('settings')
-      .insert({ ...DEFAULT_SETTINGS, ...updates })
+      .insert({ ...DEFAULT_SETTINGS, user_id: user.id, ...updates })
       .select()
       .maybeSingle();
     data = insertResult.data;
@@ -113,6 +123,7 @@ export async function saveSettings(updates: Partial<Settings>): Promise<Settings
       .from('settings')
       .update(updates)
       .eq('id', existing.id)
+      .eq('user_id', user.id)
       .select()
       .maybeSingle();
     data = updateResult.data;

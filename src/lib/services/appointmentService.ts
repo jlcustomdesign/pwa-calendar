@@ -148,8 +148,12 @@ export async function createAppointment(input: {
   ora:        string;   // "HH:MM"
   locatie?:   'Belaqva' | 'Ghimbav';
 }): Promise<string> { // returnează ID-ul programării
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Trebuie să fii autentificat pentru a crea o programare.');
+
   const payload: ProgramareInsert = {
     pacient_id: input.pacient_id,
+    user_id:    user.id,
     data:       input.data,
     ora:        input.ora,
     locatie:    input.locatie ?? 'Belaqva',
