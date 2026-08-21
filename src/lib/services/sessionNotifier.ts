@@ -127,30 +127,80 @@ export function initSessionNotifier() {
   });
 }
 
-// Deschide popup-ul de wrap-up pentru cea mai recentă ședință de azi, trecută neconfirmată.
-// Nu mai deschide sesiuni istorice la fiecare revenire în app și nu repeta același ID
-// dacă utilizatorul a închis popup-ul fără confirmare.
+// Coada de ședințe de azi trecute neconfirmate care trebuie afișate pe rând.
+let wrapUpQueue: string[] = [];
+let wrapUpQueueActive = false;
+
+function getQueuedWrapUpIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(WRAPUP_PROMPT_KEY + '_queue');
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function setQueuedWrapUpIds(ids: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(WRAPUP_PROMPT_KEY + '_queue', JSON.stringify(ids));
+  } catch {
+    // ignore localStorage errors
+  }
+}
+
+// Deschide popup-ul de wrap-up pentru fiecare ședință de azi trecută neconfirmată,
+// una câte una. Când una se închide, următoarea din coadă este afișată.
 async function promptMissedSessionWrapUp() {
   if (typeof window === 'undefined') return;
   if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
 
   try {
     const pending = await getPendingWrapUps();
-    if (!pending || pending.length === 0) return;
+    if (!pending || pending.length === 0) {
+      wrapUpQueue = [];
+      setQueuedWrapUpIds([]);
+      return;
+    }
 
     const todayStr = toLocalISOString(new Date());
     // Auto-prompt doar pentru ședințele de azi. Sesiunile mai vechi rămân vizibile în calendar,
     // dar nu mai blochează experiența la fiecare deschidere a aplicației.
     const todayPending = pending.filter((a: any) => a.data === todayStr);
-    if (todayPending.length === 0) return;
+    const ids = todayPending.map((a: any) => a.id).filter(Boolean);
 
-    const missed = todayPending[todayPending.length - 1];
-    if (!missed?.id) return;
+    // Păstrează doar ID-urile care mai sunt în pending (elimină cele rezolvate).
+    const savedQueue = getQueuedWrapUpIds();
+    const currentQueue = savedQueue.filter((id) => ids.includes(id));
 
-    // Evită re-prompt-ul aceluiași ID în aceeași zi (ex: utilizatorul a închis sheet-ul).
+    // Adaugă în coadă ședințele noi care nu au fost deja promptuite azi.
+    let promptedMap: Record<string, string> = {};
     try {
-      const lastPrompted = JSON.parse(localStorage.getItem(WRAPUP_PROMPT_KEY) || '{}');
-      if (lastPrompted.id === missed.id && lastPrompted.date === todayStr) return;
+      promptedMap = JSON.parse(localStorage.getItem(WRAPUP_PROMPT_KEY) || '{}');
+    } catch {
+      // ignore
+    }
+
+    for (const id of ids) {
+      if (!currentQueue.includes(id) && promptedMap[id] !== todayStr) {
+        currentQueue.push(id);
+      }
+    }
+
+    wrapUpQueue = currentQueue;
+    setQueuedWrapUpIds(wrapUpQueue);
+
+    if (wrapUpQueue.length === 0 || wrapUpQueueActive) return;
+
+    const nextId = wrapUpQueue[0];
+    if (!nextId) return;
+
+    // Marchează ID-ul ca fiind deja auto-promptuit azi.
+    promptedMap[nextId] = todayStr;
+    try {
+      localStorage.setItem(WRAPUP_PROMPT_KEY, JSON.stringify(promptedMap));
     } catch {
       // ignore localStorage errors
     }
@@ -158,18 +208,23 @@ async function promptMissedSessionWrapUp() {
     const confirmSession = (window as any).confirmSession;
     if (typeof confirmSession !== 'function') return;
 
-    // Marchează ID-ul ca fiind deja auto-promptuit azi.
-    try {
-      localStorage.setItem(WRAPUP_PROMPT_KEY, JSON.stringify({ id: missed.id, date: todayStr }));
-    } catch {
-      // ignore localStorage errors
-    }
-
-    // Deschide imediat popup-ul existent de confirmare.
-    confirmSession(missed.id);
+    wrapUpQueueActive = true;
+    confirmSession(nextId);
   } catch (err) {
     console.error('promptMissedSessionWrapUp error:', err);
   }
+}
+
+// Când utilizatorul închide un popup de wrap-up, afișează următorul din coadă.
+if (typeof window !== 'undefined') {
+  window.addEventListener('sessionWrapupClosed', () => {
+    wrapUpQueue.shift();
+    setQueuedWrapUpIds(wrapUpQueue);
+    wrapUpQueueActive = false;
+    setTimeout(() => {
+      promptMissedSessionWrapUp();
+    }, 300);
+  });
 }
 
 async function checkTodaySessionsForNotifications() {

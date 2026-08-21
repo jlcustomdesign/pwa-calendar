@@ -944,6 +944,7 @@
         }
         this.currentAppointment = null;
       }, 500);
+      window.dispatchEvent(new CustomEvent('sessionWrapupClosed'));
     }
 
     private unlockBodyScrollSafe() {
