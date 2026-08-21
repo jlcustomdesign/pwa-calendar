@@ -225,6 +225,40 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
               <input type="hidden" id="break-end" name="breakEnd" value="14:00" />
             </div>
           </div>
+
+          <!-- Pauză de masă preseturi rapide -->
+          <div class="pt-2">
+            <div class="text-xs font-extrabold text-text-muted font-sans uppercase tracking-wider mb-2 text-center">Preseturi rapide</div>
+            <div class="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                data-lunch-preset
+                data-start="12:00"
+                data-end="12:30"
+                class="py-2.5 px-1 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-black/5 text-text-muted hover:text-black hover:bg-brand-secondary/20 active:scale-95"
+              >
+                12:00 – 12:30
+              </button>
+              <button
+                type="button"
+                data-lunch-preset
+                data-start="12:30"
+                data-end="13:00"
+                class="py-2.5 px-1 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-black/5 text-text-muted hover:text-black hover:bg-brand-secondary/20 active:scale-95"
+              >
+                12:30 – 13:00
+              </button>
+              <button
+                type="button"
+                data-lunch-preset
+                data-start="13:00"
+                data-end="13:30"
+                class="py-2.5 px-1 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-black/5 text-text-muted hover:text-black hover:bg-brand-secondary/20 active:scale-95"
+              >
+                13:00 – 13:30
+              </button>
+            </div>
+          </div>
         </section>
       )}
 
@@ -888,6 +922,32 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
         const targetId = trigger.getAttribute('data-target');
         const label = trigger.getAttribute('data-label') || 'Alege ora';
         if (targetId) openTimeModal(targetId, label);
+      });
+    });
+
+    // Pauză de masă preseturi rapide: update + salvare + notificare componente
+    document.querySelectorAll('[data-lunch-preset]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const start = btn.getAttribute('data-start');
+        const end = btn.getAttribute('data-end');
+        if (!start || !end || !inputBreakStart || !inputBreakEnd || !displayBreakStart || !displayBreakEnd) return;
+
+        inputBreakStart.value = start;
+        inputBreakEnd.value = end;
+        displayBreakStart.textContent = start;
+        displayBreakEnd.textContent = end;
+
+        try {
+          const saved = await saveSettingsDB({ lunch_start: start, lunch_end: end });
+          if (saved) {
+            setSettingsCache(saved);
+            window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: saved }));
+          }
+          showToast('Pauza de masă a fost actualizată');
+        } catch (err: any) {
+          showToast('Eroare la salvare: ' + (err?.message || 'necunoscută'));
+          console.error(err);
+        }
       });
     });
 

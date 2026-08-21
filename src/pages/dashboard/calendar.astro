@@ -59,7 +59,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
   <script>
     import { getAppointmentsByDate, updateAppointment, swapAppointmentPatients } from '../../lib/services/appointmentService';
-    import { getSettings } from '../../lib/services/settingsService';
+    import { getSettings, saveSettings } from '../../lib/services/settingsService';
     import { getPatientPayments, isRenewalDismissed } from '../../lib/services/patientService';
     import { escapeHtml, escapeJsString } from '../../utils/html';
 
@@ -77,6 +77,30 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         currentCalendarDate = date;
         (window as any).currentCalendarDate = date;
         renderTimeline();
+      }
+    };
+
+    // Mută pauza de masă cu ±30 de minute direct din calendar.
+    (window as any).shiftLunchBreak = async (minutes: number) => {
+      try {
+        const settings = await getSettings();
+        const parseMin = (t: string) => {
+          const [h, m] = (t || '00:00').substring(0, 5).split(':').map(Number);
+          return (h || 0) * 60 + (m || 0);
+        };
+        const fmt = (total: number) => `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+
+        let newStart = parseMin(settings.lunch_start || '13:00') + minutes;
+        let newEnd = parseMin(settings.lunch_end || '14:00') + minutes;
+
+        if (newStart < 0) { newEnd -= newStart; newStart = 0; }
+        if (newEnd > 24 * 60) { newStart -= (newEnd - 24 * 60); newEnd = 24 * 60; }
+
+        await saveSettings({ lunch_start: fmt(newStart), lunch_end: fmt(newEnd) });
+        window.dispatchEvent(new CustomEvent('settingsUpdated'));
+        (window as any).showToast?.(`Pauza de masă mutată: ${fmt(newStart)} - ${fmt(newEnd)}`, 'success');
+      } catch (err: any) {
+        (window as any).showToast?.('Eroare la mutarea pauzei: ' + (err.message || err), 'error');
       }
     };
 
@@ -434,9 +458,13 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 <span class="text-xs font-extrabold text-pink-600 tracking-wider uppercase mt-0.5">${labelMin !== '00' ? ':' + labelMin : 'Pauză'}</span>
               </div>
               <div class="flex-1 min-w-0 pb-2">
-                <div class="w-full ${heightClass} rounded-2xl flex items-center justify-between px-5 select-none" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
+                <div class="w-full ${heightClass} rounded-2xl flex items-center justify-between px-5 select-none relative" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
                   <span class="text-sm font-black text-pink-600/80">Pauză de masă</span>
-                  <span class="text-base font-black text-pink-700/80">${lunchStart} – ${lunchEnd}</span>
+                  <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.shiftLunchBreak(-30)" class="w-7 h-7 rounded-full bg-white/80 text-pink-600 flex items-center justify-center text-xs font-black shadow-sm active:scale-95" aria-label="Mută mai devreme">−</button>
+                    <span class="text-base font-black text-pink-700/80">${lunchStart} – ${lunchEnd}</span>
+                    <button type="button" onclick="window.shiftLunchBreak(30)" class="w-7 h-7 rounded-full bg-white/80 text-pink-600 flex items-center justify-center text-xs font-black shadow-sm active:scale-95" aria-label="Mută mai târziu">+</button>
+                  </div>
                 </div>
               </div>
             </div>

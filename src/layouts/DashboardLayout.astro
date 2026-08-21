@@ -582,7 +582,27 @@ const { title, hideDock = false } = Astro.props;
 
         // ── Service Worker registration for PWA updates ─────────────────────
         if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
+          navigator.serviceWorker
+            .register('/sw.js', { updateViaCache: 'none' })
+            .then(async (registration) => {
+              // Force the browser to check for a new service worker on every app open.
+              await registration.update();
+
+              // Tell the active worker to clear stale caches and skip waiting.
+              const clearCaches = () => {
+                registration.active?.postMessage({ type: 'CLEAR_CACHES' });
+                registration.active?.postMessage({ type: 'SKIP_WAITING' });
+              };
+
+              if (registration.active) clearCaches();
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker?.addEventListener('statechange', () => {
+                  if (newWorker.state === 'activated') clearCaches();
+                });
+              });
+            })
+            .catch(() => {});
         }
       }
 

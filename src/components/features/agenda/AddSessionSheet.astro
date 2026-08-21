@@ -873,8 +873,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
       const isLunchOverlap = (sessionStartMin < lunchEndMin) && (sessionEndMin > lunchStartMin);
       if (isLunchOverlap) {
-        (window as any).showToast(`Ora ${selectedTime} se suprapune cu pauza de masă (${lunchStart} - ${lunchEnd}).`, 'warning', 'Pauză de masă');
-        return;
+        const proceed = window.confirm(
+          `Ora ${selectedTime} se suprapune cu pauza de masă (${lunchStart} - ${lunchEnd}).\n\nDorești să programezi oricum?`
+        );
+        if (!proceed) return;
       }
 
       const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;

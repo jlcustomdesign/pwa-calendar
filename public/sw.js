@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kineto-agenda-v9';
+const CACHE_NAME = 'kineto-agenda-v10';
 const SHELL_ASSETS = [
   '/',
   '/login',
@@ -65,7 +65,8 @@ function isStaticAsset(url) {
   );
 }
 
-// Fetch: stale-while-revalidate for HTML pages (instant navigation), cache-first for assets.
+// Fetch: network-first for HTML pages (never serve stale app shell),
+// cache-first for static hashed assets.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -79,21 +80,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // App HTML pages: serve cached shell immediately, refresh in background.
+  // App HTML pages: always try network first, fall back to cache only offline.
   if (isAppPage(url)) {
     event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match(request);
-        const networkPromise = fetch(request, { credentials: 'same-origin' })
-          .then((response) => {
+      fetch(request, { credentials: 'same-origin' })
+        .then((response) => {
+          if (response.ok) {
             const clone = response.clone();
-            cache.put(request, clone).catch(() => {});
-            return response;
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone).catch(() => {})).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.open(CACHE_NAME).then((cache) => cache.match(request)).then((cached) => {
+            return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
           })
-          .catch(() => cached);
-
-        return cached || networkPromise;
-      })
+        )
     );
     return;
   }

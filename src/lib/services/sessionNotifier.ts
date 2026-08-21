@@ -217,13 +217,32 @@ async function checkTodaySessionsForNotifications() {
         if (!notifiedKeys[endKey]) {
           setNotifiedKey(endKey);
 
+          // Pauza de masă (pentru sumarul notificării)
+          const lunchStartStr = (settings?.lunch_start || '12:00').substring(0, 5);
+          const lunchEndStr = (settings?.lunch_end || '12:30').substring(0, 5);
+          const [lsh, lsm] = lunchStartStr.split(':').map(Number);
+          const [leh, lem] = lunchEndStr.split(':').map(Number);
+          const lunchStartMin = (lsh || 0) * 60 + (lsm || 0);
+          const lunchEndMin = (leh || 0) * 60 + (lem || 0);
+
           // Caută dacă urmează un alt pacient
           const nextAppt = sorted.slice(i + 1).find(a => a.status !== 'anulat' && a.status !== 'absent');
-          let nextMessage = '';
+          let summaryMessage = '';
+
+          const lunchFitsBeforeNext =
+            lunchStartMin >= endTotalMin &&
+            (!nextAppt || lunchEndMin <= ((nextAppt.ora || '00:00').substring(0, 5).split(':').map(Number)[0] * 60 + (nextAppt.ora || '00:00').substring(0, 5).split(':').map(Number)[1]));
+
+          if (lunchFitsBeforeNext) {
+            summaryMessage += ` Pauză de masă ${lunchStartStr}-${lunchEndStr}.`;
+          }
+
           if (nextAppt) {
             const nextName = nextAppt.pacienti ? `${nextAppt.pacienti.prenume} ${nextAppt.pacienti.nume}`.trim() : 'Pacient';
             const nextTime = (nextAppt.ora || '').substring(0, 5);
-            nextMessage = ` Urmează ${nextName} la ora ${nextTime}.`;
+            summaryMessage += ` Urmează ${nextName} la ora ${nextTime}.`;
+          } else {
+            summaryMessage += ` Ultima ședință a zilei.`;
           }
 
           // Popup în app — funcționează INDIFERENT de permisiunea de notificări web.
@@ -237,8 +256,8 @@ async function checkTodaySessionsForNotifications() {
 
           if (canUseWebNotifications) {
             await triggerWebNotification(
-              `✅ Ședință încheiată: ${patientName}`,
-              `Ședința de la ora ${timeStr} s-a încheiat.${nextMessage} Apasă pentru confirmare.`,
+              `✅ S-a încheiat: ${patientName}`,
+              `Ședința de la ora ${timeStr} s-a încheiat.${summaryMessage} Apasă pentru confirmare.`,
               endKey
             );
           }
