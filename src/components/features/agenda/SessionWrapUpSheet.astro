@@ -121,14 +121,14 @@
       <button 
         type="button" 
         id="btn-absent-wrapup" 
-        class="flex-1 py-4 px-6 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-extrabold text-lg active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
+        class="flex-1 py-3.5 px-4 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-extrabold text-base whitespace-nowrap active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
       >
         <span>Nu a venit</span>
       </button>
       <button 
         type="button" 
         id="btn-confirm-wrapup" 
-        class="flex-1 py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-lg shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
+        class="flex-1 py-3.5 px-4 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-base whitespace-nowrap shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
       >
         <span>Confirmă</span>
       </button>
@@ -451,7 +451,7 @@
       const btnConfirm = document.getElementById('btn-confirm-wrapup') as HTMLButtonElement | null;
       if (btnConfirm) {
         btnConfirm.disabled = false;
-        btnConfirm.textContent = 'Confirmă ședința';
+        btnConfirm.innerHTML = '<span>Confirmă</span>';
       }
 
     }
@@ -594,7 +594,7 @@
       } finally {
         if (btnConfirm) {
           btnConfirm.disabled = false;
-          btnConfirm.textContent = 'Confirmă';
+          btnConfirm.innerHTML = '<span>Confirmă</span>';
         }
       }
     }
@@ -619,7 +619,7 @@
       } finally {
         if (btnAbsent) {
           btnAbsent.disabled = false;
-          btnAbsent.textContent = 'Nu a venit';
+          btnAbsent.innerHTML = '<span>Nu a venit</span>';
         }
       }
     }

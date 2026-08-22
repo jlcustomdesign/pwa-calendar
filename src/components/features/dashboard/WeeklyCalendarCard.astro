@@ -427,6 +427,19 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const parentWeek = button.closest(".week-section");
       if (parentWeek) parentWeek.classList.add("active-week");
 
+      // În modul închis doar săptămâna activă e vizibilă — extinde săptămâna
+      // țintă și restrânge restul, apoi derulează strip-ul la luna ei.
+      if (!isExpanded && parentWeek) {
+        allWeeks.forEach(w => {
+          if (w === parentWeek) w.classList.remove("collapsed-week");
+          else w.classList.add("collapsed-week");
+        });
+        const monthSection = parentWeek.closest('.month-section') as HTMLElement | null;
+        if (monthSection) {
+          strip.scrollLeft = monthSection.offsetLeft - 24;
+        }
+      }
+
       updateSelectedLabel(button);
 
       animatePillAndCircleDrop(button, !animate, false, previousTarget);
@@ -578,9 +591,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     // Initial label set
     updateMonthYearLabel();
 
-    // Swipe între săptămâni
+    // Swipe între săptămâni (doar în modul închis — în modul deschis
+    // scroll-ul nativ cu snap se ocupă de navigarea între luni)
     let touchStartX = 0;
+    let touchStartY = 0;
     let touchEndX = 0;
+    let swipeSuppressClick = false;
     const swipeThreshold = 60;
 
     function getCurrentWeekSection(): HTMLElement | null {
@@ -602,29 +618,38 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const firstDayBtn = targetWeek.querySelector('[data-calendar-item]') as HTMLButtonElement | null;
       if (firstDayBtn) {
         selectDay(firstDayBtn, true);
-        // Scroll la luna care conține săptămâna țintă
-        const monthSection = targetWeek.closest('.month-section') as HTMLElement | null;
-        if (monthSection) {
-          strip.scrollLeft = monthSection.offsetLeft - 24;
-        }
       }
     }
 
     strip.addEventListener('touchstart', (e: TouchEvent) => {
       touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
     }, { passive: true });
 
     strip.addEventListener('touchend', (e: TouchEvent) => {
+      if (isExpanded) return;
       touchEndX = e.changedTouches[0].screenX;
-      const diff = touchEndX - touchStartX;
-      if (Math.abs(diff) > swipeThreshold) {
-        if (diff < 0) {
+      const diffX = touchEndX - touchStartX;
+      const diffY = e.changedTouches[0].screenY - touchStartY;
+      // Doar swipe-uri clare orizontale schimbă săptămâna
+      if (Math.abs(diffX) > swipeThreshold && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+        // Blochează click-ul fantomă pe ziua de sub deget după swipe
+        swipeSuppressClick = true;
+        setTimeout(() => { swipeSuppressClick = false; }, 400);
+        if (diffX < 0) {
           selectWeek('next');
         } else {
           selectWeek('prev');
         }
       }
     }, { passive: true });
+
+    strip.addEventListener('click', (e: Event) => {
+      if (swipeSuppressClick) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }, true);
 
   }
 

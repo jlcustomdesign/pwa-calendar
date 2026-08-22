@@ -108,7 +108,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
     </div>
   </dialog>
 
-  <style>
+  <style is:global>
     /* Long-press drag & drop: oprește callout-ul iOS și selecția textului pe carduri */
     [data-session-id] {
       -webkit-touch-callout: none;
@@ -643,10 +643,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       const lunchStartMin = (lsh || 0) * 60 + (lsm || 0);
       const lunchEndMin = (leh || 0) * 60 + (lem || 0);
 
-      function findSessionsForHour(slotTimeStr: string) {
-        const [sh, sm] = slotTimeStr.split(':').map(Number);
-        const slotStartMin = (sh || 0) * 60 + (sm || 0);
-        const slotEndMin = slotStartMin + currentSessionDuration;
+      function findSessionsInRange(slotStartMin: number, slotEndMin: number) {
         return storedSessions.filter((s: any) => {
           if (!s.selectedTime) return false;
           const parts = s.selectedTime.split(':');
@@ -656,54 +653,55 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         });
       }
 
+      function findSessionsForHour(slotTimeStr: string) {
+        const [sh, sm] = slotTimeStr.split(':').map(Number);
+        const slotStartMin = (sh || 0) * 60 + (sm || 0);
+        return findSessionsInRange(slotStartMin, slotStartMin + currentSessionDuration);
+      }
+
+      const breakBuffer = Number(settings.break_buffer) || 0;
+      const slotStep = currentSessionDuration + breakBuffer; // ex: 50 min ședință + 10 min pauză = slot la fiecare oră
+
       const timeSlots: string[] = [];
       let cursor = startHour * 60;
       const endMin = endHour * 60;
       while (cursor < endMin) {
         const slotEnd = cursor + currentSessionDuration;
-        // Dacă slotul se suprapune cu pauza de masă, adaugă pauza și continuă după ea.
+        // Dacă slotul se suprapune cu pauza de masă și nu are nicio ședință,
+        // sari la finalul pauzei și continuă de acolo (ex: 12:30, 13:30…).
         if (cursor < lunchEndMin && slotEnd > lunchStartMin) {
-          cursor = lunchEndMin;
-          continue;
+          if (findSessionsInRange(cursor, slotEnd).length === 0) {
+            cursor = lunchEndMin;
+            continue;
+          }
         }
         const h = Math.floor(cursor / 60);
         const m = cursor % 60;
         timeSlots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-        cursor += currentSessionDuration;
+        cursor += slotStep;
       }
 
-      // Group consecutive lunch slots into a single block so the lunch card spans all of them.
+      // Construiește lista de elemente; inserează cardul de pauză de masă
+      // exact înainte de primul slot care începe după pauză.
       type SlotItem = { type: 'slot'; time: string; sessions: any[] } | { type: 'lunch'; slots: string[] };
       const items: SlotItem[] = [];
-      let i = 0;
-      while (i < timeSlots.length) {
+      const lunchInRange = lunchEndMin > startHour * 60 && lunchStartMin < endMin;
+      let lunchInserted = false;
+
+      for (let i = 0; i < timeSlots.length; i++) {
         const slotTimeStr = timeSlots[i];
         const [sh, sm] = slotTimeStr.split(':').map(Number);
         const slotStart = (sh || 0) * 60 + (sm || 0);
-        const slotEnd = slotStart + currentSessionDuration;
-        const sessions = findSessionsForHour(slotTimeStr);
-        const isLunchSlot = sessions.length === 0 && (slotStart < lunchEndMin) && (slotEnd > lunchStartMin);
 
-        if (isLunchSlot) {
-          const lunchSlots: string[] = [];
-          for (let j = i; j < timeSlots.length; j++) {
-            const t = timeSlots[j];
-            const [th, tm] = t.split(':').map(Number);
-            const tStart = (th || 0) * 60 + (tm || 0);
-            const tEnd = tStart + currentSessionDuration;
-            const s = findSessionsForHour(t);
-            if (s.length === 0 && (tStart < lunchEndMin) && (tEnd > lunchStartMin)) {
-              lunchSlots.push(t);
-            } else {
-              break;
-            }
-          }
-          items.push({ type: 'lunch', slots: lunchSlots.length > 0 ? lunchSlots : [slotTimeStr] });
-          i += Math.max(1, lunchSlots.length);
-        } else {
-          items.push({ type: 'slot', time: slotTimeStr, sessions });
-          i++;
+        if (!lunchInserted && lunchInRange && slotStart >= lunchEndMin) {
+          items.push({ type: 'lunch', slots: [lunchStart] });
+          lunchInserted = true;
         }
+        items.push({ type: 'slot', time: slotTimeStr, sessions: findSessionsForHour(slotTimeStr) });
+      }
+
+      if (!lunchInserted && lunchInRange) {
+        items.push({ type: 'lunch', slots: [lunchStart] });
       }
 
       // Grupează sesiunile cu același group_id pentru afișare
@@ -775,11 +773,9 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
       container.innerHTML = items.map((item) => {
         if (item.type === 'lunch') {
-          const slotCount = item.slots.length;
-          const heightClass = slotCount >= 2 ? 'h-32' : 'h-16';
           const labelHour = lunchStart.split(':')[0];
           const labelMin = lunchStart.split(':')[1] || '00';
-          const firstLunchSlot = item.slots[0];
+          const firstLunchSlot = lunchEnd; // prima oră liberă de după pauză
           return `
             <div class="relative flex items-stretch gap-4 min-h-[4.5rem]">
               <div class="w-14 shrink-0 text-center flex flex-col items-center justify-center select-none relative pt-1">
@@ -787,7 +783,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 <span class="text-xs font-extrabold text-pink-600 tracking-wider uppercase mt-0.5">${labelMin !== '00' ? ':' + labelMin : 'Pauză'}</span>
               </div>
               <div class="flex-1 min-w-0 pb-2 flex flex-col gap-2">
-                <div data-lunch-card class="w-full ${heightClass} rounded-2xl flex items-center justify-between px-5 select-none relative cursor-pointer active:scale-[0.99] transition-transform" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
+                <div data-lunch-card class="w-full h-16 rounded-2xl flex items-center justify-between px-5 select-none relative cursor-pointer active:scale-[0.99] transition-transform" style="background: repeating-linear-gradient(45deg, rgba(236,72,153,0.06), rgba(236,72,153,0.06) 4px, transparent 4px, transparent 10px); border: 1.5px dashed rgba(236,72,153,0.35);">
                   <span class="text-sm font-black text-pink-600/80">Pauză de masă</span>
                   <div class="flex items-center gap-2">
                     <span class="text-base font-black text-pink-700/80">${lunchStart} – ${lunchEnd}</span>
