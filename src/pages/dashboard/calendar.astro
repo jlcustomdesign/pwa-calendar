@@ -117,11 +117,11 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       user-select: none;
     }
 
-    .group-session-card .group-members {
-      display: none;
+    .group-session-card .card-details {
+      grid-template-rows: 0fr;
     }
-    .group-session-card.expanded .group-members {
-      display: flex;
+    .group-session-card.expanded .card-details {
+      grid-template-rows: 1fr;
     }
     .group-session-card.expanded .group-expanded-hint {
       display: none;
@@ -761,55 +761,81 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
         const memberCards = group.members.map((m: any) => {
           const progress = m.totalSessions > 0 ? Math.min(100, Math.round(((m.attendanceCount || 0) / m.totalSessions) * 100)) : 0;
-          let pLabel = 'Neachitat';
-          let pClass = 'bg-rose-50 text-rose-700';
-          if (m.paymentStatus === 'Achitat integral' || m.paymentStatus === 'Achitat' || (m.sumaIncasata || 0) >= (m.costTotal || 0)) {
-            pLabel = 'Achitat';
-            pClass = 'bg-emerald-50 text-emerald-700';
-          } else if ((m.sumaIncasata || 0) > 0) {
-            pLabel = `${m.sumaIncasata}/${m.costTotal}`;
-            pClass = 'bg-amber-50 text-amber-700';
-          }
+          const safeName = escapeHtml(m.patientName);
+          const actionButtons = (m.status === 'programat')
+            ? `<div class="flex gap-2 mt-2">
+                <button type="button" class="flex-1 py-2 rounded-xl ${isGhimbav ? 'bg-brand-primary text-black' : 'bg-brand-secondary text-white'} text-[10px] font-black uppercase tracking-wider active:scale-95 transition-transform" onclick="event.stopPropagation(); window.confirmSession('${m.id}')">Confirmă</button>
+                <button type="button" class="flex-1 py-2 rounded-xl bg-neutral-100 text-neutral-700 text-[10px] font-black uppercase tracking-wider active:scale-95 transition-transform" onclick="event.stopPropagation(); window.markAbsentSession('${m.id}')">Nu a venit</button>
+               </div>`
+            : '';
           return `
-            <div class="p-3 rounded-2xl ${memberClasses} shadow-sm space-y-2">
+            <div class="p-3 rounded-2xl ${memberClasses} shadow-sm space-y-1">
               <div class="flex items-center justify-between">
-                <span class="font-black text-sm truncate">${escapeHtml(m.patientName)}</span>
-                <span class="text-[10px] font-black uppercase tracking-wider ${pClass} px-2 py-1 rounded-lg">${pLabel}</span>
+                <span class="font-black text-sm truncate">${safeName}</span>
+                <span class="text-[10px] font-black opacity-60">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
               </div>
               <div class="flex items-center gap-3">
                 <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden">
                   <div class="h-full rounded-full ${progressBarFill}" style="width: ${progress}%;"></div>
                 </div>
-                <span class="text-[10px] font-black">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
               </div>
+              ${actionButtons}
             </div>
           `;
         }).join('');
 
         return `
-          <div class="group-session-card block relative rounded-[2.5rem] shadow-sm overflow-hidden ${cardClasses} cursor-pointer active:scale-[0.98] transition-transform" data-group-id="${group.groupId}" data-group-member-ids="${memberIds}" onclick="this.classList.toggle('expanded')">
-            <div class="p-6">
-              <div class="flex items-center justify-between mb-5">
-                <div class="min-w-0">
-                  <h4 class="text-xl font-bold tracking-tight truncate">Ședință în grup</h4>
-                  <div class="mt-1 text-sm font-bold opacity-80">${count} pacienți • ${escapeHtml(locationStr)}</div>
-                </div>
-                ${statusIcon}
+          <session-card class="group-session-card block relative rounded-[2.5rem] shadow-sm overflow-hidden" data-group-id="${group.groupId}" data-group-member-ids="${memberIds}">
+            <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
+              <div class="flex items-center gap-3" data-action-area>
+                <button 
+                  type="button" 
+                  data-action-btn
+                  class="relative z-20 w-12 h-12 rounded-full bg-orange-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
+                  onclick="event.stopPropagation(); event.preventDefault(); window.cancelGroupSession('${memberIds}');"
+                  title="Marchează grupul ca Anulat/Absent"
+                >
+                  <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                </button>
+                <button 
+                  type="button" 
+                  data-action-btn
+                  class="relative z-20 w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
+                  onclick="event.stopPropagation(); event.preventDefault(); window.deleteGroupSession('${memberIds}');"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
               </div>
-
-              <div class="flex items-center gap-4 mb-4">
-                <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden">
-                  <div class="h-full rounded-full ${progressBarFill}" style="width: 0%;"></div>
-                </div>
-                <span class="text-xs font-bold tracking-wide opacity-90 shrink-0">${timeStr}</span>
-              </div>
-
-              <div class="group-members hidden flex-col gap-2 mb-2">
-                ${memberCards}
-              </div>
-              <div class="mt-2 text-xs font-bold text-center opacity-75 group-expanded-hint">Apasă pentru a vedea pacienții</div>
             </div>
-          </div>
+
+            <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses} cursor-pointer active:scale-[0.98]" onclick="this.closest('session-card').classList.toggle('expanded')">
+              <div class="p-6">
+                <div class="flex items-center justify-between mb-5">
+                  <div class="min-w-0">
+                    <h4 class="text-xl font-bold tracking-tight truncate">Ședință în grup</h4>
+                    <div class="mt-1 text-sm font-bold opacity-80">${count} pacienți • ${escapeHtml(locationStr)}</div>
+                  </div>
+                  ${statusIcon}
+                </div>
+
+                <div class="flex items-center gap-4 mb-4">
+                  <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden">
+                    <div class="h-full rounded-full ${progressBarFill}" style="width: 0%;"></div>
+                  </div>
+                  <span class="text-xs font-bold tracking-wide opacity-90 shrink-0">${timeStr}</span>
+                </div>
+
+                <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
+                  <div class="overflow-hidden">
+                    <div class="group-members flex flex-col gap-2 mb-2">
+                      ${memberCards}
+                    </div>
+                    <div class="mt-2 text-xs font-bold text-center opacity-75 group-expanded-hint">Apasă pentru a vedea pacienții</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </session-card>
         `;
       }
 

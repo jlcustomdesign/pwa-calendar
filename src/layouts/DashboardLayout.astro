@@ -579,6 +579,44 @@ const { title, hideDock = false } = Astro.props;
           }
         };
 
+        (window as any).markAbsentSession = async (input: string | HTMLElement) => {
+          const sessionId = resolveSessionId(input);
+          if (!sessionId) return;
+          try {
+            await markAbsent(sessionId, 'Pacientul nu a venit');
+            (window as any).showToast('Ședința a fost marcată ca neefectuată.', 'info');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            window.dispatchEvent(new CustomEvent('patientsUpdated'));
+          } catch (err: any) {
+            (window as any).showToast('Eroare: ' + (err.message || err), 'error');
+          }
+        };
+
+        (window as any).cancelGroupSession = async (memberIds: string) => {
+          const ids = (memberIds || '').split(',').filter(Boolean);
+          if (ids.length === 0) return;
+          try {
+            await Promise.all(ids.map(id => cancelAppointment(id, 'Anulat din grup')));
+            (window as any).showToast('Ședința în grup a fost anulată.', 'info');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+          } catch (err: any) {
+            (window as any).showToast('Eroare la anularea grupului: ' + (err.message || err), 'error');
+          }
+        };
+
+        (window as any).deleteGroupSession = async (memberIds: string) => {
+          const ids = (memberIds || '').split(',').filter(Boolean);
+          if (ids.length === 0) return;
+          if (!window.confirm('Sigur ștergi ședința în grup pentru toți pacienții?')) return;
+          try {
+            await Promise.all(ids.map(id => deleteAppointment(id)));
+            (window as any).showToast('Ședința în grup a fost ștearsă.', 'info');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated', { detail: { source: 'dashboardDelete' } }));
+          } catch (err: any) {
+            (window as any).showToast('Eroare la ștergerea grupului: ' + (err.message || err), 'error');
+          }
+        };
+
 
         // ── Service Worker registration for PWA updates ─────────────────────
         if ('serviceWorker' in navigator) {

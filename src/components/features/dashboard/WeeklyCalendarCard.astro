@@ -228,17 +228,20 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     let dropTimeout: number | undefined;
     let scrollTimer: number | undefined;
+    let isProgrammaticScroll = false;
     let isExpanded = false;
     
     // Derulează la săptămâna activă la încărcare (modul închis funcționează ca un
     // carusel orizontal de săptămâni consecutive).
     function scrollToActiveWeek() {
+      if (isExpanded) return;
       const activeWeek = document.querySelector('.week-section.active-week') as HTMLElement | null;
-      if (activeWeek && !isExpanded) {
-        strip.scrollLeft = activeWeek.offsetLeft;
-      }
+      if (!activeWeek) return;
+      isProgrammaticScroll = true;
+      strip.scrollLeft = activeWeek.offsetLeft;
+      setTimeout(() => { isProgrammaticScroll = false; }, 300);
     }
-    requestAnimationFrame(scrollToActiveWeek);
+    setTimeout(scrollToActiveWeek, 50);
 
     function animatePillAndCircleDrop(target: HTMLButtonElement, isInitial = false, isMorphing = false, previousTarget: HTMLButtonElement | null = null) {
       if (!target || !pill || !circle) return;
@@ -435,7 +438,9 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       // În modul închis, derulează strip-ul orizontal astfel încât săptămâna
       // selectată să fie vizibilă (scroll snap o va centra).
       if (!isExpanded && parentWeek) {
+        isProgrammaticScroll = true;
         strip.scrollLeft = parentWeek.offsetLeft;
+        setTimeout(() => { isProgrammaticScroll = false; }, 300);
       }
 
       updateSelectedLabel(button);
@@ -496,7 +501,9 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
          if (activeBtn) {
             const activeWeek = activeBtn.closest('.week-section') as HTMLElement | null;
             if (activeWeek) {
+              isProgrammaticScroll = true;
               strip.scrollLeft = activeWeek.offsetLeft;
+              setTimeout(() => { isProgrammaticScroll = false; }, 300);
             }
          }
       }
@@ -582,16 +589,27 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         updateMonthYearLabel();
         return;
       }
+      if (isProgrammaticScroll) return;
+
       // În modul închis, după ce scroll-ul se oprește pe o săptămână,
       // selectează automat ziua cu același index (Luni…Vineri) din săptămâna nouă.
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
-        const contentWidth = strip.offsetWidth;
-        if (contentWidth <= 0) return;
         const allWeeks = getAllWeekSections();
-        const weekIndex = Math.max(0, Math.min(allWeeks.length - 1, Math.round(strip.scrollLeft / contentWidth)));
-        const targetWeek = allWeeks[weekIndex];
-        if (!targetWeek) return;
+        if (allWeeks.length === 0) return;
+
+        const center = strip.scrollLeft + strip.offsetWidth / 2;
+        let targetWeek: HTMLElement | null = null;
+        for (const w of allWeeks) {
+          const left = w.offsetLeft;
+          const right = left + w.offsetWidth;
+          if (center >= left && center < right) {
+            targetWeek = w;
+            break;
+          }
+        }
+        if (!targetWeek) targetWeek = allWeeks[allWeeks.length - 1];
+
         const activeDay = strip.querySelector('[data-active="true"]') as HTMLButtonElement | null;
         const activeDayIndex = activeDay ? parseInt(activeDay.getAttribute('data-index') || '0', 10) : 0;
         const targetBtn = targetWeek.querySelector(`[data-calendar-item][data-index="${activeDayIndex}"]`) as HTMLButtonElement | null
