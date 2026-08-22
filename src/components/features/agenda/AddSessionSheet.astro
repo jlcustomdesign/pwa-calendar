@@ -119,6 +119,20 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
             </svg>
           </button>
         </div>
+
+        <!-- Group Location Selector (visible only for group sessions) -->
+        <div id="group-location-selector" class="hidden space-y-2 pt-2">
+          <label class="block text-sm font-black text-black uppercase tracking-wider">Locație grup</label>
+          <input type="hidden" name="groupLocation" id="groupLocation" value="Belaqva" />
+          <div class="grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
+            <button type="button" data-group-location="Belaqva" class="group-loc-btn py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-brand-primary text-black shadow-sm">
+              Belaqva
+            </button>
+            <button type="button" data-group-location="Ghimbav" class="group-loc-btn py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black">
+              Ghimbav
+            </button>
+          </div>
+        </div>
       </form>
     </div>
 
@@ -266,6 +280,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.bindDateTimeSelectors();
       this.bindDatePicker();
       this.bindCustomTimeModal();
+      this.bindGroupLocation();
 
       window.addEventListener('settingsUpdated', () => {
         this.loadSettings();
@@ -890,7 +905,41 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.selectedPatientId = null;
       const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
       if (searchInput) searchInput.value = '';
+
+      // Arată/ascunde selectorul de locație pentru grup
+      const locSelector = document.getElementById('group-location-selector');
+      if (locSelector) {
+        if (this.isGroupSession) {
+          locSelector.classList.remove('hidden');
+        } else {
+          locSelector.classList.add('hidden');
+        }
+      }
+
       this.populatePatients();
+    }
+
+    bindGroupLocation() {
+      const container = document.getElementById('group-location-selector');
+      if (!container || container.dataset.groupLocBound === 'true') return;
+      container.dataset.groupLocBound = 'true';
+
+      const hidden = document.getElementById('groupLocation') as HTMLInputElement | null;
+      const buttons = container.querySelectorAll<HTMLButtonElement>('[data-group-location]');
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const loc = btn.getAttribute('data-group-location') || 'Belaqva';
+          if (hidden) hidden.value = loc;
+
+          buttons.forEach(b => {
+            const isSel = b === btn;
+            b.className = isSel
+              ? 'group-loc-btn py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-brand-primary text-black shadow-sm'
+              : 'group-loc-btn py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black';
+          });
+        });
+      });
     }
 
     async handleSubmit(e?: Event) {
@@ -962,12 +1011,17 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           (window as any).showToast('Programarea a fost modificată cu succes.', 'success');
         } else {
           const groupId = this.isGroupSession ? crypto.randomUUID() : null;
+          const groupLocInput = document.getElementById('groupLocation') as HTMLInputElement | null;
+          const groupLocation = (groupLocInput?.value || 'Belaqva') as 'Belaqva' | 'Ghimbav';
 
           for (const pid of patientIds) {
+            const p = this.patientsCache.find(x => x.id === pid);
+            const locatie = this.isGroupSession ? groupLocation : (p?.locatie || 'Belaqva');
             await createAppointment({
               pacient_id: pid,
               data: selectedDate,
               ora: selectedTime,
+              locatie: locatie as 'Belaqva' | 'Ghimbav',
               group_id: groupId,
             });
           }

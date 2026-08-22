@@ -110,7 +110,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
   <style is:global>
     /* Long-press drag & drop: oprește callout-ul iOS și selecția textului pe carduri */
-    [data-session-id] {
+    [data-session-id],
+    [data-group-id] {
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
@@ -741,31 +742,72 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       function createGroupCardHTML(group: any) {
         const count = group.members.length;
         const timeStr = (group.selectedTime || '08:00').substring(0, 5);
-        const safeLocation = escapeHtml(group.location || 'Belaqva');
+        const locationStr = group.location || 'Belaqva';
+        const isGhimbav = locationStr.toLowerCase() === 'ghimbav';
+        const cardClasses = isGhimbav ? 'bg-brand-secondary text-white' : 'bg-brand-primary text-black';
+        const memberClasses = isGhimbav ? 'bg-white/95 text-black' : 'bg-white text-black';
+        const progressBarFill = isGhimbav ? 'bg-brand-secondary' : 'bg-brand-primary';
+        const progressBarTrack = isGhimbav ? 'bg-black/20' : 'bg-black/15';
+        const memberIds = group.members.map((m: any) => m.id).join(',');
+
+        // Status icon for the group = any ongoing/finalized etc.
+        const anyStatus = group.members.some((m: any) => m.status === 'programat') ? 'programat' : group.members[0]?.status || 'programat';
+        let statusIcon = '';
+        if (anyStatus === 'absent' || anyStatus === 'anulat') {
+          statusIcon = `<svg class="w-6 h-6 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
+        } else if (anyStatus === 'finalizat') {
+          statusIcon = `<svg class="w-6 h-6 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"/></svg>`;
+        }
+
+        const memberCards = group.members.map((m: any) => {
+          const progress = m.totalSessions > 0 ? Math.min(100, Math.round(((m.attendanceCount || 0) / m.totalSessions) * 100)) : 0;
+          let pLabel = 'Neachitat';
+          let pClass = 'bg-rose-50 text-rose-700';
+          if (m.paymentStatus === 'Achitat integral' || m.paymentStatus === 'Achitat' || (m.sumaIncasata || 0) >= (m.costTotal || 0)) {
+            pLabel = 'Achitat';
+            pClass = 'bg-emerald-50 text-emerald-700';
+          } else if ((m.sumaIncasata || 0) > 0) {
+            pLabel = `${m.sumaIncasata}/${m.costTotal}`;
+            pClass = 'bg-amber-50 text-amber-700';
+          }
+          return `
+            <div class="p-3 rounded-2xl ${memberClasses} shadow-sm space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-black text-sm truncate">${escapeHtml(m.patientName)}</span>
+                <span class="text-[10px] font-black uppercase tracking-wider ${pClass} px-2 py-1 rounded-lg">${pLabel}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${progressBarFill}" style="width: ${progress}%;"></div>
+                </div>
+                <span class="text-[10px] font-black">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+
         return `
-          <div class="group-session-card block relative rounded-[2.5rem] shadow-sm overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 text-white cursor-pointer" data-group-id="${group.groupId}" onclick="this.classList.toggle('expanded')">
+          <div class="group-session-card block relative rounded-[2.5rem] shadow-sm overflow-hidden ${cardClasses} cursor-pointer active:scale-[0.98] transition-transform" data-group-id="${group.groupId}" data-group-member-ids="${memberIds}" onclick="this.classList.toggle('expanded')">
             <div class="p-6">
-              <div class="flex items-center justify-between mb-3">
-                <div>
-                  <span class="text-xs font-black uppercase tracking-wider opacity-90">Ședință în grup</span>
-                  <h3 class="text-xl font-black tracking-tight mt-1">${count} pacienți</h3>
+              <div class="flex items-center justify-between mb-5">
+                <div class="min-w-0">
+                  <h4 class="text-xl font-bold tracking-tight truncate">Ședință în grup</h4>
+                  <div class="mt-1 text-sm font-bold opacity-80">${count} pacienți • ${escapeHtml(locationStr)}</div>
                 </div>
-                <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+                ${statusIcon}
+              </div>
+
+              <div class="flex items-center gap-4 mb-4">
+                <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${progressBarFill}" style="width: 0%;"></div>
                 </div>
+                <span class="text-xs font-bold tracking-wide opacity-90 shrink-0">${timeStr}</span>
               </div>
-              <div class="text-sm font-bold opacity-90 mb-4">${timeStr} • ${safeLocation}</div>
-              <div class="group-members hidden flex-col gap-2">
-                ${group.members.map((m: any) => `
-                  <div class="p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
-                    <div class="font-black text-sm">${escapeHtml(m.patientName)}</div>
-                    <div class="text-xs opacity-80 mt-0.5">${m.status || 'programat'}</div>
-                  </div>
-                `).join('')}
+
+              <div class="group-members hidden flex-col gap-2 mb-2">
+                ${memberCards}
               </div>
-              <div class="mt-3 text-xs font-bold text-center opacity-75 group-expanded-hint">Apasă pentru a vedea pacienții</div>
+              <div class="mt-2 text-xs font-bold text-center opacity-75 group-expanded-hint">Apasă pentru a vedea pacienții</div>
             </div>
           </div>
         `;
@@ -981,11 +1023,37 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         if (!target || !card) return;
 
         const sessionId = card.getAttribute('data-session-id');
+        const groupId = card.getAttribute('data-group-id');
+        const memberIdsAttr = card.getAttribute('data-group-member-ids');
         const origTime = card.getAttribute('data-session-time');
         const origDate = card.getAttribute('data-session-date');
-        if (!sessionId) return;
 
         try {
+          // Mută întreg grupul deodată
+          if (groupId && memberIdsAttr) {
+            const ids = memberIdsAttr.split(',').filter(Boolean);
+            if (ids.length === 0) return;
+
+            const updates: { ora?: string; data?: string } = {};
+            if (target.type === 'slot') {
+              if (target.value === origTime) return;
+              updates.ora = target.value;
+            } else {
+              if (target.value === origDate) return;
+              updates.data = target.value;
+            }
+
+            await Promise.all(ids.map(id => updateAppointment(id, updates)));
+            (window as any).showToast('Ședința în grup a fost mutată cu succes.', 'success');
+            if (target.type === 'day') {
+              (target.el as HTMLButtonElement).click();
+            }
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            return;
+          }
+
+          if (!sessionId) return;
+
           if (target.type === 'slot' && target.targetSessionId && target.targetSessionId !== sessionId) {
             // Drop pe un slot ocupat → schimbă pacienții între programări
             await swapAppointmentPatients(sessionId, target.targetSessionId);
@@ -1020,7 +1088,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         const target = e.target as HTMLElement;
         if (target.closest('button') || target.closest('a')) return;
-        const card = target.closest('[data-session-id]') as HTMLElement | null;
+        const card = (target.closest('[data-session-id]') || target.closest('[data-group-id]')) as HTMLElement | null;
         if (!card || !card.closest('#timeline-slots-container')) return;
 
         activePointerId = e.pointerId;

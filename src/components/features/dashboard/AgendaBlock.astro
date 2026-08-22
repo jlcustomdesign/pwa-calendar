@@ -29,7 +29,7 @@
   </div>
 </div>
 <script>
-  import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
+  import { getAppointmentsByDate, cancelAppointment, deleteAppointment } from '../../../lib/services/appointmentService';
   import { getPatients, getPatientPayments, isRenewalDismissed } from '../../../lib/services/patientService';
   import { escapeHtml, escapeJsString } from '../../../utils/html';
   import { isPushSubscribed } from '../../../lib/services/pushService';
@@ -124,6 +124,130 @@
     banner.classList.add('hidden');
   }
 
+  function groupAgendaSessions(sessions: any[]): any[] {
+    const groups = new Map<string, any[]>();
+    const singles: any[] = [];
+    for (const s of sessions) {
+      if (s.groupId) {
+        if (!groups.has(s.groupId)) groups.set(s.groupId, []);
+        groups.get(s.groupId)!.push(s);
+      } else {
+        singles.push(s);
+      }
+    }
+    const result: any[] = [...singles];
+    for (const [, members] of groups) {
+      if (members.length === 1) {
+        result.push(members[0]);
+      } else {
+        result.push({
+          isGroup: true,
+          groupId: members[0].groupId,
+          members,
+          selectedTime: members[0].selectedTime,
+          selectedDate: members[0].selectedDate,
+          location: members[0].location,
+          status: members.some((m: any) => m.status === 'programat') ? 'programat' : members[0].status,
+        });
+      }
+    }
+    return result;
+  }
+
+  function createGroupCardHTML(group: any) {
+    const count = group.members.length;
+    const timeStr = (group.selectedTime || '08:00').substring(0, 5);
+    const locationStr = group.location || 'Belaqva';
+    const isGhimbav = locationStr.toLowerCase() === 'ghimbav';
+    const cardClasses = isGhimbav ? 'bg-brand-secondary text-white' : 'bg-brand-primary text-black';
+    const memberClasses = isGhimbav ? 'bg-white/95 text-black' : 'bg-white text-black';
+    const progressBarFill = isGhimbav ? 'bg-brand-primary' : 'bg-brand-secondary';
+    const progressBarTrack = isGhimbav ? 'bg-black/20' : 'bg-black/15';
+    const memberIds = group.members.map((m: any) => m.id).join(',');
+
+    const anyStatus = group.members.some((m: any) => m.status === 'programat') ? 'programat' : group.members[0]?.status || 'programat';
+    let statusIcon = '';
+    if (anyStatus === 'absent' || anyStatus === 'anulat') {
+      statusIcon = `<svg class="w-6 h-6 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>`;
+    } else if (anyStatus === 'finalizat') {
+      statusIcon = `<svg class="w-6 h-6 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"/></svg>`;
+    }
+
+    const memberCards = group.members.map((m: any) => {
+      const progress = m.totalSessions > 0 ? Math.min(100, Math.round(((m.attendanceCount || 0) / m.totalSessions) * 100)) : 0;
+      let pLabel = 'Neachitat';
+      let pClass = 'bg-rose-50 text-rose-700';
+      if (m.paymentStatus === 'Achitat integral' || m.paymentStatus === 'Achitat' || (m.sumaIncasata || 0) >= (m.costTotal || 0)) {
+        pLabel = 'Achitat';
+        pClass = 'bg-emerald-50 text-emerald-700';
+      } else if ((m.sumaIncasata || 0) > 0) {
+        pLabel = `${m.sumaIncasata}/${m.costTotal}`;
+        pClass = 'bg-amber-50 text-amber-700';
+      }
+      return `
+        <div class="p-3 rounded-2xl ${memberClasses} shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-black text-sm truncate">${escapeHtml(m.patientName)}</span>
+            <span class="text-[10px] font-black uppercase tracking-wider ${pClass} px-2 py-1 rounded-lg">${pLabel}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden">
+              <div class="h-full rounded-full ${progressBarFill}" style="width: ${progress}%;"></div>
+            </div>
+            <span class="text-[10px] font-black">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <session-card class="block relative rounded-[2.5rem] shadow-sm overflow-hidden mx-1 md:mx-5" data-group-id="${group.groupId}" data-group-member-ids="${memberIds}">
+        <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
+          <div class="flex items-center gap-3" data-action-area>
+            <button 
+              type="button" 
+              data-action-btn
+              class="relative z-20 w-12 h-12 rounded-full bg-orange-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
+              onclick="event.stopPropagation(); event.preventDefault(); window.cancelGroupSession('${group.groupId}', '${memberIds}');"
+              title="Marchează grupul ca Anulat/Absent"
+            >
+              <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+            </button>
+            <button 
+              type="button" 
+              data-action-btn
+              class="relative z-20 w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
+              onclick="event.stopPropagation(); event.preventDefault(); window.deleteGroupSession('${group.groupId}', '${memberIds}');"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses} cursor-pointer active:scale-[0.98]" onclick="this.closest('session-card').classList.toggle('expanded')">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-5">
+              <div class="min-w-0">
+                <h4 class="text-xl font-bold tracking-tight truncate">Ședință în grup</h4>
+                <div class="mt-1 text-sm font-bold opacity-80">${count} pacienți • ${escapeHtml(locationStr)}</div>
+              </div>
+              ${statusIcon}
+            </div>
+            <div class="flex items-center gap-4 mb-4">
+              <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden">
+                <div class="h-full rounded-full ${progressBarFill}" style="width: 0%;"></div>
+              </div>
+              <span class="text-xs font-bold tracking-wide opacity-90 shrink-0">${timeStr}</span>
+            </div>
+            <div class="group-members hidden flex-col gap-2 mb-2">
+              ${memberCards}
+            </div>
+            <div class="mt-2 text-xs font-bold text-center opacity-75 group-expanded-hint">Apasă pentru a vedea pacienții</div>
+          </div>
+        </div>
+      </session-card>
+    `;
+  }
+
   function drawAgendaSessionsList(list: HTMLElement, sessions: any[]) {
     const now = new Date();
     const nowStr = now.toTimeString().slice(0, 5);
@@ -150,7 +274,9 @@
       return 2;
     };
 
-    const sorted = [...sessions].sort((a: any, b: any) => {
+    const items = groupAgendaSessions(sessions);
+
+    const sorted = [...items].sort((a: any, b: any) => {
       const catA = getSessionCategory(a);
       const catB = getSessionCategory(b);
       if (catA !== catB) return catA - catB;
@@ -159,7 +285,11 @@
       return timeA.localeCompare(timeB);
     });
 
-    list.innerHTML = sorted.map((session: any) => {
+    list.innerHTML = sorted.map((item: any) => {
+      if (item.isGroup) {
+        return createGroupCardHTML(item);
+      }
+      const session: any = item;
       const locationStr = session.location || "Belaqva";
       const isGhimbav = locationStr.toLowerCase() === "ghimbav";
       const cardClasses = isGhimbav ? "bg-brand-secondary text-white" : "bg-brand-primary text-black";
@@ -446,7 +576,8 @@
           status: a.status || 'programat',
           paymentStatus: pStatus,
           costTotal,
-          sumaIncasata
+          sumaIncasata,
+          groupId: a.group_id || null,
         };
       }));
     } catch (e) {
@@ -527,6 +658,31 @@
     }
   }
 
+  (window as any).cancelGroupSession = async (groupId: string, memberIdsRaw: string) => {
+    const ids = (memberIdsRaw || '').split(',').filter(Boolean);
+    if (ids.length === 0) return;
+    try {
+      await Promise.all(ids.map(id => cancelAppointment(id, 'Anulat din grup')));
+      (window as any).showToast?.('Ședința în grup a fost marcată ca anulată.', 'info');
+      window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+    } catch (err: any) {
+      (window as any).showToast?.('Eroare la anularea grupului: ' + (err.message || err), 'error');
+    }
+  };
+
+  (window as any).deleteGroupSession = async (groupId: string, memberIdsRaw: string) => {
+    const ids = (memberIdsRaw || '').split(',').filter(Boolean);
+    if (ids.length === 0) return;
+    if (!window.confirm('Sigur ștergi ședința în grup pentru toți pacienții?')) return;
+    try {
+      await Promise.all(ids.map(id => deleteAppointment(id)));
+      (window as any).showToast?.('Ședința în grup a fost ștearsă.', 'info');
+      window.dispatchEvent(new CustomEvent('sessionsUpdated', { detail: { source: 'dashboardDelete' } }));
+    } catch (err: any) {
+      (window as any).showToast?.('Eroare la ștergerea grupului: ' + (err.message || err), 'error');
+    }
+  };
+
   function bootAgenda() {
     renderAgendaBlock();
     if ((window as any).__agendaIntervalId) {
@@ -560,3 +716,15 @@
   window.addEventListener('patientsUpdated', (window as any)._agendaBlockPatientsHandler);
 
 </script>
+
+<style is:global>
+  session-card[data-group-id] .group-members {
+    display: none;
+  }
+  session-card[data-group-id].expanded .group-members {
+    display: flex;
+  }
+  session-card[data-group-id].expanded .group-expanded-hint {
+    display: none;
+  }
+</style>
