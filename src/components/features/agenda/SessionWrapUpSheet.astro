@@ -116,14 +116,21 @@
     </div>
     
 
-    <!-- Submit Action Button (Without Check Icon) -->
-    <div class="pt-4">
+    <!-- Submit Action Buttons -->
+    <div class="pt-4 flex gap-3">
+      <button 
+        type="button" 
+        id="btn-absent-wrapup" 
+        class="flex-1 py-4 px-6 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-extrabold text-lg active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
+      >
+        <span>Nu a venit</span>
+      </button>
       <button 
         type="button" 
         id="btn-confirm-wrapup" 
-        class="w-full py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-lg shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
+        class="flex-1 py-4 px-6 rounded-full bg-brand-primary hover:brightness-105 text-black font-extrabold text-lg shadow-md shadow-amber-500/15 active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer"
       >
-        <span>Confirmă ședința</span>
+        <span>Confirmă</span>
       </button>
     </div>
   </div>
@@ -190,7 +197,7 @@
 </div>
 
 <script>
-  import { completeSession, createAppointment } from '../../../lib/services/appointmentService';
+  import { completeSession, createAppointment, markAbsent } from '../../../lib/services/appointmentService';
   import { getPatient, resetPatientSubscription } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { toLocalISOString } from '../../../utils/date';
@@ -299,6 +306,12 @@
       if (target.closest('#btn-confirm-wrapup')) {
         e.stopPropagation();
         this.handleConfirm();
+        return;
+      }
+
+      if (target.closest('#btn-absent-wrapup')) {
+        e.stopPropagation();
+        this.handleAbsent();
         return;
       }
 
@@ -581,7 +594,32 @@
       } finally {
         if (btnConfirm) {
           btnConfirm.disabled = false;
-          btnConfirm.textContent = 'Confirmă ședința';
+          btnConfirm.textContent = 'Confirmă';
+        }
+      }
+    }
+
+    private async handleAbsent() {
+      if (!this.currentAppointment) return;
+
+      const btnAbsent = document.getElementById('btn-absent-wrapup') as HTMLButtonElement | null;
+      if (btnAbsent) {
+        btnAbsent.disabled = true;
+        btnAbsent.textContent = 'Se procesează…';
+      }
+
+      try {
+        await markAbsent(this.currentAppointment.id, 'Pacientul nu a venit');
+        (window as any).showToast('Ședința a fost marcată ca neefectuată (nu a venit).', 'info');
+        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        this.close();
+      } catch (err: any) {
+        (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
+      } finally {
+        if (btnAbsent) {
+          btnAbsent.disabled = false;
+          btnAbsent.textContent = 'Nu a venit';
         }
       }
     }

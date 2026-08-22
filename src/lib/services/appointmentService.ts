@@ -148,6 +148,7 @@ export async function createAppointment(input: {
   data:       string;   // "YYYY-MM-DD"
   ora:        string;   // "HH:MM"
   locatie?:   'Belaqva' | 'Ghimbav';
+  group_id?:  string | null;
 }): Promise<string> { // returnează ID-ul programării
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Trebuie să fii autentificat pentru a crea o programare.');
@@ -159,6 +160,7 @@ export async function createAppointment(input: {
     ora:        input.ora,
     locatie:    input.locatie ?? 'Belaqva',
     status:     'programat',
+    group_id:   input.group_id ?? null,
   };
 
   const { data, error } = await (supabase as any)

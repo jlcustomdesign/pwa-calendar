@@ -57,6 +57,7 @@ export interface Database {
           reminder_threshold:     number;
           whatsapp_template:      string;
           categories:             string[];
+          lunch_breaks:           Record<string, { start: string; end: string }> | null;
           updated_at:             string;
         };
         Insert: Partial<Database['public']['Tables']['settings']['Row']>;
@@ -120,6 +121,7 @@ export interface Database {
           status:     'programat' | 'confirmat' | 'finalizat' | 'anulat' | 'absent';
           note:       string | null;
           motiv:      string | null;
+          group_id:   string | null;
           created_at: string;
         };
         Insert: {
@@ -132,6 +134,7 @@ export interface Database {
           status?:    'programat' | 'confirmat' | 'finalizat' | 'anulat' | 'absent';
           note?:      string | null;
           motiv?:     string | null;
+          group_id?:  string | null;
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['programari']['Insert']>;

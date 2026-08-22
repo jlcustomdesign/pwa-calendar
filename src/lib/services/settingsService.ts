@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
   default_price: 150,
   default_total_sessions: 10,
   categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'],
+  lunch_breaks: {},
 } as any;
 
 // ── Citire settings (cu cache local instant pentru 0ms delay pe mobil) ──

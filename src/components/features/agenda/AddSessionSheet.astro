@@ -66,6 +66,20 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
         </div>
 
+        <!-- Ședință în grup toggle -->
+        <div class="pt-2">
+          <button
+            type="button"
+            id="btn-group-session-toggle"
+            class="w-full px-6 py-3.5 rounded-2xl border-2 border-dashed border-neutral-200 bg-transparent text-sm font-bold text-neutral-600 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span id="group-toggle-label">Adaugă ca ședință în grup</span>
+          </button>
+        </div>
+
         <!-- Date/Time Selectors (Butoane Principale) -->
         <div id="date-time-selectors" class="space-y-3 pt-2">
           <input type="hidden" name="selectedDate" id="selectedDate" value={todayStr} />
@@ -227,6 +241,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     selectedCustomHour: string = '08';
     selectedCustomMinute: string = '00';
     selectedPatientId: string | null = null;
+    selectedPatientIds: string[] = [];
+    isGroupSession: boolean = false;
     patientsCache: any[] = [];
 
     constructor() {
@@ -334,8 +350,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           const label = document.createElement('label');
           label.className = 'relative cursor-pointer w-full';
 
+          const inputType = this.isGroupSession ? 'checkbox' : 'radio';
           label.innerHTML = `
-            <input type="radio" name="patientId" value="${safePatientId}" data-patient-name="${safeCatName}" data-color-class="${colorClass}" data-sessions-left="${ramase}" data-total-sessions="${totalSess}" class="peer sr-only" />
+            <input type="${inputType}" name="patientId" value="${safePatientId}" data-patient-name="${safeCatName}" data-color-class="${colorClass}" data-sessions-left="${ramase}" data-total-sessions="${totalSess}" class="peer sr-only" />
             <div class="px-6 py-4 rounded-[1.5rem] font-bold text-lg transition-opacity flex items-center justify-between ${colorClass}">
               <div class="flex flex-col min-w-0">
                 <span>${safeCatName}</span>
@@ -349,39 +366,57 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           patientListInner.appendChild(label);
         });
 
-        // Re-bind change listeners for new radios
-        const patientRadios = this.form?.querySelectorAll('input[name="patientId"]');
+        // Re-bind change listeners for new radios/checkboxes
+        const patientInputs = this.form?.querySelectorAll('input[name="patientId"]');
         const settingsContainer = document.getElementById('settings-container');
 
-        patientRadios?.forEach(radio => {
-          radio.addEventListener('change', (e: any) => {
-            if (e.target.checked) {
-              this.selectedPatientId = e.target.value;
+        patientInputs?.forEach(input => {
+          input.addEventListener('change', (e: any) => {
+            if (this.isGroupSession) {
+              // Mod grup: checkbox — colectează toți pacienții selectați
+              const checked = this.form?.querySelectorAll('input[name="patientId"]:checked') as NodeListOf<HTMLInputElement>;
+              this.selectedPatientIds = Array.from(checked).map(r => r.value);
+              this.selectedPatientId = this.selectedPatientIds[0] || null;
+
               const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
-              if (searchInput) {
-                searchInput.value = e.target.getAttribute('data-patient-name') || '';
+              if (searchInput && this.selectedPatientIds.length > 0) {
+                const names = Array.from(checked).map(r => r.getAttribute('data-patient-name') || '').filter(Boolean);
+                searchInput.value = names.join(', ');
               }
-              const selectedPatientNameSpan = document.getElementById('selected-patient-name');
-              if (selectedPatientNameSpan) {
-                selectedPatientNameSpan.textContent = e.target.getAttribute('data-patient-name') || 'Pacient';
-              }
-
-              // Afișează avertismentul dacă pacientul și-a terminat ședințele
-              const sessionsLeft = parseInt(e.target.getAttribute('data-sessions-left') || '0', 10);
-              const totalSessions = parseInt(e.target.getAttribute('data-total-sessions') || '0', 10);
-              const subscriptionWarning = document.getElementById('patient-subscription-warning');
-              if (subscriptionWarning) {
-                if (totalSessions > 0 && sessionsLeft <= 0) {
-                  subscriptionWarning.classList.remove('hidden');
-                } else {
-                  subscriptionWarning.classList.add('hidden');
-                }
-              }
-
-              if (patientList) patientList.style.gridTemplateRows = '0fr';
 
               settingsContainer?.classList.remove('hidden');
               settingsContainer?.classList.add('flex');
+            } else {
+              // Mod individual: radio — un singur pacient
+              if (e.target.checked) {
+                this.selectedPatientId = e.target.value;
+                this.selectedPatientIds = [e.target.value];
+                const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
+                if (searchInput) {
+                  searchInput.value = e.target.getAttribute('data-patient-name') || '';
+                }
+                const selectedPatientNameSpan = document.getElementById('selected-patient-name');
+                if (selectedPatientNameSpan) {
+                  selectedPatientNameSpan.textContent = e.target.getAttribute('data-patient-name') || 'Pacient';
+                }
+
+                // Afișează avertismentul dacă pacientul și-a terminat ședințele
+                const sessionsLeft = parseInt(e.target.getAttribute('data-sessions-left') || '0', 10);
+                const totalSessions = parseInt(e.target.getAttribute('data-total-sessions') || '0', 10);
+                const subscriptionWarning = document.getElementById('patient-subscription-warning');
+                if (subscriptionWarning) {
+                  if (totalSessions > 0 && sessionsLeft <= 0) {
+                    subscriptionWarning.classList.remove('hidden');
+                  } else {
+                    subscriptionWarning.classList.add('hidden');
+                  }
+                }
+
+                if (patientList) patientList.style.gridTemplateRows = '0fr';
+
+                settingsContainer?.classList.remove('hidden');
+                settingsContainer?.classList.add('flex');
+              }
             }
           });
         });
@@ -835,31 +870,63 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       });
     }
 
+    toggleGroupMode() {
+      this.isGroupSession = !this.isGroupSession;
+      const btn = document.getElementById('btn-group-session-toggle');
+      const label = document.getElementById('group-toggle-label');
+
+      if (btn && label) {
+        if (this.isGroupSession) {
+          btn.className = 'w-full px-6 py-3.5 rounded-2xl border-2 border-brand-secondary bg-brand-secondary/10 text-sm font-bold text-black flex items-center justify-center gap-2 transition-all active:scale-[0.98]';
+          label.textContent = 'Ședință în grup activă';
+        } else {
+          btn.className = 'w-full px-6 py-3.5 rounded-2xl border-2 border-dashed border-neutral-200 bg-transparent text-sm font-bold text-neutral-600 flex items-center justify-center gap-2 transition-all active:scale-[0.98]';
+          label.textContent = 'Adaugă ca ședință în grup';
+        }
+      }
+
+      // Resetează selecțiile și re-randează pacienții
+      this.selectedPatientIds = [];
+      this.selectedPatientId = null;
+      const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
+      if (searchInput) searchInput.value = '';
+      this.populatePatients();
+    }
+
     async handleSubmit(e?: Event) {
       if (e) e.preventDefault();
-      
+
       const formData = this.form ? new FormData(this.form) : null;
       const sessionIdInput = document.getElementById('sessionId') as HTMLInputElement | null;
       const sessionId = sessionIdInput?.value || (formData?.get('sessionId') as string) || '';
-      
+
       const patientRadio = this.form?.querySelector('input[name="patientId"]:checked') as HTMLInputElement | null;
       const patientId = this.selectedPatientId || patientRadio?.value || (formData?.get('patientId') as string) || '';
-      
+
       const timeVal = (document.getElementById('selectedTime') as HTMLInputElement)?.value;
       const dateVal = (document.getElementById('selectedDate') as HTMLInputElement)?.value;
 
       const selectedTime = timeVal || (formData?.get('selectedTime') as string) || '08:00';
       const selectedDate = dateVal || (formData?.get('selectedDate') as string) || new Date().toISOString().split('T')[0];
 
-      if (!patientId) {
-        (window as any).showToast('Te rugăm să selectezi un pacient din listă.', 'warning', 'Pacient neselectat');
+      const patientIds = this.isGroupSession
+        ? this.selectedPatientIds
+        : [patientId].filter(Boolean);
+
+      if (patientIds.length === 0) {
+        (window as any).showToast('Te rugăm să selectezi cel puțin un pacient din listă.', 'warning', 'Pacient neselectat');
         return;
       }
 
       // Check Lunch Break overlap from dynamic settings
       const currentSettings = await getSettings();
-      const lunchStart = (currentSettings.lunch_start || '12:00').substring(0, 5);
-      const lunchEnd = (currentSettings.lunch_end || '12:30').substring(0, 5);
+      const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+      const selectedDayOfWeek = selectedDateObj.getDay();
+      const dayKey = String(selectedDayOfWeek);
+      const lunchBreaks = (currentSettings.lunch_breaks || {}) as Record<string, { start: string; end: string }>;
+      const customLunch = lunchBreaks[dayKey];
+      const lunchStart = (customLunch?.start || currentSettings.lunch_start || '12:00').substring(0, 5);
+      const lunchEnd = (customLunch?.end || currentSettings.lunch_end || '12:30').substring(0, 5);
 
       const [lsh, lsm] = lunchStart.split(':').map(Number);
       const [leh, lem] = lunchEnd.split(':').map(Number);
@@ -894,12 +961,22 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           });
           (window as any).showToast('Programarea a fost modificată cu succes.', 'success');
         } else {
-          await createAppointment({
-            pacient_id: patientId,
-            data: selectedDate,
-            ora: selectedTime,
-          });
-          (window as any).showToast('Programarea a fost salvată cu succes.', 'success');
+          const groupId = this.isGroupSession ? crypto.randomUUID() : null;
+
+          for (const pid of patientIds) {
+            await createAppointment({
+              pacient_id: pid,
+              data: selectedDate,
+              ora: selectedTime,
+              group_id: groupId,
+            });
+          }
+
+          if (this.isGroupSession && patientIds.length > 1) {
+            (window as any).showToast(`Ședință în grup creată pentru ${patientIds.length} pacienți.`, 'success');
+          } else {
+            (window as any).showToast('Programarea a fost salvată cu succes.', 'success');
+          }
         }
 
         window.dispatchEvent(new CustomEvent('sessionsUpdated'));
@@ -1058,14 +1135,20 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
         const labels = patientListInner?.querySelectorAll('label');
         labels?.forEach((label) => {
-          const radio = label.querySelector('input[type="radio"]') as HTMLInputElement | null;
-          const patientName = (radio?.getAttribute('data-patient-name') || '').toLowerCase();
+          const input = label.querySelector('input[name="patientId"]') as HTMLInputElement | null;
+          const patientName = (input?.getAttribute('data-patient-name') || '').toLowerCase();
           if (!query || patientName.includes(query)) {
             label.classList.remove('hidden');
           } else {
             label.classList.add('hidden');
           }
         });
+      });
+
+      // Toggle ședință în grup
+      const groupToggleBtn = document.getElementById('btn-group-session-toggle');
+      groupToggleBtn?.addEventListener('click', () => {
+        (window as any).currentAddSessionSheetManager?.toggleGroupMode();
       });
     }
 

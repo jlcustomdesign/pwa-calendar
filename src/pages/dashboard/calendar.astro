@@ -115,6 +115,16 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       -webkit-user-select: none;
       user-select: none;
     }
+
+    .group-session-card .group-members {
+      display: none;
+    }
+    .group-session-card.expanded .group-members {
+      display: flex;
+    }
+    .group-session-card.expanded .group-expanded-hint {
+      display: none;
+    }
   </style>
 
   <script>
@@ -606,6 +616,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
             costTotal,
             sumaIncasata,
             paymentStatus: pStatus,
+            groupId: a.group_id || null,
           };
         }));
       } catch (e) {
@@ -617,8 +628,15 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
       const startHour = parseInt((settings.work_start || '08:00').split(':')[0], 10) || 8;
       const endHour = parseInt((settings.work_end || '20:00').split(':')[0], 10) || 20;
-      const lunchStart = (settings.lunch_start || '12:00').substring(0, 5);
-      const lunchEnd = (settings.lunch_end || '12:30').substring(0, 5);
+
+      // Determină pauza de masă pentru ziua curentă (personalizată sau implicită)
+      const currentDayDate = new Date(currentCalendarDate + 'T00:00:00');
+      const currentDayOfWeek = currentDayDate.getDay(); // 0=Duminică, 1=Luni...
+      const dayKey = String(currentDayOfWeek);
+      const lunchBreaks = (settings.lunch_breaks || {}) as Record<string, { start: string; end: string }>;
+      const customLunch = lunchBreaks[dayKey];
+      const lunchStart = (customLunch?.start || settings.lunch_start || '12:00').substring(0, 5);
+      const lunchEnd = (customLunch?.end || settings.lunch_end || '12:30').substring(0, 5);
 
       const [lsh, lsm] = lunchStart.split(':').map(Number);
       const [leh, lem] = lunchEnd.split(':').map(Number);
@@ -626,9 +644,9 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       const lunchEndMin = (leh || 0) * 60 + (lem || 0);
 
       function findSessionsForHour(slotTimeStr: string) {
-        const slotHour = parseInt(slotTimeStr.split(':')[0], 10);
-        const slotStartMin = slotHour * 60;
-        const slotEndMin = (slotHour + 1) * 60;
+        const [sh, sm] = slotTimeStr.split(':').map(Number);
+        const slotStartMin = (sh || 0) * 60 + (sm || 0);
+        const slotEndMin = slotStartMin + currentSessionDuration;
         return storedSessions.filter((s: any) => {
           if (!s.selectedTime) return false;
           const parts = s.selectedTime.split(':');
@@ -639,8 +657,19 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       }
 
       const timeSlots: string[] = [];
-      for (let h = startHour; h <= endHour; h++) {
-        timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
+      let cursor = startHour * 60;
+      const endMin = endHour * 60;
+      while (cursor < endMin) {
+        const slotEnd = cursor + currentSessionDuration;
+        // Dacă slotul se suprapune cu pauza de masă, adaugă pauza și continuă după ea.
+        if (cursor < lunchEndMin && slotEnd > lunchStartMin) {
+          cursor = lunchEndMin;
+          continue;
+        }
+        const h = Math.floor(cursor / 60);
+        const m = cursor % 60;
+        timeSlots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+        cursor += currentSessionDuration;
       }
 
       // Group consecutive lunch slots into a single block so the lunch card spans all of them.
@@ -649,21 +678,21 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       let i = 0;
       while (i < timeSlots.length) {
         const slotTimeStr = timeSlots[i];
-        const h = parseInt(slotTimeStr.split(':')[0], 10);
-        const slotHourStart = h * 60;
-        const slotHourEnd = (h + 1) * 60;
+        const [sh, sm] = slotTimeStr.split(':').map(Number);
+        const slotStart = (sh || 0) * 60 + (sm || 0);
+        const slotEnd = slotStart + currentSessionDuration;
         const sessions = findSessionsForHour(slotTimeStr);
-        const isLunchSlot = sessions.length === 0 && (slotHourStart < lunchEndMin) && (slotHourEnd > lunchStartMin);
+        const isLunchSlot = sessions.length === 0 && (slotStart < lunchEndMin) && (slotEnd > lunchStartMin);
 
         if (isLunchSlot) {
           const lunchSlots: string[] = [];
           for (let j = i; j < timeSlots.length; j++) {
             const t = timeSlots[j];
-            const tjHour = parseInt(t.split(':')[0], 10);
-            const tjStart = tjHour * 60;
-            const tjEnd = (tjHour + 1) * 60;
+            const [th, tm] = t.split(':').map(Number);
+            const tStart = (th || 0) * 60 + (tm || 0);
+            const tEnd = tStart + currentSessionDuration;
             const s = findSessionsForHour(t);
-            if (s.length === 0 && (tjStart < lunchEndMin) && (tjEnd > lunchStartMin)) {
+            if (s.length === 0 && (tStart < lunchEndMin) && (tEnd > lunchStartMin)) {
               lunchSlots.push(t);
             } else {
               break;
@@ -675,6 +704,73 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           items.push({ type: 'slot', time: slotTimeStr, sessions });
           i++;
         }
+      }
+
+      // Grupează sesiunile cu același group_id pentru afișare
+      function groupSessions(sessions: any[]): any[] {
+        const groups = new Map<string, any[]>();
+        const singles: any[] = [];
+
+        for (const s of sessions) {
+          if (s.groupId) {
+            if (!groups.has(s.groupId)) groups.set(s.groupId, []);
+            groups.get(s.groupId)!.push(s);
+          } else {
+            singles.push(s);
+          }
+        }
+
+        const result: any[] = [...singles];
+        for (const [, members] of groups) {
+          if (members.length === 1) {
+            result.push(members[0]);
+          } else {
+            result.push({
+              isGroup: true,
+              groupId: members[0].groupId,
+              members,
+              selectedTime: members[0].selectedTime,
+              selectedDate: members[0].selectedDate,
+              location: members[0].location,
+              status: members.some((m: any) => m.status === 'programat') ? 'programat' : members[0].status,
+            });
+          }
+        }
+
+        return result;
+      }
+
+      function createGroupCardHTML(group: any) {
+        const count = group.members.length;
+        const timeStr = (group.selectedTime || '08:00').substring(0, 5);
+        const safeLocation = escapeHtml(group.location || 'Belaqva');
+        return `
+          <div class="group-session-card block relative rounded-[2.5rem] shadow-sm overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 text-white cursor-pointer" data-group-id="${group.groupId}" onclick="this.classList.toggle('expanded')">
+            <div class="p-6">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <span class="text-xs font-black uppercase tracking-wider opacity-90">Ședință în grup</span>
+                  <h3 class="text-xl font-black tracking-tight mt-1">${count} pacienți</h3>
+                </div>
+                <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div class="text-sm font-bold opacity-90 mb-4">${timeStr} • ${safeLocation}</div>
+              <div class="group-members hidden flex-col gap-2">
+                ${group.members.map((m: any) => `
+                  <div class="p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                    <div class="font-black text-sm">${escapeHtml(m.patientName)}</div>
+                    <div class="text-xs opacity-80 mt-0.5">${m.status || 'programat'}</div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="mt-3 text-xs font-bold text-center opacity-75 group-expanded-hint">Apasă pentru a vedea pacienții</div>
+            </div>
+          </div>
+        `;
       }
 
       container.innerHTML = items.map((item) => {
@@ -711,7 +807,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         }
 
         const slotTimeStr = item.time;
-        const sessions = item.sessions;
+        const rawSessions = item.sessions;
+        const sessions = groupSessions(rawSessions);
         const displayTimeStr = sessions.length ? sessions[0].selectedTime : slotTimeStr;
         const [hourStr, minStr] = displayTimeStr.split(':');
 
@@ -724,6 +821,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
             <div class="flex-1 min-w-0 pb-2 flex flex-col gap-2" data-slot-time="${slotTimeStr}">
               ${sessions.length > 0 ? sessions.map((s: any) => {
+                if (s.isGroup) return createGroupCardHTML(s);
                 const sTime = (s.selectedTime || '08:00').substring(0, 5);
                 const sHour = parseInt(sTime.split(':')[0], 10);
                 const isCont = sHour !== parseInt(slotTimeStr.split(':')[0], 10);

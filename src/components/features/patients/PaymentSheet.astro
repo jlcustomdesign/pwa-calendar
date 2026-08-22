@@ -61,25 +61,36 @@
       </div>
     </div>
 
-    <!-- View 1: Initial Options -->
+    <!-- View 1: Initial Options (Dropdown) -->
     <div id="payment-options-view" class="space-y-4 pt-2 pb-6">
-      <button type="button" id="btn-partially-paid" class="w-full py-4 px-6 rounded-2xl bg-amber-100 text-amber-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
-        <span>Plată parțială</span>
-        <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </button>
+      <div class="relative">
+        <button type="button" id="btn-payment-status-toggle" class="w-full py-4 px-6 rounded-2xl bg-neutral-100 text-neutral-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
+          <span id="payment-status-label">Schimbă status plată</span>
+          <svg class="w-5 h-5 transition-transform duration-200" id="payment-status-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
 
-      <button type="button" id="btn-fully-paid" class="w-full py-4 px-6 rounded-2xl bg-emerald-100 text-emerald-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
-        <span>Achitat integral</span>
-      </button>
+        <div id="payment-status-dropdown" class="hidden absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl border border-black/5 shadow-2xl z-20 overflow-hidden">
+          <button type="button" id="btn-partially-paid" class="w-full py-4 px-6 text-left font-bold text-lg text-amber-900 hover:bg-amber-50 transition-colors flex items-center justify-between">
+            <span>Plată parțială</span>
+            <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
 
-      <button type="button" id="btn-reset-payment" class="w-full py-4 px-6 rounded-2xl bg-rose-100 text-rose-900 font-bold text-lg active:scale-95 transition-transform flex items-center justify-between">
-        <span>Neachitat</span>
-        <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
+          <button type="button" id="btn-fully-paid" class="w-full py-4 px-6 text-left font-bold text-lg text-emerald-900 hover:bg-emerald-50 transition-colors flex items-center justify-between">
+            <span>Achitat integral</span>
+          </button>
+
+          <button type="button" id="btn-reset-payment" class="w-full py-4 px-6 text-left font-bold text-lg text-rose-900 hover:bg-rose-50 transition-colors flex items-center justify-between">
+            <span>Neachitat</span>
+            <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -268,19 +279,48 @@
       const target = e.target as HTMLElement;
       if (!target) return;
 
+      const dropdown = document.getElementById('payment-status-dropdown');
+      const toggleBtn = document.getElementById('btn-payment-status-toggle');
+
+      // Toggle dropdown
+      if (target.closest('#btn-payment-status-toggle')) {
+        if (dropdown) {
+          dropdown.classList.toggle('hidden');
+          const arrow = document.getElementById('payment-status-arrow');
+          if (arrow) arrow.style.transform = dropdown.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+        return;
+      }
+
+      // Închide dropdown-ul la click în afara lui
+      if (dropdown && !dropdown.classList.contains('hidden') && !target.closest('#payment-status-dropdown') && !target.closest('#btn-payment-status-toggle')) {
+        dropdown.classList.add('hidden');
+        const arrow = document.getElementById('payment-status-arrow');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+
       if (target.closest('#payment-backdrop')) {
         this.close();
         return;
       }
       if (target.closest('#btn-partially-paid')) {
+        dropdown?.classList.add('hidden');
+        const arrow = document.getElementById('payment-status-arrow');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
         this.showCustomView();
         return;
       }
       if (target.closest('#btn-fully-paid')) {
+        dropdown?.classList.add('hidden');
+        const arrow = document.getElementById('payment-status-arrow');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
         this.handleFullyPaid();
         return;
       }
       if (target.closest('#btn-reset-payment')) {
+        dropdown?.classList.add('hidden');
+        const arrow = document.getElementById('payment-status-arrow');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
         this.handleResetPayment();
         return;
       }
@@ -533,27 +573,57 @@
                 </div>
               `;
             } else {
-              historyListEl.innerHTML = historyItems.map(item => {
-                let dateStr = item.data_platii || 'Dată necunoscută';
-                if (dateStr && dateStr.includes('-')) {
-                  const parts = dateStr.split('T')[0].split('-');
-                  if (parts.length === 3) dateStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+              // Grupează plățile pe abonamente. Fiecare `cost` RON plătit = un abonament nou.
+              const sortedHistory = [...historyItems].sort((a, b) => {
+                const da = a.data_platii || '';
+                const db = b.data_platii || '';
+                return da.localeCompare(db);
+              });
+
+              const subscriptions: Array<{ nr: number; payments: typeof sortedHistory; total: number }> = [];
+              let currentSub = { nr: 1, payments: [] as typeof sortedHistory, total: 0 };
+              subscriptions.push(currentSub);
+
+              for (const item of sortedHistory) {
+                if (currentSub.total >= cost && cost > 0) {
+                  currentSub = { nr: currentSub.nr + 1, payments: [], total: 0 };
+                  subscriptions.push(currentSub);
                 }
-                
-                let paymentTypeLabel = 'Plată parțială';
-                if (item.suma >= cost || (isFullyPaid && historyItems.length === 1) || item.descriere === 'Achitat integral') {
-                  paymentTypeLabel = 'Achitat integral';
-                }
+                currentSub.payments.push(item);
+                currentSub.total += item.suma;
+              }
+
+              historyListEl.innerHTML = subscriptions.map(sub => {
+                const paymentsHtml = sub.payments.map(item => {
+                  let dateStr = item.data_platii || 'Dată necunoscută';
+                  if (dateStr && dateStr.includes('-')) {
+                    const parts = dateStr.split('T')[0].split('-');
+                    if (parts.length === 3) dateStr = `${parts[2]}.${parts[1]}`;
+                  }
+
+                  let paymentTypeLabel = 'Plată parțială';
+                  if (item.suma >= cost || item.descriere === 'Achitat integral') {
+                    paymentTypeLabel = 'Achitat integral';
+                  }
+
+                  return `
+                    <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/60 border border-black/5 text-xs">
+                      <div class="min-w-0">
+                        <span class="block font-bold text-neutral-700">${paymentTypeLabel}</span>
+                        <span class="block font-black text-black text-[11px] mt-0.5">${dateStr} • Șed. nr. ${sub.payments.indexOf(item) + 1}</span>
+                      </div>
+                      <span class="font-black text-emerald-600 text-sm shrink-0 ml-2">+${item.suma} RON</span>
+                    </div>
+                  `;
+                }).join('');
 
                 return `
-                  <div class="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-black/5 text-xs shadow-2xs">
-                    <div class="min-w-0">
-                      <span class="block font-black text-neutral-900 text-sm truncate">${paymentTypeLabel}</span>
-                      <span class="block font-black text-black text-xs sm:text-sm mt-0.5">${dateStr}</span>
+                  <div class="p-3 rounded-2xl bg-white border border-black/5 shadow-2xs space-y-2">
+                    <div class="flex items-center justify-between px-1">
+                      <span class="text-xs font-black uppercase tracking-wider text-black">Abonament ${sub.nr}</span>
+                      <span class="text-xs font-black text-emerald-700">${sub.total} / ${cost} RON</span>
                     </div>
-                    <div class="text-right shrink-0 ml-3">
-                      <span class="block font-black text-emerald-600 text-base sm:text-lg">+${item.suma} RON</span>
-                    </div>
+                    ${paymentsHtml}
                   </div>
                 `;
               }).join('');

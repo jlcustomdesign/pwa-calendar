@@ -578,6 +578,54 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     // Initial label set
     updateMonthYearLabel();
 
+    // Swipe între săptămâni
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const swipeThreshold = 60;
+
+    function getCurrentWeekSection(): HTMLElement | null {
+      return document.querySelector('.week-section.active-week') as HTMLElement | null;
+    }
+
+    function getAllWeekSections(): HTMLElement[] {
+      return Array.from(document.querySelectorAll('.week-section')) as HTMLElement[];
+    }
+
+    function selectWeek(direction: 'next' | 'prev') {
+      const currentWeek = getCurrentWeekSection();
+      if (!currentWeek) return;
+      const allWeeks = getAllWeekSections();
+      const idx = allWeeks.indexOf(currentWeek);
+      const targetIdx = direction === 'next' ? idx + 1 : idx - 1;
+      if (targetIdx < 0 || targetIdx >= allWeeks.length) return;
+      const targetWeek = allWeeks[targetIdx];
+      const firstDayBtn = targetWeek.querySelector('[data-calendar-item]') as HTMLButtonElement | null;
+      if (firstDayBtn) {
+        selectDay(firstDayBtn, true);
+        // Scroll la luna care conține săptămâna țintă
+        const monthSection = targetWeek.closest('.month-section') as HTMLElement | null;
+        if (monthSection) {
+          strip.scrollLeft = monthSection.offsetLeft - 24;
+        }
+      }
+    }
+
+    strip.addEventListener('touchstart', (e: TouchEvent) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    strip.addEventListener('touchend', (e: TouchEvent) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const diff = touchEndX - touchStartX;
+      if (Math.abs(diff) > swipeThreshold) {
+        if (diff < 0) {
+          selectWeek('next');
+        } else {
+          selectWeek('prev');
+        }
+      }
+    }, { passive: true });
+
   }
 
   function bootCalendar() {
