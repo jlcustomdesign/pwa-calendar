@@ -12,13 +12,63 @@ const fullDayNames = ["Luni", "Marți", "Miercuri", "Joi", "Vineri"];
 const totalMonths = 24;
 const startMonthOffset = -12;
 
-const todayMonday = new Date(now);
-const currentDay = todayMonday.getDay();
+const today = new Date(now);
+today.setHours(0, 0, 0, 0);
+const currentDay = today.getDay();
 // If it's Saturday (6) or Sunday (0), jump forward to the upcoming Monday
 const offsetToMonday = currentDay === 0 ? 1 : (currentDay === 6 ? 2 : 1 - currentDay);
-todayMonday.setDate(todayMonday.getDate() + offsetToMonday);
-todayMonday.setHours(0,0,0,0);
+const todayMonday = new Date(today);
+todayMonday.setDate(today.getDate() + offsetToMonday);
+todayMonday.setHours(0, 0, 0, 0);
 
+// Build a flat list of consecutive weeks spanning the whole range
+const firstMonthDate = new Date(now.getFullYear(), now.getMonth() + startMonthOffset, 1);
+let firstMonday = new Date(firstMonthDate);
+const firstDayOfWeek = firstMonday.getDay();
+firstMonday.setDate(firstMonday.getDate() - (firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1));
+
+const lastMonthDate = new Date(now.getFullYear(), now.getMonth() + startMonthOffset + totalMonths - 1, 1);
+const lastDayOfLastMonth = new Date(lastMonthDate.getFullYear(), lastMonthDate.getMonth() + 1, 0);
+
+const allWeeksFlat: any[] = [];
+let currentMonday = new Date(firstMonday);
+let weekIndexGlobal = 0;
+while (currentMonday <= lastDayOfLastMonth) {
+  const weekDays = [];
+  const weekMon = new Date(currentMonday);
+  weekMon.setHours(0, 0, 0, 0);
+  const isCurrentWeek = weekMon.getTime() === todayMonday.getTime();
+
+  for (let d = 0; d < 5; d++) {
+    const dayDate = new Date(currentMonday);
+    dayDate.setDate(currentMonday.getDate() + d);
+    const isToday = dayDate.toDateString() === now.toDateString();
+
+    weekDays.push({
+      date: dayDate.getDate(),
+      shortMonthName: dayDate.toLocaleString('ro-RO', { month: 'short' }),
+      monthNum: dayDate.getMonth(),
+      year: dayDate.getFullYear(),
+      fullDay: fullDayNames[d],
+      dayLabel: weekDayLabels[d],
+      isToday,
+      isCurrentMonth: false,
+      active: false
+    });
+  }
+
+  allWeeksFlat.push({
+    weekStartDate: new Date(currentMonday),
+    days: weekDays,
+    isCurrentWeek,
+    weekIndex: weekIndexGlobal
+  });
+
+  currentMonday.setDate(currentMonday.getDate() + 7);
+  weekIndexGlobal++;
+}
+
+// Build months that reference the flat weeks
 const allMonths = Array.from({ length: totalMonths }).map((_, monthIndex) => {
   const mOffset = startMonthOffset + monthIndex;
   const targetDate = new Date(now.getFullYear(), now.getMonth() + mOffset, 1);
@@ -26,106 +76,75 @@ const allMonths = Array.from({ length: totalMonths }).map((_, monthIndex) => {
   const monthNum = targetDate.getMonth();
   const monthName = targetDate.toLocaleString('ro-RO', { month: 'long' });
   const shortMonthName = targetDate.toLocaleString('ro-RO', { month: 'short' });
-  
   const isCurrentMonth = mOffset === 0;
 
-  let startMonday = new Date(year, monthNum, 1);
-  const firstDayOfWeek = startMonday.getDay();
-  startMonday.setDate(startMonday.getDate() - (firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1));
-
   const lastDayOfMonth = new Date(year, monthNum + 1, 0);
-  
-  const weeks = [];
-  let currentMonday = new Date(startMonday);
-  
-  while (currentMonday <= lastDayOfMonth) {
-      const weekDays = [];
-      const weekMon = new Date(currentMonday);
-      weekMon.setHours(0,0,0,0);
-      const isCurrentWeek = weekMon.getTime() === todayMonday.getTime();
-      
-      for (let d = 0; d < 5; d++) { 
-          const dayDate = new Date(currentMonday);
-          dayDate.setDate(currentMonday.getDate() + d);
-          
-          const isToday = dayDate.toDateString() === now.toDateString();
-          
-          weekDays.push({
-              date: dayDate.getDate(),
-              shortMonthName: dayDate.toLocaleString('ro-RO', { month: 'short' }),
-              monthNum: dayDate.getMonth(),
-              year: dayDate.getFullYear(),
-              fullDay: fullDayNames[d],
-              dayLabel: weekDayLabels[d],
-              isToday,
-              isCurrentMonth: dayDate.getMonth() === monthNum,
-              active: false
-          });
-      }
-      const hasCurrentMonthDay = weekDays.some(day => day.isCurrentMonth);
-      if (hasCurrentMonthDay) {
-          weeks.push({
-              weekStartDate: new Date(currentMonday),
-              days: weekDays,
-              isCurrentWeek
-          });
-      }
-      currentMonday.setDate(currentMonday.getDate() + 7);
-  }
-  
-  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
 
-  if (isCurrentMonth) {
-      let foundActive = false;
-      if (!isWeekend) {
-        weeks.forEach(w => w.days.forEach(d => {
-            if (d.isToday) {
-                d.active = true;
-                foundActive = true;
-            }
-        }));
-      }
-      if (!foundActive) {
-          weeks.forEach(w => {
-              if (w.isCurrentWeek) {
-                  w.days[0].active = true;
-                  foundActive = true;
-              }
-          });
-      }
-  }
-  
+  const weeks = allWeeksFlat.filter(w => {
+    const weekEnd = new Date(w.weekStartDate);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    return w.weekStartDate <= lastDayOfMonth && weekEnd >= targetDate;
+  });
+
+  // Mark days that belong to this month
+  weeks.forEach(w => {
+    w.days.forEach((day: any) => {
+      if (day.monthNum === monthNum) day.isCurrentMonth = true;
+    });
+  });
+
   return {
-      monthOffset: mOffset,
-      year,
-      monthNum,
-      monthName,
-      shortMonthName,
-      isCurrentMonth,
-      weeks
+    monthOffset: mOffset,
+    year,
+    monthNum,
+    monthName,
+    shortMonthName,
+    isCurrentMonth,
+    weeks
   };
 });
 
-const currentMonthData = allMonths.find(m => m.isCurrentMonth);
-let activeDayObj: any = null;
-if (currentMonthData) {
-    currentMonthData.weeks.forEach(w => {
-        const d = w.days.find(day => day.active);
-        if (d) activeDayObj = d;
+const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+let foundActive = false;
+
+if (!isWeekend) {
+  allWeeksFlat.forEach(w => {
+    w.days.forEach((d: any) => {
+      if (d.isToday) {
+        d.active = true;
+        foundActive = true;
+      }
     });
+  });
+}
+
+if (!foundActive) {
+  const currentWeek = allWeeksFlat.find(w => w.isCurrentWeek);
+  if (currentWeek) {
+    currentWeek.days[0].active = true;
+    foundActive = true;
+  }
+}
+
+let activeDayObj: any = null;
+for (const w of allWeeksFlat) {
+  const d = w.days.find((day: any) => day.active);
+  if (d) {
+    activeDayObj = d;
+    break;
+  }
 }
 
 const serverDate = new Date();
 let initialDate = serverDate;
 if (activeDayObj) {
-    const yearVal = activeDayObj.year || serverDate.getFullYear();
-    // activeDayObj conține monthNum (0-indexed) din dayDate.getMonth()
-    const monthVal = typeof activeDayObj.monthNum === 'number' ? activeDayObj.monthNum : (currentMonthData ? currentMonthData.monthNum : serverDate.getMonth());
-    const dateVal = activeDayObj.date || serverDate.getDate();
-    const parsed = new Date(yearVal, monthVal, dateVal);
-    if (!isNaN(parsed.getTime())) {
-        initialDate = parsed;
-    }
+  const yearVal = activeDayObj.year || serverDate.getFullYear();
+  const monthVal = typeof activeDayObj.monthNum === 'number' ? activeDayObj.monthNum : serverDate.getMonth();
+  const dateVal = activeDayObj.date || serverDate.getDate();
+  const parsed = new Date(yearVal, monthVal, dateVal);
+  if (!isNaN(parsed.getTime())) {
+    initialDate = parsed;
+  }
 }
 
 const rawWeekday = initialDate.toLocaleDateString('ro-RO', { weekday: 'long' });
@@ -142,8 +161,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       <button id="calendar-expand-btn" aria-label="Comută vizualizarea lunii" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm z-30">
         <svg class="w-5 h-5 transition-transform duration-500 ease-in-out" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
+        </svg>
+      </button>
     </div>
 
     <div class="flex items-center justify-start min-h-[1.25rem]">
@@ -151,9 +170,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     </div>
   </div>
 
-  <!-- Horizontal Scroll Container with Strict Snapping -->
-  <div id="calendar-strip" data-calendar-strip class="relative overflow-x-auto snap-x snap-mandatory flex flex-row w-[calc(100%+3rem)] -mx-6 px-6 pt-32 -mt-32 transition-all closed-mode">
-    
+  <!-- Strip container -->
+  <div id="strip-container" class="relative overflow-hidden transition-all duration-500 ease-in-out">
     <div
       id="calendar-active-pill"
       class="absolute bg-brand-primary pointer-events-none z-0"
@@ -165,20 +183,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       style="left: 0; top: 0; opacity: 0;"
     ></div>
 
-    {allMonths.map((month) => (
-      <div 
-        data-month-section={month.monthOffset}
-        data-month-name={month.monthName}
-        data-year={month.year}
-        id={month.isCurrentMonth ? "current-month-section" : undefined}
-        class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
-      >
-        {month.weeks.map((week, weekIndex) => (
-          <div 
-            class={`week-section relative grid grid-cols-5 gap-1 px-2 transition-[height,opacity] duration-500 ease-in-out snap-center snap-always ${week.isCurrentWeek && month.isCurrentMonth ? 'active-week' : ''}`}
-            data-is-current-week={week.isCurrentWeek ? "true" : "false"}
-            data-week-index={weekIndex}
-          >
+    <!-- Weeks strip (closed mode) -->
+    <div id="weeks-strip" class="relative w-full flex overflow-x-auto snap-x snap-mandatory z-10 transition-opacity duration-300">
+      {allWeeksFlat.map((week) => (
+        <div class="week-slide shrink-0 w-full snap-center snap-always px-6" data-week-slide="true" data-week-index={week.weekIndex}>
+          <div class="week-section grid grid-cols-5 gap-1">
             {week.days.map((item, index) => (
               <button
                 type="button"
@@ -198,7 +207,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                       : "text-text-main hover:opacity-60 opacity-30"
                 }`}
               >
-                <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20" style="color: #C93263 !important;">{item.dayLabel}</span>
+                <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20 transition-all duration-300" style="color: #C93263 !important;">{item.dayLabel}</span>
                 <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
                   {item.date}
                 </span>
@@ -208,145 +217,176 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
               </button>
             ))}
           </div>
-        ))}
-      </div>
-    ))}
+        </div>
+      ))}
+    </div>
 
+    <!-- Months strip (expanded mode) -->
+    <div id="months-strip" class="relative w-full hidden flex overflow-x-auto snap-x snap-mandatory z-0 transition-opacity duration-300">
+      {allMonths.map((month) => (
+        <div
+          class="month-section shrink-0 w-full snap-center snap-always px-6 flex flex-col gap-2"
+          data-month-section={month.monthOffset}
+          data-month-name={month.monthName}
+          data-year={month.year}
+          id={month.isCurrentMonth ? "current-month-section" : undefined}
+        >
+          {month.weeks.map((week, weekIndex) => (
+            <div class="week-section grid grid-cols-5 gap-1" data-week-index={weekIndex}>
+              {week.days.map((item, index) => (
+                <button
+                  type="button"
+                  data-calendar-item
+                  data-active={item.active ? "true" : "false"}
+                  data-index={index}
+                  data-month={item.monthNum}
+                  data-year={item.year}
+                  data-date={item.date}
+                  data-is-current-month={item.isCurrentMonth ? "true" : "false"}
+                  data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
+                  class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+                    item.active
+                      ? "text-black font-bold"
+                      : item.isCurrentMonth
+                        ? "text-text-main hover:opacity-100 opacity-70"
+                        : "text-text-main hover:opacity-60 opacity-30"
+                  }`}
+                >
+                  <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20 transition-all duration-300" style="color: #C93263 !important;">{item.dayLabel}</span>
+                  <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
+                    {item.date}
+                  </span>
+                  {item.isToday && (
+                    <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
+                  )}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
   </div>
 </div>
 
 <script>
   function initCalendarAnimation() {
     const card = document.getElementById("calendar-card") as HTMLElement;
-    const strip = document.getElementById("calendar-strip") as HTMLElement;
+    const weeksStrip = document.getElementById("weeks-strip") as HTMLElement;
+    const monthsStrip = document.getElementById("months-strip") as HTMLElement;
+    const stripContainer = document.getElementById("strip-container") as HTMLElement;
     const expandBtn = document.getElementById("calendar-expand-btn") as HTMLButtonElement;
     const pill = document.getElementById("calendar-active-pill") as HTMLElement;
     const circle = document.getElementById("calendar-active-circle") as HTMLElement;
-    if (!strip || !pill || !circle || !card || !expandBtn) return;
-    if (strip.dataset.calendarAnimated === 'true') return;
-    strip.dataset.calendarAnimated = 'true';
+    if (!weeksStrip || !monthsStrip || !stripContainer || !pill || !circle || !card || !expandBtn) return;
+    if (stripContainer.dataset.calendarAnimated === 'true') return;
+    stripContainer.dataset.calendarAnimated = 'true';
 
     let dropTimeout: number | undefined;
     let scrollTimer: number | undefined;
-    let isProgrammaticScroll = false;
     let isExpanded = false;
-    
-    // Derulează la săptămâna activă la încărcare (modul închis funcționează ca un
-    // carusel orizontal de săptămâni consecutive).
-    function scrollToActiveWeek() {
-      if (isExpanded) return;
-      const activeWeek = document.querySelector('.week-section.active-week') as HTMLElement | null;
-      if (!activeWeek) return;
-      isProgrammaticScroll = true;
-      strip.scrollLeft = activeWeek.offsetLeft;
-      setTimeout(() => { isProgrammaticScroll = false; }, 300);
+    let isProgrammaticScroll = false;
+    let scrollStartIndex = 0;
+    let scrollStartLeft = 0;
+
+    function setScrollLeft(element: HTMLElement, value: number, instant = false) {
+      if (instant) {
+        element.style.scrollBehavior = 'auto';
+        element.scrollLeft = value;
+        element.style.scrollBehavior = '';
+      } else {
+        element.scrollLeft = value;
+      }
     }
-    setTimeout(scrollToActiveWeek, 50);
 
-    function animatePillAndCircleDrop(target: HTMLButtonElement, isInitial = false, isMorphing = false, previousTarget: HTMLButtonElement | null = null) {
+    function scrollToSlide(strip: HTMLElement, slide: HTMLElement, instant = false) {
+      const target = slide.offsetLeft + slide.offsetWidth / 2 - strip.offsetWidth / 2;
+      setScrollLeft(strip, target, instant);
+    }
+
+    function getActiveStrip(): HTMLElement {
+      return isExpanded ? monthsStrip : weeksStrip;
+    }
+
+    function getSlides(strip: HTMLElement): HTMLElement[] {
+      if (strip === weeksStrip) return Array.from(strip.querySelectorAll('[data-week-slide="true"]'));
+      return Array.from(strip.querySelectorAll('[data-month-section]'));
+    }
+
+    function getCurrentSlideIndex(strip: HTMLElement): number {
+      const slides = getSlides(strip);
+      if (!slides.length) return 0;
+      const center = strip.scrollLeft + strip.offsetWidth / 2;
+      let nearestIdx = 0;
+      let minDist = Infinity;
+      slides.forEach((slide, idx) => {
+        const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+        const dist = Math.abs(center - slideCenter);
+        if (dist < minDist) {
+          minDist = dist;
+          nearestIdx = idx;
+        }
+      });
+      return nearestIdx;
+    }
+
+    function getSlideByIndex(strip: HTMLElement, index: number): HTMLElement | null {
+      return getSlides(strip)[index] || null;
+    }
+
+    // Auto-scroll weeks strip to the current week on load (instant, no animation)
+    const activeWeekBtn = weeksStrip.querySelector('[data-active="true"]') as HTMLElement | null;
+    if (activeWeekBtn) {
+      const slide = activeWeekBtn.closest('[data-week-slide="true"]') as HTMLElement | null;
+      if (slide) {
+        isProgrammaticScroll = true;
+        scrollToSlide(weeksStrip, slide, true);
+        setTimeout(() => { isProgrammaticScroll = false; }, 80);
+      }
+    }
+
+    function positionPill(target: HTMLButtonElement, animate = false) {
       if (!target || !pill || !circle) return;
-      
-      const parentSection = target.closest<HTMLElement>(".week-section");
-      let isDifferentRow = false;
-      if (parentSection && pill.parentElement) {
-        isDifferentRow = parentSection !== pill.parentElement;
-      }
-      
-      if (parentSection && pill.parentElement !== parentSection) {
-        parentSection.appendChild(pill);
-        parentSection.appendChild(circle);
-      }
 
-      const width = target.offsetWidth;
-      const height = target.offsetHeight; // 3.5rem (56px)
-      const left = target.offsetLeft;
-      const top = target.offsetTop;
+      const strip = getActiveStrip();
+      const slide = target.closest('[data-week-slide="true"], [data-month-section]') as HTMLElement | null;
+      if (!slide) return;
 
       const numSpan = target.querySelector<HTMLSpanElement>("span.date-number");
       if (!numSpan) return;
 
-      const cLeft = target.offsetLeft + numSpan.offsetLeft;
-      const cTop = target.offsetTop + numSpan.offsetTop;
+      const width = target.offsetWidth;
+      const height = target.offsetHeight;
+      const left = (slide.offsetLeft - strip.scrollLeft) + target.offsetLeft + (width - (isExpanded ? 40 : 48)) / 2;
+      const top = slide.offsetTop + target.offsetTop;
+      const cLeft = (slide.offsetLeft - strip.scrollLeft) + target.offsetLeft + numSpan.offsetLeft;
+      const cTop = slide.offsetTop + target.offsetTop + numSpan.offsetTop;
 
-      if (dropTimeout) clearTimeout(dropTimeout);
-
-      pill.style.opacity = "1";
-      circle.style.opacity = "1";
-
-      // Make the non-expanded pill a bit narrower and keep it centered on the day.
-      const pillWidth = isExpanded ? 40 : 48;
-      const targetW = pillWidth;
+      const targetW = isExpanded ? 40 : 48;
       const targetH = isExpanded ? 40 : height;
-      const targetL = isExpanded ? cLeft - 4 : left + (width - pillWidth) / 2;
-      const targetT = isExpanded ? cTop - 4 : top;
       const targetBR = isExpanded ? "50%" : "50px";
 
-      if (isInitial) {
-        pill.style.transition = "none";
-        pill.style.width = `${targetW}px`;
-        pill.style.height = `${targetH}px`;
-        pill.style.borderRadius = targetBR;
-        pill.style.transform = `translate(${targetL}px, ${targetT}px)`;
-        circle.style.transition = "none";
-        circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
-      } else if (isMorphing) {
-        pill.style.transition = "all 400ms cubic-bezier(0.34, 1.36, 0.64, 1)";
-        circle.style.transition = "all 400ms cubic-bezier(0.34, 1.36, 0.64, 1)";
-        
-        pill.style.width = `${targetW}px`;
-        pill.style.height = `${targetH}px`;
-        pill.style.borderRadius = targetBR;
-        pill.style.transform = `translate(${targetL}px, ${targetT}px)`;
-        
-        circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
-      } else if (isDifferentRow && isExpanded) {
-        pill.style.transition = "none";
-        pill.style.width = `${targetW}px`;
-        pill.style.height = `${targetH}px`;
-        pill.style.borderRadius = targetBR;
-        pill.style.opacity = "0";
-        
-        let isGoingUp = false;
-        if (previousTarget) {
-          isGoingUp = target.getBoundingClientRect().top < previousTarget.getBoundingClientRect().top;
-        }
-        
-        const offset = isGoingUp ? 100 : -100;
-
-        pill.style.transform = `translate(${targetL}px, ${targetT + offset}px) scale(1)`;
-
-        circle.style.transition = "none";
-        circle.style.opacity = "0";
-        circle.style.transform = `translate(${cLeft}px, ${cTop + offset}px) scale(1)`;
-
-        void pill.offsetWidth;
-        void circle.offsetWidth;
-
-        pill.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)";
-        pill.style.opacity = "1";
-        pill.style.transform = `translate(${targetL}px, ${targetT}px) scale(1)`;
-
-        // Pill finishes moving in 400ms. Wait 400ms to show the white circle.
-        dropTimeout = window.setTimeout(() => {
-          circle.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out";
-          circle.style.opacity = "1";
-          circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
-        }, 300);
-      } else {
+      if (animate) {
         pill.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), width 400ms, height 400ms";
-        pill.style.width = `${targetW}px`;
-        pill.style.height = `${targetH}px`;
-        pill.style.borderRadius = targetBR;
-        pill.style.transform = `translate(${targetL}px, ${targetT}px) scale(1)`;
-
+        circle.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)";
+      } else {
+        pill.style.transition = "none";
         circle.style.transition = "none";
-        circle.style.opacity = "0";
-        circle.style.transform = `translate(${cLeft}px, ${cTop - 100}px) scale(1)`;
+      }
 
+      pill.style.opacity = "1";
+      pill.style.width = `${targetW}px`;
+      pill.style.height = `${targetH}px`;
+      pill.style.borderRadius = targetBR;
+      pill.style.transform = `translate(${left}px, ${top}px)`;
+
+      circle.style.opacity = animate ? "0" : "1";
+      circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
+
+      if (animate) {
         void circle.offsetWidth;
-
+        circle.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out";
         dropTimeout = window.setTimeout(() => {
-          circle.style.transition = "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out";
           circle.style.opacity = "1";
           circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
         }, 300);
@@ -354,18 +394,18 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     function clearActiveState() {
-      const allActive = strip.querySelectorAll('[data-active="true"]');
+      const allActive = document.querySelectorAll('[data-active="true"]');
       allActive.forEach(el => {
         el.setAttribute("data-active", "false");
         el.classList.remove("text-black", "font-bold");
         el.classList.add("text-text-main");
-        
+
         if (el.getAttribute("data-is-current-month") === "true") {
-            el.classList.add("opacity-70");
+          el.classList.add("opacity-70");
         } else {
-            el.classList.add("opacity-30");
+          el.classList.add("opacity-30");
         }
-        
+
         const dSpan = el.querySelector("span:last-child");
         if (dSpan) {
           dSpan.classList.remove("text-black");
@@ -405,134 +445,146 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           }
 
           if (monthYearLabel && isExpanded) {
-            monthYearLabel.textContent = `${fullMonthCapitalized} ${yearNum}`;
+            const slide = button.closest('[data-month-section]') as HTMLElement | null;
+            const mName = slide?.getAttribute('data-month-name') || fullMonthCapitalized;
+            const mYear = slide?.getAttribute('data-year') || yearNum;
+            monthYearLabel.textContent = `${mName} ${mYear}`;
           }
         }
       }
     }
 
+    function findButtonByDate(year: string, month: string, date: string, context: HTMLElement | Document = document): HTMLButtonElement | null {
+      return context.querySelector<HTMLButtonElement>(`[data-calendar-item][data-year="${year}"][data-month="${month}"][data-date="${date}"]`);
+    }
+
     function selectDay(button: HTMLButtonElement, animate = true) {
-      const previousTarget = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
       clearActiveState();
 
-      button.setAttribute("data-active", "true");
-      button.classList.add("text-black", "font-bold");
-      button.classList.remove("opacity-70", "opacity-30");
-      const targetDSpan = button.querySelector("span:last-child");
-      if (targetDSpan) {
-        targetDSpan.classList.add("text-black");
-        targetDSpan.classList.remove("text-text-main");
-      }
-
-      const tDot = button.querySelector<HTMLElement>(".today-dot");
-      if (tDot) {
-        tDot.classList.remove("opacity-100", "z-20", "scale-100");
-        tDot.classList.add("opacity-0", "z-0", "scale-50");
-      }
-      
-      const allWeeks = document.querySelectorAll(".week-section");
-      allWeeks.forEach(w => w.classList.remove("active-week"));
-      const parentWeek = button.closest(".week-section");
-      if (parentWeek) parentWeek.classList.add("active-week");
-
-      // În modul închis, derulează strip-ul orizontal astfel încât săptămâna
-      // selectată să fie vizibilă (scroll snap o va centra).
-      if (!isExpanded && parentWeek) {
-        isProgrammaticScroll = true;
-        strip.scrollLeft = parentWeek.offsetLeft;
-        setTimeout(() => { isProgrammaticScroll = false; }, 300);
-      }
-
-      updateSelectedLabel(button);
-
-      animatePillAndCircleDrop(button, !animate, false, previousTarget);
-
-      // Dispatch event for timeline filtering
       const y = button.getAttribute("data-year");
       const m = button.getAttribute("data-month");
       const d = button.getAttribute("data-date");
-      if (y && m && d) {
-        const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
-        localStorage.setItem('selectedCalendarDate', dateStr);
-        window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
-      }
+      if (!y || !m || !d) return;
+
+      // Activate same date in both strips
+      const weeksBtn = findButtonByDate(y, m, d, weeksStrip);
+      const monthsBtn = findButtonByDate(y, m, d, monthsStrip);
+      const target = isExpanded ? (monthsBtn || button) : (weeksBtn || button);
+
+      [weeksBtn, monthsBtn].forEach(btn => {
+        if (!btn) return;
+        btn.setAttribute("data-active", "true");
+        btn.classList.add("text-black", "font-bold");
+        btn.classList.remove("opacity-70", "opacity-30");
+        const targetDSpan = btn.querySelector("span:last-child");
+        if (targetDSpan) {
+          targetDSpan.classList.add("text-black");
+          targetDSpan.classList.remove("text-text-main");
+        }
+        const tDot = btn.querySelector<HTMLElement>(".today-dot");
+        if (tDot) {
+          tDot.classList.remove("opacity-100", "z-20", "scale-100");
+          tDot.classList.add("opacity-0", "z-0", "scale-50");
+        }
+      });
+
+      updateSelectedLabel(target);
+      positionPill(target, animate);
+
+      // Dispatch event for timeline filtering
+      const dateStr = `${y}-${(parseInt(m) + 1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
+      localStorage.setItem('selectedCalendarDate', dateStr);
+      window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
     }
 
     expandBtn.addEventListener("click", () => {
       isExpanded = !isExpanded;
       card.dataset.expanded = isExpanded ? "true" : "false";
-      
+
       const icon = expandBtn.querySelector("svg");
       if (icon) {
-         icon.style.transform = isExpanded ? "rotate(45deg)" : "rotate(0deg)";
+        icon.style.transform = isExpanded ? "rotate(45deg)" : "rotate(0deg)";
       }
 
-      const activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
+      const activeBtn = document.querySelector<HTMLButtonElement>('[data-active="true"]');
       const monthYearLabel = document.getElementById("calendar-month-year");
-      
+
       if (isExpanded) {
-         card.classList.remove("closed-mode");
-         card.classList.add("expanded-mode");
+        card.classList.remove("closed-mode");
+        card.classList.add("expanded-mode");
 
-         strip.classList.remove("closed-mode");
-         strip.classList.add("expanded-mode");
+        // Switch to months strip first so it can be measured
+        weeksStrip.classList.add("hidden");
+        monthsStrip.classList.remove("hidden");
+        monthsStrip.classList.add("z-10");
 
-         const allWeeks = document.querySelectorAll(".week-section");
-         allWeeks.forEach(w => w.classList.remove("collapsed-week"));
+        // Sync months strip to the active month
+        if (activeBtn) {
+          const activeMonthSection = activeBtn.closest('[data-month-section]') as HTMLElement | null;
+          if (activeMonthSection) {
+            isProgrammaticScroll = true;
+            void monthsStrip.offsetWidth; // force reflow
+            scrollToSlide(monthsStrip, activeMonthSection, true);
+            setTimeout(() => { isProgrammaticScroll = false; }, 80);
+          }
+        }
 
-         if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
-
-         if (activeBtn) {
-           updateSelectedLabel(activeBtn);
-           requestAnimationFrame(updateMonthYearLabel);
-         }
+        if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
+        updateMonthYearLabel();
       } else {
-         card.classList.remove("expanded-mode");
-         card.classList.add("closed-mode");
+        card.classList.remove("expanded-mode");
+        card.classList.add("closed-mode");
 
-         strip.classList.remove("expanded-mode");
-         strip.classList.add("closed-mode");
+        // Switch to weeks strip first so it can be measured
+        monthsStrip.classList.add("hidden");
+        monthsStrip.classList.remove("z-10");
+        weeksStrip.classList.remove("hidden");
 
-         const allWeeks = document.querySelectorAll(".week-section");
-         allWeeks.forEach(w => w.classList.remove("collapsed-week"));
+        // Sync weeks strip to the active week
+        if (activeBtn) {
+          const activeWeekSlide = activeBtn.closest('[data-week-slide="true"]') as HTMLElement | null;
+          if (activeWeekSlide) {
+            isProgrammaticScroll = true;
+            void weeksStrip.offsetWidth; // force reflow
+            scrollToSlide(weeksStrip, activeWeekSlide, true);
+            setTimeout(() => { isProgrammaticScroll = false; }, 80);
+          }
+        }
 
-         if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
-         
-         if (activeBtn) {
-            const activeWeek = activeBtn.closest('.week-section') as HTMLElement | null;
-            if (activeWeek) {
-              isProgrammaticScroll = true;
-              strip.scrollLeft = activeWeek.offsetLeft;
-              setTimeout(() => { isProgrammaticScroll = false; }, 300);
-            }
-         }
+        if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
       }
 
-      if (activeBtn) animatePillAndCircleDrop(activeBtn, false, true);
+      // Reposition pill for the new mode
+      if (activeBtn) positionPill(activeBtn, false);
     });
 
-    const allButtons = Array.from(strip.querySelectorAll<HTMLButtonElement>('[data-calendar-item]'));
-    allButtons.forEach(button => {
-      if (button.dataset.clickAttached === "true") return;
-      button.dataset.clickAttached = "true";
-      button.addEventListener("click", (e) => {
-        e.preventDefault();
-        selectDay(button, true);
+    function attachButtonListeners(strip: HTMLElement) {
+      const allButtons = Array.from(strip.querySelectorAll<HTMLButtonElement>('[data-calendar-item]'));
+      allButtons.forEach(button => {
+        if (button.dataset.clickAttached === "true") return;
+        button.dataset.clickAttached = "true";
+        button.addEventListener("click", (e) => {
+          e.preventDefault();
+          selectDay(button, true);
+        });
       });
-    });
+    }
+
+    attachButtonListeners(weeksStrip);
+    attachButtonListeners(monthsStrip);
 
     requestAnimationFrame(() => {
       const savedDate = localStorage.getItem('selectedCalendarDate');
       const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
-      let activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
+      let activeBtn = document.querySelector<HTMLButtonElement>('[data-active="true"]');
 
       if (savedDate && savedDate === todayStr) {
-        const targetBtn = allButtons.find((b) => {
+        const targetBtn = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-calendar-item]')).find((b) => {
           const y = b.getAttribute("data-year");
           const m = b.getAttribute("data-month");
           const d = b.getAttribute("data-date");
           if (!y || !m || !d) return false;
-          const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
+          const dateStr = `${y}-${(parseInt(m) + 1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
           return dateStr === savedDate;
         });
         if (targetBtn) {
@@ -540,18 +592,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           activeBtn = targetBtn;
         }
       } else if (savedDate) {
-        // Data salvată e din altă zi — nu o mai restaurem, selectăm azi implicit
         localStorage.removeItem('selectedCalendarDate');
       }
 
       if (activeBtn) {
-        animatePillAndCircleDrop(activeBtn, true);
-        // Trigger initial selection event
+        positionPill(activeBtn, false);
         const y = activeBtn.getAttribute("data-year");
         const m = activeBtn.getAttribute("data-month");
         const d = activeBtn.getAttribute("data-date");
         if (y && m && d) {
-          const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
+          const dateStr = `${y}-${(parseInt(m) + 1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
           window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
         }
       }
@@ -561,19 +611,17 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       window.removeEventListener("resize", (window as any)._weeklyCalendarResizeHandler);
     }
     const handleResize = () => {
-      const activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
-      if (activeBtn) animatePillAndCircleDrop(activeBtn, true);
-      updateMonthYearLabel();
+      const activeBtn = document.querySelector<HTMLButtonElement>('[data-active="true"]');
+      if (activeBtn) positionPill(activeBtn, false);
     };
     (window as any)._weeklyCalendarResizeHandler = handleResize;
     window.addEventListener("resize", handleResize);
 
     function updateMonthYearLabel() {
-      const contentWidth = strip.offsetWidth - 48; // accounting for px-6
-      if (contentWidth <= 0) return;
-      const index = Math.round(strip.scrollLeft / contentWidth);
-      
-      const monthSections = Array.from(document.querySelectorAll(".month-section"));
+      if (!isExpanded) return;
+      const strip = monthsStrip;
+      const index = getCurrentSlideIndex(strip);
+      const monthSections = Array.from(strip.querySelectorAll("[data-month-section]"));
       if (monthSections[index]) {
         const monthName = monthSections[index].getAttribute("data-month-name");
         const year = monthSections[index].getAttribute("data-year");
@@ -584,53 +632,78 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
     }
 
-    strip.addEventListener("scroll", () => {
-      if (isExpanded) {
-        updateMonthYearLabel();
-        return;
-      }
-      if (isProgrammaticScroll) return;
-
-      // În modul închis, după ce scroll-ul se oprește pe o săptămână,
-      // selectează automat ziua cu același index (Luni…Vineri) din săptămâna nouă.
-      if (scrollTimer) clearTimeout(scrollTimer);
-      scrollTimer = window.setTimeout(() => {
-        const allWeeks = getAllWeekSections();
-        if (allWeeks.length === 0) return;
-
-        const center = strip.scrollLeft + strip.offsetWidth / 2;
-        let targetWeek: HTMLElement | null = null;
-        for (const w of allWeeks) {
-          const left = w.offsetLeft;
-          const right = left + w.offsetWidth;
-          if (center >= left && center < right) {
-            targetWeek = w;
-            break;
-          }
-        }
-        if (!targetWeek) targetWeek = allWeeks[allWeeks.length - 1];
-
-        const activeDay = strip.querySelector('[data-active="true"]') as HTMLButtonElement | null;
-        const activeDayIndex = activeDay ? parseInt(activeDay.getAttribute('data-index') || '0', 10) : 0;
-        const targetBtn = targetWeek.querySelector(`[data-calendar-item][data-index="${activeDayIndex}"]`) as HTMLButtonElement | null
-          || targetWeek.querySelector('[data-calendar-item]') as HTMLButtonElement | null;
-        if (targetBtn && targetBtn.getAttribute('data-active') !== 'true') {
-          selectDay(targetBtn, true);
-        }
-      }, 150);
-    });
-    
-    // Initial label set
-    updateMonthYearLabel();
-
-    function getAllWeekSections(): HTMLElement[] {
-      return Array.from(document.querySelectorAll('.week-section')) as HTMLElement[];
+    function onScrollStart(strip: HTMLElement) {
+      scrollStartLeft = strip.scrollLeft;
+      scrollStartIndex = getCurrentSlideIndex(strip);
     }
 
+    function onScrollEnd(strip: HTMLElement) {
+      if (isProgrammaticScroll) return;
+
+      const slides = getSlides(strip);
+      if (!slides.length) return;
+
+      const endIndex = getCurrentSlideIndex(strip);
+      let targetIndex = endIndex;
+
+      // Catch: limit swipe to one slide at a time
+      const delta = endIndex - scrollStartIndex;
+      if (Math.abs(delta) > 1) {
+        targetIndex = scrollStartIndex + Math.sign(delta);
+      }
+
+      const targetSlide = slides[targetIndex];
+      if (!targetSlide) return;
+
+      // Snap to target slide
+      if (targetIndex !== endIndex || Math.abs(strip.scrollLeft - targetSlide.offsetLeft) > 2) {
+        isProgrammaticScroll = true;
+        scrollToSlide(strip, targetSlide, false);
+        setTimeout(() => { isProgrammaticScroll = false; }, 350);
+      }
+
+      // Update active day after snap
+      const activeBtn = strip.querySelector<HTMLButtonElement>('[data-active="true"]');
+      if (activeBtn) {
+        const y = activeBtn.getAttribute("data-year");
+        const m = activeBtn.getAttribute("data-month");
+        const d = activeBtn.getAttribute("data-date");
+        const idx = activeBtn.getAttribute("data-index");
+        if (y && m && d && idx !== null) {
+          const targetBtn = targetSlide.querySelector<HTMLButtonElement>(`[data-calendar-item][data-index="${idx}"]`);
+          if (targetBtn) {
+            selectDay(targetBtn, true);
+          } else {
+            // Fallback: keep same date if it exists in the new slide
+            const sameDateBtn = targetSlide.querySelector<HTMLButtonElement>(`[data-calendar-item][data-year="${y}"][data-month="${m}"][data-date="${d}"]`);
+            if (sameDateBtn) selectDay(sameDateBtn, true);
+          }
+        }
+      }
+
+      updateMonthYearLabel();
+    }
+
+    weeksStrip.addEventListener("scroll", () => {
+      if (isProgrammaticScroll) return;
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(() => onScrollEnd(weeksStrip), 80);
+    }, { passive: true });
+
+    monthsStrip.addEventListener("scroll", () => {
+      if (isProgrammaticScroll) return;
+      if (isExpanded) updateMonthYearLabel();
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(() => onScrollEnd(monthsStrip), 80);
+    }, { passive: true });
+
+    weeksStrip.addEventListener("touchstart", () => onScrollStart(weeksStrip), { passive: true });
+    monthsStrip.addEventListener("touchstart", () => onScrollStart(monthsStrip), { passive: true });
+
+    updateMonthYearLabel();
   }
 
   function bootCalendar() {
-    // Wait for the layout to settle before measuring/animating the calendar.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         initCalendarAnimation();
@@ -645,92 +718,45 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
   document.addEventListener("astro:page-load", bootCalendar);
   document.addEventListener("astro:after-swap", bootCalendar);
-
 </script>
 
 <style>
-  .week-section {
-    height: 5.25rem;
-    opacity: 1;
+  #weeks-strip,
+  #months-strip {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  
-  .week-section:not(.active-week) {
-    overflow: hidden;
+  #weeks-strip::-webkit-scrollbar,
+  #months-strip::-webkit-scrollbar {
+    display: none;
   }
-  
-  /* Modul închis: carusel orizontal de săptămâni continue (fără delimitare de lună) */
-  .closed-mode .month-section {
-    display: contents;
-  }
-  
-  .closed-mode .week-section {
-    flex: 0 0 100%;
-    display: flex !important;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    height: 5.25rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-  
-  .closed-mode .week-section.collapsed-week {
-    height: 5.25rem !important;
-    opacity: 1 !important;
-    margin: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-  
-  .closed-mode [data-calendar-item] {
-    flex: 1 1 0%;
-    max-width: 4.5rem;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  
-  /* Modul extins: săptămânile stivuite pe verticală, una pe lună */
-  .expanded-mode .month-section {
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    width: 100%;
-  }
-  
-  .expanded-mode .week-section {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.25rem;
-  }
-  
-  .expanded-mode .week-section.collapsed-week {
-    height: 0 !important;
-    opacity: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    border: 0 !important;
-  }
-  
-.day-label {
-    opacity: 0;
+
+  .day-label {
     font-weight: 900 !important;
     color: #C93263 !important;
     -webkit-text-stroke: 0.5px currentColor;
+    opacity: 0;
   }
 
-  .closed-mode .week-section .day-label {
+  /* Closed mode: show day labels on every day */
+  #weeks-strip .week-slide .day-label {
     opacity: 1 !important;
   }
 
-  .expanded-mode .week-section:first-child .day-label {
+  /* Expanded mode: show day labels only on the first row of each month */
+  #months-strip .month-section .week-section:first-child .day-label {
     opacity: 1 !important;
   }
 
-  .expanded-mode .week-section:not(:first-child) .day-label {
-    opacity: 0 !important;
-    transition: none !important;
+  #strip-container {
+    position: relative;
+    max-height: 7rem;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+
+  #calendar-card.expanded-mode #strip-container {
+    max-height: 36rem;
   }
 
   #calendar-card {
@@ -739,6 +765,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-card.expanded-mode {
-    max-height: 44rem;
+    max-height: 48rem;
   }
 </style>
