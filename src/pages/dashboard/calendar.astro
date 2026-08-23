@@ -121,19 +121,10 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       grid-template-rows: 0fr;
     }
     .group-session-card.expanded .card-details {
-      grid-template-rows: 1fr !important;
+      grid-template-rows: 1fr;
     }
     .group-session-card.expanded .group-expanded-hint {
       display: none;
-    }
-    .group-session-card .member-card {
-      cursor: pointer;
-    }
-    .group-session-card .member-card .member-actions {
-      display: none;
-    }
-    .group-session-card .member-card.member-expanded .member-actions {
-      display: flex;
     }
   </style>
 
@@ -758,8 +749,6 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         const progressBarFill = isGhimbav ? 'bg-brand-secondary' : 'bg-brand-primary';
         const progressBarTrack = isGhimbav ? 'bg-black/20' : 'bg-black/15';
         const memberIds = group.members.map((m: any) => m.id).join(',');
-        const memberPatientIds = group.members.map((m: any) => m.patientId).join(',');
-        const memberNames = group.members.map((m: any) => escapeJsString(m.patientName || '')).join(',');
 
         // Status icon for the group = any ongoing/finalized etc.
         const anyStatus = group.members.some((m: any) => m.status === 'programat') ? 'programat' : group.members[0]?.status || 'programat';
@@ -780,7 +769,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                </div>`
             : '';
           return `
-            <div class="member-card p-3 rounded-2xl ${memberClasses} shadow-sm space-y-1" onclick="event.stopPropagation(); this.classList.toggle('member-expanded');">
+            <div class="p-3 rounded-2xl ${memberClasses} shadow-sm space-y-1">
               <div class="flex items-center justify-between">
                 <span class="font-black text-sm truncate">${safeName}</span>
                 <span class="text-[10px] font-black opacity-60">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
@@ -790,10 +779,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                   <div class="h-full rounded-full ${progressBarFill}" style="width: ${progress}%;"></div>
                 </div>
               </div>
-              <div class="member-actions hidden flex-col gap-2 pt-2">
-                <button type="button" class="w-full py-2.5 rounded-xl ${isGhimbav ? 'bg-brand-primary text-black' : 'bg-brand-secondary text-white'} text-xs font-black uppercase tracking-wider active:scale-95 transition-transform" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${m.patientId}' } }))">Istoric plăți</button>
-                ${actionButtons}
-              </div>
+              ${actionButtons}
             </div>
           `;
         }).join('');
@@ -802,16 +788,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           <session-card class="group-session-card block relative rounded-[2.5rem] shadow-sm overflow-hidden" data-group-id="${group.groupId}" data-group-member-ids="${memberIds}">
             <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
               <div class="flex items-center gap-3" data-action-area>
-                <button
-                  type="button"
-                  data-action-btn
-                  class="relative z-20 w-12 h-12 rounded-full bg-white shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-transparent"
-                  onclick="event.stopPropagation(); event.preventDefault(); window.editGroupSession('${group.groupId}', '${memberIds}', '${timeStr}', '${group.selectedDate || currentCalendarDate}', '${escapeJsString(locationStr)}');"
-                >
-                  <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.89 1.12l-2.843.712a.75.75 0 01-.904-.903l.71-2.842a4.5 4.5 0 011.12-1.89L16.862 4.487z"></path><path d="M19.5 7.125L16.862 4.487"></path></svg>
-                </button>
-                <button
-                  type="button"
+                <button 
+                  type="button" 
                   data-action-btn
                   class="relative z-20 w-12 h-12 rounded-full bg-orange-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
                   onclick="event.stopPropagation(); event.preventDefault(); window.cancelGroupSession('${memberIds}');"
@@ -819,8 +797,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 >
                   <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                 </button>
-                <button
-                  type="button"
+                <button 
+                  type="button" 
                   data-action-btn
                   class="relative z-20 w-12 h-12 rounded-full bg-red-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform"
                   onclick="event.stopPropagation(); event.preventDefault(); window.deleteGroupSession('${memberIds}');"
