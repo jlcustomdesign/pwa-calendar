@@ -484,6 +484,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
          if (activeBtn) {
            updateSelectedLabel(activeBtn);
+           // Scroll to the active month section so we don't land on 2027
+           const activeMonthSection = activeBtn.closest('[data-month-section]') as HTMLElement | null;
+           if (activeMonthSection) {
+             isProgrammaticScroll = true;
+             strip.scrollLeft = activeMonthSection.offsetLeft;
+             setTimeout(() => { isProgrammaticScroll = false; }, 300);
+           }
            requestAnimationFrame(updateMonthYearLabel);
          }
       } else {
