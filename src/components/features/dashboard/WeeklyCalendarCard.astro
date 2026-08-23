@@ -198,7 +198,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                       : "text-text-main hover:opacity-60 opacity-30"
                 }`}
               >
-                <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20 transition-all duration-300" style="color: #C93263 !important;">{item.dayLabel}</span>
+                <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20" style="color: #C93263 !important;">{item.dayLabel}</span>
                 <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
                   {item.date}
                 </span>
@@ -483,12 +483,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
          if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
 
          if (activeBtn) {
-           const activeMonthSection = activeBtn.closest('.month-section') as HTMLElement | null;
-           if (activeMonthSection) {
-             isProgrammaticScroll = true;
-             strip.scrollLeft = activeMonthSection.offsetLeft;
-             setTimeout(() => { isProgrammaticScroll = false; }, 300);
-           }
            updateSelectedLabel(activeBtn);
            requestAnimationFrame(updateMonthYearLabel);
          }
@@ -732,5 +726,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   .expanded-mode .week-section:first-child .day-label {
     opacity: 1 !important;
+  }
+
+  .expanded-mode .week-section:not(:first-child) .day-label {
+    opacity: 0 !important;
+    transition: none !important;
   }
 </style>
