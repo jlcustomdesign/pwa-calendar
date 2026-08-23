@@ -94,7 +94,7 @@ const { title, hideDock = false } = Astro.props;
     <script>
       import { initErrorLogger } from '../lib/errorLogger';
       import { setPaymentStatus, renewWithPrompt, dismissRenewalNotification } from '../lib/services/patientService';
-      import { getAppointment, deleteAppointment, cancelAppointment, markAbsent } from '../lib/services/appointmentService';
+      import { getAppointment, deleteAppointment, cancelAppointment, markAbsent, updateAppointment } from '../lib/services/appointmentService';
 
       // Prevent horizontal swipe navigation inside the PWA (Safari/Chrome back/forward gestures)
       function preventHorizontalSwipeNavigation() {
@@ -577,6 +577,65 @@ const { title, hideDock = false } = Astro.props;
           } catch (err: any) {
             (window as any).showToast('Eroare la încărcarea programării: ' + (err.message || err), 'error');
           }
+        };
+
+        // Marchează o sesiune ca absentă direct din card
+        (window as any).markAbsentSession = async (input: string | HTMLElement) => {
+          const sessionId = resolveSessionId(input);
+          if (!sessionId) return;
+          const confirmed = await (window as any).showConfirm('Nu a venit', 'Sigur vrei să marchezi pacientul ca absent?');
+          if (!confirmed) return;
+          try {
+            await markAbsent(sessionId, 'Nu a venit');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            (window as any).showToast('Pacientul a fost marcat ca absent.', 'success');
+          } catch (err: any) {
+            (window as any).showToast('Eroare la marcarea ca absent: ' + (err.message || err), 'error');
+          }
+        };
+
+        // Anulează/șterge toate sesiunile unui grup
+        (window as any).cancelGroupSession = async (memberIdsRaw: string) => {
+          const ids = (memberIdsRaw || '').split(',').filter(Boolean);
+          if (ids.length === 0) return;
+          const confirmed = await (window as any).showConfirm('Anulare grup', 'Sigur vrei să marchezi ședința în grup ca anulată pentru toți pacienții?');
+          if (!confirmed) return;
+          try {
+            await Promise.all(ids.map(id => markAbsent(id, 'Anulat din grup')));
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            (window as any).showToast('Ședința în grup a fost marcată ca anulată.', 'success');
+          } catch (err: any) {
+            (window as any).showToast('Eroare la anularea grupului: ' + (err.message || err), 'error');
+          }
+        };
+
+        (window as any).deleteGroupSession = async (memberIdsRaw: string) => {
+          const ids = (memberIdsRaw || '').split(',').filter(Boolean);
+          if (ids.length === 0) return;
+          const confirmed = await (window as any).showConfirm('Ștergere grup', 'Sigur vrei să ștergi ședința în grup pentru toți pacienții?');
+          if (!confirmed) return;
+          try {
+            await Promise.all(ids.map(id => deleteAppointment(id)));
+            window.dispatchEvent(new CustomEvent('sessionsUpdated', { detail: { source: 'dashboardDelete' } }));
+            (window as any).showToast('Ședința în grup a fost ștearsă.', 'success');
+          } catch (err: any) {
+            (window as any).showToast('Eroare la ștergerea grupului: ' + (err.message || err), 'error');
+          }
+        };
+
+        // Editează o ședință în grup (doar oră/data/locație; membri rămân aceeași)
+        (window as any).editGroupSession = async (groupId: string, memberIdsRaw: string, time: string, date: string, location: string) => {
+          const ids = (memberIdsRaw || '').split(',').filter(Boolean);
+          if (ids.length === 0) return;
+          window.dispatchEvent(new CustomEvent('openAddSession', {
+            detail: {
+              isGroupEdit: true,
+              memberIds: ids,
+              time: time || '08:00',
+              date: date || new Date().toISOString().split('T')[0],
+              location: location || 'Belaqva'
+            }
+          }));
         };
 
 
