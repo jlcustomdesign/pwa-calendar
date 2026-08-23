@@ -233,12 +233,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     // Derulează la săptămâna activă la încărcare (modul închis funcționează ca un
     // carusel orizontal de săptămâni consecutive).
     function scrollToActiveWeek() {
+      if (isExpanded) return;
       const activeWeek = document.querySelector('.week-section.active-week') as HTMLElement | null;
-      if (activeWeek && !isExpanded) {
-        strip.scrollLeft = activeWeek.offsetLeft;
-      }
+      if (!activeWeek || strip.offsetWidth === 0) return;
+      const target = activeWeek.offsetLeft + activeWeek.offsetWidth / 2 - strip.offsetWidth / 2;
+      strip.scrollLeft = target;
     }
-    requestAnimationFrame(scrollToActiveWeek);
+    setTimeout(scrollToActiveWeek, 100);
 
     function animatePillAndCircleDrop(target: HTMLButtonElement, isInitial = false, isMorphing = false, previousTarget: HTMLButtonElement | null = null) {
       if (!target || !pill || !circle) return;
@@ -478,6 +479,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
          if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
 
          if (activeBtn) {
+           const activeMonthSection = activeBtn.closest('.month-section') as HTMLElement | null;
+           if (activeMonthSection) {
+             const target = activeMonthSection.offsetLeft + activeMonthSection.offsetWidth / 2 - strip.offsetWidth / 2;
+             strip.scrollLeft = target;
+           }
            updateSelectedLabel(activeBtn);
            requestAnimationFrame(updateMonthYearLabel);
          }
@@ -492,11 +498,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
          allWeeks.forEach(w => w.classList.remove("collapsed-week"));
 
          if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
-         
+
          if (activeBtn) {
             const activeWeek = activeBtn.closest('.week-section') as HTMLElement | null;
             if (activeWeek) {
-              strip.scrollLeft = activeWeek.offsetLeft;
+              const target = activeWeek.offsetLeft + activeWeek.offsetWidth / 2 - strip.offsetWidth / 2;
+              strip.scrollLeft = target;
             }
          }
       }
