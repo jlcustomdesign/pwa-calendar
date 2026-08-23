@@ -730,16 +730,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     opacity: 1 !important;
   }
 
-  .expanded-mode .week-section .day-label {
+  .expanded-mode .week-section:first-child .day-label {
     opacity: 1 !important;
-  }
-
-  #calendar-card {
-    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    max-height: 18rem;
-  }
-
-  #calendar-card.expanded-mode {
-    max-height: 44rem;
   }
 </style>
