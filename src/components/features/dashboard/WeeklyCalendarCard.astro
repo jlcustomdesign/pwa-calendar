@@ -471,6 +471,18 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const monthYearLabel = document.getElementById("calendar-month-year");
       
       if (isExpanded) {
+         // Scroll instantly to the active month before expanding so the open view
+         // starts on the current month, not on a far-future/past month.
+         if (activeBtn) {
+           const activeMonthSection = activeBtn.closest('.month-section') as HTMLElement | null;
+           if (activeMonthSection) {
+             const prev = strip.style.scrollBehavior;
+             strip.style.scrollBehavior = 'auto';
+             strip.scrollLeft = activeMonthSection.offsetLeft;
+             strip.style.scrollBehavior = prev;
+           }
+         }
+
          card.classList.remove("closed-mode");
          card.classList.add("expanded-mode");
 
