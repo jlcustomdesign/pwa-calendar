@@ -1,0 +1,567 @@
+---
+// ShareScheduleSheet.astro — Bottom sheet pentru trimiterea programului viitor al pacientului
+---
+
+<div 
+  id="share-schedule-sheet" 
+  data-sheet-root 
+  class="fixed inset-x-0 bottom-0 z-[130] bg-white rounded-t-[2.5rem] pt-5 pb-0 shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-full will-change-transform flex flex-col max-h-[92vh] overflow-hidden"
+>
+  <!-- Drag handle -->
+  <div class="flex items-center justify-center py-3 shrink-0 cursor-grab active:cursor-grabbing" id="share-schedule-drag-handle">
+    <div class="w-12 h-1.5 bg-black/10 rounded-full"></div>
+  </div>
+
+  <div class="flex-1 overflow-y-auto px-6 pt-1 pb-36 space-y-5">
+    <!-- Header -->
+    <div class="flex items-start justify-between gap-3 mb-2">
+      <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-black tracking-tight text-neutral-900">Trimite programul</h2>
+        <div class="mt-1.5 flex items-center gap-2 flex-wrap">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-50 text-pink-700 font-extrabold text-xs border border-pink-200/60 shadow-2xs">
+            <span class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
+            <span id="share-patient-subtitle" class="truncate max-w-[220px]">Pacient</span>
+          </span>
+        </div>
+      </div>
+      <div id="share-sessions-count-badge" class="shrink-0 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold text-xs shadow-sm shadow-pink-500/20 whitespace-nowrap">
+        0 ședințe
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="share-loading-state" class="py-12 flex flex-col items-center justify-center space-y-3">
+      <div class="w-8 h-8 border-3 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-xs font-bold text-pink-700">Se caută ședințele viitoare...</p>
+    </div>
+
+    <!-- Empty State (dacă nu are ședințe viitoare) -->
+    <div id="share-empty-state" class="hidden p-6 rounded-3xl bg-pink-500/5 border border-pink-500/15 text-center space-y-2">
+      <div class="w-11 h-11 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center mx-auto mb-1 shadow-2xs">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      </div>
+      <p class="text-sm font-black text-neutral-900">Nicio ședință viitoare</p>
+      <p class="text-xs font-medium text-neutral-600 leading-relaxed">Pacientul nu are nicio ședință activă programată în calendar pentru datele viitoare.</p>
+    </div>
+
+    <!-- Content State (când există ședințe) -->
+    <div id="share-content-box" class="hidden space-y-5">
+      <!-- Card: Text de trimis (Editabil / Previzualizare) -->
+      <div class="rounded-3xl bg-neutral-50/90 p-4 space-y-2.5 border border-pink-100/80 shadow-2xs">
+        <div class="flex items-center justify-between px-1">
+          <label for="share-message-textarea" class="flex items-center gap-2 text-xs font-black text-neutral-800 uppercase tracking-wider">
+            <span class="w-2 h-2 rounded-full bg-pink-500"></span>
+            Previzualizare Mesaj
+          </label>
+          <span class="text-[11px] font-extrabold text-pink-700 bg-pink-100/70 px-2.5 py-0.5 rounded-full border border-pink-200/50">Gata de trimis</span>
+        </div>
+        <textarea
+          id="share-message-textarea"
+          rows="6"
+          class="w-full p-4 rounded-2xl bg-white border border-pink-200/70 text-sm font-bold text-neutral-900 focus:outline-none focus:border-pink-500 focus:ring-3 focus:ring-pink-500/15 transition-all shadow-sm leading-relaxed resize-none"
+        ></textarea>
+      </div>
+
+      <!-- Card: Lista vizuală a ședințelor viitoare -->
+      <div class="rounded-3xl bg-neutral-50/90 p-4 space-y-3 border border-pink-100/80 shadow-2xs">
+        <div class="flex items-center gap-2 px-1">
+          <svg class="w-4 h-4 text-pink-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <label class="block text-xs font-black text-neutral-800 uppercase tracking-wider">Lista ședințelor găsite</label>
+        </div>
+        <div id="share-sessions-list" class="space-y-2">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-white via-white to-transparent pt-8 flex flex-col gap-2.5 pb-safe z-10">
+    <div class="flex gap-2.5">
+      <!-- Buton Copiază Text -->
+      <button 
+        type="button" 
+        id="btn-copy-schedule" 
+        class="flex-1 py-4 px-4 rounded-2xl bg-white border border-neutral-200 hover:bg-pink-50/40 hover:border-pink-200 text-neutral-900 font-extrabold text-sm sm:text-base shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+      >
+        <svg class="w-5 h-5 text-neutral-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+        </svg>
+        <span>Copiază</span>
+      </button>
+
+      <!-- Buton Trimite (WhatsApp / Native Share) -->
+      <button 
+        type="button" 
+        id="btn-share-schedule" 
+        class="flex-1 py-4 px-4 rounded-2xl bg-gradient-to-r from-pink-500 via-pink-600 to-rose-500 hover:brightness-105 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-pink-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+      >
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        </svg>
+        <span>Trimite</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { supabase } from '../../../lib/supabase';
+  import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { parseLocalDate, toLocalISOString } from '../../../utils/date';
+
+  class ShareScheduleSheetManager {
+    private sheet: HTMLElement | null = null;
+    private overlay: HTMLElement | null = null;
+    private messageTextarea: HTMLInputElement | HTMLTextAreaElement | null = null;
+    private sessionsListContainer: HTMLElement | null = null;
+    private loadingState: HTMLElement | null = null;
+    private emptyState: HTMLElement | null = null;
+    private contentBox: HTMLElement | null = null;
+    private subtitleEl: HTMLElement | null = null;
+    private countBadgeEl: HTMLElement | null = null;
+
+    private currentPatientId: string | null = null;
+    private currentPatientName: string = '';
+    private currentPatientPhone: string = '';
+    private upcomingAppointments: any[] = [];
+    private isOpen: boolean = false;
+
+    // Gesture handling
+    private startY: number = 0;
+    private currentY: number = 0;
+    private startX: number = 0;
+    private dragEngaged = false;
+    private startTime = 0;
+    private scrollAtTop: boolean = true;
+
+    constructor() {
+      this.reconnect();
+      this.createOverlay();
+      this.bindEvents();
+    }
+
+    reconnect() {
+      this.sheet = document.getElementById('share-schedule-sheet');
+      this.messageTextarea = document.getElementById('share-message-textarea') as HTMLTextAreaElement;
+      this.sessionsListContainer = document.getElementById('share-sessions-list');
+      this.loadingState = document.getElementById('share-loading-state');
+      this.emptyState = document.getElementById('share-empty-state');
+      this.contentBox = document.getElementById('share-content-box');
+      this.subtitleEl = document.getElementById('share-patient-subtitle');
+      this.countBadgeEl = document.getElementById('share-sessions-count-badge');
+
+      if (this.sheet?.dataset.open === 'true') this.isOpen = true;
+    }
+
+    createOverlay() {
+      const existingOverlays = document.querySelectorAll('.share-schedule-overlay');
+      existingOverlays.forEach(o => o.remove());
+
+      this.overlay = document.createElement('div');
+      this.overlay.className = 'fixed inset-0 bg-black/25 z-[120] opacity-0 pointer-events-none transition-opacity duration-300 share-schedule-overlay';
+      document.body.appendChild(this.overlay);
+    }
+
+    async handleOpenEvent(e: CustomEvent) {
+      this.reconnect();
+      if (!e.detail?.patientId) return;
+
+      this.currentPatientId = e.detail.patientId;
+      this.currentPatientName = e.detail.patientName || 'Pacient';
+      this.currentPatientPhone = e.detail.patientPhone || '';
+
+      if (this.subtitleEl) {
+        this.subtitleEl.textContent = this.currentPatientName;
+      }
+
+      this.open();
+      await this.loadUpcomingSessions();
+    }
+
+    private formatDayAndMonth(dateStr: string): string {
+      const d = parseLocalDate(dateStr);
+      const dayNames = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
+      const monthNames = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+      
+      const dayName = dayNames[d.getDay()];
+      const dayNum = d.getDate();
+      const monthName = monthNames[d.getMonth()];
+
+      return `${dayName}, ${dayNum} ${monthName}`;
+    }
+
+    private formatTimeClean(timeStr: string): string {
+      if (!timeStr) return '';
+      // "10:00:00" -> "10:00"
+      return timeStr.slice(0, 5);
+    }
+
+    async loadUpcomingSessions() {
+      if (!this.currentPatientId) return;
+
+      if (this.loadingState) this.loadingState.classList.remove('hidden');
+      if (this.emptyState) this.emptyState.classList.add('hidden');
+      if (this.contentBox) this.contentBox.classList.add('hidden');
+      if (this.countBadgeEl) this.countBadgeEl.textContent = '0 ședințe';
+
+      try {
+        const todayStr = toLocalISOString(new Date());
+
+        // Fetch upcoming active appointments for this patient (today and future dates)
+        const { data, error } = await supabase
+          .from('programari')
+          .select('*')
+          .eq('pacient_id', this.currentPatientId)
+          .gte('data', todayStr)
+          .not('status', 'in', '("finalizat","anulat","absent")')
+          .order('data', { ascending: true })
+          .order('ora', { ascending: true });
+
+        if (error) throw error;
+
+        // Filtrează ședințele: dacă ședința este chiar azi, păstrăm doar cele a căror oră nu a trecut deja
+        const now = new Date();
+        const currentHourMin = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        this.upcomingAppointments = (data || []).filter((item: any) => {
+          if (item.data === todayStr && item.ora) {
+            const cleanOra = item.ora.slice(0, 5);
+            return cleanOra >= currentHourMin;
+          }
+          return true;
+        });
+
+        if (this.loadingState) this.loadingState.classList.add('hidden');
+
+        if (this.upcomingAppointments.length === 0) {
+          if (this.emptyState) this.emptyState.classList.remove('hidden');
+          if (this.countBadgeEl) this.countBadgeEl.textContent = '0 ședințe';
+          if (this.messageTextarea) {
+            this.messageTextarea.value = `Bună ziua! Nu aveți nicio ședință programată momentan.`;
+          }
+          return;
+        }
+
+        if (this.contentBox) this.contentBox.classList.remove('hidden');
+        if (this.countBadgeEl) {
+          this.countBadgeEl.textContent = `${this.upcomingAppointments.length} ${this.upcomingAppointments.length === 1 ? 'ședință' : 'ședințe'}`;
+        }
+
+        // Build generic text: “Buna ziua! Acestea sunt urmatoarele sedinte : ……”
+        let msg = `Bună ziua! Acestea sunt următoarele ședințe:\n\n`;
+        this.upcomingAppointments.forEach((item, index) => {
+          const dateFormatted = this.formatDayAndMonth(item.data);
+          const timeClean = this.formatTimeClean(item.ora);
+          const locationText = item.locatie ? ` (${item.locatie})` : '';
+          msg += `${index + 1}. ${dateFormatted} — ora ${timeClean}${locationText}\n`;
+        });
+        msg += `\nVă dorim o zi frumoasă!`;
+
+        if (this.messageTextarea) {
+          this.messageTextarea.value = msg;
+        }
+
+        // Render sessions list cards with pink stylish accents
+        if (this.sessionsListContainer) {
+          this.sessionsListContainer.innerHTML = this.upcomingAppointments.map((item, index) => {
+            const dateFormatted = this.formatDayAndMonth(item.data);
+            const timeClean = this.formatTimeClean(item.ora);
+            const locationText = item.locatie || 'Belaqva';
+
+            return `
+              <div class="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-pink-100/80 text-xs shadow-2xs hover:border-pink-200 transition-colors">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-8 h-8 rounded-xl bg-pink-50 text-pink-700 flex items-center justify-center font-black text-xs shrink-0 border border-pink-200/50">
+                    ${index + 1}
+                  </div>
+                  <div class="min-w-0">
+                    <span class="block font-black text-neutral-900 text-sm truncate">${dateFormatted}</span>
+                    <div class="flex items-center gap-1 mt-0.5">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-pink-700 bg-pink-50/80 px-2 py-0.5 rounded-md border border-pink-200/40">
+                        <span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span>
+                        ${locationText}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right shrink-0 ml-3">
+                  <span class="inline-block font-black text-neutral-900 bg-neutral-100 px-3 py-1.5 rounded-xl text-sm font-mono border border-neutral-200/60">${timeClean}</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (err: any) {
+        console.error('Eroare încărcare ședințe viitoare:', err);
+        if (this.loadingState) this.loadingState.classList.add('hidden');
+        if (this.emptyState) {
+          this.emptyState.classList.remove('hidden');
+          const p = this.emptyState.querySelector('p:last-child');
+          if (p) p.textContent = 'A apărut o eroare la citirea programărilor: ' + (err.message || err);
+        }
+      }
+    }
+
+    private bindEvents() {
+      if (!this.sheet) return;
+
+      // Click outside / backdrop click
+      if (this.overlay && this.overlay.dataset.clickBound !== 'true') {
+        this.overlay.dataset.clickBound = 'true';
+        this.overlay.addEventListener('click', () => this.close());
+      }
+
+      // Copy Button
+      const copyBtn = document.getElementById('btn-copy-schedule');
+      if (copyBtn && copyBtn.dataset.bound !== 'true') {
+        copyBtn.dataset.bound = 'true';
+        copyBtn.addEventListener('click', async () => {
+          const text = (document.getElementById('share-message-textarea') as HTMLTextAreaElement)?.value || '';
+          if (!text) return;
+
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(text);
+            } else {
+              // Fallback
+              const ta = document.createElement('textarea');
+              ta.value = text;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+            }
+            (window as any).showToast?.('Programul a fost copiat în clipboard!', 'success');
+          } catch (err) {
+            console.error('Eroare copiere:', err);
+            (window as any).showToast?.('Nu s-a putut copia textul.', 'error');
+          }
+        });
+      }
+
+      // Share Button (WhatsApp / Native Web Share)
+      const shareBtn = document.getElementById('btn-share-schedule');
+      if (shareBtn && shareBtn.dataset.bound !== 'true') {
+        shareBtn.dataset.bound = 'true';
+        shareBtn.addEventListener('click', async () => {
+          const text = (document.getElementById('share-message-textarea') as HTMLTextAreaElement)?.value || '';
+          if (!text) return;
+
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                title: `Program ședințe - ${this.currentPatientName}`,
+                text: text
+              });
+              return;
+            } catch (err: any) {
+              // Ignore AbortError if user simply dismissed the share sheet
+              if (err.name !== 'AbortError') {
+                console.warn('Fallback din navigator.share:', err);
+              } else {
+                return;
+              }
+            }
+          }
+
+          // Fallback direct WhatsApp URL
+          let cleanPhone = (this.currentPatientPhone || '').replace(/[^0-9]/g, '');
+          if (cleanPhone.startsWith('07')) {
+            cleanPhone = '4' + cleanPhone; // Romania prefix +40
+          }
+          const waUrl = cleanPhone 
+            ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+            : `https://wa.me/?text=${encodeURIComponent(text)}`;
+
+          window.open(waUrl, '_blank');
+        });
+      }
+
+      // Dedicated drag handle gesture
+      const dragHandle = document.getElementById('share-schedule-drag-handle');
+      if (dragHandle && dragHandle.dataset.bound !== 'true') {
+        dragHandle.dataset.bound = 'true';
+        let handleStartY = 0;
+        let handleCurrentY = 0;
+        let handleDragging = false;
+        let handleStartTime = 0;
+
+        dragHandle.addEventListener('touchstart', (e: TouchEvent) => {
+          e.stopPropagation();
+          handleStartY = e.touches[0].clientY;
+          handleCurrentY = handleStartY;
+          handleDragging = true;
+          handleStartTime = Date.now();
+          if (this.sheet) this.sheet.style.transition = 'none';
+        }, { passive: true });
+
+        dragHandle.addEventListener('touchmove', (e: TouchEvent) => {
+          e.stopPropagation();
+          if (!handleDragging) return;
+          handleCurrentY = e.touches[0].clientY;
+          const deltaY = handleCurrentY - handleStartY;
+          if (deltaY > 0 && this.sheet) {
+            if (e.cancelable) e.preventDefault();
+            this.sheet.style.transform = `translateY(${deltaY}px)`;
+          }
+        }, { passive: false });
+
+        const onHandleEnd = () => {
+          if (!handleDragging) return;
+          handleDragging = false;
+          const deltaY = handleCurrentY - handleStartY;
+          const elapsed = Date.now() - handleStartTime;
+          const vel = deltaY / elapsed;
+          if (this.sheet) {
+            this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+            if (deltaY > 60 || (vel > 0.3 && deltaY > 15)) {
+              this.close();
+            } else {
+              this.sheet.style.transform = 'translateY(0)';
+            }
+          }
+        };
+        dragHandle.addEventListener('touchend', onHandleEnd);
+        dragHandle.addEventListener('touchcancel', onHandleEnd);
+      }
+
+      // Body swipe-down to dismiss
+      if (this.sheet.dataset.swipeBound !== 'true') {
+        this.sheet.dataset.swipeBound = 'true';
+        this.sheet.addEventListener('touchstart', (e: any) => this.handleTouchStart(e), { passive: true });
+        this.sheet.addEventListener('touchmove', (e: any) => this.handleTouchMove(e), { passive: false });
+        this.sheet.addEventListener('touchend', () => this.handleTouchEnd(), { passive: true });
+        this.sheet.addEventListener('touchcancel', () => this.cancelDrag(), { passive: true });
+      }
+    }
+
+    private handleTouchStart(e: TouchEvent) {
+      if (!e.touches || e.touches.length === 0) return;
+      this.startTime = Date.now();
+      this.startY = e.touches[0].clientY;
+      this.currentY = this.startY;
+      this.startX = e.touches[0].clientX;
+      this.dragEngaged = false;
+
+      const target = e.target as HTMLElement;
+      const isInputTarget = target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+      if (isInputTarget || (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName))) {
+        this.scrollAtTop = false;
+        return;
+      }
+
+      const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
+      this.scrollAtTop = !scrollArea || scrollArea.scrollTop <= 0;
+    }
+
+    private handleTouchMove(e: TouchEvent) {
+      if (!e.touches || e.touches.length === 0) return;
+      const y = e.touches[0].clientY;
+      const deltaY = y - this.startY;
+      const deltaX = e.touches[0].clientX - this.startX;
+
+      if (!this.dragEngaged) {
+        if (this.scrollAtTop && deltaY > 10 && deltaY > Math.abs(deltaX) * 1.5) {
+          this.dragEngaged = true;
+          if (this.sheet) this.sheet.style.transition = 'none';
+        } else {
+          return;
+        }
+      }
+
+      this.currentY = y;
+      if (deltaY > 0 && this.sheet) {
+        if (e.cancelable) e.preventDefault();
+        this.sheet.style.transform = `translateY(${deltaY}px)`;
+      }
+    }
+
+    private handleTouchEnd() {
+      if (!this.sheet || !this.dragEngaged) {
+        this.dragEngaged = false;
+        return;
+      }
+      this.dragEngaged = false;
+      const deltaY = this.currentY - this.startY;
+      const timeElapsed = Date.now() - this.startTime;
+      const velocity = deltaY / timeElapsed;
+      this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+
+      if (deltaY > 60 || (velocity > 0.3 && deltaY > 15)) {
+        this.close();
+      } else {
+        this.sheet.style.transform = 'translateY(0)';
+      }
+    }
+
+    private cancelDrag() {
+      this.dragEngaged = false;
+      if (this.sheet) {
+        this.sheet.style.transition = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)';
+        this.sheet.style.transform = 'translateY(0)';
+      }
+    }
+
+    open() {
+      if (!this.sheet || !this.overlay) return;
+      this.isOpen = true;
+
+      this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;
+      if (document.activeElement && 'blur' in document.activeElement) {
+        (document.activeElement as HTMLElement).blur();
+      }
+
+      this.sheet.dataset.open = 'true';
+      void this.sheet.offsetWidth;
+
+      this.overlay.classList.remove('opacity-0', 'pointer-events-none');
+      this.overlay.classList.add('pointer-events-auto');
+      this.sheet.classList.remove('translate-y-full');
+      lockBodyScroll();
+    }
+
+    close() {
+      if (!this.sheet || !this.overlay || !this.isOpen) return;
+      this.isOpen = false;
+      unlockBodyScroll();
+
+      this.sheet.style.transition = '';
+      this.sheet.style.transform = '';
+
+      this.overlay.classList.add('opacity-0', 'pointer-events-none');
+      this.overlay.classList.remove('pointer-events-auto');
+      this.sheet.classList.add('translate-y-full');
+
+      setTimeout(() => {
+        if (!this.isOpen && this.sheet) {
+          this.sheet.dataset.open = 'false';
+          this.currentPatientId = null;
+        }
+      }, 500);
+    }
+  }
+
+  function initShareScheduleSheet() {
+    if (!(window as any)._shareScheduleSheetWindowListenerBound) {
+      const handler = (e: Event) => {
+        (window as any).currentShareScheduleSheetManager?.handleOpenEvent(e as CustomEvent);
+      };
+      window.addEventListener('openShareScheduleSheet', handler);
+      window.addEventListener('openShareSchedule', handler);
+      (window as any)._shareScheduleSheetWindowListenerBound = true;
+    }
+
+    if (document.getElementById('share-schedule-sheet')) {
+      (window as any).currentShareScheduleSheetManager = new ShareScheduleSheetManager();
+    }
+  }
+
+  document.addEventListener('astro:page-load', initShareScheduleSheet);
+  document.addEventListener('DOMContentLoaded', initShareScheduleSheet);
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initShareScheduleSheet();
+  }
+</script>

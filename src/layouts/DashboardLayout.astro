@@ -6,6 +6,7 @@ import SessionWrapUpSheet from '../components/features/agenda/SessionWrapUpSheet
 import CustomToast from '../components/ui/CustomToast.astro';
 import AddPatientSheet from '../components/features/patients/AddPatientSheet.astro';
 import RenewalSheet from '../components/features/patients/RenewalSheet.astro';
+import ShareScheduleSheet from '../components/features/patients/ShareScheduleSheet.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
@@ -87,6 +88,7 @@ const { title, hideDock = false } = Astro.props;
     <AddSessionSheet transition:persist />
     <AddPatientSheet transition:persist />
     <RenewalSheet transition:persist />
+    <ShareScheduleSheet transition:persist />
     <SessionWrapUpSheet transition:persist />
     <CustomToast transition:persist />
 
