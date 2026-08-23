@@ -180,32 +180,32 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
             data-week-index={weekIndex}
           >
             {week.days.map((item, index) => (
-              item.isCurrentMonth ? (
-                <button
-                  type="button"
-                  data-calendar-item
-                  data-active={item.active ? "true" : "false"}
-                  data-index={index}
-                  data-month={item.monthNum}
-                  data-year={item.year}
-                  data-date={item.date}
-                  data-is-current-month="true"
-                  data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-                  class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
-                    item.active ? "text-black font-bold" : "text-text-main hover:opacity-100 opacity-70"
-                  }`}
-                >
-                  <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20 transition-all duration-300" style="color: #C93263 !important;">{item.dayLabel}</span>
-                  <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
-                    {item.date}
-                  </span>
-                  {item.isToday && (
-                    <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
-                  )}
-                </button>
-              ) : (
-                <div aria-hidden="true" class="pointer-events-none"></div>
-              )
+              <button
+                type="button"
+                data-calendar-item
+                data-active={item.active ? "true" : "false"}
+                data-index={index}
+                data-month={item.monthNum}
+                data-year={item.year}
+                data-date={item.date}
+                data-is-current-month={item.isCurrentMonth ? "true" : "false"}
+                data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
+                class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+                  item.active
+                    ? "text-black font-bold"
+                    : item.isCurrentMonth
+                      ? "text-text-main hover:opacity-100 opacity-70"
+                      : "text-text-main hover:opacity-60 opacity-30"
+                }`}
+              >
+                <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20 transition-all duration-300" style="color: #C93263 !important;">{item.dayLabel}</span>
+                <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
+                  {item.date}
+                </span>
+                {item.isToday && (
+                  <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
+                )}
+              </button>
             ))}
           </div>
         ))}
@@ -230,7 +230,59 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     let scrollTimer: number | undefined;
     let isProgrammaticScroll = false;
     let isExpanded = false;
-    
+    let scrollStartIndex = 0;
+    let scrollStartLeft = 0;
+
+    function setScrollLeft(value: number, instant = false) {
+      if (instant) {
+        strip.style.scrollBehavior = 'auto';
+        strip.scrollLeft = value;
+        strip.style.scrollBehavior = '';
+      } else {
+        strip.scrollLeft = value;
+      }
+    }
+
+    function scrollToSlide(slide: HTMLElement, instant = false) {
+      const target = slide.offsetLeft + slide.offsetWidth / 2 - strip.offsetWidth / 2;
+      setScrollLeft(target, instant);
+    }
+
+    function getSlides(): HTMLElement[] {
+      return isExpanded
+        ? Array.from(document.querySelectorAll('.month-section'))
+        : Array.from(document.querySelectorAll('.week-section'));
+    }
+
+    function getCurrentSlideIndex(): number {
+      const slides = getSlides();
+      if (!slides.length) return 0;
+      const center = strip.scrollLeft + strip.offsetWidth / 2;
+      let nearestIdx = 0;
+      let minDist = Infinity;
+      slides.forEach((slide, idx) => {
+        const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+        const dist = Math.abs(center - slideCenter);
+        if (dist < minDist) {
+          minDist = dist;
+          nearestIdx = idx;
+        }
+      });
+      return nearestIdx;
+    }
+
+    function snapToSlide(slide: HTMLElement) {
+      if (!slide) return;
+      isProgrammaticScroll = true;
+      const previousSnap = strip.style.scrollSnapType;
+      strip.style.scrollSnapType = 'none';
+      scrollToSlide(slide, false);
+      setTimeout(() => {
+        strip.style.scrollSnapType = previousSnap;
+        isProgrammaticScroll = false;
+      }, 350);
+    }
+
     // Derulează la săptămâna activă la încărcare (modul închis funcționează ca un
     // carusel orizontal de săptămâni consecutive).
     function scrollToActiveWeek() {
@@ -238,8 +290,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const activeWeek = document.querySelector('.week-section.active-week') as HTMLElement | null;
       if (!activeWeek) return;
       isProgrammaticScroll = true;
-      strip.scrollLeft = activeWeek.offsetLeft;
-      setTimeout(() => { isProgrammaticScroll = false; }, 300);
+      scrollToSlide(activeWeek, true);
+      setTimeout(() => { isProgrammaticScroll = false; }, 50);
     }
     setTimeout(scrollToActiveWeek, 50);
 
@@ -439,8 +491,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       // selectată să fie vizibilă (scroll snap o va centra).
       if (!isExpanded && parentWeek) {
         isProgrammaticScroll = true;
-        strip.scrollLeft = parentWeek.offsetLeft;
-        setTimeout(() => { isProgrammaticScroll = false; }, 300);
+        scrollToSlide(parentWeek, false);
+        setTimeout(() => { isProgrammaticScroll = false; }, 50);
       }
 
       updateSelectedLabel(button);
@@ -483,6 +535,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
          if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
 
          if (activeBtn) {
+           const activeMonthSection = activeBtn.closest('.month-section') as HTMLElement | null;
+           if (activeMonthSection) {
+             isProgrammaticScroll = true;
+             scrollToSlide(activeMonthSection, true);
+             setTimeout(() => { isProgrammaticScroll = false; }, 50);
+           }
            updateSelectedLabel(activeBtn);
            requestAnimationFrame(updateMonthYearLabel);
          }
@@ -497,13 +555,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
          allWeeks.forEach(w => w.classList.remove("collapsed-week"));
 
          if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
-         
+
          if (activeBtn) {
             const activeWeek = activeBtn.closest('.week-section') as HTMLElement | null;
             if (activeWeek) {
               isProgrammaticScroll = true;
-              strip.scrollLeft = activeWeek.offsetLeft;
-              setTimeout(() => { isProgrammaticScroll = false; }, 300);
+              scrollToSlide(activeWeek, true);
+              setTimeout(() => { isProgrammaticScroll = false; }, 50);
             }
          }
       }
@@ -584,42 +642,48 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
     }
 
+    strip.addEventListener("touchstart", () => {
+      scrollStartLeft = strip.scrollLeft;
+      scrollStartIndex = getCurrentSlideIndex();
+    }, { passive: true });
+
     strip.addEventListener("scroll", () => {
-      if (isExpanded) {
-        updateMonthYearLabel();
-        return;
-      }
       if (isProgrammaticScroll) return;
 
-      // În modul închis, după ce scroll-ul se oprește pe o săptămână,
-      // selectează automat ziua cu același index (Luni…Vineri) din săptămâna nouă.
+      if (isExpanded) {
+        updateMonthYearLabel();
+      }
+
+      // Catch: limit swipe to one slide/week or one month at a time.
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
-        const allWeeks = getAllWeekSections();
-        if (allWeeks.length === 0) return;
+        const slides = getSlides();
+        if (slides.length === 0) return;
 
-        const center = strip.scrollLeft + strip.offsetWidth / 2;
-        let targetWeek: HTMLElement | null = null;
-        for (const w of allWeeks) {
-          const left = w.offsetLeft;
-          const right = left + w.offsetWidth;
-          if (center >= left && center < right) {
-            targetWeek = w;
-            break;
+        const currentIdx = getCurrentSlideIndex();
+        let targetIdx = currentIdx;
+        const delta = Math.sign(strip.scrollLeft - scrollStartLeft);
+        if (Math.abs(currentIdx - scrollStartIndex) > 1) {
+          targetIdx = Math.max(0, Math.min(slides.length - 1, scrollStartIndex + delta));
+        }
+
+        const targetSlide = slides[targetIdx];
+        if (!targetSlide) return;
+
+        snapToSlide(targetSlide);
+
+        if (!isExpanded) {
+          const activeDay = strip.querySelector('[data-active="true"]') as HTMLButtonElement | null;
+          const activeDayIndex = activeDay ? parseInt(activeDay.getAttribute('data-index') || '0', 10) : 0;
+          const targetBtn = targetSlide.querySelector(`[data-calendar-item][data-index="${activeDayIndex}"]`) as HTMLButtonElement | null
+            || targetSlide.querySelector('[data-calendar-item]') as HTMLButtonElement | null;
+          if (targetBtn && targetBtn.getAttribute('data-active') !== 'true') {
+            setTimeout(() => selectDay(targetBtn, true), 360);
           }
         }
-        if (!targetWeek) targetWeek = allWeeks[allWeeks.length - 1];
-
-        const activeDay = strip.querySelector('[data-active="true"]') as HTMLButtonElement | null;
-        const activeDayIndex = activeDay ? parseInt(activeDay.getAttribute('data-index') || '0', 10) : 0;
-        const targetBtn = targetWeek.querySelector(`[data-calendar-item][data-index="${activeDayIndex}"]`) as HTMLButtonElement | null
-          || targetWeek.querySelector('[data-calendar-item]') as HTMLButtonElement | null;
-        if (targetBtn && targetBtn.getAttribute('data-active') !== 'true') {
-          selectDay(targetBtn, true);
-        }
-      }, 150);
+      }, 100);
     });
-    
+
     // Initial label set
     updateMonthYearLabel();
 
@@ -713,18 +777,27 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     border: 0 !important;
   }
   
-  .day-label {
+.day-label {
     opacity: 0;
     font-weight: 900 !important;
     color: #C93263 !important;
     -webkit-text-stroke: 0.5px currentColor;
   }
-  
-  .closed-mode .active-week .day-label {
+
+  .closed-mode .week-section .day-label {
     opacity: 1 !important;
   }
-  
-  .expanded-mode .week-section:first-child .day-label {
+
+  .expanded-mode .week-section .day-label {
     opacity: 1 !important;
+  }
+
+  #calendar-card {
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 18rem;
+  }
+
+  #calendar-card.expanded-mode {
+    max-height: 44rem;
   }
 </style>
