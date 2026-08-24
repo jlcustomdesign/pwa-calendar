@@ -705,7 +705,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         items.push({ type: 'lunch', slots: [lunchStart] });
       }
 
-      // Grupează sesiunile cu același group_id pentru afișare
+      // Grupează sesiunile cu același group_id sau același slot pentru afișare
       function groupSessions(sessions: any[]): any[] {
         const groups = new Map<string, any[]>();
         const singles: any[] = [];
@@ -719,14 +719,31 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           }
         }
 
-        const result: any[] = [...singles];
-        for (const [, members] of groups) {
+        const byTime = new Map<string, any[]>();
+        const trueSingles: any[] = [];
+        for (const s of singles) {
+          const timeKey = (s.selectedTime || '08:00').substring(0, 5);
+          if (!byTime.has(timeKey)) byTime.set(timeKey, []);
+          byTime.get(timeKey)!.push(s);
+        }
+
+        for (const [tKey, sameTimeList] of byTime) {
+          if (sameTimeList.length > 1) {
+            const autoGroupId = `time_group_${sameTimeList[0].selectedDate || selectedDate}_${tKey}`;
+            groups.set(autoGroupId, sameTimeList);
+          } else {
+            trueSingles.push(sameTimeList[0]);
+          }
+        }
+
+        const result: any[] = [...trueSingles];
+        for (const [gId, members] of groups) {
           if (members.length === 1) {
             result.push(members[0]);
           } else {
             result.push({
               isGroup: true,
-              groupId: members[0].groupId,
+              groupId: members[0].groupId || gId,
               members,
               selectedTime: members[0].selectedTime,
               selectedDate: members[0].selectedDate,

@@ -127,6 +127,8 @@
   function groupAgendaSessions(sessions: any[]): any[] {
     const groups = new Map<string, any[]>();
     const singles: any[] = [];
+
+    // 1. Group by explicit groupId first
     for (const s of sessions) {
       if (s.groupId) {
         if (!groups.has(s.groupId)) groups.set(s.groupId, []);
@@ -135,14 +137,33 @@
         singles.push(s);
       }
     }
-    const result: any[] = [...singles];
-    for (const [, members] of groups) {
+
+    // 2. Also group singles that share the exact same time slot (e.g. same hour:minute)
+    const byTime = new Map<string, any[]>();
+    const trueSingles: any[] = [];
+    for (const s of singles) {
+      const timeKey = (s.selectedTime || '08:00').substring(0, 5);
+      if (!byTime.has(timeKey)) byTime.set(timeKey, []);
+      byTime.get(timeKey)!.push(s);
+    }
+
+    for (const [tKey, sameTimeList] of byTime) {
+      if (sameTimeList.length > 1) {
+        const autoGroupId = `time_group_${sameTimeList[0].selectedDate || currentAgendaDate}_${tKey}`;
+        groups.set(autoGroupId, sameTimeList);
+      } else {
+        trueSingles.push(sameTimeList[0]);
+      }
+    }
+
+    const result: any[] = [...trueSingles];
+    for (const [gId, members] of groups) {
       if (members.length === 1) {
         result.push(members[0]);
       } else {
         result.push({
           isGroup: true,
-          groupId: members[0].groupId,
+          groupId: members[0].groupId || gId,
           members,
           selectedTime: members[0].selectedTime,
           selectedDate: members[0].selectedDate,
@@ -581,7 +602,7 @@
           driveLink: a.pacienti?.drive_link || '',
           selectedTime: a.ora,
           selectedDate: a.data,
-          location: a.pacienti?.locatie || 'Belaqva',
+          location: a.locatie || a.pacienti?.locatie || 'Belaqva',
           attendanceCount: folosite,
           totalSessions: totalSess,
           remainingSessions: sedinteRamase,

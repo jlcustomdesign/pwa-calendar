@@ -534,7 +534,7 @@
                 <button 
                   type='button'
                   class='w-full h-12 rounded-2xl bg-white hover:bg-neutral-50 text-black text-sm font-extrabold shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border border-transparent share-schedule-btn'
-                  onclick='event.stopPropagation(); window.dispatchEvent(new CustomEvent("openShareScheduleSheet", { detail: { patientId: "${patient.id}", patientName: "${safeNameJs}", patientPhone: "${escapeJsString(patient.telefon || '')}" } }))'
+                  onclick='event.stopPropagation(); window.dispatchEvent(new CustomEvent("openShareScheduleSheet", { detail: { patientId: "${patient.id}", patientName: "${safeNameJs}", patientPhone: "${escapeJsString(patient.telefon || '')}", patientLocation: "${escapeJsString(patient.locatie || '')}" } }))'
                 >
                   <svg class="w-5 h-5 text-black opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -569,7 +569,8 @@
             detail: {
               patientId: patient.id,
               patientName: patient.name,
-              patientPhone: patient.telefon || ''
+              patientPhone: patient.telefon || '',
+              patientLocation: patient.locatie || ''
             }
           }));
         });
