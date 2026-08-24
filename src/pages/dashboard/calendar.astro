@@ -803,33 +803,6 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
             paymentBadgeClass = 'bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold';
           }
 
-        const memberCards = group.members.map((m: any) => {
-          const progress = m.totalSessions > 0 ? Math.min(100, Math.round(((m.attendanceCount || 0) / m.totalSessions) * 100)) : 0;
-          const safeName = escapeHtml(m.patientName);
-          const safePhone = escapeHtml(m.patientPhone || '');
-          const driveLink = m.driveLink || m.patientDriveLink || '';
-          const safeDriveLink = escapeHtml(driveLink || '#');
-          const hasDriveLink = Boolean(driveLink);
-
-          const restDePlata = Math.max(0, (m.costTotal || 0) - (m.sumaIncasata || 0));
-          const isPaid = restDePlata <= 0 || m.paymentStatus === 'Achitat integral' || m.paymentStatus === 'Achitat';
-          const sumaIncasata = m.sumaIncasata || 0;
-          const costTotal = m.costTotal || 0;
-
-          let paymentBadgeClass = 'bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold';
-          let displayPaymentLabel = 'Neachitat';
-
-          if (sumaIncasata > 0 && restDePlata > 0) {
-            displayPaymentLabel = `${sumaIncasata}/${costTotal} RON`;
-            paymentBadgeClass = 'bg-amber-100 hover:bg-amber-200 text-amber-900 font-black';
-          } else if (isPaid || m.paymentStatus === 'Achitat integral' || m.paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal)) {
-            displayPaymentLabel = 'Achitat';
-            paymentBadgeClass = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold';
-          } else {
-            displayPaymentLabel = 'Neachitat';
-            paymentBadgeClass = 'bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold';
-          }
-
           let statusBadge = '';
           if (m.status === 'finalizat') {
             statusBadge = `<span class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg shrink-0">✓ Finalizat</span>`;
