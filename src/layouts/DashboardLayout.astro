@@ -594,6 +594,26 @@ const { title, hideDock = false } = Astro.props;
           }
         };
 
+        (window as any).confirmGroupSession = async (memberIds: string) => {
+          const ids = (memberIds || '').split(',').filter(Boolean);
+          if (ids.length === 0) return;
+          try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const { completeSession, getAppointment } = await import('../lib/services/appointmentService');
+            for (const id of ids) {
+              const appt = await getAppointment(id);
+              if (appt && (!appt.data || appt.data <= todayStr)) {
+                await completeSession(id);
+              }
+            }
+            (window as any).showToast('Ședințele din grup au fost confirmate!', 'success');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            window.dispatchEvent(new CustomEvent('patientsUpdated'));
+          } catch (err: any) {
+            (window as any).showToast('Eroare la confirmarea grupului: ' + (err.message || err), 'error');
+          }
+        };
+
         (window as any).cancelGroupSession = async (memberIds: string) => {
           const ids = (memberIds || '').split(',').filter(Boolean);
           if (ids.length === 0) return;
