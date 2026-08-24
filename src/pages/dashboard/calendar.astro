@@ -780,6 +780,9 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           const progress = m.totalSessions > 0 ? Math.min(100, Math.round(((m.attendanceCount || 0) / m.totalSessions) * 100)) : 0;
           const safeName = escapeHtml(m.patientName);
           const safePhone = escapeHtml(m.patientPhone || '');
+          const driveLink = m.driveLink || m.patientDriveLink || '';
+          const safeDriveLink = escapeHtml(driveLink || '#');
+          const hasDriveLink = Boolean(driveLink);
 
           const restDePlata = Math.max(0, (m.costTotal || 0) - (m.sumaIncasata || 0));
           const isPaid = restDePlata <= 0 || m.paymentStatus === 'Achitat integral' || m.paymentStatus === 'Achitat';
@@ -819,30 +822,60 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                   <span>Absent</span>
                 </button>
-                ${safePhone ? `<a href="tel:${safePhone}" class="w-7 h-7 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 flex items-center justify-center shrink-0 active:scale-95 transition-all" onclick="event.stopPropagation()" title="Sună"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></a>` : ''}
                </div>`
             : (statusBadge ? `<div class="pt-0.5">${statusBadge}</div>` : '');
 
           return `
-            <div class="member-card p-3 rounded-2xl ${memberClasses} shadow-2xs space-y-1.5 border border-black/5" onclick="event.stopPropagation();">
+            <div class="member-card p-3.5 rounded-2xl ${memberClasses} shadow-sm space-y-2 border border-black/5" onclick="event.stopPropagation();">
+              <!-- Row 1: Nume & Contor -->
               <div class="flex items-center justify-between gap-2">
                 <span class="font-black text-sm text-neutral-900 truncate flex-1">${safeName}</span>
+                <span class="text-xs font-black text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-lg font-mono shrink-0">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
+              </div>
+
+              <!-- Row 2: Progres -->
+              <div class="h-1.5 w-full ${progressBarTrack} rounded-full overflow-hidden">
+                <div class="h-full rounded-full ${progressBarFill}" style="width: ${progress}%;"></div>
+              </div>
+
+              <!-- Row 3: Plată pe stânga + Butoane Telefon & Dosar pe dreapta -->
+              <div class="flex items-center justify-between gap-2 pt-0.5">
+                <button 
+                  type="button" 
+                  class="h-9 px-3 rounded-xl ${paymentBadgeClass} text-xs font-black transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center justify-center"
+                  onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${m.patientId}' } }))"
+                >
+                  <span>${displayPaymentLabel}</span>
+                </button>
+
                 <div class="flex items-center gap-1.5 shrink-0">
-                  <button 
-                    type="button" 
-                    class="px-2 py-0.5 rounded-lg ${paymentBadgeClass} text-[11px] font-black transition-transform active:scale-95 cursor-pointer shadow-2xs"
-                    onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${m.patientId}' } }))"
+                  <a 
+                    href="tel:${safePhone}" 
+                    class="w-9 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-2xs" 
+                    title="Sună pacientul" 
+                    onclick="event.stopPropagation()"
                   >
-                    ${displayPaymentLabel}
-                  </button>
-                  <span class="text-xs font-black text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-lg font-mono">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
+                    <svg class="w-4 h-4 text-neutral-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </a>
+
+                  <a 
+                    href="${safeDriveLink}" 
+                    target="${hasDriveLink ? '_blank' : '_self'}" 
+                    rel="noopener noreferrer" 
+                    class="w-9 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-2xs" 
+                    title="Deschide Dosar/Drive" 
+                    onclick="event.stopPropagation(); if (!${hasDriveLink}) { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are dosar/Drive salvat.'); } }"
+                  >
+                    <svg class="w-4 h-4 text-neutral-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                  </a>
                 </div>
               </div>
-              <div class="flex items-center gap-2">
-                <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden">
-                  <div class="h-full rounded-full ${progressBarFill}" style="width: ${progress}%;"></div>
-                </div>
-              </div>
+
+              <!-- Row 4: Confirmă / Absent (dacă e programat) -->
               ${actionButtons}
             </div>
           `;
