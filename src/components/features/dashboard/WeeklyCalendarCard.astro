@@ -180,32 +180,32 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
             data-week-index={weekIndex}
           >
             {week.days.map((item, index) => (
-              item.isCurrentMonth ? (
-                <button
-                  type="button"
-                  data-calendar-item
-                  data-active={item.active ? "true" : "false"}
-                  data-index={index}
-                  data-month={item.monthNum}
-                  data-year={item.year}
-                  data-date={item.date}
-                  data-is-current-month="true"
-                  data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-                  class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
-                    item.active ? "text-black font-bold" : "text-text-main hover:opacity-100 opacity-70"
-                  }`}
-                >
-                  <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20 transition-all duration-300" style="color: #C93263 !important;">{item.dayLabel}</span>
-                  <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
-                    {item.date}
-                  </span>
-                  {item.isToday && (
-                    <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
-                  )}
-                </button>
-              ) : (
-                <div aria-hidden="true" class="pointer-events-none"></div>
-              )
+              <button
+                type="button"
+                data-calendar-item
+                data-active={item.active ? "true" : "false"}
+                data-index={index}
+                data-month={item.monthNum}
+                data-year={item.year}
+                data-date={item.date}
+                data-is-current-month={item.isCurrentMonth ? "true" : "false"}
+                data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
+                class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+                  item.active
+                    ? "text-black font-bold"
+                    : item.isCurrentMonth
+                      ? "text-text-main hover:opacity-100 opacity-70"
+                      : "text-text-main hover:opacity-60 opacity-30"
+                }`}
+              >
+                <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20" style="color: #C93263 !important;">{item.dayLabel}</span>
+                <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
+                  {item.date}
+                </span>
+                {item.isToday && (
+                  <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
+                )}
+              </button>
             ))}
           </div>
         ))}
@@ -484,6 +484,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
          if (activeBtn) {
            updateSelectedLabel(activeBtn);
+           // Scroll to the active month section so we don't land on 2027
+           const activeMonthSection = activeBtn.closest('[data-month-section]') as HTMLElement | null;
+           if (activeMonthSection) {
+             isProgrammaticScroll = true;
+             strip.scrollLeft = activeMonthSection.offsetLeft;
+             setTimeout(() => { isProgrammaticScroll = false; }, 300);
+           }
            requestAnimationFrame(updateMonthYearLabel);
          }
       } else {
@@ -713,18 +720,32 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     border: 0 !important;
   }
   
-  .day-label {
+.day-label {
     opacity: 0;
     font-weight: 900 !important;
     color: #C93263 !important;
     -webkit-text-stroke: 0.5px currentColor;
   }
-  
-  .closed-mode .active-week .day-label {
+
+  .closed-mode .week-section .day-label {
     opacity: 1 !important;
   }
-  
+
   .expanded-mode .week-section:first-child .day-label {
     opacity: 1 !important;
+  }
+
+  .expanded-mode .week-section:not(:first-child) .day-label {
+    opacity: 0 !important;
+    transition: none !important;
+  }
+
+  #calendar-card {
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 18rem;
+  }
+
+  #calendar-card.expanded-mode {
+    max-height: 44rem;
   }
 </style>

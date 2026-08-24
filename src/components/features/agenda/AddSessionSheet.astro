@@ -120,6 +120,13 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           </button>
         </div>
 
+        <!-- Group Edit Notice -->
+        <div id="group-edit-notice" class="hidden space-y-2 pt-2">
+          <div class="px-4 py-3 rounded-2xl bg-brand-secondary/15 border border-brand-secondary/30 text-black text-sm font-black text-center">
+            Editezi grupul cu <span id="group-edit-count">0</span> pacienți
+          </div>
+        </div>
+
         <!-- Group Location Selector (visible only for group sessions) -->
         <div id="group-location-selector" class="hidden space-y-2 pt-2">
           <label class="block text-sm font-black text-black uppercase tracking-wider">Locație grup</label>
@@ -257,6 +264,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     selectedPatientId: string | null = null;
     selectedPatientIds: string[] = [];
     isGroupSession: boolean = false;
+    isGroupEdit: boolean = false;
+    groupEditMemberIds: string[] = [];
+    groupEditMemberCount: number = 0;
     patientsCache: any[] = [];
 
     constructor() {
@@ -1002,7 +1012,14 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       }
 
       try {
-        if (sessionId) {
+        if (this.isGroupEdit && this.groupEditMemberIds.length > 0) {
+          const groupLocInput = document.getElementById('groupLocation') as HTMLInputElement | null;
+          const groupLocation = (groupLocInput?.value || 'Belaqva') as 'Belaqva' | 'Ghimbav';
+          await Promise.all(this.groupEditMemberIds.map(id =>
+            updateAppointment(id, { data: selectedDate, ora: selectedTime, locatie: groupLocation })
+          ));
+          (window as any).showToast('Grupul a fost actualizat cu succes.', 'success');
+        } else if (sessionId) {
           await updateAppointment(sessionId, {
             pacient_id: patientId,
             data: selectedDate,
@@ -1048,33 +1065,73 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     async handleOpenEvent(e: any) {
       const detail = e.detail || {};
       const isEdit = !!detail.isEdit;
+      const isGroupEdit = !!detail.isGroupEdit;
       const session = detail.session;
       const timeStr = detail.time || session?.selectedTime || '08:00';
       const dateStr = detail.date || session?.selectedDate;
       const patientName = detail.patientName || session?.patientName;
       const effectiveDate = dateStr || (window as any).currentCalendarDate || new Date().toISOString().split('T')[0];
 
+      this.isGroupEdit = isGroupEdit;
+      this.groupEditMemberIds = isGroupEdit ? (detail.memberIds || []) : [];
+      this.groupEditMemberCount = isGroupEdit ? this.groupEditMemberIds.length : 0;
+
       const titleEl = document.getElementById('sheet-title');
       const submitBtnEl = document.getElementById('submit-btn');
       const sessionIdInput = document.getElementById('sessionId') as HTMLInputElement;
       const dateTimeContainer = document.getElementById('date-time-selectors');
+      const groupEditNotice = document.getElementById('group-edit-notice');
+      const groupEditCount = document.getElementById('group-edit-count');
+      const patientSearchWrap = document.getElementById('search-patient-input')?.parentElement;
+      const groupToggleBtn = document.getElementById('btn-group-session-toggle');
 
       if (sessionIdInput) {
         sessionIdInput.value = isEdit && session ? session.id : '';
       }
 
-      if (isEdit) {
+      const locSelector = document.getElementById('group-location-selector');
+
+      if (isGroupEdit) {
+        if (titleEl) titleEl.textContent = 'Editează grupul';
+        if (submitBtnEl) submitBtnEl.textContent = 'Salvează Modificările';
+        if (groupEditNotice) groupEditNotice.classList.remove('hidden');
+        if (groupEditCount) groupEditCount.textContent = String(this.groupEditMemberCount);
+        if (patientSearchWrap) patientSearchWrap.classList.add('hidden');
+        if (groupToggleBtn) groupToggleBtn.classList.add('hidden');
+        if (locSelector) locSelector.classList.remove('hidden');
+        this.isGroupSession = true;
+      } else if (isEdit) {
         if (titleEl) titleEl.textContent = 'Editează programarea';
         if (submitBtnEl) submitBtnEl.textContent = 'Salvează Modificările';
+        if (groupEditNotice) groupEditNotice.classList.add('hidden');
+        if (patientSearchWrap) patientSearchWrap.classList.remove('hidden');
+        if (groupToggleBtn) groupToggleBtn.classList.remove('hidden');
       } else {
         if (titleEl) titleEl.textContent = 'Programare nouă';
         if (submitBtnEl) submitBtnEl.textContent = 'Salvează';
+        if (groupEditNotice) groupEditNotice.classList.add('hidden');
+        if (patientSearchWrap) patientSearchWrap.classList.remove('hidden');
+        if (groupToggleBtn) groupToggleBtn.classList.remove('hidden');
+        if (locSelector && !this.isGroupSession) locSelector.classList.add('hidden');
       }
 
       dateTimeContainer?.classList.remove('hidden');
 
       if (timeStr) this.selectTime(timeStr);
       if (effectiveDate) this.selectDate(effectiveDate);
+
+      // Set group location if provided
+      const groupLocInput = document.getElementById('groupLocation') as HTMLInputElement | null;
+      if (isGroupEdit && detail.location && groupLocInput) {
+        groupLocInput.value = detail.location;
+        locSelector?.querySelectorAll('[data-group-location]').forEach((btn) => {
+          const el = btn as HTMLButtonElement;
+          const isSel = el.dataset.groupLocation === detail.location;
+          el.className = isSel
+            ? 'group-loc-btn py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-brand-primary text-black shadow-sm'
+            : 'group-loc-btn py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black';
+        });
+      }
 
       // Reset patient selector state
       const pList = document.getElementById('patient-list');
@@ -1254,8 +1311,17 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       setTimeout(() => {
         if (this.sheet) this.sheet.dataset.open = 'false';
         this.form?.reset();
+        this.isGroupEdit = false;
+        this.groupEditMemberIds = [];
+        this.groupEditMemberCount = 0;
         const subscriptionWarning = document.getElementById('patient-subscription-warning');
         if (subscriptionWarning) subscriptionWarning.classList.add('hidden');
+        const groupEditNotice = document.getElementById('group-edit-notice');
+        const patientSearchWrap = document.getElementById('search-patient-input')?.parentElement;
+        const groupToggleBtn = document.getElementById('btn-group-session-toggle');
+        if (groupEditNotice) groupEditNotice.classList.add('hidden');
+        if (patientSearchWrap) patientSearchWrap.classList.remove('hidden');
+        if (groupToggleBtn) groupToggleBtn.classList.remove('hidden');
       }, 500);
     }
 
