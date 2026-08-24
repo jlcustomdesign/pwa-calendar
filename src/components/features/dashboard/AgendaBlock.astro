@@ -197,27 +197,71 @@
     const memberCards = group.members.map((m: any) => {
       const progress = m.totalSessions > 0 ? Math.min(100, Math.round(((m.attendanceCount || 0) / m.totalSessions) * 100)) : 0;
       const safeName = escapeHtml(m.patientName);
+      const safePhone = escapeHtml(m.patientPhone || '');
+      
+      const restDePlata = Math.max(0, (m.costTotal || 0) - (m.sumaIncasata || 0));
+      const isPaid = restDePlata <= 0 || m.paymentStatus === 'Achitat integral' || m.paymentStatus === 'Achitat';
+      const sumaIncasata = m.sumaIncasata || 0;
+      const costTotal = m.costTotal || 0;
+
+      let paymentBadgeClass = 'bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold';
+      let displayPaymentLabel = 'Neachitat';
+
+      if (sumaIncasata > 0 && restDePlata > 0) {
+        displayPaymentLabel = `${sumaIncasata}/${costTotal} RON`;
+        paymentBadgeClass = 'bg-amber-100 hover:bg-amber-200 text-amber-900 font-black';
+      } else if (isPaid || m.paymentStatus === 'Achitat integral' || m.paymentStatus === 'Achitat' || (costTotal > 0 && sumaIncasata >= costTotal)) {
+        displayPaymentLabel = 'Achitat';
+        paymentBadgeClass = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold';
+      } else {
+        displayPaymentLabel = 'Neachitat';
+        paymentBadgeClass = 'bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold';
+      }
+
+      let statusBadge = '';
+      if (m.status === 'finalizat') {
+        statusBadge = `<span class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg">✓ Finalizat</span>`;
+      } else if (m.status === 'absent') {
+        statusBadge = `<span class="inline-flex items-center gap-1 text-[11px] font-black text-orange-700 bg-orange-50 px-2 py-0.5 rounded-lg">✗ Absent</span>`;
+      } else if (m.status === 'anulat') {
+        statusBadge = `<span class="inline-flex items-center gap-1 text-[11px] font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg">Anulat</span>`;
+      }
+
       const actionButtons = (m.status === 'programat')
-        ? `<div class="flex gap-2 mt-2">
-            <button type="button" class="flex-1 py-2 rounded-xl ${isGhimbav ? 'bg-brand-primary text-black' : 'bg-brand-secondary text-white'} text-[10px] font-black uppercase tracking-wider active:scale-95 transition-transform" onclick="event.stopPropagation(); window.confirmSession('${m.id}')">Confirmă</button>
-            <button type="button" class="flex-1 py-2 rounded-xl bg-neutral-100 text-neutral-700 text-[10px] font-black uppercase tracking-wider active:scale-95 transition-transform" onclick="event.stopPropagation(); window.markAbsentSession('${m.id}')">Nu a venit</button>
+        ? `<div class="flex items-center gap-2 pt-1">
+            <button type="button" class="flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer shadow-2xs" onclick="event.stopPropagation(); window.confirmSession('${m.id}')">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              <span>Confirmă</span>
+            </button>
+            <button type="button" class="flex-1 py-1.5 px-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-black active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer" onclick="event.stopPropagation(); window.markAbsentSession('${m.id}')">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+              <span>Absent</span>
+            </button>
+            ${safePhone ? `<a href="tel:${safePhone}" class="w-7 h-7 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 flex items-center justify-center shrink-0 active:scale-95 transition-all" onclick="event.stopPropagation()" title="Sună"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></a>` : ''}
            </div>`
-        : '';
+        : (statusBadge ? `<div class="pt-0.5">${statusBadge}</div>` : '');
+
       return `
-        <div class="member-card p-3 rounded-2xl ${memberClasses} shadow-sm space-y-1" onclick="event.stopPropagation(); this.classList.toggle('member-expanded');">
-          <div class="flex items-center justify-between">
-            <span class="font-black text-sm truncate">${safeName}</span>
-            <span class="text-[10px] font-black opacity-60">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
+        <div class="member-card p-3 rounded-2xl ${memberClasses} shadow-2xs space-y-1.5 border border-black/5" onclick="event.stopPropagation();">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-black text-sm text-neutral-900 truncate flex-1">${safeName}</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button 
+                type="button" 
+                class="px-2 py-0.5 rounded-lg ${paymentBadgeClass} text-[11px] font-black transition-transform active:scale-95 cursor-pointer shadow-2xs"
+                onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${m.patientId}' } }))"
+              >
+                ${displayPaymentLabel}
+              </button>
+              <span class="text-xs font-black text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-lg font-mono">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
+            </div>
           </div>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden">
               <div class="h-full rounded-full ${progressBarFill}" style="width: ${progress}%;"></div>
             </div>
           </div>
-          <div class="member-actions hidden flex-col gap-2 pt-2">
-            <button type="button" class="w-full py-2.5 rounded-xl ${isGhimbav ? 'bg-brand-primary text-black' : 'bg-brand-secondary text-white'} text-xs font-black uppercase tracking-wider active:scale-95 transition-transform" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: '${m.patientId}' } }))">Istoric plăți</button>
-            ${actionButtons}
-          </div>
+          ${actionButtons}
         </div>
       `;
     }).join('');
