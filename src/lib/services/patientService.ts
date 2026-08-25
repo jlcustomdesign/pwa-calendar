@@ -103,7 +103,7 @@ export async function addPatient(input: {
   const nameTrimmed = input.name.trim();
   const parts   = nameTrimmed.split(/\s+/);
   const prenume = parts[0] ?? '';
-  const nume    = parts.slice(1).join(' ') || prenume; // fallback dacă e un singur cuvânt
+  const nume    = parts.slice(1).join(' '); // Rămâne gol dacă este un singur cuvânt, NU se duplică prenumele
 
   // Verificare nume duplicat
   const { data: existing } = await supabase
@@ -165,7 +165,7 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
 
     const parts       = nameTrimmed.split(/\s+/);
     updates.prenume   = parts[0] ?? '';
-    updates.nume      = parts.slice(1).join(' ') || parts[0];
+    updates.nume      = parts.slice(1).join(' '); // Rămâne gol dacă este un singur cuvânt, NU se duplică prenumele
     delete updates.name;
   }
 
