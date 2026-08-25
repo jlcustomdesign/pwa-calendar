@@ -179,9 +179,9 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-[0.625rem] left-0 z-30 flex pointer-events-none" style={`width: ${allWeeksFlat.length * 100}%;`}>
+    <div class="day-labels-header absolute top-[0.625rem] left-0 z-30 flex pointer-events-none">
       {allWeeksFlat.map(() => (
-        <div class="grid grid-cols-5 gap-1 px-2 shrink-0" style={`width: calc(100% / ${allWeeksFlat.length});`}>
+        <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
           {weekDayLabels.map((label) => (
             <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
           ))}
@@ -350,9 +350,26 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
     setTimeout(scrollToActiveWeek, 50);
 
+    let headerRafId: number | undefined;
     function syncDayLabelsHeader() {
       if (!dayLabelsHeader || isExpanded) return;
-      dayLabelsHeader.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
+      if (headerRafId) return;
+      headerRafId = requestAnimationFrame(() => {
+        headerRafId = undefined;
+        if (!dayLabelsHeader || isExpanded) return;
+        dayLabelsHeader.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
+      });
+    }
+
+    function resizeDayLabelsHeader() {
+      if (!dayLabelsHeader) return;
+      const sets = Array.from(dayLabelsHeader.querySelectorAll<HTMLElement>(".day-labels-set"));
+      if (sets.length === 0) return;
+      const weekSections = weeksStrip.querySelectorAll<HTMLElement>(".week-section");
+      const weekWidth = weekSections[0]?.offsetWidth || weeksStrip.offsetWidth;
+      dayLabelsHeader.style.width = `${sets.length * weekWidth}px`;
+      sets.forEach((set) => { set.style.width = `${weekWidth}px`; });
+      syncDayLabelsHeader();
     }
 
     function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number } = {}) {
@@ -787,6 +804,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
         }
       }
+
+      resizeDayLabelsHeader();
     });
 
     if ((window as any)._weeklyCalendarResizeHandler) {
@@ -795,6 +814,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const handleResize = () => {
       const activeBtn = getVisibleActiveButton();
       if (activeBtn) updatePillForButton(activeBtn, { immediate: true });
+      resizeDayLabelsHeader();
       if (isExpanded) requestAnimationFrame(updateMonthYearLabel);
     };
     (window as any)._weeklyCalendarResizeHandler = handleResize;
