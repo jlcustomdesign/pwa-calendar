@@ -337,12 +337,20 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }) || buttons[0] || null;
     }
 
+    function syncDayLabelsHeader() {
+      const header = document.querySelector('.day-labels-header') as HTMLElement | null;
+      if (header && weeksStrip) {
+        header.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
+      }
+    }
+
     function scrollToActiveWeek() {
       if (isExpanded) return;
       const activeWeek = weeksStrip.querySelector('.week-section.active-week') as HTMLElement | null;
       if (!activeWeek) return;
       isProgrammaticScroll = true;
       weeksStrip.scrollLeft = activeWeek.offsetLeft;
+      syncDayLabelsHeader();
       setTimeout(() => { isProgrammaticScroll = false; }, 300);
     }
     setTimeout(scrollToActiveWeek, 50);
@@ -818,6 +826,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     function handleWeeksScroll() {
       if (isProgrammaticScroll) return;
+      syncDayLabelsHeader();
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
         const allWeeks = Array.from(weeksStrip.querySelectorAll(".week-section"));
@@ -966,7 +975,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   /* Expanded mode: months stacked side-by-side, weeks stacked vertically */
   #months-strip {
-    padding-top: 2rem;
+    padding-top: 2.5rem;
   }
 
   #months-strip .month-section {
@@ -1024,7 +1033,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-card.expanded-mode {
-    max-height: calc(var(--active-week-count, 6) * 5.25rem + 10rem);
+    max-height: calc(var(--active-week-count, 6) * 5.25rem + 10.5rem);
   }
 
   #calendar-strip {
@@ -1036,7 +1045,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-strip.expanded-mode {
-    height: calc(var(--active-week-count, 6) * 5.25rem + 2rem);
+    height: calc(var(--active-week-count, 6) * 5.25rem + 2.5rem);
   }
 
   #calendar-strip.is-animating {
