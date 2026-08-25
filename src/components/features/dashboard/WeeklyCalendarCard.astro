@@ -1024,8 +1024,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     transition: opacity 0.15s ease;
   }
 
-  .is-animating #weeks-strip .day-label {
-    opacity: 0;
+  .is-animating #weeks-strip .day-label,
+  .expanded-mode #weeks-strip .day-label {
+    opacity: 0 !important;
+    visibility: hidden !important;
   }
 
   .day-labels-header span {
