@@ -1007,27 +1007,34 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   .day-labels-header {
     top: 0.75rem;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s ease, visibility 0s 0.2s linear;
-  }
-
-  .expanded-mode .day-labels-header,
-  .is-animating .day-labels-header {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.2s ease 0.05s, visibility 0s 0.05s linear;
   }
 
   #weeks-strip .day-label {
     opacity: 1;
-    transition: opacity 0.15s ease;
+    transition: opacity 0.15s ease, transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.15s linear;
   }
 
-  .is-animating #weeks-strip .day-label,
   .expanded-mode #weeks-strip .day-label {
     opacity: 0 !important;
     visibility: hidden !important;
+  }
+
+  /* During expand, keep the week-strip day labels pinned at the header
+     position so the letters never move/disappear; hide the numbers instead. */
+  .is-animating.expanded-mode #weeks-strip .day-label {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(calc(-1 * var(--active-week-offset, 5.25rem)));
+  }
+
+  /* During collapse, fade the week-strip day labels in while the strip slides
+     up; the counter-translate keeps them aligned with the fixed header. */
+  .is-animating.closed-mode #weeks-strip .day-label {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(calc(-1 * var(--active-week-offset, 5.25rem)));
   }
 
   .day-labels-header span {
@@ -1064,12 +1071,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     will-change: height, transform, opacity;
   }
 
-  /* During expand/collapse, hide the buttons in the outgoing strip so the
-     sliding week/month animation doesn't show a duplicated row of dates.
-     The pill and circle stay visible because they are not [data-calendar-item]
-     children. */
-  .is-animating.expanded-mode #weeks-strip [data-calendar-item],
-  .is-animating.closed-mode #months-strip [data-calendar-item] {
+  /* During expand/collapse, hide only the date numbers/dots in the outgoing
+     strip. The day labels are morphed into the fixed header position above,
+     so the letters stay visible 100% of the time. */
+  .is-animating.expanded-mode #weeks-strip [data-calendar-item] .date-number,
+  .is-animating.expanded-mode #weeks-strip [data-calendar-item] .today-dot,
+  .is-animating.closed-mode #months-strip [data-calendar-item] .date-number,
+  .is-animating.closed-mode #months-strip [data-calendar-item] .today-dot {
     opacity: 0;
     transition: opacity 0.1s ease;
   }
