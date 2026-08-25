@@ -339,7 +339,6 @@
             <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
               <div class="flex-1 min-w-0">
                 <h4 class="text-xl font-bold tracking-tight leading-none truncate">Grup</h4>
-                <div class="mt-1 text-xs sm:text-sm font-bold opacity-80">${escapeHtml(locationStr)}</div>
               </div>
               ${statusIcon}
             </div>
@@ -355,6 +354,10 @@
           <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
             <div class="overflow-hidden relative z-20">
               <div class="px-6 pb-6 pt-1">
+                <div class="flex items-center justify-between gap-2 mb-3 px-1 text-xs font-black opacity-80 uppercase tracking-wider">
+                  <span>Locație: ${escapeHtml(locationStr)}</span>
+                  <span>${count} pacienți</span>
+                </div>
                 <div class="group-members flex flex-col gap-2.5 mb-3">
                   ${memberCards}
                 </div>
