@@ -639,6 +639,29 @@ const { title, hideDock = false } = Astro.props;
           }
         };
 
+        (window as any).editGroupSession = async (memberIds: string, selectedDate?: string, selectedTime?: string, location?: string) => {
+          const ids = (memberIds || '').split(',').filter(Boolean);
+          if (ids.length === 0) return;
+          try {
+            const { getAppointment } = await import('../lib/services/appointmentService');
+            const first = await getAppointment(ids[0]);
+            const date = selectedDate || first?.data;
+            const time = selectedTime || first?.ora;
+            const loc = location || first?.locatie || 'Belaqva';
+            window.dispatchEvent(new CustomEvent('openAddSession', {
+              detail: {
+                isGroupEdit: true,
+                memberIds: ids,
+                location: loc,
+                date,
+                time,
+              }
+            }));
+          } catch (err: any) {
+            (window as any).showToast('Eroare la încărcarea grupului: ' + (err.message || err), 'error');
+          }
+        };
+
 
         // ── Service Worker registration for PWA updates ─────────────────────
         if ('serviceWorker' in navigator) {
