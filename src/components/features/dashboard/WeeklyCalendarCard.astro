@@ -870,16 +870,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }, 150);
     }
 
-    let scrollStateTimer: number | undefined;
-    function handleWeeksScrollState() {
-      if (isProgrammaticScroll) return;
-      card.classList.add("is-scrolling");
-      if (scrollStateTimer) window.clearTimeout(scrollStateTimer);
-      scrollStateTimer = window.setTimeout(() => {
-        card.classList.remove("is-scrolling");
-      }, 150);
-    }
-
     function handleMonthsScroll() {
       if (isProgrammaticScroll) return;
       requestAnimationFrame(updateMonthYearLabel);
@@ -887,7 +877,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     weeksStrip.addEventListener("scroll", handleWeeksScroll);
     weeksStrip.addEventListener("scroll", syncDayLabelsHeader);
-    weeksStrip.addEventListener("scroll", handleWeeksScrollState);
     monthsStrip.addEventListener("scroll", handleMonthsScroll);
 
     updateMonthYearLabel();
@@ -1030,27 +1019,31 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   .day-labels-header {
     top: 0.75rem;
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.05s linear;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.1s ease, visibility 0s linear 0.1s;
   }
 
   .day-labels-header span {
     line-height: 1.25rem;
   }
 
-  #weeks-strip .day-label {
-    opacity: 0;
-    visibility: visible;
-    transition: opacity 0.05s linear;
-  }
-
-  #calendar-card.is-scrolling .day-labels-header {
-    opacity: 0;
-  }
-
-  #calendar-card.is-scrolling #weeks-strip .day-label {
+  .expanded-mode .day-labels-header,
+  .is-animating .day-labels-header {
     opacity: 1;
+    visibility: visible;
+    transition: opacity 0.1s ease, visibility 0s linear 0s;
+  }
+
+  #weeks-strip .day-label {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.1s ease;
+  }
+
+  .expanded-mode #weeks-strip .day-label,
+  .is-animating #weeks-strip .day-label {
+    opacity: 0;
   }
 
   /* Hide the week-strip numbers in expanded mode so only the month view
