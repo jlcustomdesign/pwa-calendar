@@ -216,13 +216,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
               data-date={item.date}
               data-is-current-month="true"
               data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-              class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+              class={`relative z-20 flex flex-col items-center justify-center pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
                 item.active
                   ? "text-black font-bold"
                   : "text-text-main hover:opacity-100 opacity-100"
               }`}
             >
-              <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20" style="color: #C93263 !important;">{item.dayLabel}</span>
               <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
                 {item.date}
               </span>
@@ -996,41 +995,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     border: 0 !important;
   }
 
-  .day-label {
-    opacity: 1;
-    visibility: visible;
-    font-weight: 900 !important;
-    color: #C93263 !important;
-    -webkit-text-stroke: 0.5px currentColor;
-  }
-
-  #months-strip .day-label {
-    opacity: 0 !important;
-    visibility: hidden !important;
-  }
-
-
-
   .day-labels-header {
     top: 0.75rem;
-    opacity: 0;
-    visibility: hidden;
-    transition: none;
-  }
-
-  .expanded-mode .day-labels-header {
     opacity: 1;
     visibility: visible;
-  }
-
-  #weeks-strip .day-label {
-    opacity: 1;
-    transition: none;
-  }
-
-  .expanded-mode #weeks-strip .day-label {
-    opacity: 0 !important;
-    visibility: hidden !important;
   }
 
   .day-labels-header span {
