@@ -179,18 +179,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-[0.5rem] left-0 right-0 z-30 pointer-events-none overflow-hidden h-5">
-      <div id="day-labels-track" class="flex h-full">
-        {allWeeksFlat.map(() => (
-          <div class="flex justify-between shrink-0 h-full px-2" style="width: 100%;">
-            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">L</span>
-            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
-            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
-            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">J</span>
-            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">V</span>
-          </div>
-        ))}
-      </div>
+    <div class="day-labels-header absolute top-[0.75rem] left-2 right-2 z-30 grid grid-cols-5 gap-1 pointer-events-none">
+      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">L</span>
+      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
+      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
+      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">J</span>
+      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">V</span>
     </div>
 
     <div
@@ -222,12 +216,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
               data-date={item.date}
               data-is-current-month="true"
               data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-              class={`relative z-20 flex flex-col items-center justify-center pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+              class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
                 item.active
                   ? "text-black font-bold"
                   : "text-text-main hover:opacity-100 opacity-100"
               }`}
             >
+              <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20" style="color: #C93263 !important;">{item.dayLabel}</span>
               <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
                 {item.date}
               </span>
@@ -279,6 +274,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                             : "text-text-main hover:opacity-60 opacity-30"
                       }`}
                     >
+                      <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20" style="color: #C93263 !important;">{item.dayLabel}</span>
                       <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
                         {item.date}
                       </span>
@@ -343,21 +339,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }) || buttons[0] || null;
     }
 
-    const dayLabelsTrack = document.getElementById('day-labels-track') as HTMLElement | null;
-
-    function syncDayLabelsHeader() {
-      if (dayLabelsTrack && weeksStrip) {
-        dayLabelsTrack.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
-      }
-    }
-
     function scrollToActiveWeek() {
       if (isExpanded) return;
       const activeWeek = weeksStrip.querySelector('.week-section.active-week') as HTMLElement | null;
       if (!activeWeek) return;
       isProgrammaticScroll = true;
       weeksStrip.scrollLeft = activeWeek.offsetLeft;
-      syncDayLabelsHeader();
       setTimeout(() => { isProgrammaticScroll = false; }, 300);
     }
     setTimeout(scrollToActiveWeek, 50);
@@ -833,7 +820,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     function handleWeeksScroll() {
       if (isProgrammaticScroll) return;
-      syncDayLabelsHeader();
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
         const allWeeks = Array.from(weeksStrip.querySelectorAll(".week-section"));
@@ -868,16 +854,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     weeksStrip.addEventListener("scroll", handleWeeksScroll);
     monthsStrip.addEventListener("scroll", handleMonthsScroll);
-
-    // Keep the day-label track perfectly in sync with the physical scroll
-    // position so the letters move at the exact same time as the dates.
-    function syncHeaderLoop() {
-      if (!isExpanded && dayLabelsTrack && weeksStrip) {
-        dayLabelsTrack.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
-      }
-      requestAnimationFrame(syncHeaderLoop);
-    }
-    requestAnimationFrame(syncHeaderLoop);
 
     updateMonthYearLabel();
   }
@@ -991,10 +967,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   /* Expanded mode: months stacked side-by-side, weeks stacked vertically */
-  #months-strip {
-    padding-top: 2.5rem;
-  }
-
   #months-strip .month-section {
     display: flex;
     flex-direction: column;
@@ -1021,11 +993,39 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     border: 0 !important;
   }
 
-  .day-labels-header {
-    top: 0.75rem;
+  .day-label {
     opacity: 1;
     visibility: visible;
-    transition: none;
+    font-weight: 900 !important;
+    color: #C93263 !important;
+    -webkit-text-stroke: 0.5px currentColor;
+  }
+
+  #months-strip .day-label {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .day-labels-header {
+    top: 0.75rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0s, visibility 0s;
+  }
+
+  .expanded-mode .day-labels-header,
+  .is-animating .day-labels-header {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #weeks-strip .day-label {
+    opacity: 1;
+    transition: opacity 0.15s ease;
+  }
+
+  .is-animating #weeks-strip .day-label {
+    opacity: 0;
   }
 
   .day-labels-header span {
@@ -1043,7 +1043,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-card.expanded-mode {
-    max-height: calc(var(--active-week-count, 6) * 5.25rem + 10.5rem);
+    max-height: calc(var(--active-week-count, 6) * 5.25rem + 8rem);
   }
 
   #calendar-strip {
@@ -1055,16 +1055,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-strip.expanded-mode {
-    height: calc(var(--active-week-count, 6) * 5.25rem + 2.5rem);
+    height: calc(var(--active-week-count, 6) * 5.25rem);
   }
 
   #calendar-strip.is-animating {
     will-change: height, transform, opacity;
   }
 
-  /* During expand/collapse, hide only the date numbers/dots in the outgoing
-     strip. The day labels are morphed into the fixed header position above,
-     so the letters stay visible 100% of the time. */
+  /* Hide only the date numbers/dots in the outgoing strip during expand/collapse
+     so the sliding week animation doesn't show a duplicated row of dates,
+     while keeping the day labels and pill/circle transitions intact. */
   .is-animating.expanded-mode #weeks-strip [data-calendar-item] .date-number,
   .is-animating.expanded-mode #weeks-strip [data-calendar-item] .today-dot,
   .is-animating.closed-mode #months-strip [data-calendar-item] .date-number,
