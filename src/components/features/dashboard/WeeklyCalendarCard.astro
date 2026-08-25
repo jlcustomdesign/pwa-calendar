@@ -895,7 +895,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0s linear, visibility 0s linear;
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -920,6 +920,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     visibility: visible;
     pointer-events: auto;
     transform: translateY(0);
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s linear;
   }
 
   .closed-mode #months-strip {
@@ -927,6 +928,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     visibility: hidden;
     pointer-events: none;
     transform: translateY(0);
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.7s linear;
   }
 
   .expanded-mode #weeks-strip {
@@ -934,6 +936,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     visibility: hidden;
     pointer-events: none;
     transform: translateY(var(--active-week-offset, 5.25rem));
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.7s linear;
   }
 
   .expanded-mode #months-strip {
@@ -941,6 +944,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     visibility: visible;
     pointer-events: auto;
     transform: translateY(0);
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s linear;
   }
 
   /* Closed mode: horizontal carousel of consecutive weeks */
@@ -990,14 +994,38 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   .day-label {
-    visibility: hidden;
+    opacity: 1;
+    visibility: visible;
     font-weight: 900 !important;
     color: #C93263 !important;
     -webkit-text-stroke: 0.5px currentColor;
   }
 
+  #months-strip .day-label {
+    opacity: 0;
+    visibility: hidden;
+  }
+
   .day-labels-header {
     top: 0.75rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0s, visibility 0s;
+  }
+
+  .expanded-mode .day-labels-header,
+  .is-animating .day-labels-header {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #weeks-strip .day-label {
+    opacity: 1;
+    transition: opacity 0.15s ease;
+  }
+
+  .is-animating #weeks-strip .day-label {
+    opacity: 0;
   }
 
   .day-labels-header span {
