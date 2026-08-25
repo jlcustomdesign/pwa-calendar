@@ -179,15 +179,15 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-[0.625rem] left-0 right-0 z-30 pointer-events-none overflow-hidden h-5">
+    <div class="day-labels-header absolute top-[0.5rem] left-0 right-0 z-30 pointer-events-none overflow-hidden h-5">
       <div id="day-labels-track" class="flex h-full">
         {allWeeksFlat.map(() => (
-          <div class="grid grid-cols-5 gap-1 shrink-0 h-full px-2" style="width: 100%;">
-            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">L</span>
-            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
-            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
-            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">J</span>
-            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">V</span>
+          <div class="flex justify-between shrink-0 h-full px-2" style="width: 100%;">
+            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">L</span>
+            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
+            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
+            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">J</span>
+            <span class="flex-1 flex items-center justify-center max-w-[4.5rem] text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">V</span>
           </div>
         ))}
       </div>
