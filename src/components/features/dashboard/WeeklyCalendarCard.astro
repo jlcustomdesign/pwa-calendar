@@ -181,7 +181,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     <div class="day-labels-header absolute top-[0.625rem] left-0 z-30 flex pointer-events-none" style={`width: ${allWeeksFlat.length * 100}%;`}>
       {allWeeksFlat.map(() => (
-        <div class="grid grid-cols-5 gap-1 px-2 shrink-0" style="width: 100%;">
+        <div class="grid grid-cols-5 gap-1 px-2 shrink-0" style={`width: calc(100% / ${allWeeksFlat.length});`}>
           {weekDayLabels.map((label) => (
             <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
           ))}
