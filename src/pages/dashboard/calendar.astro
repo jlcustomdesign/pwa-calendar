@@ -868,13 +868,6 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           `;
         }).join('');
 
-        const [startH, startM] = (timeStr || '08:00').split(':').map(Number);
-        const startHStr = (isNaN(startH) ? 8 : startH).toString().padStart(2, '0');
-        const startMStr = (isNaN(startM) ? 0 : startM).toString().padStart(2, '0');
-
-        const memberNamesList = group.members.map((m: any) => m.patientName).filter(Boolean).join(', ');
-        const displayNames = memberNamesList || `${count} pacienți`;
-
         return `
           <session-card class="group-session-card block relative rounded-[2.5rem] shadow-sm overflow-hidden" data-group-id="${group.groupId}" data-group-member-ids="${memberIds}">
             <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
@@ -900,18 +893,9 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
             </div>
 
             <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
-              <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[110px] p-6" onclick="this.closest('session-card').classList.toggle('expanded')">
-                
-                <!-- Watermark Time Background -->
-                <div class="absolute left-3 top-0 bottom-0 font-black text-[3.8rem] leading-[0.8] opacity-50 pointer-events-none tracking-tighter flex items-center justify-start z-0 w-20">
-                  <div class="flex items-start">
-                    ${startHStr}
-                    <span class="text-xl mt-1 ml-0.5">${startMStr}</span>
-                  </div>
-                </div>
-
+              <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6" onclick="this.closest('session-card').classList.toggle('expanded')">
                 <!-- Title & Status Icon -->
-                <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
+                <div class="flex items-center gap-3 w-full relative z-10 justify-between">
                   <div class="min-w-0 flex-1">
                     <h4 class="text-xl font-bold tracking-tight leading-none truncate">Grup</h4>
                   </div>
@@ -919,7 +903,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 </div>
 
                 <!-- Progress Bar -->
-                <div class="flex items-center gap-4 mt-5 relative z-10 pl-24">
+                <div class="flex items-center gap-4 mt-5 relative z-10">
                   <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative">
                     <div class="h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out" style="width: 100%;"></div>
                   </div>
