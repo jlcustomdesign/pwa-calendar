@@ -966,6 +966,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   /* Expanded mode: months stacked side-by-side, weeks stacked vertically */
+  #months-strip {
+    padding-top: 2rem;
+  }
+
   #months-strip .month-section {
     display: flex;
     flex-direction: column;
@@ -1044,7 +1048,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-card.expanded-mode {
-    max-height: calc(var(--active-week-count, 6) * 5.25rem + 8rem);
+    max-height: calc(var(--active-week-count, 6) * 5.25rem + 10rem);
   }
 
   #calendar-strip {
@@ -1056,7 +1060,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-strip.expanded-mode {
-    height: calc(var(--active-week-count, 6) * 5.25rem);
+    height: calc(var(--active-week-count, 6) * 5.25rem + 2rem);
   }
 
   #calendar-strip.is-animating {
