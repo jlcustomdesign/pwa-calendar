@@ -179,12 +179,18 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-[0.75rem] left-2 right-2 z-30 grid grid-cols-5 gap-1 pointer-events-none">
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">L</span>
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">J</span>
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">V</span>
+    <div class="day-labels-header absolute top-[0.75rem] left-0 right-0 z-30 pointer-events-none overflow-hidden h-5">
+      <div id="day-labels-track" class="flex h-full">
+        {allWeeksFlat.map(() => (
+          <div class="grid grid-cols-5 gap-1 shrink-0 h-full px-2" style="width: 100%;">
+            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">L</span>
+            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
+            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
+            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">J</span>
+            <span class="flex items-center justify-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">V</span>
+          </div>
+        ))}
+      </div>
     </div>
 
     <div
@@ -337,12 +343,21 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }) || buttons[0] || null;
     }
 
+    const dayLabelsTrack = document.getElementById('day-labels-track') as HTMLElement | null;
+
+    function syncDayLabelsHeader() {
+      if (dayLabelsTrack && weeksStrip) {
+        dayLabelsTrack.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
+      }
+    }
+
     function scrollToActiveWeek() {
       if (isExpanded) return;
       const activeWeek = weeksStrip.querySelector('.week-section.active-week') as HTMLElement | null;
       if (!activeWeek) return;
       isProgrammaticScroll = true;
       weeksStrip.scrollLeft = activeWeek.offsetLeft;
+      syncDayLabelsHeader();
       setTimeout(() => { isProgrammaticScroll = false; }, 300);
     }
     setTimeout(scrollToActiveWeek, 50);
@@ -818,6 +833,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     function handleWeeksScroll() {
       if (isProgrammaticScroll) return;
+      syncDayLabelsHeader();
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
         const allWeeks = Array.from(weeksStrip.querySelectorAll(".week-section"));
