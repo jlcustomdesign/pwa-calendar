@@ -337,8 +337,10 @@
 
             <!-- Title & Status Icon -->
             <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
-              <div class="flex-1 min-w-0">
+              <div class="flex-1 min-w-0 flex flex-col gap-1">
                 <h4 class="text-xl font-bold tracking-tight leading-none truncate">Grup</h4>
+                <p class="text-sm font-bold opacity-90 truncate">${escapeHtml(displayNames)}</p>
+                <p class="text-xs font-black opacity-75">${count} pacienți · ${escapeHtml(locationStr)}</p>
               </div>
               ${statusIcon}
             </div>
@@ -547,8 +549,14 @@
               </div>
 
               <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
-                <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0 flex flex-col gap-2">
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${safePatientName}</h4>
+                  <div class="flex items-center gap-3">
+                    <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative">
+                      <div class="h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
+                    </div>
+                    <span class="text-xs font-black tracking-wide shrink-0">${displayCount}/${totalSess}</span>
+                  </div>
                 </div>
                 ${statusIcon}
               </div>
