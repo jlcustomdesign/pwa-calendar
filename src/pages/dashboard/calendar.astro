@@ -913,9 +913,12 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
               <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
                 <div class="overflow-hidden relative z-20">
                   <div class="px-6 pb-6 pt-1">
-                    <div class="flex items-center justify-between gap-2 mb-3 px-1 text-xs font-black opacity-80 uppercase tracking-wider">
-                      <span>Locație: ${escapeHtml(locationStr)}</span>
-                      <span>${count} pacienți</span>
+                    <div class="flex items-center gap-1.5 mb-3 px-1 text-sm font-black opacity-90">
+                      <svg class="w-4 h-4 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                      <span>${escapeHtml(locationStr)}</span>
                     </div>
                     <div class="group-members flex flex-col gap-2.5 mb-3">
                       ${memberCards}
