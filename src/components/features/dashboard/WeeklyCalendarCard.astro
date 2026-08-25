@@ -179,14 +179,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-[0.75rem] left-2 right-2 z-30 grid grid-cols-5 gap-1 pointer-events-none">
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">L</span>
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">M</span>
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">J</span>
-      <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">V</span>
-    </div>
-
     <div
       id="calendar-active-pill"
       class="absolute bg-brand-primary pointer-events-none z-0"
@@ -1001,35 +993,29 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     -webkit-text-stroke: 0.5px currentColor;
   }
 
+  #weeks-strip .day-label,
   #months-strip .day-label {
-    opacity: 0;
-    visibility: hidden;
-  }
-
-  .day-labels-header {
-    top: 0.75rem;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0s, visibility 0s;
-  }
-
-  .expanded-mode .day-labels-header,
-  .is-animating .day-labels-header {
     opacity: 1;
     visibility: visible;
+    transition: none;
   }
 
-  #weeks-strip .day-label {
-    opacity: 1;
-    transition: opacity 0.15s ease;
-  }
-
-  .is-animating #weeks-strip .day-label {
+  /* Hide the week-strip numbers in expanded mode so only the month view
+     shows dates, while keeping the day labels visible in both strips. */
+  .expanded-mode #weeks-strip [data-calendar-item] .date-number,
+  .expanded-mode #weeks-strip [data-calendar-item] .today-dot,
+  .is-animating.expanded-mode #weeks-strip [data-calendar-item] .date-number,
+  .is-animating.expanded-mode #weeks-strip [data-calendar-item] .today-dot {
     opacity: 0;
+    transition: opacity 0.1s ease;
   }
 
-  .day-labels-header span {
-    line-height: 1.25rem;
+  /* Hide the month-strip numbers while collapsing so the week strip can
+     slide back in without a duplicated row of dates. */
+  .is-animating.closed-mode #months-strip [data-calendar-item] .date-number,
+  .is-animating.closed-mode #months-strip [data-calendar-item] .today-dot {
+    opacity: 0;
+    transition: opacity 0.1s ease;
   }
 
   #calendar-card {
