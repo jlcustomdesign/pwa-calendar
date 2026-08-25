@@ -77,10 +77,10 @@ const { title, hideDock = false } = Astro.props;
       <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-8 pb-32 pt-[max(0.75rem,env(safe-area-inset-top))] relative z-10 page-fade-in">
         <slot />
       </main>
-
-      <!-- Persistent Floating Icon Dock -->
-      {!hideDock && <Dock transition:persist />}
     </div>
+
+    <!-- Persistent Floating Icon Dock -->
+    {!hideDock && <Dock transition:persist />}
 
     <!-- Sheets / Toasts live outside the content wrapper so their dynamic overlays share the root stacking context -->
     <PaymentSheet transition:persist />
