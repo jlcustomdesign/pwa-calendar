@@ -336,13 +336,10 @@
             </div>
 
             <!-- Title & Status Icon -->
-            <div class="flex items-start gap-3 w-full relative z-10 pl-24 justify-between">
+            <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
               <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <h4 class="text-xl font-bold tracking-tight leading-none">Grup</h4>
-                  <span class="text-[11px] font-black opacity-75 uppercase tracking-wider">• ${escapeHtml(locationStr)}</span>
-                </div>
-                <div class="mt-1.5 text-xs sm:text-sm font-bold opacity-90 leading-snug break-words">${escapeHtml(displayNames)}</div>
+                <h4 class="text-xl font-bold tracking-tight leading-none truncate">Grup</h4>
+                <div class="mt-1 text-xs sm:text-sm font-bold opacity-80">${count} pacienți • ${escapeHtml(locationStr)}</div>
               </div>
               ${statusIcon}
             </div>
