@@ -325,7 +325,7 @@
           </div>
         </div>
         <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
-          <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[110px] p-6" onclick="this.closest('session-card').classList.toggle('expanded')">
+          <div class="card-summary relative z-20 flex items-center justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[85px] py-5 px-6" onclick="this.closest('session-card').classList.toggle('expanded')">
             
             <!-- Watermark Time Background -->
             <div class="absolute left-3 top-0 bottom-0 font-black text-[3.8rem] leading-[0.8] opacity-50 pointer-events-none tracking-tighter flex items-center justify-start z-0 w-20">
@@ -339,15 +339,9 @@
             <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
               <div class="flex-1 min-w-0">
                 <h4 class="text-xl font-bold tracking-tight leading-none truncate">Grup</h4>
+                <div class="mt-1.5 text-xs font-black opacity-80 tracking-wide">${count} pacienți</div>
               </div>
               ${statusIcon}
-            </div>
-
-            <!-- Progress Bar -->
-            <div class="flex items-center gap-4 mt-5 relative z-10 pl-24">
-              <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative">
-                <div class="h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out" style="width: 100%;"></div>
-              </div>
             </div>
           </div>
 
@@ -543,7 +537,7 @@
 
           <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
 
-            <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[110px] p-6">
+            <div class="card-summary relative z-20 flex items-center justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[85px] py-5 px-6">
               
               <!-- Watermark Time Background -->
               <div class="absolute left-3 top-0 bottom-0 font-black text-[3.8rem] leading-[0.8] opacity-50 pointer-events-none tracking-tighter flex items-center justify-start z-0 w-20">
@@ -554,17 +548,11 @@
               </div>
 
               <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
-                <div class="flex-1 min-w-0 flex items-center gap-2">
+                <div class="flex-1 min-w-0">
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${safePatientName}</h4>
+                  <div class="mt-1.5 text-xs font-black opacity-80 font-mono tracking-wide">${displayCount}/${totalSess} ședințe</div>
                 </div>
                 ${statusIcon}
-              </div>
-
-              <div class="flex items-center gap-4 mt-5 relative z-10 pl-24">
-                <div class="h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative">
-                  <div class="h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
-                </div>
-                <div class="text-xs font-bold tracking-wide opacity-90 shrink-0">${displayCount}/${totalSess}</div>
               </div>
             </div>
 
