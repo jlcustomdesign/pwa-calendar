@@ -872,6 +872,9 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         const startHStr = (isNaN(startH) ? 8 : startH).toString().padStart(2, '0');
         const startMStr = (isNaN(startM) ? 0 : startM).toString().padStart(2, '0');
 
+        const memberNamesList = group.members.map((m: any) => m.patientName).filter(Boolean).join(', ');
+        const displayNames = memberNamesList || `${count} pacienți`;
+
         return `
           <session-card class="group-session-card block relative rounded-[2.5rem] shadow-sm overflow-hidden" data-group-id="${group.groupId}" data-group-member-ids="${memberIds}">
             <div class="absolute inset-0 bg-neutral-100 flex items-center justify-end px-6 z-0">
@@ -911,7 +914,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
                   <div class="min-w-0 flex-1">
                     <h4 class="text-xl font-bold tracking-tight leading-none truncate">Grup</h4>
-                    <div class="mt-1 text-xs sm:text-sm font-bold opacity-80">${count} pacienți • ${escapeHtml(locationStr)}</div>
+                    <div class="mt-1 text-xs sm:text-sm font-bold opacity-85 truncate" title="${escapeHtml(displayNames)}">${escapeHtml(displayNames)} • ${escapeHtml(locationStr)}</div>
                   </div>
                   ${statusIcon}
                 </div>
