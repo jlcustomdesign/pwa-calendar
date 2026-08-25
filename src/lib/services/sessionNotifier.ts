@@ -249,28 +249,96 @@ async function checkTodaySessionsForNotifications() {
     const sessionDuration = settings?.session_duration || 50;
     const notifiedKeys = getNotifiedKeys();
 
-    // Sortează programările după oră
-    const sorted = [...appts].sort((a, b) => (a.ora || '00:00').localeCompare(b.ora || '00:00'));
+    // Grupăm programările active după group_id sau interval orar comun
+    interface NotificationItem {
+      isGroup: boolean;
+      groupId?: string;
+      ora: string;
+      appointments: any[];
+      patientNames: string[];
+      location: string;
+    }
 
-    for (let i = 0; i < sorted.length; i++) {
-      const appt = sorted[i];
-      if (appt.status === 'anulat' || appt.status === 'absent') continue;
+    const groupsMap = new Map<string, any[]>();
+    const singles: any[] = [];
 
-      const timeStr = (appt.ora || '08:00').substring(0, 5);
+    for (const a of appts) {
+      if (a.status === 'anulat' || a.status === 'absent') continue;
+      if (a.group_id) {
+        if (!groupsMap.has(a.group_id)) groupsMap.set(a.group_id, []);
+        groupsMap.get(a.group_id)!.push(a);
+      } else {
+        singles.push(a);
+      }
+    }
+
+    // Identificăm sesiunile individuale programate la aceeași oră pentru auto-grupare
+    const byTime = new Map<string, any[]>();
+    const trueSingles: any[] = [];
+    for (const s of singles) {
+      const timeKey = (s.ora || '08:00').substring(0, 5);
+      if (!byTime.has(timeKey)) byTime.set(timeKey, []);
+      byTime.get(timeKey)!.push(s);
+    }
+
+    for (const [tKey, sameTimeList] of byTime) {
+      if (sameTimeList.length > 1) {
+        const autoKey = `time_group_${todayStr}_${tKey}`;
+        groupsMap.set(autoKey, sameTimeList);
+      } else {
+        trueSingles.push(sameTimeList[0]);
+      }
+    }
+
+    const notifItems: NotificationItem[] = [];
+    for (const s of trueSingles) {
+      const pName = s.pacienti ? `${s.pacienti.prenume} ${s.pacienti.nume}`.trim() : 'Pacient';
+      notifItems.push({
+        isGroup: false,
+        ora: s.ora || '08:00',
+        appointments: [s],
+        patientNames: [pName],
+        location: s.pacienti?.locatie || 'Belaqva',
+      });
+    }
+
+    for (const [gId, members] of groupsMap) {
+      const names = members.map((m: any) => m.pacienti ? `${m.pacienti.prenume} ${m.pacienti.nume}`.trim() : 'Pacient');
+      notifItems.push({
+        isGroup: true,
+        groupId: gId,
+        ora: members[0].ora || '08:00',
+        appointments: members,
+        patientNames: names,
+        location: members[0].pacienti?.locatie || 'Belaqva',
+      });
+    }
+
+    // Sortare cronologică
+    notifItems.sort((a, b) => a.ora.localeCompare(b.ora));
+
+    for (let i = 0; i < notifItems.length; i++) {
+      const item = notifItems[i];
+      const timeStr = (item.ora || '08:00').substring(0, 5);
       const parts = timeStr.split(':');
       const startH = parseInt(parts[0] || '8', 10);
       const startM = parseInt(parts[1] || '0', 10);
       const startTotalMin = startH * 60 + startM;
       const endTotalMin = startTotalMin + sessionDuration;
 
-      const patientName = appt.pacienti ? `${appt.pacienti.prenume} ${appt.pacienti.nume}`.trim() : 'Pacient';
-      const endKey = `${todayStr}_${appt.id}_end`;
+      const groupKey = item.isGroup ? `group_${item.groupId || item.ora}` : `single_${item.appointments[0].id}`;
+      const endKey = `${todayStr}_${groupKey}_end`;
 
       // Notificare SFÂRȘIT ȘEDINȚĂ
       // Fereastră de la final până la 5 min după.
       if (currentMinutes >= endTotalMin && currentMinutes <= endTotalMin + 5) {
         if (!notifiedKeys[endKey]) {
           setNotifiedKey(endKey);
+
+          // Marchează și cheile per-appointment pentru a preveni declanșări duplicate
+          for (const appt of item.appointments) {
+            setNotifiedKey(`${todayStr}_${appt.id}_end`);
+          }
 
           // Pauza de masă (pentru sumarul notificării)
           const lunchStartStr = (settings?.lunch_start || '12:00').substring(0, 5);
@@ -280,41 +348,53 @@ async function checkTodaySessionsForNotifications() {
           const lunchStartMin = (lsh || 0) * 60 + (lsm || 0);
           const lunchEndMin = (leh || 0) * 60 + (lem || 0);
 
-          // Caută dacă urmează un alt pacient
-          const nextAppt = sorted.slice(i + 1).find(a => a.status !== 'anulat' && a.status !== 'absent');
+          // Caută dacă urmează un alt pacient sau grup
+          const nextItem = notifItems.slice(i + 1).find(n => n.appointments.some((a: any) => a.status !== 'anulat' && a.status !== 'absent'));
           let summaryMessage = '';
 
           const lunchFitsBeforeNext =
             lunchStartMin >= endTotalMin &&
-            (!nextAppt || lunchEndMin <= ((nextAppt.ora || '00:00').substring(0, 5).split(':').map(Number)[0] * 60 + (nextAppt.ora || '00:00').substring(0, 5).split(':').map(Number)[1]));
+            (!nextItem || lunchEndMin <= ((nextItem.ora || '00:00').substring(0, 5).split(':').map(Number)[0] * 60 + (nextItem.ora || '00:00').substring(0, 5).split(':').map(Number)[1]));
 
           if (lunchFitsBeforeNext) {
             summaryMessage += ` Pauză de masă ${lunchStartStr}-${lunchEndStr}.`;
           }
 
-          if (nextAppt) {
-            const nextName = nextAppt.pacienti ? `${nextAppt.pacienti.prenume} ${nextAppt.pacienti.nume}`.trim() : 'Pacient';
-            const nextTime = (nextAppt.ora || '').substring(0, 5);
-            summaryMessage += ` Urmează ${nextName} la ora ${nextTime}.`;
+          if (nextItem) {
+            const nextNames = nextItem.isGroup 
+              ? `Grup (${nextItem.patientNames.join(', ')})` 
+              : nextItem.patientNames[0];
+            const nextTime = (nextItem.ora || '').substring(0, 5);
+            summaryMessage += ` Urmează ${nextNames} la ora ${nextTime}.`;
           } else {
             summaryMessage += ` Ultima ședință a zilei.`;
           }
 
-          // Popup în app — funcționează INDIFERENT de permisiunea de notificări web.
+          // Popup în app — deschide wrapup pentru prima sesiune din grup/individuală
           if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
             setTimeout(() => {
               window.dispatchEvent(new CustomEvent('openWrapUp', {
-                detail: { appointment: appt }
+                detail: { appointment: item.appointments[0] }
               }));
             }, 500);
           }
 
           if (canUseWebNotifications) {
-            await triggerWebNotification(
-              `✅ S-a încheiat: ${patientName}`,
-              `Ședința de la ora ${timeStr} s-a încheiat.${summaryMessage} Apasă pentru confirmare.`,
-              endKey
-            );
+            if (item.isGroup) {
+              const namesStr = item.patientNames.join(', ');
+              await triggerWebNotification(
+                `👥 S-a încheiat ședința de grup`,
+                `Ședința de grup de la ora ${timeStr} (${namesStr}) s-a încheiat.${summaryMessage} Apasă pentru confirmare.`,
+                endKey
+              );
+            } else {
+              const patientName = item.patientNames[0];
+              await triggerWebNotification(
+                `✅ S-a încheiat: ${patientName}`,
+                `Ședința de la ora ${timeStr} s-a încheiat.${summaryMessage} Apasă pentru confirmare.`,
+                endKey
+              );
+            }
           }
         }
       }

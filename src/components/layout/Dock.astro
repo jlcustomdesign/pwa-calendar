@@ -195,7 +195,9 @@ const navItems = [
 
     dockNav?.querySelectorAll('[data-dock-item]').forEach((item) => {
       const handleDockTap = (e: Event) => {
-        e.preventDefault();
+        if (e.cancelable) {
+          e.preventDefault();
+        }
         const target = e.currentTarget as HTMLElement;
         const href = target.getAttribute('href');
         dockNav.querySelectorAll('[data-dock-item]').forEach((i) => setItemVisualState(i as HTMLElement, false));
@@ -209,7 +211,6 @@ const navItems = [
         }
       };
 
-      item.addEventListener('touchstart', handleDockTap, { passive: false });
       item.addEventListener('click', handleDockTap);
     });
 

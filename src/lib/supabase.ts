@@ -35,19 +35,33 @@ if (typeof window !== 'undefined') {
   const originalFetch = window.fetch;
 
   window.fetch = async (...args) => {
-    const response = await originalFetch(...args);
-    const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+    try {
+      const response = await originalFetch(...args);
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request)?.url || '';
 
-    if (url.includes(supabaseUrl) && (response.status === 401 || response.status === 406)) {
-      try {
-        const responseClone = response.clone();
-        const responseText = await responseClone.text();
-        captureFetchError(url, response.status, responseText.slice(0, 1000));
-      } catch {
-        captureFetchError(url, response.status);
+      if (url && url.includes(supabaseUrl) && (response.status === 401 || response.status === 406)) {
+        try {
+          const responseClone = response.clone();
+          const responseText = await responseClone.text();
+          captureFetchError(url, response.status, responseText.slice(0, 1000));
+        } catch {
+          captureFetchError(url, response.status);
+        }
       }
-    }
 
-    return response;
+      return response;
+    } catch (fetchErr: any) {
+      // Auto-retry pentru micro-întreruperi de rețea (ERR_CONNECTION_CLOSED / QUIC drop)
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request)?.url || '';
+      if (url && url.includes(supabaseUrl)) {
+        try {
+          await new Promise((r) => setTimeout(r, 400));
+          return await originalFetch(...args);
+        } catch (retryErr) {
+          throw retryErr;
+        }
+      }
+      throw fetchErr;
+    }
   };
 }
