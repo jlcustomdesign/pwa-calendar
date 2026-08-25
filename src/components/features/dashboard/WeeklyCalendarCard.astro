@@ -337,20 +337,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }) || buttons[0] || null;
     }
 
-    function syncDayLabelsHeader() {
-      const header = document.querySelector('.day-labels-header') as HTMLElement | null;
-      if (header && weeksStrip) {
-        header.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
-      }
-    }
-
     function scrollToActiveWeek() {
       if (isExpanded) return;
       const activeWeek = weeksStrip.querySelector('.week-section.active-week') as HTMLElement | null;
       if (!activeWeek) return;
       isProgrammaticScroll = true;
       weeksStrip.scrollLeft = activeWeek.offsetLeft;
-      syncDayLabelsHeader();
       setTimeout(() => { isProgrammaticScroll = false; }, 300);
     }
     setTimeout(scrollToActiveWeek, 50);
@@ -826,7 +818,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     function handleWeeksScroll() {
       if (isProgrammaticScroll) return;
-      syncDayLabelsHeader();
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
         const allWeeks = Array.from(weeksStrip.querySelectorAll(".week-section"));
