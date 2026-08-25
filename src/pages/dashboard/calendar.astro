@@ -911,10 +911,13 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
                 </div>
 
                 <!-- Title & Status Icon -->
-                <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
+                <div class="flex items-start gap-3 w-full relative z-10 pl-24 justify-between">
                   <div class="min-w-0 flex-1">
-                    <h4 class="text-xl font-bold tracking-tight leading-none truncate">Grup</h4>
-                    <div class="mt-1 text-xs sm:text-sm font-bold opacity-85 truncate" title="${escapeHtml(displayNames)}">${escapeHtml(displayNames)} • ${escapeHtml(locationStr)}</div>
+                    <div class="flex items-center gap-2">
+                      <h4 class="text-xl font-bold tracking-tight leading-none">Grup</h4>
+                      <span class="text-[11px] font-black opacity-75 uppercase tracking-wider">• ${escapeHtml(locationStr)}</span>
+                    </div>
+                    <div class="mt-1.5 text-xs sm:text-sm font-bold opacity-90 leading-snug break-words">${escapeHtml(displayNames)}</div>
                   </div>
                   ${statusIcon}
                 </div>
