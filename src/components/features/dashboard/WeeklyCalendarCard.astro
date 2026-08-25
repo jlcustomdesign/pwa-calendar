@@ -1002,8 +1002,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #months-strip .day-label {
-    opacity: 0;
-    visibility: hidden;
+    opacity: 0 !important;
+    visibility: hidden !important;
   }
 
   .day-labels-header {
@@ -1013,7 +1013,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     transition: opacity 0.2s ease, visibility 0s 0.2s linear;
   }
 
-  .expanded-mode .day-labels-header {
+  .expanded-mode .day-labels-header,
+  .is-animating .day-labels-header {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.2s ease 0.05s, visibility 0s 0.05s linear;
