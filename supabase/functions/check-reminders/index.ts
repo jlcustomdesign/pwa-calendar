@@ -8,7 +8,7 @@ async function loadVaultSecrets(supabase: any) {
 
   return {
     vapidJwk: JSON.parse(secrets?.VAPID_PRIVATE_JWK || "{}"),
-    vapidSubject: secrets?.VAPID_SUBJECT || "mailto:admin@kinetoagenda.ro",
+    vapidSubject: secrets?.VAPID_SUBJECT || "",
   };
 }
 

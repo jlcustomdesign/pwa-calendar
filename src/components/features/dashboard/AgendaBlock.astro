@@ -185,9 +185,6 @@
     const progressBarFill = isGhimbav ? 'bg-brand-primary' : 'bg-brand-secondary';
     const progressBarTrack = isGhimbav ? 'bg-black/20' : 'bg-black/15';
     const memberIds = group.members.map((m: any) => m.id).join(',');
-    const groupCount = group.members.reduce((sum: number, m: any) => sum + (m.attendanceCount || 0), 0);
-    const groupTotal = group.members.reduce((sum: number, m: any) => sum + (m.totalSessions || 10), 0);
-    const groupProgress = groupTotal > 0 ? Math.min(100, Math.round((groupCount / groupTotal) * 100)) : 0;
 
     const anyStatus = group.members.some((m: any) => m.status === 'programat') ? 'programat' : group.members[0]?.status || 'programat';
     let statusIcon = '';
@@ -340,14 +337,8 @@
 
             <!-- Title & Status Icon -->
             <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
-              <div class="flex-1 min-w-0 flex flex-col gap-2">
+              <div class="flex-1 min-w-0 flex flex-col gap-1">
                 <h4 class="text-xl font-bold tracking-tight leading-none truncate">Grup</h4>
-                <div class="flex items-center gap-3 px-3 py-2 rounded-xl bg-white text-black shadow-sm">
-                  <div class="h-2 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative">
-                    <div class="h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out" style="width: ${groupProgress}%;"></div>
-                  </div>
-                  <span class="text-xs font-black tracking-wide shrink-0">${groupCount}/${groupTotal}</span>
-                </div>
                 <p class="text-xs font-black opacity-75">${count} pacienți · ${escapeHtml(locationStr)}</p>
               </div>
               ${statusIcon}
@@ -557,14 +548,8 @@
               </div>
 
               <div class="flex items-center gap-3 w-full relative z-10 pl-24 justify-between">
-                <div class="flex-1 min-w-0 flex flex-col gap-2">
+                <div class="flex-1 min-w-0">
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${safePatientName}</h4>
-                  <div class="flex items-center gap-3 px-3 py-2 rounded-xl bg-white text-black shadow-sm">
-                    <div class="h-2 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative">
-                      <div class="h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
-                    </div>
-                    <span class="text-xs font-black tracking-wide shrink-0">${displayCount}/${totalSess}</span>
-                  </div>
                 </div>
                 ${statusIcon}
               </div>
@@ -573,6 +558,14 @@
             <div class="card-details grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]" style="grid-template-rows: 0fr;">
               <div class="overflow-hidden relative z-20">
                 <div class="px-6 pt-2 pb-6 space-y-3">
+                  <!-- Row 0: Progress Bar + Session Count -->
+                  <div class="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white text-black text-sm font-extrabold shadow-sm">
+                    <div class="h-2 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative">
+                      <div class="h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
+                    </div>
+                    <span class="text-xs font-black tracking-wide shrink-0">${displayCount}/${totalSess}</span>
+                  </div>
+
                   <!-- Row 1: White Pill with Black Text & Icons for Time & Location -->
                   <div class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white text-black text-sm sm:text-base font-extrabold shadow-sm border border-transparent">
                     <span class="flex items-center gap-1.5 shrink-0 text-black">
