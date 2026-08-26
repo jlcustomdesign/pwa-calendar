@@ -169,9 +169,18 @@ const navItems = [
     }
   }
 
+  function ensureDockInBody() {
+    const dock = document.getElementById('persistent-dock');
+    if (dock && dock.parentElement !== document.body) {
+      document.body.appendChild(dock);
+    }
+  }
+
   function initDockOnce() {
     if ((window as any).__kinetoDockInitialized) return;
     (window as any).__kinetoDockInitialized = true;
+
+    ensureDockInBody();
 
     const dockNav = document.getElementById('dock-nav');
 
@@ -206,9 +215,15 @@ const navItems = [
     });
 
     // After the new page is swapped in, just reconcile state without animating
-    document.addEventListener('astro:after-swap', () => updateDockActiveState(false));
+    document.addEventListener('astro:after-swap', () => {
+      ensureDockInBody();
+      updateDockActiveState(false);
+    });
     // On full page load, reconcile (usually redundant because click already moved it)
-    document.addEventListener('astro:page-load', () => updateDockActiveState(false));
+    document.addEventListener('astro:page-load', () => {
+      ensureDockInBody();
+      updateDockActiveState(false);
+    });
     window.addEventListener('resize', () => updateDockActiveState(false));
   }
 

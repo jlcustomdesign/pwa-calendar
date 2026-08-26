@@ -2,10 +2,8 @@
  * pushService.ts — Client-side Web Push subscription & management
  */
 
-// VAPID Public Key configurată pentru aplicație
-export const VAPID_PUBLIC_KEY =
-  (typeof process !== 'undefined' && process.env?.PUBLIC_VAPID_PUBLIC_KEY) ||
-  'BGo-s4_9bT6qlpe4ZdjTr0AeFoxOswhgkJh-rHSOHJshhoSufsSByScAgLIQLmhE6EMvjTGGlB0rj7fgOdnRemY';
+// VAPID Public Key configurată pentru aplicație (PUBLIC_* variabilă de mediu)
+export const VAPID_PUBLIC_KEY = import.meta.env.PUBLIC_VAPID_PUBLIC_KEY || '';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

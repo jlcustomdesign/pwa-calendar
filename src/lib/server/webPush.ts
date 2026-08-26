@@ -3,17 +3,13 @@
  */
 import webPush from 'web-push';
 
-export const VAPID_PUBLIC_KEY =
-  process.env.PUBLIC_VAPID_PUBLIC_KEY ||
-  'BGo-s4_9bT6qlpe4ZdjTr0AeFoxOswhgkJh-rHSOHJshhoSufsSByScAgLIQLmhE6EMvjTGGlB0rj7fgOdnRemY';
-
+export const VAPID_PUBLIC_KEY = process.env.PUBLIC_VAPID_PUBLIC_KEY;
 export const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+export const VAPID_SUBJECT = process.env.VAPID_SUBJECT;
 
-export const VAPID_SUBJECT =
-  process.env.VAPID_SUBJECT ||
-  'mailto:admin@kinetoagenda.ro';
-
-if (VAPID_PRIVATE_KEY) {
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || !VAPID_SUBJECT) {
+  console.warn('VAPID keys are not fully configured; web push is disabled.');
+} else {
   try {
     webPush.setVapidDetails(
       VAPID_SUBJECT,
@@ -23,8 +19,6 @@ if (VAPID_PRIVATE_KEY) {
   } catch (err) {
     console.warn('VAPID details init warning:', err);
   }
-} else {
-  console.warn('VAPID_PRIVATE_KEY is not set; web push is disabled.');
 }
 
 export interface PushPayload {

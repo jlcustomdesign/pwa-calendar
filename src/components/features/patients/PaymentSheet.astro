@@ -576,12 +576,12 @@
 
             const totalSess = Number((patient as any).sedinte_total) || 10;
 
-            // Ședințele finalizate, cronologic, numerotate în cadrul abonamentului
+            // Toate ședințele pacientului, cronologic, numerotate în cadrul abonamentului
             const doneSessions = (patientAppts || [])
-              .filter((a: any) => a.status === 'finalizat')
               .sort((a: any, b: any) => `${a.data}T${a.ora}`.localeCompare(`${b.data}T${b.ora}`))
               .map((a: any, i: number) => ({
                 dateStr: a.data,
+                status: a.status || 'programat',
                 subNr: Math.floor(i / totalSess) + 1,
                 sessionNr: (i % totalSess) + 1,
               }));
@@ -657,7 +657,7 @@
 
                 const sessionsHtml = sub.sessions.length > 0
                   ? `<div class="space-y-1">
-                      <div class="px-1 text-[10px] font-black uppercase tracking-wider text-text-muted">Prezențe</div>
+                      <div class="px-1 text-[10px] font-black uppercase tracking-wider text-text-muted">Ședințe</div>
                       <div class="pt-1 space-y-1">
                         ${sub.sessions.map(s => {
                           let sDate = s.dateStr || '';
@@ -665,10 +665,21 @@
                             const parts = sDate.split('T')[0].split('-');
                             if (parts.length === 3) sDate = `${parts[2]}.${parts[1]}`;
                           }
+                          const statusLabel = s.status === 'finalizat' ? 'Finalizată'
+                            : s.status === 'absent' ? 'Absent'
+                            : s.status === 'anulat' ? 'Anulată'
+                            : 'Programată';
+                          const statusClass = s.status === 'finalizat' ? 'text-emerald-600'
+                            : s.status === 'absent' ? 'text-orange-500'
+                            : s.status === 'anulat' ? 'text-rose-500'
+                            : 'text-sky-600';
                           return `
-                            <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/[0.03] text-xs">
-                              <span class="font-black text-black">${sDate}</span>
-                              <span class="font-bold text-neutral-500">Șed. nr. ${s.sessionNr}</span>
+                            <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-black/[0.03] text-xs">
+                              <div class="flex items-center gap-2">
+                                <span class="font-black text-black">${sDate}</span>
+                                <span class="font-bold text-neutral-500">Șed. nr. ${s.sessionNr}</span>
+                              </div>
+                              <span class="font-black ${statusClass}">${statusLabel}</span>
                             </div>
                           `;
                         }).join('')}

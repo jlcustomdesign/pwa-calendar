@@ -237,7 +237,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   import { getPatients, getPatient, addPatient, updatePatient } from '../../../lib/services/patientService';
-  import { createAppointment, updateAppointment } from '../../../lib/services/appointmentService';
+  import { createAppointment, updateAppointment, deleteAppointment } from '../../../lib/services/appointmentService';
   import { escapeHtml } from '../../../utils/html';
 
   class AddSessionSheetManager {
@@ -266,7 +266,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     isGroupSession: boolean = false;
     isGroupEdit: boolean = false;
     groupEditMemberIds: string[] = [];
+    groupEditMembers: { appointmentId: string; patientId: string; patientName: string }[] = [];
     groupEditMemberCount: number = 0;
+    groupEditGroupId: string | null = null;
     patientsCache: any[] = [];
 
     constructor() {
@@ -1015,10 +1017,48 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         if (this.isGroupEdit && this.groupEditMemberIds.length > 0) {
           const groupLocInput = document.getElementById('groupLocation') as HTMLInputElement | null;
           const groupLocation = (groupLocInput?.value || 'Belaqva') as 'Belaqva' | 'Ghimbav';
-          await Promise.all(this.groupEditMemberIds.map(id =>
-            updateAppointment(id, { data: selectedDate, ora: selectedTime, locatie: groupLocation })
+
+          const newPatientIds = this.selectedPatientIds;
+          const existingMembers = this.groupEditMembers;
+          const existingPatientIds = new Set(existingMembers.map(m => m.patientId));
+
+          if (newPatientIds.length === 0) {
+            (window as any).showToast('Grupul trebuie să aibă cel puțin un pacient.', 'warning');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Salvează Modificările';
+            }
+            return;
+          }
+
+          // Ensure a real group_id exists for the edited group.
+          const groupId = this.groupEditGroupId && !this.groupEditGroupId.startsWith('time_group_')
+            ? this.groupEditGroupId
+            : crypto.randomUUID();
+
+          const membersToRemove = existingMembers.filter(m => !newPatientIds.includes(m.patientId));
+          const membersToKeep = existingMembers.filter(m => newPatientIds.includes(m.patientId));
+          const patientIdsToAdd = newPatientIds.filter(pid => !existingPatientIds.has(pid));
+
+          await Promise.all(membersToRemove.map(m => deleteAppointment(m.appointmentId)));
+          await Promise.all(membersToKeep.map(m =>
+            updateAppointment(m.appointmentId, { data: selectedDate, ora: selectedTime, locatie: groupLocation, group_id: groupId })
           ));
-          (window as any).showToast('Grupul a fost actualizat cu succes.', 'success');
+          for (const pid of patientIdsToAdd) {
+            await createAppointment({
+              pacient_id: pid,
+              data: selectedDate,
+              ora: selectedTime,
+              locatie: groupLocation,
+              group_id: groupId,
+            });
+          }
+
+          const changedCount = membersToRemove.length + patientIdsToAdd.length;
+          const message = changedCount > 0
+            ? `Grup actualizat. ${membersToKeep.length} pacienți păstrați, ${membersToRemove.length} eliminați, ${patientIdsToAdd.length} adăugați.`
+            : 'Grupul a fost actualizat cu succes.';
+          (window as any).showToast(message, 'success');
         } else if (sessionId) {
           await updateAppointment(sessionId, {
             pacient_id: patientId,
@@ -1074,7 +1114,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
       this.isGroupEdit = isGroupEdit;
       this.groupEditMemberIds = isGroupEdit ? (detail.memberIds || []) : [];
+      this.groupEditMembers = isGroupEdit ? (detail.members || []) : [];
       this.groupEditMemberCount = isGroupEdit ? this.groupEditMemberIds.length : 0;
+      this.groupEditGroupId = isGroupEdit ? (detail.groupId || null) : null;
 
       const titleEl = document.getElementById('sheet-title');
       const submitBtnEl = document.getElementById('submit-btn');
@@ -1096,7 +1138,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         if (submitBtnEl) submitBtnEl.textContent = 'Salvează Modificările';
         if (groupEditNotice) groupEditNotice.classList.remove('hidden');
         if (groupEditCount) groupEditCount.textContent = String(this.groupEditMemberCount);
-        if (patientSearchWrap) patientSearchWrap.classList.add('hidden');
+        // Keep patient picker visible so the user can add/remove group members.
+        if (patientSearchWrap) patientSearchWrap.classList.remove('hidden');
         if (groupToggleBtn) groupToggleBtn.classList.add('hidden');
         if (locSelector) locSelector.classList.remove('hidden');
         this.isGroupSession = true;
@@ -1175,7 +1218,24 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       // Load patients in the background, then pre-select if a name was provided
       await this.populatePatients();
 
-      if (patientName) {
+      if (isGroupEdit && this.groupEditMembers.length > 0) {
+        const refreshedInputs = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
+        const memberPatientIds = new Set(this.groupEditMembers.map(m => m.patientId));
+        refreshedInputs?.forEach(input => {
+          input.checked = memberPatientIds.has(input.value);
+        });
+        const checked = this.form?.querySelectorAll('input[name="patientId"]:checked') as NodeListOf<HTMLInputElement>;
+        this.selectedPatientIds = Array.from(checked).map(r => r.value);
+        this.selectedPatientId = this.selectedPatientIds[0] || null;
+
+        const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
+        const patientList = document.getElementById('patient-list');
+        if (searchInput && this.selectedPatientIds.length > 0) {
+          const names = Array.from(checked).map(r => r.getAttribute('data-patient-name') || '').filter(Boolean);
+          searchInput.value = names.join(', ');
+        }
+        if (patientList) patientList.style.gridTemplateRows = '1fr';
+      } else if (patientName) {
         const refreshedRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
         const matchingRadio = Array.from(refreshedRadios || []).find(r =>
           r.getAttribute('data-patient-name') === patientName || r.value === patientName
@@ -1313,7 +1373,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         this.form?.reset();
         this.isGroupEdit = false;
         this.groupEditMemberIds = [];
+        this.groupEditMembers = [];
         this.groupEditMemberCount = 0;
+        this.groupEditGroupId = null;
         const subscriptionWarning = document.getElementById('patient-subscription-warning');
         if (subscriptionWarning) subscriptionWarning.classList.add('hidden');
         const groupEditNotice = document.getElementById('group-edit-notice');

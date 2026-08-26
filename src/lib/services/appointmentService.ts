@@ -49,6 +49,7 @@ export async function updateAppointment(id: string, updates: {
   data?: string;
   ora?: string;
   locatie?: 'Belaqva' | 'Ghimbav';
+  group_id?: string | null;
 }) {
   const { error } = await (supabase as any)
     .from('programari')
