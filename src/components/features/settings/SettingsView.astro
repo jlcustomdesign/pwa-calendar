@@ -172,30 +172,44 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
                 <label for="btn-work-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de început</label>
-                <button
-                  type="button"
+                <div
                   id="btn-work-start"
                   data-time-trigger
                   data-target="work-start"
                   data-label="Ora de început"
-                  class="w-full px-4 py-3.5 rounded-2xl bg-surface-base/80 hover:bg-surface-base border border-transparent text-text-main font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                  class="w-full px-4 py-3.5 rounded-2xl bg-surface-base/80 hover:bg-surface-base border border-transparent text-text-main font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative overflow-hidden"
                 >
-                  <span id="display-work-start" class="tracking-wider">08:00</span>
-                </button>
+                  <input
+                    type="text"
+                    id="display-work-start"
+                    value="08:00"
+                    maxlength="5"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    class="tracking-wider w-full bg-transparent text-center focus:outline-none font-extrabold text-lg sm:text-xl"
+                  />
+                </div>
                 <input type="hidden" id="work-start" name="workStart" value="08:00" />
               </div>
               <div class="space-y-2">
                 <label for="btn-work-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Ora de sfârșit</label>
-                <button
-                  type="button"
+                <div
                   id="btn-work-end"
                   data-time-trigger
                   data-target="work-end"
                   data-label="Ora de sfârșit"
-                  class="w-full px-4 py-3.5 rounded-2xl bg-surface-base/80 hover:bg-surface-base border border-transparent text-text-main font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                  class="w-full px-4 py-3.5 rounded-2xl bg-surface-base/80 hover:bg-surface-base border border-transparent text-text-main font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative overflow-hidden"
                 >
-                  <span id="display-work-end" class="tracking-wider">19:00</span>
-                </button>
+                  <input
+                    type="text"
+                    id="display-work-end"
+                    value="19:00"
+                    maxlength="5"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    class="tracking-wider w-full bg-transparent text-center focus:outline-none font-extrabold text-lg sm:text-xl"
+                  />
+                </div>
                 <input type="hidden" id="work-end" name="workEnd" value="19:00" />
               </div>
             </div>
@@ -211,30 +225,44 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <label for="btn-break-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Început pauză</label>
-              <button
-                type="button"
+              <div
                 id="btn-break-start"
                 data-time-trigger
                 data-target="break-start"
                 data-label="Început pauză"
-                class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative overflow-hidden"
               >
-                <span id="display-break-start" class="tracking-wider">13:00</span>
-              </button>
+                <input
+                  type="text"
+                  id="display-break-start"
+                  value="13:00"
+                  maxlength="5"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  class="tracking-wider w-full bg-transparent text-center focus:outline-none font-extrabold text-lg sm:text-xl text-brand-secondary placeholder-brand-secondary/50"
+                />
+              </div>
               <input type="hidden" id="break-start" name="breakStart" value="13:00" />
             </div>
             <div class="space-y-2">
               <label for="btn-break-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Sfârșit pauză</label>
-              <button
-                type="button"
+              <div
                 id="btn-break-end"
                 data-time-trigger
                 data-target="break-end"
                 data-label="Sfârșit pauză"
-                class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative overflow-hidden"
               >
-                <span id="display-break-end" class="tracking-wider">14:00</span>
-              </button>
+                <input
+                  type="text"
+                  id="display-break-end"
+                  value="14:00"
+                  maxlength="5"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  class="tracking-wider w-full bg-transparent text-center focus:outline-none font-extrabold text-lg sm:text-xl text-brand-secondary placeholder-brand-secondary/50"
+                />
+              </div>
               <input type="hidden" id="break-end" name="breakEnd" value="14:00" />
             </div>
           </div>
@@ -302,30 +330,44 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
                 <label for="btn-break-day-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Început pauză</label>
-                <button
-                  type="button"
+                <div
                   id="btn-break-day-start"
                   data-time-trigger
                   data-target="break-day-start"
                   data-label="Început pauză zile selectate"
-                  class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                  class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative overflow-hidden"
                 >
-                  <span id="display-break-day-start" class="tracking-wider">13:00</span>
-                </button>
+                  <input
+                    type="text"
+                    id="display-break-day-start"
+                    value="13:00"
+                    maxlength="5"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    class="tracking-wider w-full bg-transparent text-center focus:outline-none font-extrabold text-lg sm:text-xl text-brand-secondary placeholder-brand-secondary/50"
+                  />
+                </div>
                 <input type="hidden" id="break-day-start" name="breakDayStart" value="13:00" />
               </div>
               <div class="space-y-2">
                 <label for="btn-break-day-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Sfârșit pauză</label>
-                <button
-                  type="button"
+                <div
                   id="btn-break-day-end"
                   data-time-trigger
                   data-target="break-day-end"
                   data-label="Sfârșit pauză zile selectate"
-                  class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                  class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative overflow-hidden"
                 >
-                  <span id="display-break-day-end" class="tracking-wider">14:00</span>
-                </button>
+                  <input
+                    type="text"
+                    id="display-break-day-end"
+                    value="14:00"
+                    maxlength="5"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    class="tracking-wider w-full bg-transparent text-center focus:outline-none font-extrabold text-lg sm:text-xl text-brand-secondary placeholder-brand-secondary/50"
+                  />
+                </div>
                 <input type="hidden" id="break-day-end" name="breakDayEnd" value="14:00" />
               </div>
             </div>
@@ -648,13 +690,13 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     // 2. Schedule
     const inputWorkStart = document.getElementById('work-start') as HTMLInputElement | null;
     const inputWorkEnd = document.getElementById('work-end') as HTMLInputElement | null;
-    const displayWorkStart = document.getElementById('display-work-start');
-    const displayWorkEnd = document.getElementById('display-work-end');
+    const displayWorkStart = document.getElementById('display-work-start') as HTMLInputElement | null;
+    const displayWorkEnd = document.getElementById('display-work-end') as HTMLInputElement | null;
 
     if (inputWorkStart)   inputWorkStart.value          = formatTimeStr(settings.work_start) || '08:00';
     if (inputWorkEnd)     inputWorkEnd.value             = formatTimeStr(settings.work_end)   || '19:00';
-    if (displayWorkStart) displayWorkStart.textContent   = formatTimeStr(settings.work_start) || '08:00';
-    if (displayWorkEnd)   displayWorkEnd.textContent     = formatTimeStr(settings.work_end)   || '19:00';
+    if (displayWorkStart) displayWorkStart.value         = formatTimeStr(settings.work_start) || '08:00';
+    if (displayWorkEnd)   displayWorkEnd.value           = formatTimeStr(settings.work_end)   || '19:00';
 
     const dayChips = document.querySelectorAll<HTMLButtonElement>('[data-day-chip]');
     dayChips.forEach((chip, index) => {
@@ -688,21 +730,21 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     // 3. Break
     const inputBreakStart = document.getElementById('break-start') as HTMLInputElement | null;
     const inputBreakEnd = document.getElementById('break-end') as HTMLInputElement | null;
-    const displayBreakStart = document.getElementById('display-break-start');
-    const displayBreakEnd = document.getElementById('display-break-end');
+    const displayBreakStart = document.getElementById('display-break-start') as HTMLInputElement | null;
+    const displayBreakEnd = document.getElementById('display-break-end') as HTMLInputElement | null;
 
     if (inputBreakStart)   inputBreakStart.value          = formatTimeStr(settings.lunch_start) || '13:00';
     if (inputBreakEnd)     inputBreakEnd.value             = formatTimeStr(settings.lunch_end)   || '14:00';
-    if (displayBreakStart) displayBreakStart.textContent   = formatTimeStr(settings.lunch_start) || '13:00';
-    if (displayBreakEnd)   displayBreakEnd.textContent     = formatTimeStr(settings.lunch_end)   || '14:00';
+    if (displayBreakStart) displayBreakStart.value         = formatTimeStr(settings.lunch_start) || '13:00';
+    if (displayBreakEnd)   displayBreakEnd.value           = formatTimeStr(settings.lunch_end)   || '14:00';
 
     // Pauze personalizate pe zile
     const lunchBreaks = (settings.lunch_breaks || {}) as Record<string, { start: string; end: string }>;
     const breakDayChips = document.querySelectorAll<HTMLButtonElement>('[data-break-day-chip]');
     const inputBreakDayStart = document.getElementById('break-day-start') as HTMLInputElement | null;
     const inputBreakDayEnd = document.getElementById('break-day-end') as HTMLInputElement | null;
-    const displayBreakDayStart = document.getElementById('display-break-day-start');
-    const displayBreakDayEnd = document.getElementById('display-break-day-end');
+    const displayBreakDayStart = document.getElementById('display-break-day-start') as HTMLInputElement | null;
+    const displayBreakDayEnd = document.getElementById('display-break-day-end') as HTMLInputElement | null;
 
     // Find first custom break time to seed the shared time pickers, fallback to default lunch break
     let customStart = settings.lunch_start || '13:00';
@@ -713,8 +755,8 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
     if (inputBreakDayStart) inputBreakDayStart.value = formatTimeStr(customStart) || '13:00';
     if (inputBreakDayEnd) inputBreakDayEnd.value = formatTimeStr(customEnd) || '14:00';
-    if (displayBreakDayStart) displayBreakDayStart.textContent = formatTimeStr(customStart) || '13:00';
-    if (displayBreakDayEnd) displayBreakDayEnd.textContent = formatTimeStr(customEnd) || '14:00';
+    if (displayBreakDayStart) displayBreakDayStart.value = formatTimeStr(customStart) || '13:00';
+    if (displayBreakDayEnd) displayBreakDayEnd.value = formatTimeStr(customEnd) || '14:00';
 
     breakDayChips.forEach(chip => {
       const day = chip.getAttribute('data-day') || '1';
@@ -1059,10 +1101,16 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     }
 
     document.querySelectorAll('[data-time-trigger]').forEach((trigger) => {
-      trigger.addEventListener('click', () => {
+      trigger.addEventListener('click', (e) => {
         const targetId = trigger.getAttribute('data-target');
         const label = trigger.getAttribute('data-label') || 'Alege ora';
-        if (targetId) openTimeModal(targetId, label);
+        if (!targetId) return;
+
+        // Don't open the modal if the user is tapping directly into the editable time input
+        const input = trigger.querySelector('input[type="text"]') as HTMLInputElement | null;
+        if (input && (input === document.activeElement || e.target === input)) return;
+
+        openTimeModal(targetId, label);
       });
     });
 
@@ -1075,8 +1123,8 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
         inputBreakStart.value = start;
         inputBreakEnd.value = end;
-        displayBreakStart.textContent = start;
-        displayBreakEnd.textContent = end;
+        displayBreakStart.value = start;
+        displayBreakEnd.value = end;
 
         try {
           const saved = await saveSettingsDB({ lunch_start: start, lunch_end: end });
@@ -1089,6 +1137,74 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           showToast('Eroare la salvare: ' + (err?.message || 'necunoscută'));
           console.error(err);
         }
+      });
+    });
+
+    // Editable time inputs: parse & validate direct typing (e.g. 1200 -> 12:00)
+    function parseTypedTime(raw: string): string | null {
+      const cleaned = raw.replace(/[^\d]/g, '');
+      if (!cleaned) return null;
+      let hh = '';
+      let mm = '';
+      if (cleaned.length <= 2) {
+        hh = cleaned.padStart(2, '0');
+        mm = '00';
+      } else {
+        hh = cleaned.slice(0, 2);
+        mm = cleaned.slice(2, 4).padEnd(2, '0');
+      }
+      const h = parseInt(hh, 10);
+      const m = parseInt(mm, 10);
+      if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    function formatTimeInput(input: HTMLInputElement, hiddenId?: string | null) {
+      const parsed = parseTypedTime(input.value);
+      if (parsed) {
+        input.value = parsed;
+        if (hiddenId) {
+          const hidden = document.getElementById(hiddenId) as HTMLInputElement | null;
+          if (hidden) {
+            hidden.value = parsed;
+            hidden.dispatchEvent(new Event('change'));
+          }
+        }
+      } else {
+        // Revert to hidden input value or fallback
+        const fallbackId = input.id.replace('display-', '');
+        const hidden = document.getElementById(fallbackId) as HTMLInputElement | null;
+        input.value = hidden?.value || '00:00';
+      }
+    }
+
+    document.querySelectorAll<HTMLInputElement>('[id^="display-"][type="text"]').forEach((input) => {
+      input.addEventListener('focus', () => {
+        input.select();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+      });
+
+      input.addEventListener('input', () => {
+        // Auto-insert colon while typing (1234 -> 12:34)
+        const digits = input.value.replace(/[^\d]/g, '');
+        if (digits.length >= 3) {
+          const hh = digits.slice(0, 2);
+          const mm = digits.slice(2, 4);
+          input.value = `${hh}:${mm}`;
+        } else {
+          input.value = digits;
+        }
+      });
+
+      input.addEventListener('blur', () => {
+        const targetId = input.id.replace('display-', '');
+        formatTimeInput(input, targetId);
       });
     });
 
@@ -1150,8 +1266,8 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
         hiddenInput.dispatchEvent(new Event('change'));
       }
 
-      const displaySpan = document.getElementById(`display-${activeTargetId}`);
-      if (displaySpan) displaySpan.textContent = formatted;
+      const displayInput = document.getElementById(`display-${activeTargetId}`) as HTMLInputElement | null;
+      if (displayInput) displayInput.value = formatted;
 
       closeTimeModal();
     });
