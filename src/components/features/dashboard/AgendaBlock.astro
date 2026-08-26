@@ -287,8 +287,18 @@
     }).join('');
 
     const [startH, startM] = (timeStr || '08:00').split(':').map(Number);
-    const startHStr = (isNaN(startH) ? 8 : startH).toString().padStart(2, '0');
-    const startMStr = (isNaN(startM) ? 0 : startM).toString().padStart(2, '0');
+    const startHNum = isNaN(startH) ? 8 : startH;
+    const startMNum = isNaN(startM) ? 0 : startM;
+    const startHStr = startHNum.toString().padStart(2, '0');
+    const startMStr = startMNum.toString().padStart(2, '0');
+    const totalStartMin = startHNum * 60 + startMNum;
+    const totalEndMin = totalStartMin + currentSessionDuration;
+    const endH = Math.floor(totalEndMin / 60);
+    const endM = totalEndMin % 60;
+    const formattedEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+    const nowTimeStr = new Date().toTimeString().slice(0, 5);
+    const groupDate = group.selectedDate || currentAgendaDate;
+    const isGroupEnded = (!groupDate || groupDate < todayStr || (groupDate === todayStr && nowTimeStr >= formattedEnd));
 
     const memberNamesList = group.members.map((m: any) => m.patientName).filter(Boolean).join(', ');
     const displayNames = memberNamesList || `${count} pacienți`;
@@ -357,7 +367,7 @@
                 <div class="group-members flex flex-col gap-2.5 mb-3">
                   ${memberCards}
                 </div>
-                ${anyStatus !== 'finalizat' && anyStatus !== 'anulat' && anyStatus !== 'absent' && (!group.selectedDate || group.selectedDate <= todayStr) ? `
+                ${anyStatus !== 'finalizat' && anyStatus !== 'anulat' && anyStatus !== 'absent' && isGroupEnded ? `
                   <div class="pt-1 pb-1">
                     <button 
                       type="button" 
@@ -450,6 +460,8 @@
 
       const sessionStatus = session.status || 'programat';
       const isOngoing = isToday && nowStr >= cleanTimeStr && nowStr < `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+      const sessionDate = session.selectedDate || currentAgendaDate;
+      const isSessionEnded = (!sessionDate || sessionDate < todayStr || (sessionDate === todayStr && nowStr >= formattedEnd));
       const paymentStatus = session.paymentStatus || 'Neachitat';
 
       let statusIcon = '';
@@ -602,7 +614,7 @@
                 </div>
                 </div>
 
-                ${sessionStatus !== 'finalizat' && sessionStatus !== 'anulat' && sessionStatus !== 'absent' && (!session.selectedDate || session.selectedDate <= todayStr) ? `
+                ${sessionStatus !== 'finalizat' && sessionStatus !== 'anulat' && sessionStatus !== 'absent' && isSessionEnded ? `
                   <div class="px-6 pb-6 pt-2">
                     <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary text-black' : 'bg-brand-secondary text-white'} font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent hover:opacity-95" onclick="event.stopPropagation(); if (typeof window.confirmSession === 'function') { window.confirmSession('${session.id}'); }">
                       <span>CONFIRMĂ ȘEDINȚA</span>
