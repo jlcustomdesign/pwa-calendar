@@ -274,41 +274,63 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           </div>
 
           <!-- Pauze personalizate pe zile -->
-          <div class="pt-6 mt-6 border-t border-black/5">
-            <label class="text-lg sm:text-xl font-black text-text-main font-sans block text-left tracking-tight mb-3">Pauze pe zile</label>
-            <div class="space-y-2" id="lunch-breaks-per-day">
-              {['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri'].map((dayName, idx) => {
-                const dayNum = idx + 1;
-                return (
-                  <div class="flex items-center gap-2 p-3 rounded-2xl bg-black/5" data-day-break={dayNum}>
-                    <span class="text-sm font-bold text-text-main w-20 shrink-0">{dayName}</span>
-                    <input
-                      type="time"
-                      id={`lunch-start-${dayNum}`}
-                      data-day-start={dayNum}
-                      class="flex-1 px-3 py-2 rounded-xl bg-white border border-transparent text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-brand-secondary/30"
-                    />
-                    <span class="text-text-muted font-bold">–</span>
-                    <input
-                      type="time"
-                      id={`lunch-end-${dayNum}`}
-                      data-day-end={dayNum}
-                      class="flex-1 px-3 py-2 rounded-xl bg-white border border-transparent text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-brand-secondary/30"
-                    />
-                    <button
-                      type="button"
-                      class="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center active:scale-95 transition-transform shrink-0"
-                      data-clear-day-break={dayNum}
-                      title="Șterge pauza pentru această zi"
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
+          <div class="pt-6 mt-6 border-t border-black/5 space-y-6">
+            <label class="text-lg sm:text-xl font-black text-text-main font-sans block text-left tracking-tight">Pauze pe zile</label>
+
+            <!-- Day chips -->
+            <div id="break-days-container" class="grid grid-cols-5 gap-2 text-center">
+              <button type="button" data-break-day-chip data-active="true" data-day="1" title="Luni" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-secondary text-white shadow-md shadow-brand-secondary/30 scale-105">L</button>
+              <button type="button" data-break-day-chip data-active="true" data-day="2" title="Marți" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-secondary text-white shadow-md shadow-brand-secondary/30 scale-105">M</button>
+              <button type="button" data-break-day-chip data-active="true" data-day="3" title="Miercuri" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-secondary text-white shadow-md shadow-brand-secondary/30 scale-105">M</button>
+              <button type="button" data-break-day-chip data-active="true" data-day="4" title="Joi" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-secondary text-white shadow-md shadow-brand-secondary/30 scale-105">J</button>
+              <button type="button" data-break-day-chip data-active="true" data-day="5" title="Vineri" class="py-3.5 rounded-2xl font-extrabold text-base transition-all duration-200 active:scale-90 bg-brand-secondary text-white shadow-md shadow-brand-secondary/30 scale-105">V</button>
             </div>
-            <p class="text-[11px] text-text-muted text-center mt-2">Lasă gol pentru a folosi pauza implicită.</p>
+
+            <!-- Legend -->
+            <div class="flex items-center justify-center gap-4">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-brand-secondary shadow-sm shadow-brand-secondary/30"></span>
+                <span class="text-[11px] font-bold text-text-muted uppercase tracking-wider">Pauză Activă</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-brand-primary shadow-sm"></span>
+                <span class="text-[11px] font-bold text-text-muted uppercase tracking-wider">Fără Pauză</span>
+              </div>
+            </div>
+
+            <!-- Time pickers for selected break days (same style as work schedule) -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label for="btn-break-day-start" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Început pauză</label>
+                <button
+                  type="button"
+                  id="btn-break-day-start"
+                  data-time-trigger
+                  data-target="break-day-start"
+                  data-label="Început pauză zile selectate"
+                  class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <span id="display-break-day-start" class="tracking-wider">13:00</span>
+                </button>
+                <input type="hidden" id="break-day-start" name="breakDayStart" value="13:00" />
+              </div>
+              <div class="space-y-2">
+                <label for="btn-break-day-end" class="text-lg sm:text-xl font-black text-text-main font-sans block text-center tracking-tight">Sfârșit pauză</label>
+                <button
+                  type="button"
+                  id="btn-break-day-end"
+                  data-time-trigger
+                  data-target="break-day-end"
+                  data-label="Sfârșit pauză zile selectate"
+                  class="w-full px-4 py-3.5 rounded-2xl bg-brand-secondary/15 hover:bg-brand-secondary/25 text-brand-secondary font-extrabold text-lg sm:text-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <span id="display-break-day-end" class="tracking-wider">14:00</span>
+                </button>
+                <input type="hidden" id="break-day-end" name="breakDayEnd" value="14:00" />
+              </div>
+            </div>
           </div>
+
         </section>
       )}
 
@@ -676,13 +698,51 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
     // Pauze personalizate pe zile
     const lunchBreaks = (settings.lunch_breaks || {}) as Record<string, { start: string; end: string }>;
-    for (let day = 1; day <= 5; day++) {
-      const startInput = document.getElementById(`lunch-start-${day}`) as HTMLInputElement | null;
-      const endInput = document.getElementById(`lunch-end-${day}`) as HTMLInputElement | null;
-      const dayBreak = lunchBreaks[String(day)];
-      if (startInput) startInput.value = dayBreak?.start || '';
-      if (endInput) endInput.value = dayBreak?.end || '';
-    }
+    const breakDayChips = document.querySelectorAll<HTMLButtonElement>('[data-break-day-chip]');
+    const inputBreakDayStart = document.getElementById('break-day-start') as HTMLInputElement | null;
+    const inputBreakDayEnd = document.getElementById('break-day-end') as HTMLInputElement | null;
+    const displayBreakDayStart = document.getElementById('display-break-day-start');
+    const displayBreakDayEnd = document.getElementById('display-break-day-end');
+
+    // Find first custom break time to seed the shared time pickers, fallback to default lunch break
+    let customStart = settings.lunch_start || '13:00';
+    let customEnd = settings.lunch_end || '14:00';
+    const firstCustom = Object.values(lunchBreaks)[0];
+    if (firstCustom?.start) customStart = firstCustom.start;
+    if (firstCustom?.end) customEnd = firstCustom.end;
+
+    if (inputBreakDayStart) inputBreakDayStart.value = formatTimeStr(customStart) || '13:00';
+    if (inputBreakDayEnd) inputBreakDayEnd.value = formatTimeStr(customEnd) || '14:00';
+    if (displayBreakDayStart) displayBreakDayStart.textContent = formatTimeStr(customStart) || '13:00';
+    if (displayBreakDayEnd) displayBreakDayEnd.textContent = formatTimeStr(customEnd) || '14:00';
+
+    breakDayChips.forEach(chip => {
+      const day = chip.getAttribute('data-day') || '1';
+      const hasBreak = !!lunchBreaks[day];
+      chip.setAttribute('data-active', hasBreak ? 'true' : 'false');
+
+      if (hasBreak) {
+        chip.classList.add('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
+        chip.classList.remove('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+      } else {
+        chip.classList.add('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+        chip.classList.remove('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
+      }
+
+      chip.addEventListener('click', () => {
+        const currentlyActive = chip.getAttribute('data-active') === 'true';
+        const newState = !currentlyActive;
+        chip.setAttribute('data-active', newState ? 'true' : 'false');
+
+        if (newState) {
+          chip.classList.add('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
+          chip.classList.remove('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+        } else {
+          chip.classList.remove('bg-brand-secondary', 'text-white', 'shadow-md', 'shadow-brand-secondary/30', 'scale-105');
+          chip.classList.add('bg-brand-primary', 'text-black', 'shadow-sm', 'hover:brightness-105');
+        }
+      });
+    });
 
     // 4. Packages
     const inputDuration = document.getElementById('sessionDuration') as HTMLInputElement | null;
@@ -1032,18 +1092,6 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
       });
     });
 
-    // Butoane ștergere pauză pe zi
-    document.querySelectorAll('[data-clear-day-break]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const day = btn.getAttribute('data-clear-day-break');
-        if (!day) return;
-        const startInput = document.getElementById(`lunch-start-${day}`) as HTMLInputElement | null;
-        const endInput = document.getElementById(`lunch-end-${day}`) as HTMLInputElement | null;
-        if (startInput) startInput.value = '';
-        if (endInput) endInput.value = '';
-      });
-    });
-
     timeModal?.addEventListener('click', (e) => {
       if (e.target === timeModal) closeTimeModal();
     });
@@ -1160,15 +1208,17 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
         } else if (section === 'break') {
           const lunchBreaks: Record<string, { start: string; end: string }> = {};
-          for (let day = 1; day <= 5; day++) {
-            const startInput = document.getElementById(`lunch-start-${day}`) as HTMLInputElement | null;
-            const endInput = document.getElementById(`lunch-end-${day}`) as HTMLInputElement | null;
-            const start = startInput?.value?.trim();
-            const end = endInput?.value?.trim();
-            if (start && end) {
-              lunchBreaks[String(day)] = { start, end };
+          const dayStart = inputBreakDayStart?.value || inputBreakStart?.value || '13:00';
+          const dayEnd = inputBreakDayEnd?.value || inputBreakEnd?.value || '14:00';
+
+          document.querySelectorAll<HTMLButtonElement>('[data-break-day-chip]').forEach(chip => {
+            if (chip.getAttribute('data-active') === 'true') {
+              const day = chip.getAttribute('data-day');
+              if (day) {
+                lunchBreaks[day] = { start: dayStart, end: dayEnd };
+              }
             }
-          }
+          });
 
           savedSettings = await saveSettingsDB({
             lunch_start: inputBreakStart?.value || '13:00',
