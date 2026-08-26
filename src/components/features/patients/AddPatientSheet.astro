@@ -17,6 +17,17 @@
 
         <form id="add-patient-form" class="space-y-4">
       <input type="hidden" name="patientId" id="editPatientId" value="" />
+      
+      <!-- Error Message Banner -->
+      <div id="patient-error-banner" class="hidden rounded-2xl bg-rose-50 border border-rose-200 p-4 mb-4 items-start gap-3 shadow-sm transition-all">
+        <svg class="w-5 h-5 text-rose-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div class="flex-1">
+          <h4 class="text-sm font-black text-rose-800 uppercase tracking-wide mb-1">Atenție</h4>
+          <p id="patient-error-text" class="text-sm font-medium text-rose-700 leading-snug"></p>
+        </div>
+      </div>
 
       <!-- ═══════════════════════════════════════════════════════ -->
       <!-- CARD 1: INFORMAȚII GENERALE & PLAN                     -->
@@ -37,23 +48,23 @@
 
         <!-- Tip Plan & Locație (Segmented Controls) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <!-- Tip Plan -->
+          <!-- Tip Ședință -->
           <div>
-            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Tip Plan</label>
-            <input type="hidden" name="plan" id="patientPlan" value="Abonament" />
+            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Tip Ședință</label>
+            <input type="hidden" name="plan" id="patientPlan" value="Ședință unică" />
             <div class="relative grid grid-cols-2 gap-1.5 p-1 bg-black/5 rounded-2xl">
               <div id="plan-active-pill" class="absolute top-1 bottom-1 rounded-xl bg-brand-primary pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)]" style="opacity: 1; transform: translateX(0px);"></div>
               <button 
                 type="button" 
                 data-plan="Abonament" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate text-black"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black"
               >
                 Abonament
               </button>
               <button 
                 type="button" 
                 data-plan="Ședință unică" 
-                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate text-text-muted hover:text-black"
+                class="relative z-10 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate text-black"
               >
                 Ședință unică
               </button>
@@ -92,23 +103,31 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Preț abonament</label>
-            <input
-              type="number"
-              name="cost"
-              id="patientCost"
-              placeholder="1500"
-              class="w-full px-3 py-2.5 rounded-2xl bg-white border border-pink-200/80 text-center font-extrabold text-black text-base focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all shadow-sm"
-            />
+            <div class="flex items-center bg-white border border-pink-200/80 rounded-2xl overflow-hidden shadow-sm focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
+              <button type="button" tabindex="-1" class="px-4 py-2.5 text-black font-black bg-black/[0.02] hover:bg-black/[0.05] transition-colors active:scale-95 text-lg" onclick="const i = document.getElementById('patientCost'); i.value = Math.max(0, Number(i.value || 0) - 10)">-</button>
+              <input
+                type="number"
+                name="cost"
+                id="patientCost"
+                placeholder="1500"
+                class="w-full py-2.5 text-center font-extrabold text-black text-base focus:outline-none border-none bg-transparent appearance-none m-0 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button type="button" tabindex="-1" class="px-4 py-2.5 text-black font-black bg-black/[0.02] hover:bg-black/[0.05] transition-colors active:scale-95 text-lg" onclick="const i = document.getElementById('patientCost'); i.value = Number(i.value || 0) + 10">+</button>
+            </div>
           </div>
           <div>
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Nr. ședințe</label>
-            <input
-              type="number"
-              name="totalSessions"
-              id="patientTotalSessions"
-              placeholder="10"
-              class="w-full px-3 py-2.5 rounded-2xl bg-white border border-pink-200/80 text-center font-extrabold text-black text-base focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all shadow-sm"
-            />
+            <div class="flex items-center bg-white border border-pink-200/80 rounded-2xl overflow-hidden shadow-sm focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
+              <button type="button" tabindex="-1" class="px-4 py-2.5 text-black font-black bg-black/[0.02] hover:bg-black/[0.05] transition-colors active:scale-95 text-lg" onclick="const i = document.getElementById('patientTotalSessions'); i.value = Math.max(1, Number(i.value || 0) - 1)">-</button>
+              <input
+                type="number"
+                name="totalSessions"
+                id="patientTotalSessions"
+                placeholder="10"
+                class="w-full py-2.5 text-center font-extrabold text-black text-base focus:outline-none border-none bg-transparent appearance-none m-0 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button type="button" tabindex="-1" class="px-4 py-2.5 text-black font-black bg-black/[0.02] hover:bg-black/[0.05] transition-colors active:scale-95 text-lg" onclick="const i = document.getElementById('patientTotalSessions'); i.value = Number(i.value || 0) + 1">+</button>
+            </div>
           </div>
         </div>
       </div>
@@ -231,7 +250,7 @@
       this.createOverlay();
       this.bindEvents();
       // Set initial pill positions for default selections
-      this.updatePlanChips('Abonament');
+      this.updatePlanChips('Ședință unică');
       this.updateLocationChips('Belaqva');
     }
 
@@ -308,7 +327,7 @@
           }
           this.currentPlanFilter = planVal;
           this.updatePlanChips(planVal);
-          this.applyPlanDefaults(planVal);
+          this.applyPlanDefaults(planVal, true);
         });
       });
 
@@ -423,19 +442,34 @@
       return p.includes('sedinta') || p.includes('unica') || p.includes('one') || p.includes('single');
     }
 
-    applyPlanDefaults(plan: string) {
+    applyPlanDefaults(plan: string, overwriteValues: boolean = true) {
       const totalInput = this.form?.querySelector('[name="totalSessions"]') as HTMLInputElement | null;
-      if (!totalInput) return;
+      const costInput = this.form?.querySelector('[name="cost"]') as HTMLInputElement | null;
+      if (!totalInput || !costInput) return;
 
-      if (this.isOneTimePlan(plan)) {
-        totalInput.value = '1';
-        totalInput.readOnly = true;
-        totalInput.classList.add('opacity-50', 'cursor-not-allowed');
-      } else {
-        totalInput.readOnly = false;
-        totalInput.classList.remove('opacity-50', 'cursor-not-allowed');
-        if (totalInput.value === '1' || !totalInput.value) {
-          totalInput.value = '10';
+      // Extrage setările curente
+      let defaultPricePerSession = 150;
+      let defaultSessionsVal = 10;
+      try {
+        const cachedRaw = localStorage.getItem('kineto_settings_cache');
+        if (cachedRaw) {
+          const parsed = JSON.parse(cachedRaw);
+          if (parsed?.default_price) defaultPricePerSession = parsed.default_price;
+          if (parsed?.default_total_sessions) defaultSessionsVal = parsed.default_total_sessions;
+        }
+      } catch (_) {}
+
+      // Asigurăm că ambele câmpuri sunt întotdeauna editabile, conform cerinței
+      totalInput.readOnly = false;
+      totalInput.classList.remove('opacity-50', 'cursor-not-allowed');
+
+      if (overwriteValues) {
+        if (this.isOneTimePlan(plan)) {
+          totalInput.value = '1';
+          costInput.value = String(defaultPricePerSession);
+        } else {
+          totalInput.value = String(defaultSessionsVal);
+          costInput.value = String(defaultPricePerSession * defaultSessionsVal);
         }
       }
     }
@@ -540,10 +574,23 @@
         }
       } catch (err: any) {
         const msg = err.message || err.toString();
-        if (msg.includes('Există deja')) {
-          (window as any).showToast(msg, 'warning', 'Pacient existent');
+        const errorBanner = document.getElementById('patient-error-banner');
+        const errorText = document.getElementById('patient-error-text');
+        
+        if (errorBanner && errorText) {
+          errorText.textContent = msg;
+          errorBanner.classList.remove('hidden');
+          errorBanner.classList.add('flex');
+          // Scroll formularul sus pentru a vedea eroarea
+          const scrollArea = this.sheet?.querySelector('.overflow-y-auto');
+          if (scrollArea) scrollArea.scrollTop = 0;
         } else {
-          (window as any).showToast('Eroare la salvarea pacientului: ' + msg, 'error');
+          // Fallback
+          if (msg.includes('Există deja')) {
+            (window as any).showToast(msg, 'warning', 'Pacient existent');
+          } else {
+            (window as any).showToast('Eroare la salvarea pacientului: ' + msg, 'error');
+          }
         }
       } finally {
         if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Salvează'; }
@@ -588,7 +635,7 @@
           this.updatePlanChips(patient.plan || 'Abonament');
           this.updateLocationChips(patient.locatie || 'Belaqva');
           this.updatePaymentChips(editPaymentStatus);
-          this.applyPlanDefaults(patient.plan || 'Abonament');
+          this.applyPlanDefaults(patient.plan || 'Abonament', false);
           this.togglePartialAmountBox(editPaymentStatus);
 
           // Show sticky renewal button in edit mode
@@ -599,30 +646,29 @@
               window.renewSubscription(patient.id, sessions || 10, patient.name);
             };
           }
+          
+          const errorBanner = document.getElementById('patient-error-banner');
+          if (errorBanner) {
+            errorBanner.classList.add('hidden');
+            errorBanner.classList.remove('flex');
+          }
         } else if (this.form) {
           this.form.reset();
-          let defaultPricePerSession = 150;
-          let defaultSessionsVal = 10;
-          try {
-            const cachedRaw = localStorage.getItem('kineto_settings_cache');
-            if (cachedRaw) {
-              const parsed = JSON.parse(cachedRaw);
-              if (parsed?.default_price) defaultPricePerSession = parsed.default_price;
-              if (parsed?.default_total_sessions) defaultSessionsVal = parsed.default_total_sessions;
-            }
-          } catch (_) {}
-          // For subscriptions the price field is the TOTAL package price, not per session
-          const defaultTotalPrice = defaultPricePerSession * defaultSessionsVal;
-          (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = String(defaultTotalPrice);
-          (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = String(defaultSessionsVal);
-          this.currentPlanFilter = 'Abonament';
-          this.updatePlanChips('Abonament');
-          this.applyPlanDefaults('Abonament');
+          (this.form.querySelector('[name="plan"]') as HTMLInputElement).value = 'Ședință unică';
+          this.currentPlanFilter = 'Ședință unică';
+          this.updatePlanChips('Ședință unică');
+          this.applyPlanDefaults('Ședință unică', true);
           this.updateLocationChips('Belaqva');
           this.updatePaymentChips('Neachitat');
           this.togglePartialAmountBox('Neachitat');
           const stickyRenewBtn = document.getElementById('btn-renew-sticky');
           if (stickyRenewBtn) stickyRenewBtn.classList.add('hidden');
+          
+          const errorBanner = document.getElementById('patient-error-banner');
+          if (errorBanner) {
+            errorBanner.classList.add('hidden');
+            errorBanner.classList.remove('flex');
+          }
         }
 
         const partialAmountInput = document.getElementById('patientPartialAmount') as HTMLInputElement | null;

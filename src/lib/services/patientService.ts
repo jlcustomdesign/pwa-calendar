@@ -101,18 +101,20 @@ export async function addPatient(input: {
   notite?:       string;
 }): Promise<string> { // returnează ID-ul pacientului creat
   const nameTrimmed = input.name.trim();
+  const nameReversed = nameTrimmed.split(/\s+/).reverse().join(' ');
   const parts   = nameTrimmed.split(/\s+/);
   const prenume = parts[0] ?? '';
   const nume    = parts.slice(1).join(' '); // Rămâne gol dacă este un singur cuvânt, NU se duplică prenumele
 
-  // Verificare nume duplicat
+  // Verificare nume duplicat (inclusiv inversat, ex. "Popa Diana" vs "Diana Popa")
   const { data: existing } = await supabase
     .from('pacienti_view')
     .select('id, name')
-    .ilike('name', nameTrimmed);
+    .or(`name.ilike.${nameTrimmed},name.ilike.${nameReversed}`);
 
   if (existing && existing.length > 0) {
-    throw new Error(`Există deja un pacient cu numele "${nameTrimmed}". Te rugăm să adaugi o deosebire (ex. o inițială sau locația) pentru a salva corect!`);
+    const existingName = existing[0].name;
+    throw new Error(`Există deja un pacient cu numele "${existingName}". Te rugăm să adaugi o deosebire (ex. o inițială sau locația) pentru a-l salva distinct!`);
   }
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -151,16 +153,18 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
   // Dacă se trimite `name`, îl splitim în prenume + nume
   if (updates.name) {
     const nameTrimmed = updates.name.trim();
+    const nameReversed = nameTrimmed.split(/\s+/).reverse().join(' ');
     
-    // Check duplicate name on edit (excluding current patient id)
+    // Check duplicate name on edit (excluding current patient id, but checking both normal and reversed)
     const { data: existing } = await supabase
       .from('pacienti_view')
       .select('id, name')
-      .ilike('name', nameTrimmed)
-      .neq('id', id);
+      .neq('id', id)
+      .or(`name.ilike.${nameTrimmed},name.ilike.${nameReversed}`);
 
     if (existing && existing.length > 0) {
-      throw new Error(`Există deja un alt pacient cu numele "${nameTrimmed}". Te rugăm să adaugi o deosebire pentru a-l distinge!`);
+      const existingName = existing[0].name;
+      throw new Error(`Există deja un alt pacient cu numele "${existingName}". Te rugăm să adaugi o deosebire pentru a-l distinge!`);
     }
 
     const parts       = nameTrimmed.split(/\s+/);
@@ -527,7 +531,7 @@ export async function exportPatientsCSV(): Promise<string> {
   rows.push(['Data', 'Ora', 'Pacient', 'Telefon', 'Locatie', 'Status Ședință', 'Note / Observații', 'Motiv Anulare/Absență']);
 
   (programari || []).forEach((pr: any) => {
-    const pacientName = pr.pacienti ? `${pr.pacienti.prenume} ${pr.pacienti.nume}` : 'Pacient Necunoscut';
+    const pacientName = pr.pacienti ? (pr.pacienti.prenume === pr.pacienti.nume || !pr.pacienti.nume ? pr.pacienti.prenume : `${pr.pacienti.prenume} ${pr.pacienti.nume}`.trim()) : 'Pacient Necunoscut';
     const telefon = pr.pacienti?.telefon || '-';
     rows.push([
       pr.data,

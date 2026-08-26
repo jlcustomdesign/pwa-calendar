@@ -68,7 +68,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
       const startMin = h * 60 + m;
       const endMin = startMin + sessionDuration;
 
-      const patientName = appt.pacienti ? `${appt.pacienti.prenume} ${appt.pacienti.nume}`.trim() : 'Pacient';
+      const patientName = appt.pacienti ? (appt.pacienti.prenume === appt.pacienti.nume || !appt.pacienti.nume ? appt.pacienti.prenume : `${appt.pacienti.prenume} ${appt.pacienti.nume}`.trim()) : 'Pacient';
 
       // 1. Alertă Început Ședință (în intervalul [startMin - 2, startMin + 5])
       if (currentTotalMin >= startMin - 2 && currentTotalMin <= startMin + 5) {

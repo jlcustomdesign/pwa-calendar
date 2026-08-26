@@ -697,7 +697,7 @@
         return {
           id: a.id,
           patientId: a.pacient_id,
-          patientName: a.pacienti ? `${a.pacienti.prenume} ${a.pacienti.nume}` : 'Pacient',
+          patientName: a.pacienti ? (a.pacienti.prenume === a.pacienti.nume || !a.pacienti.nume ? a.pacienti.prenume : `${a.pacienti.prenume} ${a.pacienti.nume}`.trim()) : 'Pacient',
           patientPhone: a.pacienti?.telefon || '',
           driveLink: a.pacienti?.drive_link || '',
           selectedTime: a.ora,
