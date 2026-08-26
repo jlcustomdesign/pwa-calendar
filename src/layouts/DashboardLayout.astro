@@ -151,6 +151,108 @@ const { title, hideDock = false } = Astro.props;
         }, { passive: false });
       }
 
+      function setupMemberSwipeController() {
+        const maxSwipe = -136; // 3 action buttons (40px) + gaps (~16px) with padding
+        let activeFront: HTMLElement | null = null;
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let isSwiping = false;
+        let isHorizontalSwipe = false;
+
+        function closeMember(front: HTMLElement) {
+          front.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          front.style.transform = 'translateX(0px)';
+          front.dataset.memberSwiped = 'false';
+        }
+
+        function openMember(front: HTMLElement) {
+          front.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          front.style.transform = `translateX(${maxSwipe}px)`;
+          front.dataset.memberSwiped = 'true';
+        }
+
+        function closeAllMembers(except?: HTMLElement) {
+          document.querySelectorAll<HTMLElement>('.member-card-front[data-member-swiped="true"]').forEach(el => {
+            if (el !== except) closeMember(el);
+          });
+        }
+
+        document.addEventListener('touchstart', (e: TouchEvent) => {
+          const target = e.target as HTMLElement;
+          const front = target.closest('.member-card-front') as HTMLElement | null;
+          if (!front) return;
+          // Ignore interactive elements inside the member card front.
+          if (target.closest('button, a, input, select')) return;
+
+          activeFront = front;
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          currentX = startX;
+          isSwiping = true;
+          isHorizontalSwipe = false;
+          front.style.transition = 'none';
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e: TouchEvent) => {
+          if (!isSwiping || !activeFront) return;
+          const x = e.touches[0].clientX;
+          const y = e.touches[0].clientY;
+          const diffX = x - startX;
+          const diffY = y - startY;
+
+          if (!isHorizontalSwipe && (Math.abs(diffX) > 8 || Math.abs(diffY) > 8)) {
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+              isHorizontalSwipe = true;
+            } else {
+              isSwiping = false;
+              return;
+            }
+          }
+
+          if (!isHorizontalSwipe) return;
+          if (e.cancelable) e.preventDefault();
+
+          currentX = x;
+          const isOpen = activeFront.dataset.memberSwiped === 'true';
+          let targetX = isOpen ? maxSwipe + diffX : diffX;
+          if (targetX > 0) targetX = targetX * 0.2;
+          if (targetX < maxSwipe - 20) targetX = maxSwipe + (targetX - maxSwipe) * 0.2;
+
+          activeFront.style.transform = `translateX(${targetX}px)`;
+        }, { passive: false });
+
+        document.addEventListener('touchend', () => {
+          if (!isSwiping || !activeFront) return;
+          isSwiping = false;
+          activeFront.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+          const diffX = currentX - startX;
+          const isOpen = activeFront.dataset.memberSwiped === 'true';
+
+          if (!isOpen && diffX < -50) {
+            closeAllMembers(activeFront);
+            openMember(activeFront);
+          } else if (isOpen && diffX > 50) {
+            closeMember(activeFront);
+          } else {
+            if (isOpen) openMember(activeFront);
+            else closeMember(activeFront);
+          }
+
+          activeFront = null;
+        }, { passive: true });
+
+        // Tapping a swiped member front closes it; tapping any action button is handled by inline onclick.
+        document.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement;
+          const front = target.closest('.member-card-front') as HTMLElement | null;
+          if (front && front.dataset.memberSwiped === 'true' && !target.closest('.member-action-btn')) {
+            closeMember(front);
+          }
+        });
+      }
+
       function setupSessionCardController() {
         let activeSurface: HTMLElement | null = null;
         let startX = 0;
@@ -305,9 +407,12 @@ const { title, hideDock = false } = Astro.props;
           const card = (summary.closest('.swipe-surface, session-card, [data-patient-id]') || summary.parentElement) as HTMLElement | null;
           if (!card) return;
 
+          // The swipe-open flag lives on the .swipe-surface element, not on session-card.
+          const swipeSurface = card.classList.contains('swipe-surface') ? card : (card.querySelector('.swipe-surface') as HTMLElement | null);
+
           // If the card is swiped open, tapping the summary closes it instead of expanding.
-          if (card.dataset.swipeOpen === 'true') {
-            closeCard(card);
+          if (swipeSurface && swipeSurface.dataset.swipeOpen === 'true') {
+            closeCard(swipeSurface);
             return;
           }
 
@@ -324,6 +429,9 @@ const { title, hideDock = false } = Astro.props;
         // Touch events
         document.addEventListener('touchstart', (e: TouchEvent) => {
           const target = e.target as HTMLElement;
+
+          // Let member cards have their own independent swipe.
+          if (target.closest('.member-card-front')) return;
 
           const surface = target.closest('.swipe-surface') as HTMLElement | null;
           if (surface && !target.closest('button, a, input, select')) {
@@ -349,6 +457,9 @@ const { title, hideDock = false } = Astro.props;
         let isMouseDown = false;
         document.addEventListener('mousedown', (e: MouseEvent) => {
           const target = e.target as HTMLElement;
+
+          // Let member cards have their own independent swipe.
+          if (target.closest('.member-card-front')) return;
 
           const surface = target.closest('.swipe-surface') as HTMLElement | null;
           if (surface && !target.closest('button, a, input, select')) {
@@ -425,6 +536,7 @@ const { title, hideDock = false } = Astro.props;
         if (!(window as any)._sessionCardControllerInitialized) {
           (window as any)._sessionCardControllerInitialized = true;
           setupSessionCardController();
+          setupMemberSwipeController();
           preventHorizontalSwipeNavigation();
         }
 
@@ -639,12 +751,30 @@ const { title, hideDock = false } = Astro.props;
           }
         };
 
+        (window as any).removeMemberFromGroup = async (appointmentId: string, _groupId?: string) => {
+          if (!appointmentId) return;
+          try {
+            const { updateAppointment } = await import('../lib/services/appointmentService');
+            await updateAppointment(appointmentId, { group_id: null });
+            (window as any).showToast('Pacientul a fost eliminat din grup. Programarea lui rămâne la aceeași oră.', 'info');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+          } catch (err: any) {
+            (window as any).showToast('Eroare la eliminarea din grup: ' + (err.message || err), 'error');
+          }
+        };
+
         (window as any).editGroupSession = async (memberIds: string, selectedDate?: string, selectedTime?: string, location?: string) => {
           const ids = (memberIds || '').split(',').filter(Boolean);
           if (ids.length === 0) return;
           try {
             const { getAppointment } = await import('../lib/services/appointmentService');
-            const first = await getAppointment(ids[0]);
+            const appointments = await Promise.all(ids.map(id => getAppointment(id)));
+            const members = appointments.map(appt => ({
+              appointmentId: appt.id,
+              patientId: appt.pacient_id,
+              patientName: appt.pacienti ? `${appt.pacienti.prenume} ${appt.pacienti.nume}` : ''
+            }));
+            const first = appointments[0];
             const date = selectedDate || first?.data;
             const time = selectedTime || first?.ora;
             const loc = location || first?.locatie || 'Belaqva';
@@ -652,6 +782,8 @@ const { title, hideDock = false } = Astro.props;
               detail: {
                 isGroupEdit: true,
                 memberIds: ids,
+                members,
+                groupId: first?.group_id || null,
                 location: loc,
                 date,
                 time,
