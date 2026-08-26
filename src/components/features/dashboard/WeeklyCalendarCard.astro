@@ -304,8 +304,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const expandBtn = document.getElementById("calendar-expand-btn") as HTMLButtonElement;
     const pill = document.getElementById("calendar-active-pill") as HTMLElement;
     const circle = document.getElementById("calendar-active-circle") as HTMLElement;
-    const dayLabelsHeader = strip.querySelector(".day-labels-header") as HTMLElement | null;
     if (!strip || !weeksStrip || !monthsStrip || !pill || !circle || !card || !expandBtn) return;
+    const dayLabelsHeader = strip.querySelector(".day-labels-header") as HTMLElement | null;
     if (strip.dataset.calendarAnimated === 'true') return;
     strip.dataset.calendarAnimated = 'true';
 

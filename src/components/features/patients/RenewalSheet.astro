@@ -527,7 +527,7 @@
           }
         }
 
-        (window as any).showToast?.('Abonament reînnoit cu succes!');
+        (window as any).showToast?.('Abonament reînnoit cu succes!', 'success');
         window.dispatchEvent(new CustomEvent('patientsUpdated'));
         window.dispatchEvent(new CustomEvent('sessionsUpdated'));
         this.close();

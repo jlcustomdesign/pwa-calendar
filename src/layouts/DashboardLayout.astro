@@ -682,6 +682,19 @@ const { title, hideDock = false } = Astro.props;
           }
         };
 
+        (window as any).markSessionAbsent = async (sessionId: string) => {
+          if (!sessionId) return;
+          const confirmed = await (window as any).showConfirm('Marcă absență', 'Sigur vrei să marchezi această ședință ca absent?');
+          if (!confirmed) return;
+          try {
+            await markAbsent(sessionId, 'Absent din card grup');
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            (window as any).showToast('Ședința a fost marcată ca absentă.', 'success');
+          } catch (err: any) {
+            (window as any).showToast('Eroare la marcarea absenței: ' + (err.message || err), 'error');
+          }
+        };
+
         // Confirmă o sesiune trecută sau de azi direct din card
         (window as any).confirmSession = async (input: string | HTMLElement) => {
           const sessionId = resolveSessionId(input);
