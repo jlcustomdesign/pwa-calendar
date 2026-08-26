@@ -629,7 +629,7 @@ const { title, hideDock = false } = Astro.props;
                   selectedDate: appointment.data,
                   selectedTime: appointment.ora,
                   patientName: appointment.pacienti
-                    ? `${appointment.pacienti.prenume} ${appointment.pacienti.nume}`
+                    ? (appointment.pacienti.prenume === appointment.pacienti.nume || !appointment.pacienti.nume ? appointment.pacienti.prenume : `${appointment.pacienti.prenume} ${appointment.pacienti.nume}`.trim())
                     : undefined,
                 }
               }

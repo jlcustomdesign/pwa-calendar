@@ -292,7 +292,7 @@ async function checkTodaySessionsForNotifications() {
 
     const notifItems: NotificationItem[] = [];
     for (const s of trueSingles) {
-      const pName = s.pacienti ? `${s.pacienti.prenume} ${s.pacienti.nume}`.trim() : 'Pacient';
+      const pName = s.pacienti ? (s.pacienti.prenume === s.pacienti.nume || !s.pacienti.nume ? s.pacienti.prenume : `${s.pacienti.prenume} ${s.pacienti.nume}`.trim()) : 'Pacient';
       notifItems.push({
         isGroup: false,
         ora: s.ora || '08:00',
@@ -303,7 +303,7 @@ async function checkTodaySessionsForNotifications() {
     }
 
     for (const [gId, members] of groupsMap) {
-      const names = members.map((m: any) => m.pacienti ? `${m.pacienti.prenume} ${m.pacienti.nume}`.trim() : 'Pacient');
+      const names = members.map((m: any) => m.pacienti ? (m.pacienti.prenume === m.pacienti.nume || !m.pacienti.nume ? m.pacienti.prenume : `${m.pacienti.prenume} ${m.pacienti.nume}`.trim()) : 'Pacient');
       notifItems.push({
         isGroup: true,
         groupId: gId,
