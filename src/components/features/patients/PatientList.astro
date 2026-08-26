@@ -409,9 +409,6 @@
             <button type="button" class="history-btn w-12 h-12 rounded-full bg-sky-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform border border-transparent" title="Istoric Plăți">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </button>
-            <button type="button" class="share-schedule-swipe-btn w-12 h-12 rounded-full bg-amber-400 shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-transparent" title="Trimite programul">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
-            </button>
             <button type="button" class="edit-btn w-12 h-12 rounded-full bg-white shadow-sm text-black flex items-center justify-center active:scale-95 transition-transform border border-transparent" title="Editează pacientul">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.89 1.12l-2.843.712a.75.75 0 01-.904-.903l.71-2.842a4.5 4.5 0 011.12-1.89L16.862 4.487z"></path><path d="M19.5 7.125L16.862 4.487"></path></svg>
             </button>
@@ -560,19 +557,6 @@
         historyBtn?.addEventListener('click', (e) => {
           e.stopPropagation();
           window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: patient.id } }));
-        });
-
-        const shareSwipeBtn = actionsBg.querySelector('.share-schedule-swipe-btn');
-        shareSwipeBtn?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          window.dispatchEvent(new CustomEvent('openShareScheduleSheet', {
-            detail: {
-              patientId: patient.id,
-              patientName: patient.name,
-              patientPhone: patient.telefon || '',
-              patientLocation: patient.locatie || ''
-            }
-          }));
         });
 
         const deleteBtn = actionsBg.querySelector('.delete-btn');

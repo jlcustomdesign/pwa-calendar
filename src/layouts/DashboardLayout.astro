@@ -264,7 +264,7 @@ const { title, hideDock = false } = Astro.props;
 
         function getMaxSwipe(surface: HTMLElement | null): number {
           if (!surface) return -205;
-          if (surface.closest('#patient-list-container')) return -210;
+          if (surface.closest('#patient-list-container')) return -200;
           return -205;
         }
 
