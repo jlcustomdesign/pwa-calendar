@@ -258,7 +258,7 @@
               <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             </button>
           </div>
-          <div class="member-card-front relative z-10 p-3.5 space-y-2 bg-white text-black" onclick="event.stopPropagation();">
+          <div class="member-card-front relative z-10 p-3.5 space-y-2 bg-white text-black rounded-2xl" onclick="event.stopPropagation();">
             <!-- Row 1: Nume & Contor -->
             <div class="flex items-center justify-between gap-2">
               <span class="font-black text-sm text-neutral-900 truncate flex-1">${safeName}</span>
@@ -353,7 +353,7 @@
           </div>
         </div>
         <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
-          <div class="card-summary relative z-20 flex items-center justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[85px] py-5 px-6" onclick="this.closest('session-card').classList.toggle('expanded')">
+          <div class="card-summary relative z-20 flex items-center justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[85px] py-5 px-6">
             
             <!-- Watermark Time Background -->
             <div class="absolute left-3 top-0 bottom-0 font-black text-[3.8rem] leading-[0.8] opacity-50 pointer-events-none tracking-tighter flex items-center justify-start z-0 w-20">

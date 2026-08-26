@@ -152,7 +152,7 @@ const { title, hideDock = false } = Astro.props;
       }
 
       function setupMemberSwipeController() {
-        const maxSwipe = -136; // 3 action buttons (40px) + gaps (~16px) with padding
+        const maxSwipe = -160; // 3 action buttons (40px) + gaps (~16px) with padding
         let activeFront: HTMLElement | null = null;
         let startX = 0;
         let startY = 0;
@@ -287,7 +287,8 @@ const { title, hideDock = false } = Astro.props;
           surface.style.transform = `translateX(${maxSwipe}px)`;
           surface.style.clipPath = `inset(0 0 0 ${Math.round(-maxSwipe)}px)`;
           const cardRoot = surface.closest('session-card, .swipe-surface') as HTMLElement | null;
-          if (cardRoot) {
+          // For group cards the expanded state is driven by the .expanded class, not inline styles.
+          if (cardRoot && !cardRoot.dataset.groupId) {
             const details = cardRoot.querySelector('.card-details') as HTMLElement | null;
             const icon = cardRoot.querySelector('.expand-icon') as HTMLElement | null;
             if (details) details.style.gridTemplateRows = '0fr';
@@ -413,6 +414,13 @@ const { title, hideDock = false } = Astro.props;
           // If the card is swiped open, tapping the summary closes it instead of expanding.
           if (swipeSurface && swipeSurface.dataset.swipeOpen === 'true') {
             closeCard(swipeSurface);
+            return;
+          }
+
+          const isGroupCard = card.tagName.toLowerCase() === 'session-card' && !!card.dataset.groupId;
+
+          if (isGroupCard) {
+            card.classList.toggle('expanded');
             return;
           }
 
