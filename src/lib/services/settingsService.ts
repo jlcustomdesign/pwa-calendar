@@ -20,7 +20,6 @@ export const DEFAULT_PRICING_PRESETS: PricingPreset[] = [
 ];
 
 const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
-  id: 'default',
   therapist_name: 'Roxana',
   work_start: '08:00',
   work_end: '18:00',
@@ -32,6 +31,7 @@ const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
   default_price: 150,
   default_total_sessions: 10,
   categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'],
+  active_categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'],
   lunch_breaks: {},
 } as any;
 
@@ -193,13 +193,22 @@ export async function saveProfile(updates: {
     }
   }
 
-  // 2. Opțional: actualizează email-ul în Supabase Auth dacă a fost schimbat
-  if (updates.email && updates.email.trim() && updates.email.trim() !== user.email) {
-    try {
-      await supabase.auth.updateUser({ email: updates.email.trim() });
-    } catch (authErr: any) {
-      console.warn('Actualizare email în auth:', authErr?.message);
+  // 2. Salvare și în user_metadata Supabase Auth (garanție dublă de persistență)
+  try {
+    const authUpdatePayload: any = {
+      data: {
+        telefon: profileDataToSave.telefon,
+        phone: profileDataToSave.telefon,
+        display_name: profileDataToSave.display_name,
+        username: profileDataToSave.username
+      }
+    };
+    if (updates.email && updates.email.trim() && updates.email.trim() !== user.email) {
+      authUpdatePayload.email = updates.email.trim();
     }
+    await supabase.auth.updateUser(authUpdatePayload);
+  } catch (authErr: any) {
+    console.warn('Actualizare profil în auth metadata:', authErr?.message);
   }
 
   // 3. Sincronizează `therapist_name` în tabela `settings` din DB
@@ -247,6 +256,8 @@ export async function getProfile() {
       if (!error && data) {
         const fullProfile = {
           ...data,
+          display_name: data.display_name || user.user_metadata?.display_name || user.user_metadata?.name || cached?.display_name || '',
+          telefon: data.telefon || user.user_metadata?.telefon || user.user_metadata?.phone || cached?.telefon || '',
           email: user.email || cached?.email || ''
         };
         if (typeof window !== 'undefined') {

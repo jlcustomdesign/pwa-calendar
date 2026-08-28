@@ -2,12 +2,14 @@
  * appointmentService.ts — CRUD programări Supabase
  * Folosit în: AddSessionSheet.astro, SessionWrapUpSheet.astro, calendar.astro
  */
-import { supabase } from '../supabase';
+import { supabase, getCurrentUser } from '../supabase';
 import type { Programare, ProgramareInsert } from '../database.types';
 import { getSettings } from './settingsService';
+import { toLocalISOString } from '../../utils/date';
 
 // ── Citire programare unică (editare) ─────────────────────────
 export async function getAppointment(id: string): Promise<Programare & { pacienti: any }> {
+  const user = await getCurrentUser();
   const { data, error } = await supabase
     .from('programari')
     .select(`
@@ -27,6 +29,7 @@ export async function getAppointment(id: string): Promise<Programare & { pacient
       )
     `)
     .eq('id', id)
+    .eq('user_id', user.id)
     .single();
 
   if (error) throw new Error('Eroare la citirea programării: ' + error.message);
@@ -35,10 +38,12 @@ export async function getAppointment(id: string): Promise<Programare & { pacient
 
 // ── Ștergere programare ───────────────────────────────────────
 export async function deleteAppointment(id: string) {
+  const user = await getCurrentUser();
   const { error } = await supabase
     .from('programari')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) throw new Error('Eroare la ștergerea programării: ' + error.message);
 }
@@ -51,10 +56,12 @@ export async function updateAppointment(id: string, updates: {
   locatie?: 'Belaqva' | 'Ghimbav';
   group_id?: string | null;
 }) {
+  const user = await getCurrentUser();
   const { error } = await (supabase as any)
     .from('programari')
     .update(updates)
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('updateAppointment error:', error, { id, updates });
@@ -100,6 +107,7 @@ export async function swapAppointmentPatients(idA: string, idB: string) {
 
 // ── Programări pentru o zi specifică (calendar zilnic) ────────
 export async function getAppointmentsByDate(date: string): Promise<Programare[]> {
+  const user = await getCurrentUser();
   const { data, error } = await supabase
     .from('programari')
     .select(`
@@ -107,6 +115,7 @@ export async function getAppointmentsByDate(date: string): Promise<Programare[]>
       pacienti ( prenume, nume, telefon, locatie, status_abonament, sedinte_folosite, sedinte_total, achitat, cost )
     `)
     .eq('data', date)
+    .eq('user_id', user.id)
     .order('ora', { ascending: true });
 
   if (error) throw new Error('Eroare la citirea programărilor: ' + error.message);
@@ -115,6 +124,7 @@ export async function getAppointmentsByDate(date: string): Promise<Programare[]>
 
 // ── Programări pentru un interval de date (calendar săptămânal) 
 export async function getAppointmentsByRange(startDate: string, endDate: string): Promise<Programare[]> {
+  const user = await getCurrentUser();
   const { data, error } = await supabase
     .from('programari')
     .select(`
@@ -123,6 +133,7 @@ export async function getAppointmentsByRange(startDate: string, endDate: string)
     `)
     .gte('data', startDate)
     .lte('data', endDate)
+    .eq('user_id', user.id)
     .order('data', { ascending: true })
     .order('ora',  { ascending: true });
 
@@ -182,10 +193,12 @@ export async function createAppointment(input: {
 export async function completeSession(id: string, note?: string) {
   // DB triggerul `trg_incrementeaza_sedinte` incrementează automat sedinte_folosite
   // când statusul devine 'finalizat'.
+  const user = await getCurrentUser();
   const { error } = await (supabase as any)
     .from('programari')
     .update({ status: 'finalizat', note: note ?? null })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('completeSession error:', error, { id });
@@ -195,10 +208,12 @@ export async function completeSession(id: string, note?: string) {
 
 // ── Marcare absent ────────────────────────────────────────────
 export async function markAbsent(id: string, motiv?: string) {
+  const user = await getCurrentUser();
   const { error } = await (supabase as any)
     .from('programari')
     .update({ status: 'absent', motiv: motiv ?? null })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('markAbsent error:', error, { id });
@@ -208,10 +223,12 @@ export async function markAbsent(id: string, motiv?: string) {
 
 // ── Anulare programare ────────────────────────────────────────
 export async function cancelAppointment(id: string, motiv?: string) {
+  const user = await getCurrentUser();
   const { error } = await (supabase as any)
     .from('programari')
     .update({ status: 'anulat', motiv: motiv ?? null })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('cancelAppointment error:', error, { id });
@@ -221,18 +238,20 @@ export async function cancelAppointment(id: string, motiv?: string) {
 
 // ── Reprogramare (rebook next week din WrapUp) ────────────────
 export async function rebookNextWeek(originalId: string): Promise<string> {
+  const user = await getCurrentUser();
   const { data: orig, error: fetchErr } = await (supabase as any)
     .from('programari')
     .select('pacient_id, data, ora, locatie')
     .eq('id', originalId)
+    .eq('user_id', user.id)
     .single();
 
   if (fetchErr || !orig) throw new Error('Programarea originală nu a fost găsită.');
 
-  // Calculăm data săptămânii viitoare
-  const nextDate = new Date(orig.data);
+  // Calculăm data săptămânii viitoare (folosind fusul orar local)
+  const nextDate = new Date(orig.data + 'T00:00:00');
   nextDate.setDate(nextDate.getDate() + 7);
-  const nextDateStr = nextDate.toISOString().split('T')[0];
+  const nextDateStr = toLocalISOString(nextDate);
 
   return createAppointment({
     pacient_id: orig.pacient_id,
@@ -253,6 +272,9 @@ export interface PendingWrapUp {
 }
 
 export async function getPendingWrapUps(): Promise<PendingWrapUp[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
   const now = new Date();
   const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -263,6 +285,7 @@ export async function getPendingWrapUps(): Promise<PendingWrapUp[]> {
       id, pacient_id, data, ora,
       pacienti ( prenume, nume )
     `)
+    .eq('user_id', user.id)
     .eq('status', 'programat')
     .lte('data', todayStr)
     .order('data', { ascending: true })

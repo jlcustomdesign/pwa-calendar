@@ -18,8 +18,15 @@ function getRomaniaTimeStrings(now = new Date()) {
   return { timeStr, dateStr };
 }
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
   try {
+    // Only the Supabase cron job (with the CRON_SECRET) may invoke this function.
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedSecret = req.headers.get("x-cron-secret") || "";
+    if (!cronSecret || providedSecret !== cronSecret) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {

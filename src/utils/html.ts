@@ -17,15 +17,17 @@ export function escapeHtml(input: string | number | undefined | null): string {
 }
 
 /**
- * Escape a string so it can be safely used inside a single-quoted JS string
- * inside an inline HTML event handler (onclick='...').
+ * Validate that a URL uses an allowed scheme for user-controlled links.
+ * Allowed schemes: http:, https:, tel:.
  */
-export function escapeJsString(input: string | undefined | null): string {
-  if (input === undefined || input === null) return '';
-  return String(input)
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r');
+export function isAllowedUrl(url: string | undefined | null): boolean {
+  if (!url || url === '#' || url === 'javascript:void(0)') return false;
+  const trimmed = String(url).trim();
+  if (/^tel:/i.test(trimmed)) return true;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }

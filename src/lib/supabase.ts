@@ -27,6 +27,13 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createBrowserClient<Database>(supabaseUrl, supabaseKey);
 
+// ── Helper: current authenticated user (throws if not signed in) ──
+export async function getCurrentUser() {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) throw new Error('Trebuie să fii autentificat.');
+  return user;
+}
+
 // ── Global fetch interceptor: log Supabase errors for the logs page ──
 // Nu mai facem redirect automat aici — redirectul pe logout este gestionat
 // prin supabase.auth.onAuthStateChange în DashboardLayout. Interceptorul doar

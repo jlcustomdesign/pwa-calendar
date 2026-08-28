@@ -2,7 +2,7 @@
  * reportsService.ts — Date pentru ReportsView (statistici + rapoarte)
  * Folosit în: ReportsView.astro
  */
-import { supabase } from '../supabase';
+import { supabase, getCurrentUser } from '../supabase';
 import type { IstericSaptamanal } from '../database.types';
 import { toLocalISOString } from '../../utils/date';
 
@@ -15,7 +15,8 @@ interface PaymentRecord {
 // ── Helper: preia toate plățile reale (din tabela `plati` + pacienți marcați `achitat: true`) ──
 async function fetchAllEffectivePayments(startStr?: string, endStr?: string): Promise<PaymentRecord[]> {
   try {
-    let platiQuery = (supabase as any).from('plati').select('pacient_id, suma, data_platii');
+    const user = await getCurrentUser();
+    let platiQuery = (supabase as any).from('plati').select('pacient_id, suma, data_platii').eq('user_id', user.id);
     if (startStr) platiQuery = platiQuery.gte('data_platii', startStr);
     if (endStr)   platiQuery = platiQuery.lte('data_platii', endStr);
 
@@ -32,7 +33,8 @@ async function fetchAllEffectivePayments(startStr?: string, endStr?: string): Pr
     let patientsQuery = (supabase as any)
       .from('pacienti')
       .select('id, cost, created_at, achitat')
-      .eq('achitat', true);
+      .eq('achitat', true)
+      .eq('user_id', user.id);
 
     if (startStr) patientsQuery = patientsQuery.gte('created_at', startStr);
     if (endStr)   patientsQuery = patientsQuery.lte('created_at', endStr + 'T23:59:59');
@@ -60,11 +62,13 @@ export async function getTodayStats(date?: string) {
   const now = new Date();
   const todayStr = toLocalISOString(now);
   const targetDate = date ?? todayStr;
+  const user = await getCurrentUser();
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
     .select('status, ora, data, pacient_id, pacienti(cost, achitat, sedinte_total)')
-    .eq('data', targetDate);
+    .eq('data', targetDate)
+    .eq('user_id', user.id);
 
   if (programariError) throw new Error('Eroare la citirea programărilor zilnice: ' + programariError.message);
 
@@ -97,11 +101,14 @@ export async function getWeekStats(baseDate?: string) {
   const startStr = toLocalISOString(monday);
   const endStr = toLocalISOString(sunday);
 
+  const user = await getCurrentUser();
+
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
     .select('data, ora, status, pacient_id, pacienti(cost, sedinte_total, achitat)')
     .gte('data', startStr)
-    .lte('data', endStr);
+    .lte('data', endStr)
+    .eq('user_id', user.id);
 
   if (programariError) throw new Error('Eroare la citirea programărilor săptămânale: ' + programariError.message);
 
@@ -164,12 +171,14 @@ export async function getMonthStats(baseDate?: string) {
 
   const startStr = toLocalISOString(new Date(refDate.getFullYear(), refDate.getMonth(), 1));
   const endStr = toLocalISOString(new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0));
+  const user = await getCurrentUser();
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
     .select('data, ora, status, pacienti(cost, sedinte_total, achitat)')
     .gte('data', startStr)
-    .lte('data', endStr);
+    .lte('data', endStr)
+    .eq('user_id', user.id);
 
   if (programariError) throw new Error('Eroare la citirea programărilor lunare: ' + programariError.message);
 
@@ -221,12 +230,14 @@ export async function getQuarterStats(baseDate?: string) {
   const currentQuarter = Math.floor(refDate.getMonth() / 3);
   const startStr = toLocalISOString(new Date(refDate.getFullYear(), currentQuarter * 3, 1));
   const endStr = toLocalISOString(new Date(refDate.getFullYear(), currentQuarter * 3 + 3, 0));
+  const user = await getCurrentUser();
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
     .select('data, ora, status, pacienti(cost, sedinte_total, achitat)')
     .gte('data', startStr)
-    .lte('data', endStr);
+    .lte('data', endStr)
+    .eq('user_id', user.id);
 
   if (programariError) throw new Error('Eroare la citirea programărilor trimestriale: ' + programariError.message);
 
@@ -274,12 +285,14 @@ export async function getYearStats(baseDate?: string) {
   const refDate = baseDate ? new Date(baseDate) : realNow;
   const startStr = toLocalISOString(new Date(refDate.getFullYear(), 0, 1));
   const endStr = toLocalISOString(new Date(refDate.getFullYear(), 12, 0));
+  const user = await getCurrentUser();
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
     .select('data, ora, status, pacienti(cost, sedinte_total, achitat)')
     .gte('data', startStr)
-    .lte('data', endStr);
+    .lte('data', endStr)
+    .eq('user_id', user.id);
 
   if (programariError) throw new Error('Eroare la citirea programărilor anuale: ' + programariError.message);
 
@@ -337,11 +350,13 @@ export interface DetailedPayment {
 export async function getDetailedPayments(startStr: string, endStr?: string): Promise<DetailedPayment[]> {
   const endDate = endStr || startStr;
   try {
+    const user = await getCurrentUser();
     const { data: platiData, error: platiErr } = await (supabase as any)
       .from('plati')
       .select('id, pacient_id, suma, data_platii, metoda, created_at, pacienti(id, nume, prenume, telefon, plan, locatie)')
       .gte('data_platii', startStr)
       .lte('data_platii', endDate)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (platiErr) {
@@ -383,6 +398,7 @@ export async function getDetailedPayments(startStr: string, endStr?: string): Pr
       .from('pacienti')
       .select('id, nume, prenume, telefon, plan, locatie, cost, created_at, achitat')
       .eq('achitat', true)
+      .eq('user_id', user.id)
       .gte('created_at', startStr)
       .lte('created_at', endDate + 'T23:59:59');
 

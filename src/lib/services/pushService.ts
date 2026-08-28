@@ -59,7 +59,7 @@ export async function subscribeToPushNotifications(): Promise<{ success: boolean
       const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey
+        applicationServerKey: convertedVapidKey as any
       });
     }
 

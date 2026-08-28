@@ -536,6 +536,12 @@ const { title, hideDock = false } = Astro.props;
         import('../lib/supabase').then(({ supabase }) => {
           supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_OUT') {
+              // Evităm scurgerea datelor între utilizatori pe același device.
+              try {
+                Object.keys(localStorage)
+                  .filter((key) => key.startsWith('kineto_'))
+                  .forEach((key) => localStorage.removeItem(key));
+              } catch (e) {}
               window.location.href = '/login';
             }
           });
@@ -824,17 +830,13 @@ const { title, hideDock = false } = Astro.props;
               // Force the browser to check for a new service worker on every app open.
               await registration.update();
 
-              // Tell the active worker to clear stale caches and skip waiting.
-              const clearCaches = () => {
-                registration.active?.postMessage({ type: 'CLEAR_CACHES' });
-                registration.active?.postMessage({ type: 'SKIP_WAITING' });
-              };
-
-              if (registration.active) clearCaches();
+              // Tell a newly activated worker to clear stale caches from previous builds.
               registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
                 newWorker?.addEventListener('statechange', () => {
-                  if (newWorker.state === 'activated') clearCaches();
+                  if (newWorker?.state === 'activated') {
+                    registration.active?.postMessage({ type: 'CLEAR_CACHES' });
+                  }
                 });
               });
             })

@@ -104,7 +104,7 @@
           <div>
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Preț abonament</label>
             <div class="flex items-center bg-white rounded-2xl overflow-hidden shadow-sm p-1 gap-1 transition-all">
-              <button type="button" tabindex="-1" class="px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" onclick="const i = document.getElementById('patientCost'); i.value = Math.max(0, Number(i.value || 0) - 10)">-</button>
+              <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientCost" data-stepper-step="-10" data-stepper-min="0">-</button>
               <input
                 type="number"
                 name="cost"
@@ -112,13 +112,13 @@
                 placeholder="1500"
                 class="w-full py-2.5 text-center font-extrabold text-black text-base focus:outline-none border-none bg-transparent appearance-none m-0 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
-              <button type="button" tabindex="-1" class="px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" onclick="const i = document.getElementById('patientCost'); i.value = Number(i.value || 0) + 10">+</button>
+              <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientCost" data-stepper-step="10">+</button>
             </div>
           </div>
           <div>
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Nr. ședințe</label>
             <div class="flex items-center bg-white rounded-2xl overflow-hidden shadow-sm p-1 gap-1 transition-all">
-              <button type="button" tabindex="-1" class="px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" onclick="const i = document.getElementById('patientTotalSessions'); i.value = Math.max(1, Number(i.value || 0) - 1)">-</button>
+              <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientTotalSessions" data-stepper-step="-1" data-stepper-min="1">-</button>
               <input
                 type="number"
                 name="totalSessions"
@@ -126,7 +126,7 @@
                 placeholder="10"
                 class="w-full py-2.5 text-center font-extrabold text-black text-base focus:outline-none border-none bg-transparent appearance-none m-0 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
-              <button type="button" tabindex="-1" class="px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" onclick="const i = document.getElementById('patientTotalSessions'); i.value = Number(i.value || 0) + 1">+</button>
+              <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientTotalSessions" data-stepper-step="1" data-stepper-min="1">+</button>
             </div>
           </div>
         </div>
@@ -230,6 +230,7 @@
   import { addPatient, updatePatient, addPayment } from '../../../lib/services/patientService';
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { isAllowedUrl } from '../../../utils/html';
 
   class AddPatientSheetManager {
     sheet: HTMLElement | null;
@@ -356,6 +357,22 @@
         });
       });
 
+
+      // Bind stepper buttons (replaces inline onclick)
+      const stepperBtns = this.sheet.querySelectorAll<HTMLButtonElement>('.stepper-btn');
+      stepperBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const targetId = btn.dataset.stepperTarget;
+          const step = Number(btn.dataset.stepperStep || '0');
+          const minAttr = btn.dataset.stepperMin;
+          const input = document.getElementById(targetId || '') as HTMLInputElement | null;
+          if (!input) return;
+          const current = Number(input.value || '0');
+          const next = current + step;
+          if (minAttr !== undefined && next < Number(minAttr)) return;
+          input.value = String(next);
+        });
+      });
 
       const saveBtn = document.getElementById('save-patient-btn');
       saveBtn?.addEventListener('click', () => this.savePatient(false));
@@ -531,15 +548,24 @@
         return;
       }
 
+      const phoneInput = (this.form?.querySelector('[name="phone"]') || document.getElementById('patientPhone')) as HTMLInputElement | null;
+      const phoneVal = phoneInput ? phoneInput.value.trim() : ((formData.get('phone') as string) || '').trim();
+
+      const driveInput = (this.form?.querySelector('[name="driveLink"]') || document.getElementById('patientDriveLink')) as HTMLInputElement | null;
+      const driveVal = driveInput ? driveInput.value.trim() : ((formData.get('driveLink') as string) || '').trim();
+
+      const nameInput = (this.form?.querySelector('[name="name"]') || document.getElementById('patientName')) as HTMLInputElement | null;
+      const nameVal = nameInput ? nameInput.value.trim() : (patientName || '').trim();
+
       const payload = {
-        name: patientName,
-        telefon: (formData.get('phone') as string) || '',
+        name: nameVal,
+        telefon: phoneVal,
         plan: (formData.get('plan') as any) || 'Abonament',
         locatie: (formData.get('location') as any) || 'Belaqva',
         cost: formData.get('cost') ? Number(formData.get('cost')) : 0,
         sedinte_total: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
         achitat: paymentStatus === 'Achitat' || paymentStatus === 'Paid fully' || paymentStatus === 'Paid',
-        drive_link: (formData.get('driveLink') as string) || '',
+        drive_link: driveVal,
       };
 
       try {
@@ -643,7 +669,7 @@
           if (stickyRenewBtn) {
             stickyRenewBtn.classList.remove('hidden');
             stickyRenewBtn.onclick = () => {
-              window.renewSubscription(patient.id, sessions || 10, patient.name);
+              (window as any).renewSubscription(patient.id, sessions || 10, patient.name);
             };
           }
           

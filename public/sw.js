@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kineto-agenda-v11';
+const CACHE_NAME = 'kineto-agenda-v12';
 const SHELL_ASSETS = [
   '/',
   '/login',
@@ -77,6 +77,26 @@ self.addEventListener('fetch', (event) => {
 
   // Pe localhost/dezvoltare nu folosim cache pentru a vedea modificările instant
   if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return;
+  }
+
+  // Manifest: always network-first so the browser/PWA sees updated metadata.
+  if (url.pathname === '/manifest.json') {
+    event.respondWith(
+      fetch(request, { credentials: 'same-origin' })
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone).catch(() => {})).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.open(CACHE_NAME).then((cache) => cache.match(request)).then((cached) => {
+            return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+          })
+        )
+    );
     return;
   }
 

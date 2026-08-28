@@ -11,7 +11,6 @@
     </div>
     <button 
       id="add-patient-btn"
-      onclick="window.dispatchEvent(new CustomEvent('openAddPatient'))"
       class="h-[56px] shrink-0 rounded-full bg-brand-primary hover:brightness-105 text-black flex items-center justify-center shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer"
     >
       <svg class="w-6 h-6 shrink-0 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,17 +50,48 @@
       margin-left: 0;
     }
   </style>
-  <!-- Filters (Horizontal Swipeable - dynamically synced with Settings -> Categorii) -->
-  <div 
-    id="patient-filters-bar"
-    class="flex gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar select-none touch-pan-x cursor-grab active:cursor-grabbing" 
-    style="-webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain;"
-  >
-    <button class="filter-btn active px-5 py-2.5 rounded-full bg-brand-primary text-black font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm shrink-0" data-filter="all">Toți</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="belaqva">Belaqva</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="ghimbav">Ghimbav</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="unpaid">Neachitați</button>
-    <button class="filter-btn px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-sm whitespace-nowrap border border-black/10 shadow-sm active:scale-95 transition-all shrink-0" data-filter="paid">Achitați</button>
+  <!-- Unified Filter + Sort Dropdown -->
+  <div class="relative inline-block" id="patient-filter-sort-wrapper">
+    <button
+      type="button"
+      id="patient-filter-sort-trigger"
+      class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-black/10 shadow-sm text-sm font-extrabold text-black active:scale-95 transition-all"
+    >
+      <svg class="w-4 h-4 text-black/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+      </svg>
+      <span id="filter-sort-label">Toți · Nume</span>
+      <svg class="w-4 h-4 text-black/60 transition-transform duration-200" id="filter-sort-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </button>
+
+    <!-- Dropdown Panel -->
+    <div id="patient-filter-sort-panel" class="absolute left-0 top-full mt-2 w-80 sm:w-96 bg-surface-card rounded-2xl p-5 shadow-xl border border-black/5 opacity-0 invisible scale-95 origin-top-left transition-all duration-200 z-50">
+      <!-- Filters -->
+      <div class="mb-5">
+        <h4 class="text-xs font-black uppercase tracking-wider text-text-muted mb-3">Filtre</h4>
+        <div id="filter-options" class="grid grid-cols-2 gap-2">
+          <button type="button" data-filter="all" class="filter-option-btn px-3 py-3 rounded-xl bg-brand-primary text-black font-extrabold text-sm text-center transition-all active:scale-95">Toți</button>
+          <button type="button" data-filter="belaqva" class="filter-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">Belaqva</button>
+          <button type="button" data-filter="ghimbav" class="filter-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">Ghimbav</button>
+          <button type="button" data-filter="unpaid" class="filter-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">Neachitați</button>
+          <button type="button" data-filter="paid" class="filter-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">Achitați</button>
+          <button type="button" data-filter="expired" class="filter-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">Expirați</button>
+        </div>
+      </div>
+
+      <!-- Sort -->
+      <div>
+        <h4 class="text-xs font-black uppercase tracking-wider text-text-muted mb-3">Sortare</h4>
+        <div id="sort-options" class="grid grid-cols-2 gap-2">
+          <button type="button" data-sort="name" class="sort-option-btn px-3 py-3 rounded-xl bg-brand-primary text-black font-extrabold text-sm text-center transition-all active:scale-95">Nume</button>
+          <button type="button" data-sort="expired" class="sort-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">Expirat</button>
+          <button type="button" data-sort="progress" class="sort-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">Progres</button>
+          <button type="button" data-sort="payment" class="sort-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">Plată</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -93,19 +123,34 @@
 <script>
   import { getPatients, deletePatient as deletePatientDB, isRenewalDismissed } from '../../../lib/services/patientService';
   import { getSettings } from '../../../lib/services/settingsService';
-  import { escapeHtml, escapeJsString } from '../../../utils/html';
+  import { escapeHtml } from '../../../utils/html';
 
   class PatientListManager {
     container: HTMLElement | null;
     currentSearchQuery: string = '';
-    currentFilter: string = 'all';
+    activeFilters: string[] = ['all'];
+    currentSort: string = 'name';
+    availableCategories: string[] = ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați', 'Expirați'];
+
+    readonly categoryToFilterKey: Record<string, string> = {
+      'Belaqva': 'belaqva',
+      'Ghimbav': 'ghimbav',
+      'Neachitați': 'unpaid',
+      'Achitați': 'paid',
+      'Expirați': 'expired',
+    };
 
     constructor() {
       this.container = document.getElementById('patient-list-container');
       this.clearOldLocalStorage();
       this.bindEvents();
-      this.loadCategoryFilters();
-      this.render();
+      this.init();
+    }
+
+    async init() {
+      await this.loadActiveCategories();
+      this.renderFilterButtons();
+      await this.render();
     }
 
     clearOldLocalStorage() {
@@ -134,7 +179,8 @@
         });
 
         window.addEventListener('settingsUpdated', async () => {
-          await this.loadCategoryFilters();
+          await this.loadActiveCategories();
+          this.renderFilterButtons();
           await this.render();
         });
         (window as any)._patientEventsBound = true;
@@ -172,107 +218,179 @@
             }, 650);
           }
         });
-      }
 
-      // Desktop drag-to-scroll for filters
-      const filtersBar = document.getElementById('patient-filters-bar');
-      if (filtersBar && filtersBar.dataset.dragBound !== 'true') {
-        filtersBar.dataset.dragBound = 'true';
-        let isDown = false;
-        let startX = 0;
-        let scrollLeft = 0;
-
-        filtersBar.addEventListener('mousedown', (e) => {
-          isDown = true;
-          startX = e.pageX - filtersBar.offsetLeft;
-          scrollLeft = filtersBar.scrollLeft;
-        });
-        filtersBar.addEventListener('mouseleave', () => { isDown = false; });
-        filtersBar.addEventListener('mouseup', () => { isDown = false; });
-        filtersBar.addEventListener('mousemove', (e) => {
-          if (!isDown) return;
-          e.preventDefault();
-          const x = e.pageX - filtersBar.offsetLeft;
-          const walk = (x - startX) * 1.5;
-          filtersBar.scrollLeft = scrollLeft - walk;
+        addBtn.addEventListener('click', () => {
+          window.dispatchEvent(new CustomEvent('openAddPatient'));
         });
       }
+
+      // Unified filter + sort panel
+      this.bindFilterSortPanel();
     }
 
-    async loadCategoryFilters() {
-      const filtersBar = document.getElementById('patient-filters-bar');
-      if (!filtersBar) return;
+    bindFilterSortPanel() {
+      const wrapper = document.getElementById('patient-filter-sort-wrapper');
+      const trigger = document.getElementById('patient-filter-sort-trigger');
+      const panel = document.getElementById('patient-filter-sort-panel');
+      const chevron = document.getElementById('filter-sort-chevron');
+      if (!trigger || !panel || !wrapper) return;
 
-      let rawCategories = ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'];
+      if (trigger.dataset.bound === 'true') return;
+      trigger.dataset.bound = 'true';
+
+      const openPanel = () => {
+        panel.classList.remove('opacity-0', 'invisible', 'scale-95');
+        panel.classList.add('opacity-100', 'visible', 'scale-100');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        this.updateFilterSortPanelUI();
+      };
+
+      const closePanel = () => {
+        panel.classList.add('opacity-0', 'invisible', 'scale-95');
+        panel.classList.remove('opacity-100', 'visible', 'scale-100');
+        if (chevron) chevron.style.transform = '';
+      };
+
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = panel.classList.contains('visible');
+        if (isOpen) closePanel();
+        else openPanel();
+      });
+
+      // Close when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target as Node)) {
+          closePanel();
+        }
+      });
+
+      // Filter options (multi-select toggle)
+      const filterContainer = document.getElementById('filter-options');
+      filterContainer?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const target = (e.target as HTMLElement).closest('.filter-option-btn') as HTMLElement;
+        if (!target) return;
+        this.toggleFilter(target.getAttribute('data-filter') || 'all');
+        this.updateFilterSortPanelUI();
+        this.render();
+        closePanel();
+      });
+
+      // Sort options
+      const sortContainer = document.getElementById('sort-options');
+      sortContainer?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const target = (e.target as HTMLElement).closest('.sort-option-btn') as HTMLElement;
+        if (!target) return;
+        this.currentSort = target.getAttribute('data-sort') || 'name';
+        this.updateFilterSortPanelUI();
+        this.render();
+        closePanel();
+      });
+    }
+
+    toggleFilter(filter: string) {
+      if (filter === 'all') {
+        this.activeFilters = ['all'];
+        return;
+      }
+
+      let next = new Set(this.activeFilters);
+      next.delete('all');
+
+      if (next.has(filter)) {
+        next.delete(filter);
+      } else {
+        next.add(filter);
+      }
+
+      this.activeFilters = next.size > 0 ? Array.from(next) : ['all'];
+    }
+
+    async loadActiveCategories() {
       try {
         const settings = await getSettings();
-        if (settings?.categories && settings.categories.length > 0) {
-          rawCategories = settings.categories;
+        if (Array.isArray(settings.active_categories) && settings.active_categories.length > 0) {
+          this.availableCategories = settings.active_categories;
         }
       } catch (e) {
-        console.warn('Eroare încărcare categorii setări:', e);
+        console.warn('Eroare încărcare categorii active:', e);
       }
 
-      // Filter out any "Toți" from the custom categories list and deduplicate
-      const cleanCategories: string[] = [];
-      const seen = new Set<string>();
+      // Dacă un filtru activ a devenit inactiv în settings, îl resetăm
+      const validKeys = new Set(['all', ...this.availableCategories.map((c) => this.categoryToFilterKey[c] || c)]);
+      this.activeFilters = this.activeFilters.filter((f) => validKeys.has(f));
+      if (this.activeFilters.length === 0) this.activeFilters = ['all'];
+    }
 
-      rawCategories.forEach(c => {
-        const trimmed = c.trim();
-        const norm = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (!trimmed || norm === 'toti' || norm === 'all' || seen.has(norm)) return;
-        seen.add(norm);
-        cleanCategories.push(trimmed);
+    renderFilterButtons() {
+      const filterContainer = document.getElementById('filter-options');
+      if (!filterContainer) return;
+
+      filterContainer.innerHTML = `
+        <button type="button" data-filter="all" class="filter-option-btn px-3 py-3 rounded-xl bg-brand-primary text-black font-extrabold text-sm text-center transition-all active:scale-95">Toți</button>
+        ${this.availableCategories.map((cat) => {
+          const key = this.categoryToFilterKey[cat] || cat;
+          return `<button type="button" data-filter="${key}" class="filter-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">${cat}</button>`;
+        }).join('')}
+      `;
+    }
+
+    updateFilterSortPanelUI() {
+      const filterContainer = document.getElementById('filter-options');
+      filterContainer?.querySelectorAll('.filter-option-btn').forEach((btn) => {
+        const isActive = this.activeFilters.includes((btn as HTMLElement).getAttribute('data-filter') || '');
+        if (isActive) {
+          btn.classList.remove('bg-white', 'border', 'border-black/10');
+          btn.classList.add('bg-brand-primary', 'text-black');
+        } else {
+          btn.classList.remove('bg-brand-primary', 'text-black');
+          btn.classList.add('bg-white', 'text-black', 'border', 'border-black/10');
+        }
       });
 
-      // Clear bar completely
-      filtersBar.innerHTML = '';
-
-      // 1. Fixed unique master button: "Toți"
-      const allBtn = document.createElement('button');
-      const isAllActive = this.currentFilter === 'all';
-      allBtn.className = `filter-btn ${isAllActive ? 'active bg-brand-primary text-black' : 'bg-white text-black border border-black/10'} px-5 py-2.5 rounded-full font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm shrink-0 cursor-pointer`;
-      allBtn.setAttribute('data-filter', 'all');
-      allBtn.textContent = 'Toți';
-      filtersBar.appendChild(allBtn);
-
-      // Individual category buttons
-      cleanCategories.forEach(cleanName => {
-        const norm = cleanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-        let filterVal = norm;
-        if (norm.includes('belaqva') || norm.includes('belaqua')) filterVal = 'belaqva';
-        else if (norm.includes('ghimbav')) filterVal = 'ghimbav';
-        else if (norm.includes('neachitat') || norm.includes('unpaid')) filterVal = 'unpaid';
-        else if (norm.includes('achitat') || norm.includes('paid')) filterVal = 'paid';
-        else filterVal = `custom:${cleanName}`;
-
-        const isActive = this.currentFilter === filterVal;
-        const btn = document.createElement('button');
-        btn.className = `filter-btn ${isActive ? 'active bg-brand-primary text-black' : 'bg-white text-black border border-black/10'} px-5 py-2.5 rounded-full font-extrabold text-sm whitespace-nowrap active:scale-95 transition-all shadow-sm shrink-0 cursor-pointer`;
-        btn.setAttribute('data-filter', filterVal);
-        btn.textContent = cleanName;
-        filtersBar.appendChild(btn);
+      const sortContainer = document.getElementById('sort-options');
+      sortContainer?.querySelectorAll('.sort-option-btn').forEach((btn) => {
+        const isActive = (btn as HTMLElement).getAttribute('data-sort') === this.currentSort;
+        if (isActive) {
+          btn.classList.remove('bg-white', 'border', 'border-black/10');
+          btn.classList.add('bg-brand-primary', 'text-black');
+        } else {
+          btn.classList.remove('bg-brand-primary', 'text-black');
+          btn.classList.add('bg-white', 'text-black', 'border', 'border-black/10');
+        }
       });
 
-      // Bind delegated click handler ONCE on the filtersBar if not already bound
-      if (filtersBar.dataset.clickBound !== 'true') {
-        filtersBar.dataset.clickBound = 'true';
-        filtersBar.addEventListener('click', (e) => {
-          const target = (e.target as HTMLElement).closest('.filter-btn') as HTMLElement;
-          if (!target) return;
+      this.updateFilterSortLabel();
+    }
 
-          filtersBar.querySelectorAll('.filter-btn').forEach(b => {
-            b.classList.remove('active', 'bg-brand-primary');
-            b.classList.add('bg-white', 'border', 'border-black/10', 'shadow-sm');
-          });
-          target.classList.remove('bg-white', 'border', 'border-black/10');
-          target.classList.add('active', 'bg-brand-primary');
-          
-          this.currentFilter = target.getAttribute('data-filter') || 'all';
-          this.render();
-        });
+    updateFilterSortLabel() {
+      const label = document.getElementById('filter-sort-label');
+      if (!label) return;
+      const filterLabels: Record<string, string> = {
+        all: 'Toți',
+        belaqva: 'Belaqva',
+        ghimbav: 'Ghimbav',
+        unpaid: 'Neachitați',
+        paid: 'Achitați',
+        expired: 'Expirați'
+      };
+      const sortLabels: Record<string, string> = {
+        name: 'Nume',
+        expired: 'Expirat',
+        progress: 'Progres',
+        payment: 'Plată'
+      };
+      let filterLabel = 'Toți';
+      if (!this.activeFilters.includes('all') && this.activeFilters.length > 0) {
+        if (this.activeFilters.length === 1) {
+          filterLabel = filterLabels[this.activeFilters[0]] || this.activeFilters[0];
+        } else {
+          filterLabel = `${this.activeFilters.length} filtre`;
+        }
       }
+      label.textContent = `${filterLabel} · ${sortLabels[this.currentSort] || 'Nume'}`;
     }
 
     async deletePatient(id: string) {
@@ -329,31 +447,96 @@
 
       let patients: any[] = [];
       try {
-        let locationFilter: 'Belaqva' | 'Ghimbav' | undefined = undefined;
-        let achitatFilter: boolean | undefined = undefined;
+        const filtersActive = !this.activeFilters.includes('all') && this.activeFilters.length > 0;
 
-        if (this.currentFilter === 'ghimbav') locationFilter = 'Ghimbav';
-        else if (this.currentFilter === 'belaqva') locationFilter = 'Belaqva';
-        else if (this.currentFilter === 'unpaid') achitatFilter = false;
-        else if (this.currentFilter === 'paid') achitatFilter = true;
+        const activeLocations = filtersActive
+          ? this.activeFilters.filter((f: string) => f === 'belaqva' || f === 'ghimbav')
+          : [];
+        const activePayments = filtersActive
+          ? this.activeFilters.filter((f: string) => f === 'unpaid' || f === 'paid')
+          : [];
+        const expiredActive = filtersActive && this.activeFilters.includes('expired');
 
         patients = await getPatients({
-          locatie: locationFilter,
-          achitat: achitatFilter,
           search: this.currentSearchQuery || undefined
         });
 
-        // Filtru pentru categorii custom dacă utilizatorul a definit alte etichete
-        if (this.currentFilter.startsWith('custom:')) {
-          const customTerm = this.currentFilter.replace('custom:', '').toLowerCase().trim();
+        if (filtersActive) {
           patients = patients.filter((p: any) => {
-            const plan = (p.plan || '').toLowerCase();
             const loc = (p.locatie || '').toLowerCase();
-            const name = (p.name || '').toLowerCase();
-            const notes = (p.observatii || '').toLowerCase();
-            return plan.includes(customTerm) || loc.includes(customTerm) || name.includes(customTerm) || notes.includes(customTerm);
+            const locMatch =
+              activeLocations.length === 0 ||
+              activeLocations.some((f: string) => {
+                if (f === 'belaqva') return loc === 'belaqva' || loc === 'belaqua';
+                if (f === 'ghimbav') return loc === 'ghimbav';
+                return false;
+              });
+
+            let paymentMatch = true;
+            if (activePayments.length > 0) {
+              const suma = Number(p.suma_incasata || 0);
+              const cost = Number(p.cost || 0);
+              const isPaid = p.achitat || (cost > 0 && suma >= cost);
+              paymentMatch = activePayments.some((f: string) => {
+                if (f === 'paid') return isPaid;
+                if (f === 'unpaid') return !isPaid;
+                return false;
+              });
+            }
+
+            const expiredMatch =
+              !expiredActive ||
+              ((p.sedinte_total || 0) > 0 && (p.sedinte_folosite || 0) >= (p.sedinte_total || 0));
+
+            return locMatch && paymentMatch && expiredMatch;
           });
         }
+
+        // Sortare
+        patients = patients.slice().sort((a: any, b: any) => {
+          const nameA = (a.name || '').toLowerCase();
+          const nameB = (b.name || '').toLowerCase();
+
+          if (this.currentSort === 'name') {
+            return nameA.localeCompare(nameB, 'ro');
+          }
+
+          if (this.currentSort === 'expired') {
+            const totalA = a.sedinte_total || 0;
+            const usedA = a.sedinte_folosite || 0;
+            const expiredA = totalA > 0 && usedA >= totalA ? 1 : 0;
+            const totalB = b.sedinte_total || 0;
+            const usedB = b.sedinte_folosite || 0;
+            const expiredB = totalB > 0 && usedB >= totalB ? 1 : 0;
+            if (expiredA !== expiredB) return expiredB - expiredA;
+            return nameA.localeCompare(nameB, 'ro');
+          }
+
+          if (this.currentSort === 'progress') {
+            const totalA = a.sedinte_total || 1;
+            const totalB = b.sedinte_total || 1;
+            const progA = Math.min(100, ((a.sedinte_folosite || 0) / totalA) * 100);
+            const progB = Math.min(100, ((b.sedinte_folosite || 0) / totalB) * 100);
+            if (progB !== progA) return progB - progA;
+            return nameA.localeCompare(nameB, 'ro');
+          }
+
+          if (this.currentSort === 'payment') {
+            const getPaymentRank = (p: any) => {
+              const suma = Number(p.suma_incasata || 0);
+              const cost = Number(p.cost || 0);
+              if (p.achitat || (cost > 0 && suma >= cost)) return 2;
+              if (suma > 0) return 1;
+              return 0;
+            };
+            const rankA = getPaymentRank(a);
+            const rankB = getPaymentRank(b);
+            if (rankA !== rankB) return rankA - rankB;
+            return nameA.localeCompare(nameB, 'ro');
+          }
+
+          return nameA.localeCompare(nameB, 'ro');
+        });
       } catch (e) {
         console.error('Eroare citire pacienti:', e);
       }
@@ -391,7 +574,8 @@
         }
 
         const attendanceCount = patient.sedinte_folosite || 0;
-        const totalSessions = patient.sedinte_total || 10;
+        // ✅ FIX: fallback la 1 în loc de 10 pentru a nu arăta date gresite la Şdință unică
+        const totalSessions = patient.sedinte_total || 1;
         let progressPercentage = Math.min(100, Math.round((attendanceCount / totalSessions) * 100));
 
         const isFullyPaid = paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat' || patient.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal);
@@ -427,7 +611,6 @@
 
         // Escape user-controlled values before inserting into HTML
         const safeName = escapeHtml(patient.name);
-        const safeNameJs = escapeJsString(patient.name || '');
         const safePlanName = escapeHtml(planName);
         const safeLocatie = escapeHtml(locatie || 'Belaqva');
         const safeTelefon = escapeHtml(patient.telefon || '+1234567890');
@@ -453,11 +636,11 @@
 
         const renewalDismissed = isRenewalDismissed(patient.id);
         const subscriptionWarningHtml = subscriptionDone && !renewalDismissed
-          ? `<div class='pt-2 pb-2 space-y-2'><button type='button' class='w-full h-12 rounded-2xl bg-black hover:bg-neutral-800 text-white text-base font-black tracking-wide shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border border-transparent opacity-100' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${safeNameJs}")'><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg><span>Reînnoiește pachetul</span></button></div>`
+          ? `<div class='pt-2 pb-2 space-y-2'><button type='button' class='renew-subscription-btn w-full h-12 rounded-2xl bg-black hover:bg-neutral-800 text-white text-base font-black tracking-wide shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border border-transparent opacity-100' data-patient-id='${patient.id}' data-total-sessions='${totalSessions}'><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg><span>Reînnoiește pachetul</span></button></div>`
           : '';
 
         const notificationBellHtml = subscriptionDone && !renewalDismissed
-          ? `<button type='button' onclick='event.stopPropagation(); window.renewSubscription("${patient.id}", ${totalSessions}, "${safeNameJs}")' class='shrink-0 px-3 py-1.5 rounded-full bg-black text-white text-xs font-black uppercase tracking-wider shadow-md active:scale-95 transition-all' title='Abonament terminat - Reînnoiește'>Reînnoiește</button>`
+          ? `<button type='button' class='renew-subscription-btn shrink-0 px-3 py-1.5 rounded-full bg-black text-white text-xs font-black uppercase tracking-wider shadow-md active:scale-95 transition-all' data-patient-id='${patient.id}' data-total-sessions='${totalSessions}' title='Abonament terminat - Reînnoiește'>Reînnoiește</button>`
           : '';
 
         card.innerHTML = `
@@ -506,20 +689,20 @@
                 <div class='flex items-center justify-between gap-3 pt-0.5'>
                   <button 
                     type='button'
-                    class='flex-1 h-12 flex flex-col items-center justify-center px-4 rounded-2xl ${paymentBadgeBgClass} border font-extrabold shadow-sm cursor-pointer transition-all active:scale-95' 
-                    onclick='event.stopPropagation(); window.dispatchEvent(new CustomEvent("openPaymentSheet", { detail: { patientId: "${patient.id}" } }))'
+                    class='open-payment-btn flex-1 h-12 flex flex-col items-center justify-center px-4 rounded-2xl ${paymentBadgeBgClass} border font-extrabold shadow-sm cursor-pointer transition-all active:scale-95'
+                    data-patient-id='${patient.id}'
                   >
                     ${paymentBadgeHtml}
                   </button>
 
                   <div class='flex items-center gap-2 shrink-0'>
-                    <a href='tel:${safeTelefon}' class='w-12 h-12 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer' title='Sună pacientul' onclick='event.stopPropagation()'>
+                    <a href='${patient.telefon ? `tel:${safeTelefon}` : '#'}' class='call-patient-btn w-12 h-12 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer' title='Sună pacientul' data-phone='${safeTelefon}' onclick='event.stopPropagation(); if (!${JSON.stringify(patient.telefon || '')}) { event.preventDefault(); if (window.showToast) { window.showToast("Pacientul nu are un număr de telefon salvat.", "info"); } else { alert("Pacientul nu are un număr de telefon salvat."); } }'>
                       <svg class='w-5 h-5 text-black opacity-85' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                         <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z' />
                       </svg>
                     </a>
 
-                    <a href='${safeDriveLink}' target='${hasDriveLink ? '_blank' : '_self'}' rel='noopener noreferrer' class='w-12 h-12 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer' title='Deschide Dosar/Drive' onclick='event.stopPropagation(); if (!${JSON.stringify(patient.drive_link || '')}) { event.preventDefault(); if (window.showToast) { window.showToast("Pacientul nu are un link de dosar/Drive salvat.", "info"); } else { alert("Pacientul nu are un link de dosar/Drive salvat."); } }'>
+                    <a href='${safeDriveLink}' target='${hasDriveLink ? '_blank' : '_self'}' rel='noopener noreferrer' class='open-drive-btn w-12 h-12 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer' title='Deschide Dosar/Drive' data-drive-link='${safeDriveLink}'>
                       <svg class='w-5 h-5 text-black opacity-85' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                         <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' />
                       </svg>
@@ -531,7 +714,10 @@
                 <button 
                   type='button'
                   class='w-full h-12 rounded-2xl bg-white hover:bg-neutral-50 text-black text-sm font-extrabold shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border border-transparent share-schedule-btn'
-                  onclick='event.stopPropagation(); window.dispatchEvent(new CustomEvent("openShareScheduleSheet", { detail: { patientId: "${patient.id}", patientName: "${safeNameJs}", patientPhone: "${escapeJsString(patient.telefon || '')}", patientLocation: "${escapeJsString(patient.locatie || '')}" } }))'
+                  data-patient-id='${patient.id}'
+                  data-patient-name='${safeName}'
+                  data-patient-phone='${escapeHtml(patient.telefon || '')}'
+                  data-patient-location='${escapeHtml(patient.locatie || '')}'
                 >
                   <svg class="w-5 h-5 text-black opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -569,12 +755,68 @@
           }
         });
 
+        // Securitate: evenimentele de mai jos sunt legate imperativ, nu prin onclick inline.
+        card.querySelectorAll('.open-payment-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: patient.id } }));
+          });
+        });
+
+        card.querySelectorAll('.share-schedule-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const el = btn as HTMLElement;
+            window.dispatchEvent(new CustomEvent('openShareScheduleSheet', {
+              detail: {
+                patientId: el.dataset.patientId || patient.id,
+                patientName: el.dataset.patientName || patient.name,
+                patientPhone: el.dataset.patientPhone || patient.telefon || '',
+                patientLocation: el.dataset.patientLocation || patient.locatie || ''
+              }
+            }));
+          });
+        });
+
+        card.querySelectorAll('.renew-subscription-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const el = btn as HTMLElement;
+            const sessions = parseInt(el.dataset.totalSessions || `${totalSessions}`, 10);
+            (window as any).renewSubscription?.(patient.id, sessions, patient.name);
+          });
+        });
+
+        const callLink = card.querySelector('.call-patient-btn');
+        callLink?.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+
+        const driveLink = card.querySelector('.open-drive-btn') as HTMLAnchorElement | null;
+        if (driveLink) {
+          const rawLink = patient.drive_link || '';
+          const isValid = /^https?:\/\//i.test(rawLink);
+          if (!isValid) {
+            driveLink.href = '#';
+            driveLink.removeAttribute('target');
+          }
+          driveLink.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!isValid) {
+              e.preventDefault();
+              (window as any).showToast?.('Pacientul nu are un link de dosar/Drive valid.', 'info');
+            }
+          });
+        }
+
         cardWrapper.appendChild(actionsBg);
         cardWrapper.appendChild(card);
         if (this.container) {
           this.container.appendChild(cardWrapper);
         }
       });
+
+      this.updateFilterSortLabel();
     }
   }
 

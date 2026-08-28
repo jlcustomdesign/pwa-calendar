@@ -18,7 +18,7 @@
       <div class="min-w-0">
         <h2 class="text-2xl font-bold tracking-tight text-neutral-900 truncate" id="share-patient-subtitle">Pacient</h2>
       </div>
-      <div id="share-sessions-count-badge" class="shrink-0 px-5 py-2.5 rounded-2xl bg-pink-50 text-pink-700 font-black text-sm whitespace-nowrap shadow-sm border border-pink-200/60">
+      <div id="share-sessions-count-badge" class="shrink-0 px-5 py-2.5 rounded-2xl bg-pink-50 text-pink-700 font-black text-sm whitespace-nowrap border-none">
         0 ședințe
       </div>
     </div>
@@ -167,39 +167,7 @@
       await this.loadUpcomingSessions();
     }
 
-    private formatDayAndMonth(dateStr: string): string {
-      const d = parseLocalDate(dateStr);
-      const dayNames = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
-      const monthNames = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-      
-      const dayName = dayNames[d.getDay()];
-      const dayNum = d.getDate();
-      const monthName = monthNames[d.getMonth()];
 
-      return `${dayName}, ${dayNum} ${monthName}`;
-    }
-
-    private formatDateForMessage(dateStr: string): string {
-      const dayNames = ['DUMINICĂ', 'LUNI', 'MARȚI', 'MIERCURI', 'JOI', 'VINERI', 'SÂMBĂTĂ'];
-      const monthNames = [
-        'ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie',
-        'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'
-      ];
-      
-      const d = parseLocalDate(dateStr);
-      const dayName = dayNames[d.getDay()];
-      const dayNum = d.getDate();
-      const monthName = monthNames[d.getMonth()];
-
-      return `${dayName}, ${dayNum} ${monthName}`;
-    }
-
-    private formatTimeClean(timeStr: string): string {
-      if (!timeStr) return '';
-      // "07:45:00" -> "7:45" sau "10:00:00" -> "10:00"
-      const clean = timeStr.slice(0, 5);
-      return clean.replace(/^0/, '');
-    }
 
     async loadUpcomingSessions() {
       if (!this.currentPatientId) return;
@@ -213,7 +181,7 @@
         const todayStr = toLocalISOString(new Date());
 
         // Fetch latest patient details directly from Supabase
-        const { data: patientData, error: patientError } = await supabase
+        const { data: patientData, error: patientError } = await (supabase as any)
           .from('pacienti')
           .select('id, nume, prenume, telefon, locatie')
           .eq('id', this.currentPatientId)
@@ -278,9 +246,7 @@
         const sessionLines = this.upcomingAppointments.map((item) => {
           const dateFormatted = this.formatDateForMessage(item.data);
           const timeClean = this.formatTimeClean(item.ora);
-          const loc = item.locatie || item.pacienti?.locatie || this.currentPatientLocation;
-          const locationText = loc ? ` (${loc})` : '';
-          return `${dateFormatted} – ora ${timeClean}${locationText}`;
+          return `${dateFormatted} – ora ${timeClean}`;
         });
 
         const msg = `Bună ziua!\nVă transmit următoarele dumneavoastră programări:\n${sessionLines.join('\n')}\n\nVă mulțumesc!`;
@@ -630,6 +596,35 @@
           this.currentPatientId = null;
         }
       }, 500);
+    }
+
+    private formatDateForMessage(dateStr: string): string {
+      if (!dateStr) return '';
+      const d = parseLocalDate(dateStr);
+
+      const daysUpper = ['DUMINICĂ', 'LUNI', 'MARȚI', 'MIERCURI', 'JOI', 'VINERI', 'SÂMBĂTĂ'];
+      const monthsLower = [
+        'ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie',
+        'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'
+      ];
+
+      const dayOfWeek = daysUpper[d.getDay()];
+      const dayNum = d.getDate();
+      const monthName = monthsLower[d.getMonth()];
+
+      return `${dayOfWeek}, ${dayNum} ${monthName}`;
+    }
+
+    private formatTimeClean(timeStr: string): string {
+      if (!timeStr) return '8:00';
+      const parts = timeStr.substring(0, 5).split(':');
+      const h = parseInt(parts[0] || '8', 10);
+      const m = parts[1] || '00';
+      return `${h}:${m}`;
+    }
+
+    private formatDayAndMonth(dateStr: string): string {
+      return this.formatDateForMessage(dateStr);
     }
   }
 

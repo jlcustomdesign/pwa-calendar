@@ -5,14 +5,16 @@ on:
     # Ruleaza zilnic la ora 09:00 UTC (12:00 ora Romaniei)
     - cron: '0 9 * * *'
   # Permite si rularea manuala din interfata GitHub
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
       - name: Pinging Supabase to prevent pause
+        env:
+          SUPABASE_URL: https://dlklegayibhgnrxnqapm.supabase.co
         run: |
-          curl -s -o /dev/null -w "%{http_code}" -X GET 'https://dlklegayibhgnrxnqapm.supabase.co/rest/v1/' \
-          -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsa2xlZ2F5aWJoZ25yeG5xYXBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1ODQyNTMsImV4cCI6MjEwMTE2MDI1M30.gnZQOCMfvo3GV5eKEKy8-XoknfI0Nw16brEmgURmzU8" \
-          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsa2xlZ2F5aWJoZ25yeG5xYXBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1ODQyNTMsImV4cCI6MjEwMTE2MDI1M30.gnZQOCMfvo3GV5eKEKy8-XoknfI0Nw16brEmgURmzU8"
+          curl -s -o /dev/null -w "%{http_code}" -X GET "${SUPABASE_URL}/rest/v1/" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"

@@ -110,7 +110,7 @@ ON CONFLICT (id) DO NOTHING;
 
 
 -- ============================================================
--- 2. SETTINGS — configurare aplicație (singleton: 1 singur rând)
+-- 2. SETTINGS — configurare aplicație (un rând per utilizator)
 -- ============================================================
 CREATE TABLE public.settings (
   id                      UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -133,21 +133,6 @@ CREATE TABLE public.settings (
   CHECK (lunch_start < lunch_end),
   CHECK (lunch_start >= work_start AND lunch_end <= work_end)
 );
-
-CREATE OR REPLACE FUNCTION public.impune_settings_singleton()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  IF (SELECT count(*) FROM public.settings) >= 1 THEN
-    RAISE EXCEPTION 'Există deja un rând de settings — modifică-l cu UPDATE.';
-  END IF;
-  RETURN new;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trg_settings_singleton ON public.settings;
-CREATE TRIGGER trg_settings_singleton
-  BEFORE INSERT ON public.settings
-  FOR EACH ROW EXECUTE FUNCTION public.impune_settings_singleton();
 
 DROP TRIGGER IF EXISTS trg_settings_updated_at ON public.settings;
 CREATE TRIGGER trg_settings_updated_at

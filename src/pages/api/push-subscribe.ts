@@ -18,6 +18,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const supabase = createSupabaseServerClient(cookies, request.headers);
     const { data: { user } } = await supabase.auth.getUser();
 
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Trebuie să fii autentificat.' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { data, error } = await (supabase as any)
       .from('push_subscriptions')
       .upsert(
@@ -25,7 +32,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           endpoint,
           p256dh: keys.p256dh,
           auth: keys.auth,
-          user_id: user?.id || null,
+          user_id: user.id,
           user_agent: userAgent || request.headers.get('user-agent') || 'Browser PWA',
           updated_at: new Date().toISOString()
         },
@@ -68,10 +75,20 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
     }
 
     const supabase = createSupabaseServerClient(cookies, request.headers);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Trebuie să fii autentificat.' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { error } = await (supabase as any)
       .from('push_subscriptions')
       .delete()
-      .eq('endpoint', endpoint);
+      .eq('endpoint', endpoint)
+      .eq('user_id', user.id);
 
     if (error) {
       return new Response(
