@@ -562,44 +562,28 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       if (morph) {
-        // FLIP inside the active week-section. The strip's CSS transition moves
-        // the section vertically during expand/collapse, so the pill naturally
-        // travels with the current week while we only morph shape/horizontal
-        // position inside the section.
-        const startPillRect = pill.getBoundingClientRect();
-        const startCircleRect = circle.getBoundingClientRect();
-        const startPillRadius = parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
-        const sectionRect = section.getBoundingClientRect();
-
+        // During expand/collapse the pill rides inside the active week-section
+        // and the strip's CSS transition carries the whole section. We only
+        // morph width/height/border-radius here; position snaps to the target
+        // immediately so the pill never moves faster than the card itself.
         ensureParent();
-
-        const startPillLeft = startPillRect.left - sectionRect.left;
-        const startPillTop = startPillRect.top - sectionRect.top;
-        const startCircleLeft = startCircleRect.left - sectionRect.left;
-        const startCircleTop = startCircleRect.top - sectionRect.top;
 
         pill.style.transition = "none";
         pill.style.opacity = "1";
-        pill.style.width = `${startPillRect.width}px`;
-        pill.style.height = `${startPillRect.height}px`;
-        pill.style.borderRadius = `${startPillRadius}px`;
-        pill.style.transform = `translate(${startPillLeft}px, ${startPillTop}px)`;
+        pill.style.transform = `translate(${pillL}px, ${pillT}px)`;
 
         circle.style.transition = "none";
         circle.style.opacity = "1";
-        circle.style.transform = `translate(${startCircleLeft}px, ${startCircleTop}px) scale(1)`;
+        circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
 
         void pill.offsetWidth;
 
         const easing = "cubic-bezier(0.4, 0, 0.2, 1)";
-        pill.style.transition = `transform ${duration}ms ${easing}, width ${duration}ms ${easing}, height ${duration}ms ${easing}, border-radius ${duration}ms ease`;
-        circle.style.transition = `transform ${duration}ms ${easing}`;
+        pill.style.transition = `width ${duration}ms ${easing}, height ${duration}ms ${easing}, border-radius ${duration}ms ease`;
 
         pill.style.width = `${pillW}px`;
         pill.style.height = `${pillH}px`;
         pill.style.borderRadius = pillBR;
-        pill.style.transform = `translate(${pillL}px, ${pillT}px)`;
-        circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
 
         window.setTimeout(() => {
           pill.style.transition = "";
@@ -1165,24 +1149,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, visibility 0s 0s linear;
   }
 
-  /* Closed mode: horizontal carousel of consecutive weeks */
-  #weeks-strip .week-section {
-    flex: 0 0 100%;
-    display: flex !important;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    height: 5.25rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
 
-  #weeks-strip [data-calendar-item] {
-    flex: 1 1 0%;
-    max-width: 4.5rem;
-    margin-left: auto;
-    margin-right: auto;
-  }
 
   /* Expanded mode: months stacked side-by-side, weeks stacked vertically */
   #months-strip .month-section {
@@ -1222,19 +1189,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #day-labels-header .day-labels-set {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.25rem;
     align-items: center;
+    justify-items: center;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
 
   #day-labels-header span {
-    flex: 1 1 0%;
-    max-width: 4.5rem;
-    margin-left: auto;
-    margin-right: auto;
     text-align: center;
     color: #C93263;
   }
