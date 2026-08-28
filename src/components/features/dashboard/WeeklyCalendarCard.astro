@@ -5,7 +5,11 @@ interface Props {
 
 const { name = "Dr. Maria" } = Astro.props;
 
-const now = new Date();
+// Use the user's timezone (Europe/Bucharest) so weekend detection and the
+// active week are correct regardless of where the server is located.
+const now = new Date(
+  new Date().toLocaleString("en-US", { timeZone: "Europe/Bucharest" })
+);
 const weekDayLabels = ["L", "M", "M", "J", "V"];
 const fullDayNames = ["Luni", "Marți", "Miercuri", "Joi", "Vineri"];
 
@@ -192,7 +196,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     ></div>
     <div
       id="calendar-active-circle"
-      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-0"
+      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-10"
       style="left: 0; top: 0; opacity: 0;"
     ></div>
 
@@ -224,7 +228,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
               data-date={item.date}
               data-is-current-month="true"
               data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-              class={`relative z-20 flex flex-col items-center justify-between pt-3 pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+              class={`relative z-20 flex flex-col items-center justify-end pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
                 item.active
                   ? "text-black font-bold"
                   : "text-text-main hover:opacity-100 opacity-100"
@@ -806,8 +810,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       let targetBtn: HTMLButtonElement | null = null;
       let weekOffsetRem = 0;
 
-      if (!isExpanded) {
-        targetBtn = getCurrentMonthTargetButton();
+      if (!isExpanded && activeBtn) {
+        // Open the month that contains the currently selected/visible date,
+        // not necessarily the current calendar month.
+        const y = activeBtn.getAttribute("data-year") || "";
+        const m = activeBtn.getAttribute("data-month") || "";
+        const d = activeBtn.getAttribute("data-date") || "";
+        targetBtn = findButtonByDateInMonths(y, m, d);
         weekOffsetRem = getActiveWeekOffset(targetBtn);
       } else {
         weekOffsetRem = getActiveWeekOffset(activeBtn);
@@ -815,11 +824,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
       // Pre-scroll the destination strip while it's still hidden, so the
       // content doesn't jump horizontally once the layout becomes visible.
-      if (!isExpanded) {
-        const currentMonthSection = document.getElementById('current-month-section');
-        if (currentMonthSection) {
+      if (!isExpanded && targetBtn) {
+        const targetSection = targetBtn.closest('[data-month-section]') as HTMLElement | null;
+        if (targetSection) {
           isProgrammaticScroll = true;
-          monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
+          monthsStrip.scrollLeft = targetSection.offsetLeft;
         }
       } else if (activeBtn) {
         const y = activeBtn.getAttribute("data-year");
