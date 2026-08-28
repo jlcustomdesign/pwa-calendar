@@ -358,9 +358,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     function resizeDayLabelsHeader() {
       if (!dayLabelsHeader) return;
-      if (weeksStrip.scrollWidth > 0) {
-        dayLabelsHeader.style.width = `${weeksStrip.scrollWidth}px`;
-      }
+      const sets = Array.from(dayLabelsHeader.querySelectorAll<HTMLElement>(".day-labels-set"));
+      if (sets.length === 0) return;
+      const weekSections = weeksStrip.querySelectorAll<HTMLElement>(".week-section");
+      const weekWidth = weekSections[0]?.offsetWidth || weeksStrip.offsetWidth;
+      dayLabelsHeader.style.width = `${sets.length * weekWidth}px`;
+      sets.forEach((set) => { set.style.width = `${weekWidth}px`; });
       syncDayLabelsHeader();
     }
 
@@ -746,7 +749,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         card.classList.remove("is-animating");
         strip.classList.remove("is-animating");
         isProgrammaticScroll = false;
-      }, 570);
+      }, 720);
     });
 
     const allButtons = Array.from(strip.querySelectorAll<HTMLButtonElement>('[data-calendar-item]'));
@@ -813,14 +816,22 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     window.addEventListener("resize", handleResize);
 
     function updateMonthYearLabel() {
-      const monthSections = monthsStrip.querySelectorAll(".month-section");
+      const monthSections = Array.from(monthsStrip.querySelectorAll(".month-section"));
       if (!monthSections.length) return;
 
-      const sectionWidth = monthsStrip.offsetWidth || 1;
-      const idx = Math.max(0, Math.min(monthSections.length - 1, Math.round(monthsStrip.scrollLeft / sectionWidth)));
-      const section = monthSections[idx];
-      if (!section) return;
+      const center = monthsStrip.scrollLeft + monthsStrip.offsetWidth / 2;
+      let nearestIdx = 0;
+      let minDist = Infinity;
+      monthSections.forEach((section, idx) => {
+        const sectionCenter = section.offsetLeft + section.offsetWidth / 2;
+        const dist = Math.abs(center - sectionCenter);
+        if (dist < minDist) {
+          minDist = dist;
+          nearestIdx = idx;
+        }
+      });
 
+      const section = monthSections[nearestIdx];
       let monthName = section.getAttribute("data-month-name") || '';
       const year = section.getAttribute("data-year");
       const monthYearLabel = document.getElementById("calendar-month-year");
@@ -834,13 +845,20 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       if (isProgrammaticScroll) return;
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
-        const allWeeks = weeksStrip.querySelectorAll(".week-section");
+        const allWeeks = Array.from(weeksStrip.querySelectorAll(".week-section"));
         if (allWeeks.length === 0) return;
 
-        const sectionWidth = weeksStrip.offsetWidth || 1;
-        const idx = Math.max(0, Math.min(allWeeks.length - 1, Math.round(weeksStrip.scrollLeft / sectionWidth)));
-        const targetWeek = allWeeks[idx] as HTMLElement | undefined;
-        if (!targetWeek) return;
+        const center = weeksStrip.scrollLeft + weeksStrip.offsetWidth / 2;
+        let targetWeek: HTMLElement | null = null;
+        for (const w of allWeeks) {
+          const left = w.offsetLeft;
+          const right = left + w.offsetWidth;
+          if (center >= left && center < right) {
+            targetWeek = w;
+            break;
+          }
+        }
+        if (!targetWeek) targetWeek = allWeeks[allWeeks.length - 1];
 
         const activeDay = weeksStrip.querySelector('[data-active="true"]') as HTMLButtonElement | null;
         const activeDayIndex = activeDay ? parseInt(activeDay.getAttribute('data-index') || '0', 10) : 0;
@@ -1010,10 +1028,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     line-height: 1.25rem;
   }
 
-  .day-labels-set {
-    flex: 0 0 100%;
-  }
-
   .expanded-mode .day-labels-header,
   .is-animating .day-labels-header {
     opacity: 1;
@@ -1051,8 +1065,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-card {
-    transition: max-height 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 18rem;
+    contain: layout paint;
+  }
+
+  #calendar-card.is-animating {
     will-change: max-height;
   }
 
@@ -1063,18 +1081,17 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   #calendar-strip {
     position: relative;
     height: 5.25rem;
-    transition: height 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
-    will-change: height, transform;
+    contain: layout;
   }
 
   #calendar-strip.expanded-mode {
     height: calc(var(--active-week-count, 6) * 5.25rem);
   }
 
-  #weeks-strip,
-  #months-strip {
-    will-change: transform;
+  #calendar-strip.is-animating {
+    will-change: height, transform, opacity;
   }
 
   /* Hide only the date numbers/dots in the outgoing strip during expand/collapse
