@@ -196,7 +196,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     </div>
 
     <div class="day-labels-header day-labels-header-months absolute top-[0.625rem] left-0 z-30 flex pointer-events-none opacity-0 invisible">
-      {initialMonths.map(() => (
+      {allMonths.map(() => (
         <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
           {weekDayLabels.map((label) => (
             <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
@@ -512,23 +512,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const lazyBeforeTemplate = document.getElementById("lazy-months-before-template") as HTMLTemplateElement | null;
     const lazyAfterTemplate = document.getElementById("lazy-months-after-template") as HTMLTemplateElement | null;
 
-    function createDayLabelsSet(width: number) {
-      if (!dayLabelsHeaderMonths) return null;
-      const set = document.createElement("div");
-      set.className = "day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0";
-      set.style.width = `${width}px`;
-      ["L", "M", "M", "J", "V"].forEach((label) => {
-        const span = document.createElement("span");
-        span.className = "text-center text-base font-black uppercase tracking-wider";
-        span.style.color = "#C93263";
-        span.textContent = label;
-        set.appendChild(span);
-      });
-      return set;
-    }
-
     function prependLazyMonths(count: number) {
-      if (!lazyBeforeTemplate || !monthsStrip || !dayLabelsHeaderMonths) return;
+      if (!lazyBeforeTemplate || !monthsStrip) return;
       const fragment = lazyBeforeTemplate.content;
       const toMove: HTMLElement[] = [];
       for (let i = 0; i < count && fragment.firstElementChild; i++) {
@@ -543,8 +528,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
       toMove.reverse().forEach((el) => {
         monthsStrip.insertBefore(el, monthsStrip.firstChild);
-        const set = createDayLabelsSet(monthWidth);
-        if (set) dayLabelsHeaderMonths.insertBefore(set, dayLabelsHeaderMonths.firstChild);
       });
 
       isProgrammaticScroll = true;
@@ -554,7 +537,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     function appendLazyMonths(count: number) {
-      if (!lazyAfterTemplate || !monthsStrip || !dayLabelsHeaderMonths) return;
+      if (!lazyAfterTemplate || !monthsStrip) return;
       const fragment = lazyAfterTemplate.content;
       const toMove: HTMLElement[] = [];
       for (let i = 0; i < count && fragment.firstElementChild; i++) {
@@ -563,11 +546,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
       if (toMove.length === 0) return;
 
-      const monthWidth = monthsStrip.offsetWidth;
       toMove.forEach((el) => {
         monthsStrip.appendChild(el);
-        const set = createDayLabelsSet(monthWidth);
-        if (set) dayLabelsHeaderMonths.appendChild(set);
       });
       resizeDayLabelsHeader();
     }
@@ -955,12 +935,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       // Morph pill/circle to the new active button in the new layout.
-      requestAnimationFrame(() => {
-        const newActiveBtn = getVisibleActiveButton();
-        if (newActiveBtn) {
-          updatePillForButton(newActiveBtn, { morph: true, duration: 700 });
-        }
-      });
+      // Force a layout flush so the CSS transition and the JS-driven morph
+      // both start from the same paint.
+      void card.offsetHeight;
+      const newActiveBtn = getVisibleActiveButton();
+      if (newActiveBtn) {
+        updatePillForButton(newActiveBtn, { morph: true, duration: 700 });
+      }
 
       window.setTimeout(() => {
         card.classList.remove("is-animating");
@@ -1247,15 +1228,20 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     line-height: 1.25rem;
   }
 
-  /* Closed mode: only the weeks header follows the horizontal week scroll. */
-  .closed-mode .day-labels-header-weeks,
+  /* Closed steady state: hide the weeks header because each button shows its own day label. */
+  .closed-mode .day-labels-header-weeks {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* During open/close animation the weeks-strip buttons hide their labels, so show the header instead. */
   .is-animating.closed-mode .day-labels-header-weeks {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.1s ease, visibility 0s linear 0s;
   }
 
-  /* Expanded mode: only the months header follows the horizontal month scroll. */
+  /* Expanded mode: show the months header and sync it with the horizontal month scroll. */
   .expanded-mode .day-labels-header-months,
   .is-animating.expanded-mode .day-labels-header-months {
     opacity: 1;
