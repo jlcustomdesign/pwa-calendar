@@ -17,6 +17,20 @@ export function escapeHtml(input: string | number | undefined | null): string {
 }
 
 /**
+ * Escape a string so it can be safely used inside a single-quoted JS string
+ * inside an inline HTML event handler (onclick='...').
+ */
+export function escapeJsString(input: string | undefined | null): string {
+  if (input === undefined || input === null) return '';
+  return String(input)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+}
+
+/**
  * Validate that a URL uses an allowed scheme for user-controlled links.
  * Allowed schemes: http:, https:, tel:.
  */
