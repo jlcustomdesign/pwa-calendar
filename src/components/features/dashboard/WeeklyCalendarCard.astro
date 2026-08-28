@@ -935,13 +935,14 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       // Morph pill/circle to the new active button in the new layout.
-      // Force a layout flush so the CSS transition and the JS-driven morph
-      // both start from the same paint.
-      void card.offsetHeight;
-      const newActiveBtn = getVisibleActiveButton();
-      if (newActiveBtn) {
-        updatePillForButton(newActiveBtn, { morph: true, duration: 700 });
-      }
+      // Defer to the next frame so the CSS transition and the JS-driven morph
+      // both start on the same paint and stay in sync.
+      requestAnimationFrame(() => {
+        const newActiveBtn = getVisibleActiveButton();
+        if (newActiveBtn) {
+          updatePillForButton(newActiveBtn, { morph: true, duration: 700 });
+        }
+      });
 
       window.setTimeout(() => {
         card.classList.remove("is-animating");
@@ -1234,16 +1235,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     visibility: hidden;
   }
 
-  /* During open/close animation the weeks-strip buttons hide their labels, so show the header instead. */
-  .is-animating.closed-mode .day-labels-header-weeks {
+  /* Expanded mode: show the months header and sync it with the horizontal month scroll. */
+  .expanded-mode .day-labels-header-months {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.1s ease, visibility 0s linear 0s;
   }
 
-  /* Expanded mode: show the months header and sync it with the horizontal month scroll. */
-  .expanded-mode .day-labels-header-months,
-  .is-animating.expanded-mode .day-labels-header-months {
+  /* During open/close animation both headers stay visible so the letters never
+     appear to swap; the steady-state rules above hide the inactive one. */
+  .is-animating .day-labels-header-weeks,
+  .is-animating .day-labels-header-months {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.1s ease, visibility 0s linear 0s;
