@@ -185,26 +185,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header day-labels-header-weeks absolute top-[0.625rem] left-0 z-30 flex pointer-events-none">
-      {allWeeksFlat.map(() => (
-        <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
-          {weekDayLabels.map((label) => (
-            <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
-          ))}
-        </div>
-      ))}
-    </div>
-
-    <div class="day-labels-header day-labels-header-months absolute top-[0.625rem] left-0 z-30 flex pointer-events-none opacity-0 invisible">
-      {allMonths.map(() => (
-        <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
-          {weekDayLabels.map((label) => (
-            <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
-          ))}
-        </div>
-      ))}
-    </div>
-
     <div
       id="calendar-active-pill"
       class="absolute bg-brand-primary pointer-events-none z-0"
@@ -263,6 +243,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           id={month.isCurrentMonth ? "current-month-section" : undefined}
           class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
         >
+          <div class="day-labels-row grid grid-cols-5 gap-1 px-2 pt-[0.625rem] pb-1">
+            {weekDayLabels.map((label) => (
+              <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
+            ))}
+          </div>
           {month.weekIndices.map(wi => {
             const week = allWeeksFlat[wi];
             return (
@@ -317,6 +302,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           data-year={month.year}
           class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
         >
+          <div class="day-labels-row grid grid-cols-5 gap-1 px-2 pt-[0.625rem] pb-1">
+            {weekDayLabels.map((label) => (
+              <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
+            ))}
+          </div>
           {month.weekIndices.map(wi => {
             const week = allWeeksFlat[wi];
             return (
@@ -371,6 +361,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           data-year={month.year}
           class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
         >
+          <div class="day-labels-row grid grid-cols-5 gap-1 px-2 pt-[0.625rem] pb-1">
+            {weekDayLabels.map((label) => (
+              <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
+            ))}
+          </div>
           {month.weekIndices.map(wi => {
             const week = allWeeksFlat[wi];
             return (
@@ -429,8 +424,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const pill = document.getElementById("calendar-active-pill") as HTMLElement;
     const circle = document.getElementById("calendar-active-circle") as HTMLElement;
     if (!strip || !weeksStrip || !monthsStrip || !pill || !circle || !card || !expandBtn) return;
-    const dayLabelsHeaderWeeks = strip.querySelector(".day-labels-header-weeks") as HTMLElement | null;
-    const dayLabelsHeaderMonths = strip.querySelector(".day-labels-header-months") as HTMLElement | null;
     if (strip.dataset.calendarAnimated === 'true') return;
     strip.dataset.calendarAnimated = 'true';
 
@@ -476,38 +469,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
     setTimeout(scrollToActiveWeek, 50);
 
-    function syncDayLabelsHeader() {
-      if (isExpanded) {
-        if (!dayLabelsHeaderMonths) return;
-        dayLabelsHeaderMonths.style.transform = `translateX(${-monthsStrip.scrollLeft}px)`;
-      } else {
-        if (!dayLabelsHeaderWeeks) return;
-        dayLabelsHeaderWeeks.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
-      }
-    }
-
-    function resizeDayLabelsHeader() {
-      if (dayLabelsHeaderWeeks) {
-        const sets = Array.from(dayLabelsHeaderWeeks.querySelectorAll<HTMLElement>(".day-labels-set"));
-        if (sets.length > 0) {
-          const weekSections = weeksStrip.querySelectorAll<HTMLElement>(".week-section");
-          const weekWidth = weekSections[0]?.offsetWidth || weeksStrip.offsetWidth;
-          dayLabelsHeaderWeeks.style.width = `${sets.length * weekWidth}px`;
-          sets.forEach((set) => { set.style.width = `${weekWidth}px`; });
-        }
-      }
-      if (dayLabelsHeaderMonths) {
-        const sets = Array.from(dayLabelsHeaderMonths.querySelectorAll<HTMLElement>(".day-labels-set"));
-        if (sets.length > 0) {
-          const monthSections = monthsStrip.querySelectorAll<HTMLElement>(".month-section");
-          const monthWidth = monthSections[0]?.offsetWidth || monthsStrip.offsetWidth;
-          dayLabelsHeaderMonths.style.width = `${sets.length * monthWidth}px`;
-          sets.forEach((set) => { set.style.width = `${monthWidth}px`; });
-        }
-      }
-      syncDayLabelsHeader();
-    }
-
     // Lazy/incremental month loading for the expanded view.
     const lazyBeforeTemplate = document.getElementById("lazy-months-before-template") as HTMLTemplateElement | null;
     const lazyAfterTemplate = document.getElementById("lazy-months-after-template") as HTMLTemplateElement | null;
@@ -532,7 +493,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
       isProgrammaticScroll = true;
       monthsStrip.scrollLeft = oldScrollLeft + addedWidth;
-      resizeDayLabelsHeader();
       requestAnimationFrame(() => { isProgrammaticScroll = false; });
     }
 
@@ -549,7 +509,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       toMove.forEach((el) => {
         monthsStrip.appendChild(el);
       });
-      resizeDayLabelsHeader();
     }
 
     function handleLazyMonthsScroll() {
@@ -927,14 +886,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
           updateMonthYearLabel();
           if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
-          syncDayLabelsHeader();
         } else {
           card.classList.remove("expanded-mode");
           card.classList.add("closed-mode");
           strip.classList.remove("expanded-mode");
           strip.classList.add("closed-mode");
           if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
-          syncDayLabelsHeader();
         }
 
         const newActiveBtn = getVisibleActiveButton();
@@ -998,7 +955,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         }
       }
 
-      resizeDayLabelsHeader();
     });
 
     if ((window as any)._weeklyCalendarResizeHandler) {
@@ -1007,7 +963,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const handleResize = () => {
       const activeBtn = getVisibleActiveButton();
       if (activeBtn) updatePillForButton(activeBtn, { immediate: true });
-      resizeDayLabelsHeader();
       if (isExpanded) requestAnimationFrame(updateMonthYearLabel);
     };
     (window as any)._weeklyCalendarResizeHandler = handleResize;
@@ -1074,9 +1029,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     weeksStrip.addEventListener("scroll", handleWeeksScroll);
-    weeksStrip.addEventListener("scroll", syncDayLabelsHeader);
     monthsStrip.addEventListener("scroll", handleMonthsScroll);
-    monthsStrip.addEventListener("scroll", syncDayLabelsHeader);
     monthsStrip.addEventListener("scroll", handleLazyMonthsScroll);
 
     updateMonthYearLabel();
@@ -1217,37 +1170,14 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     border: 0 !important;
   }
 
-  .day-labels-header {
-    top: 0.625rem;
+  .day-labels-row {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.1s ease, visibility 0s linear 0.1s;
   }
 
-  .day-labels-header span {
-    line-height: 1.25rem;
-  }
-
-.closed-mode .day-labels-header-weeks,
-  .expanded-mode .day-labels-header-weeks {
-    opacity: 0;
-    visibility: hidden;
-  }
-
-  .closed-mode .day-labels-header-months {
-    opacity: 0;
-    visibility: hidden;
-  }
-
-  .expanded-mode .day-labels-header-months {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  /* During open/close animation show only the weeks header. It is aligned with
-     the weeks strip and has the same letters, so the user sees a single steady
-     row while the card morphs. */
-  .is-animating .day-labels-header-weeks {
+  .expanded-mode .day-labels-row,
+  .is-animating.expanded-mode .day-labels-row {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.1s ease, visibility 0s linear 0s;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kineto-agenda-v12';
+const CACHE_NAME = 'kineto-agenda-v13';
 const SHELL_ASSETS = [
   '/',
   '/login',
