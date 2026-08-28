@@ -196,6 +196,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       style="left: 0; top: 0; opacity: 0;"
     ></div>
 
+    <div id="day-labels-header" class="absolute top-[0.625rem] left-0 z-30 flex pointer-events-none" style={`width: ${totalMonths * 100}%;`}>
+      {Array.from({ length: totalMonths }).map(() => (
+        <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0" style={`width: ${100 / totalMonths}%;`}>
+          {weekDayLabels.map((label) => (
+            <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
+          ))}
+        </div>
+      ))}
+    </div>
+
     <div id="weeks-strip">
       {allWeeksFlat.map((week, weekIndex) => (
         <div
@@ -220,7 +230,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                   : "text-text-main hover:opacity-100 opacity-100"
               }`}
             >
-              <span class="day-label text-base font-black uppercase tracking-wider pointer-events-none z-20" style="color: #C93263 !important;">{item.dayLabel}</span>
               <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
                 {item.date}
               </span>
@@ -243,11 +252,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           id={month.isCurrentMonth ? "current-month-section" : undefined}
           class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
         >
-          <div class="day-labels-row grid grid-cols-5 gap-1 px-2 pt-[0.625rem] pb-1">
-            {weekDayLabels.map((label) => (
-              <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
-            ))}
-          </div>
           {month.weekIndices.map(wi => {
             const week = allWeeksFlat[wi];
             return (
@@ -302,11 +306,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           data-year={month.year}
           class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
         >
-          <div class="day-labels-row grid grid-cols-5 gap-1 px-2 pt-[0.625rem] pb-1">
-            {weekDayLabels.map((label) => (
-              <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
-            ))}
-          </div>
           {month.weekIndices.map(wi => {
             const week = allWeeksFlat[wi];
             return (
@@ -361,11 +360,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           data-year={month.year}
           class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
         >
-          <div class="day-labels-row grid grid-cols-5 gap-1 px-2 pt-[0.625rem] pb-1">
-            {weekDayLabels.map((label) => (
-              <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
-            ))}
-          </div>
           {month.weekIndices.map(wi => {
             const week = allWeeksFlat[wi];
             return (
@@ -840,6 +834,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           }
         }
       }
+      syncDayLabelsHeader();
 
       const countSource = targetBtn || activeBtn;
       const monthSectionForCount = countSource?.closest('.month-section') as HTMLElement | null;
@@ -893,6 +888,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
               monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
             }
           }
+          syncDayLabelsHeader();
 
           updateMonthYearLabel();
           if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
@@ -918,6 +914,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         if (weeksBtnForMorph) {
           updatePillForButton(weeksBtnForMorph, { morph: true, duration: 700 });
         }
+        syncDayLabelsHeader();
       });
 
       window.setTimeout(() => {
@@ -970,6 +967,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           strip.style.setProperty('--active-week-offset', `${offset}rem`);
         }
         updatePillForButton(activeBtn, { immediate: true });
+        syncDayLabelsHeader();
         const y = activeBtn.getAttribute("data-year");
         const m = activeBtn.getAttribute("data-month");
         const d = activeBtn.getAttribute("data-date");
@@ -987,6 +985,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const handleResize = () => {
       const activeBtn = getVisibleActiveButton();
       if (activeBtn) updatePillForButton(activeBtn, { immediate: true });
+      syncDayLabelsHeader();
       if (isExpanded) requestAnimationFrame(updateMonthYearLabel);
     };
     (window as any)._weeklyCalendarResizeHandler = handleResize;
@@ -1018,7 +1017,15 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
     }
 
+    function syncDayLabelsHeader() {
+      const header = document.getElementById("day-labels-header") as HTMLElement | null;
+      if (!header || !weeksStrip || !monthsStrip) return;
+      const activeStrip = isExpanded ? monthsStrip : weeksStrip;
+      header.style.transform = `translateX(${-activeStrip.scrollLeft}px)`;
+    }
+
     function handleWeeksScroll() {
+      syncDayLabelsHeader();
       if (isProgrammaticScroll) return;
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
@@ -1048,6 +1055,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     function handleMonthsScroll() {
+      syncDayLabelsHeader();
       if (isProgrammaticScroll) return;
       requestAnimationFrame(updateMonthYearLabel);
     }
@@ -1194,34 +1202,26 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     border: 0 !important;
   }
 
-  /* Only one set of day labels is visible at a time. In the closed state the
-     labels live inside each date button (upper half of the pill). In the
-     expanded state they live as a single row at the top of each month section.
-     Short cross-fades hide the hand-off during expand/collapse. */
-  #weeks-strip .day-label {
+  /* A single fixed day-labels header sits at the top of the strip. It contains
+     one label set per month-section width so it can scroll with both the week
+     and month carousels via transform sync. */
+  #day-labels-header {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.1s ease, visibility 0s linear 0s;
   }
 
-  .expanded-mode #weeks-strip .day-label,
-  .is-animating #weeks-strip .day-label {
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.1s ease, visibility 0s linear 0.1s;
+  #day-labels-header .day-labels-set {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.25rem;
+    align-items: center;
+    justify-items: center;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 
-  .day-labels-row {
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.1s ease, visibility 0s linear 0.1s;
-  }
-
-  .expanded-mode .day-labels-row,
-  .is-animating .day-labels-row {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.1s ease, visibility 0s linear 0s;
+  #day-labels-header span {
+    color: #C93263;
   }
 
   /* Hide the week-strip numbers in expanded mode so only the month view
