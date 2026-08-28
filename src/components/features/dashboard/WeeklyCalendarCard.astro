@@ -179,7 +179,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-[0.625rem] left-0 z-30 flex pointer-events-none">
+    <div class="day-labels-header absolute top-[0.625rem] left-0 z-30 flex pointer-events-none bg-surface-card">
       {allWeeksFlat.map(() => (
         <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
           {weekDayLabels.map((label) => (
@@ -1097,6 +1097,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   .expanded-mode #weeks-strip [data-calendar-item] .today-dot,
   .is-animating.closed-mode #months-strip [data-calendar-item] .date-number,
   .is-animating.closed-mode #months-strip [data-calendar-item] .today-dot {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+
+  /* Avoid the full-month grid flashing while the card collapses. */
+  .is-animating.closed-mode #months-strip {
     opacity: 0;
     transition: opacity 0.1s ease;
   }
