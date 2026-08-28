@@ -661,40 +661,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         weekOffsetRem = getActiveWeekOffset(activeBtn);
       }
 
-      // Pre-scroll the destination strip while it's still hidden, so the
-      // content doesn't jump horizontally once the layout becomes visible.
-      if (!isExpanded) {
-        const currentMonthSection = document.getElementById('current-month-section');
-        if (currentMonthSection) {
-          isProgrammaticScroll = true;
-          monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
-        }
-      } else if (activeBtn) {
-        const y = activeBtn.getAttribute("data-year");
-        const m = activeBtn.getAttribute("data-month");
-        const d = activeBtn.getAttribute("data-date");
-        if (y && m && d) {
-          const weeksBtn = findButtonByDate(y, m, d, weeksStrip);
-          const activeWeek = weeksBtn ? weeksBtn.closest('.week-section') as HTMLElement | null : null;
-          if (activeWeek) {
-            isProgrammaticScroll = true;
-            weeksStrip.scrollLeft = activeWeek.offsetLeft;
-          }
-        }
-      }
-
       const countSource = targetBtn || activeBtn;
       const monthSectionForCount = countSource?.closest('.month-section') as HTMLElement | null;
       const weekCount = monthSectionForCount
         ? Array.from(monthSectionForCount.children).filter((el) => el.classList.contains('week-section')).length
         : 6;
       strip.style.setProperty('--active-week-count', `${weekCount}`);
-
       strip.style.setProperty('--active-week-offset', `${weekOffsetRem}rem`);
-
-      // Snap pill/circle to the current active button so the morph starts
-      // from the exact visible position instead of fading or jumping in.
-      if (activeBtn) updatePillForButton(activeBtn, { immediate: true });
 
       isExpanded = !isExpanded;
       card.dataset.expanded = isExpanded ? "true" : "false";
@@ -706,6 +679,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
       const monthYearLabel = document.getElementById("calendar-month-year");
 
+      // Toggle layout classes immediately so the CSS transition can start on
+      // the very next paint.
       card.classList.add("is-animating");
       strip.classList.add("is-animating");
 
@@ -714,10 +689,41 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         card.classList.add("expanded-mode");
         strip.classList.remove("closed-mode");
         strip.classList.add("expanded-mode");
+      } else {
+        card.classList.remove("expanded-mode");
+        card.classList.add("closed-mode");
+        strip.classList.remove("expanded-mode");
+        strip.classList.add("closed-mode");
+      }
 
-        if (targetBtn) {
+      // All expensive layout work is deferred to the next frame so it doesn't
+      // block the initial paint of the expand/collapse transition.
+      requestAnimationFrame(() => {
+        // Pre-scroll the destination strip while it's still hidden, so the
+        // content doesn't jump horizontally once the layout becomes visible.
+        if (isExpanded) {
+          const currentMonthSection = document.getElementById('current-month-section');
+          if (currentMonthSection) {
+            isProgrammaticScroll = true;
+            monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
+          }
+        } else if (activeBtn) {
+          const y = activeBtn.getAttribute("data-year");
+          const m = activeBtn.getAttribute("data-month");
+          const d = activeBtn.getAttribute("data-date");
+          if (y && m && d) {
+            const weeksBtn = findButtonByDate(y, m, d, weeksStrip);
+            const activeWeek = weeksBtn ? weeksBtn.closest('.week-section') as HTMLElement | null : null;
+            if (activeWeek) {
+              isProgrammaticScroll = true;
+              weeksStrip.scrollLeft = activeWeek.offsetLeft;
+            }
+          }
+        }
+
+        if (isExpanded && targetBtn) {
           selectDay(targetBtn, false, true);
-        } else {
+        } else if (isExpanded) {
           const currentMonthSection = document.getElementById('current-month-section');
           if (currentMonthSection) {
             isProgrammaticScroll = true;
@@ -725,20 +731,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           }
         }
 
-        updateMonthYearLabel();
-        if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
-        if (dayLabelsHeader) dayLabelsHeader.style.transform = "translateX(0)";
-      } else {
-        card.classList.remove("expanded-mode");
-        card.classList.add("closed-mode");
-        strip.classList.remove("expanded-mode");
-        strip.classList.add("closed-mode");
-        if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
-        syncDayLabelsHeader();
-      }
+        if (isExpanded) {
+          updateMonthYearLabel();
+          if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
+          if (dayLabelsHeader) dayLabelsHeader.style.transform = "translateX(0)";
+        } else {
+          if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
+          syncDayLabelsHeader();
+        }
 
-      // Morph pill/circle to the new active button in the new layout.
-      requestAnimationFrame(() => {
+        // Morph pill/circle to the new active button in the new layout.
         const newActiveBtn = getVisibleActiveButton();
         if (newActiveBtn) {
           updatePillForButton(newActiveBtn, { morph: true, duration: 550 });
