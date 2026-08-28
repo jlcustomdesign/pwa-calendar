@@ -192,7 +192,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     ></div>
     <div
       id="calendar-active-circle"
-      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-10"
+      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-0"
       style="left: 0; top: 0; opacity: 0;"
     ></div>
 
@@ -524,30 +524,33 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number } = {}) {
-      if (!button || !pill || !circle || !strip) return;
+      if (!button || !pill || !circle) return;
       const { immediate = false, morph = false, duration = 400 } = opts;
 
-      const numSpan = button.querySelector<HTMLElement>('.date-number');
-      const stripRect = strip.getBoundingClientRect();
-      const btnRect = button.getBoundingClientRect();
-      const numRect = numSpan ? numSpan.getBoundingClientRect() : btnRect;
+      const section = button.closest('.week-section') as HTMLElement | null;
+      if (!section) return;
 
-      // Target coordinates are relative to the stable calendar-strip container
-      // so the pill animates independently of any expanding/collapsing transforms.
-      const width = btnRect.width;
-      const height = btnRect.height;
-      const btnLeft = btnRect.left - stripRect.left;
-      const btnTop = btnRect.top - stripRect.top;
-      const cLeft = numRect.left - stripRect.left;
-      const cTop = numRect.top - stripRect.top;
+      const numSpan = button.querySelector<HTMLElement>('.date-number');
+      const left = button.offsetLeft;
+      const top = button.offsetTop;
+      const width = button.offsetWidth;
+      const height = button.offsetHeight;
+      const cLeft = left + (numSpan ? numSpan.offsetLeft : 0);
+      const cTop = top + (numSpan ? numSpan.offsetTop : 0);
 
       const pillW = isExpanded ? 40 : 48;
       const pillH = isExpanded ? 40 : height;
-      const pillL = isExpanded ? cLeft - 4 : btnLeft + (width - pillW) / 2;
-      const pillT = isExpanded ? cTop - 4 : btnTop;
+      const pillL = isExpanded ? cLeft - 4 : left + (width - pillW) / 2;
+      const pillT = isExpanded ? cTop - 4 : top;
       const pillBR = isExpanded ? "50%" : "50px";
 
+      const ensureParent = () => {
+        if (pill.parentElement !== section) section.appendChild(pill);
+        if (circle.parentElement !== section) section.appendChild(circle);
+      };
+
       if (immediate) {
+        ensureParent();
         pill.style.transition = "none";
         circle.style.transition = "none";
         pill.style.opacity = "1";
@@ -561,18 +564,21 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       if (morph) {
-        // FLIP in the stable strip coordinate system: capture the pill/circle's
-        // current visual position, snap them there without transition, then
-        // animate to the new target. This keeps them perfectly in sync with the
-        // card's CSS expansion/collapse because both use the same easing curve.
+        // FLIP inside the active week-section. The strip's CSS transition moves
+        // the section vertically during expand/collapse, so the pill naturally
+        // travels with the current week while we only morph shape/horizontal
+        // position inside the section.
         const startPillRect = pill.getBoundingClientRect();
         const startCircleRect = circle.getBoundingClientRect();
         const startPillRadius = parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
+        const sectionRect = section.getBoundingClientRect();
 
-        const startPillLeft = startPillRect.left - stripRect.left;
-        const startPillTop = startPillRect.top - stripRect.top;
-        const startCircleLeft = startCircleRect.left - stripRect.left;
-        const startCircleTop = startCircleRect.top - stripRect.top;
+        ensureParent();
+
+        const startPillLeft = startPillRect.left - sectionRect.left;
+        const startPillTop = startPillRect.top - sectionRect.top;
+        const startCircleLeft = startCircleRect.left - sectionRect.left;
+        const startCircleTop = startCircleRect.top - sectionRect.top;
 
         pill.style.transition = "none";
         pill.style.opacity = "1";
@@ -605,6 +611,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       // Normal click animation: pill moves/resizes, circle drops in.
+      ensureParent();
       pill.style.transition = `transform ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1), width ${duration}ms, height ${duration}ms`;
       pill.style.width = `${pillW}px`;
       pill.style.height = `${pillH}px`;
@@ -843,9 +850,17 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
       strip.style.setProperty('--active-week-offset', `${weekOffsetRem}rem`);
 
-      // Snap pill/circle to the current active button so the morph starts
-      // from the exact visible position instead of fading or jumping in.
-      if (activeBtn) updatePillForButton(activeBtn, { immediate: true });
+      // Keep the pill inside the weeks-strip active section during the
+      // transition so it travels down/up together with the current week.
+      const weeksActiveBtn = activeBtn
+        ? findButtonByDate(
+            activeBtn.getAttribute("data-year") || "",
+            activeBtn.getAttribute("data-month") || "",
+            activeBtn.getAttribute("data-date") || "",
+            weeksStrip
+          )
+        : null;
+      if (weeksActiveBtn) updatePillForButton(weeksActiveBtn, { immediate: true });
 
       isExpanded = !isExpanded;
       card.dataset.expanded = isExpanded ? "true" : "false";
@@ -889,9 +904,19 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
         }
 
-        const newActiveBtn = getVisibleActiveButton();
-        if (newActiveBtn) {
-          updatePillForButton(newActiveBtn, { morph: true, duration: 700 });
+        // Morph the pill while it rides inside the weeks-strip active section.
+        // The strip's CSS translateY handles the vertical travel.
+        const transitionBtn = getVisibleActiveButton();
+        const weeksBtnForMorph = transitionBtn
+          ? findButtonByDate(
+              transitionBtn.getAttribute("data-year") || "",
+              transitionBtn.getAttribute("data-month") || "",
+              transitionBtn.getAttribute("data-date") || "",
+              weeksStrip
+            )
+          : null;
+        if (weeksBtnForMorph) {
+          updatePillForButton(weeksBtnForMorph, { morph: true, duration: 700 });
         }
       });
 
@@ -899,6 +924,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         card.classList.remove("is-animating");
         strip.classList.remove("is-animating");
         isProgrammaticScroll = false;
+
+        // Reparent the pill to the steady-state visible active button.
+        const steadyActiveBtn = getVisibleActiveButton();
+        if (steadyActiveBtn) updatePillForButton(steadyActiveBtn, { immediate: true });
       }, 720);
     });
 
@@ -1189,19 +1218,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   .expanded-mode .day-labels-row,
-  .is-animating.expanded-mode .day-labels-row {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.1s ease, visibility 0s linear 0s;
-  }
-
-  /* During collapse the month labels fade out and the button labels fade back in. */
-  .is-animating.closed-mode .day-labels-row {
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.1s ease, visibility 0s linear 0.1s;
-  }
-  .is-animating.closed-mode #weeks-strip .day-label {
+  .is-animating .day-labels-row {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.1s ease, visibility 0s linear 0s;
