@@ -1030,7 +1030,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const header = document.getElementById("day-labels-header") as HTMLElement | null;
       if (!header || !weeksStrip || !monthsStrip) return;
       const activeStrip = isExpanded ? monthsStrip : weeksStrip;
-      header.style.transform = `translateX(${-activeStrip.scrollLeft}px)`;
+      header.style.transform = `translate3d(${-activeStrip.scrollLeft}px, 0, 0)`;
     }
 
     function handleWeeksScroll() {
@@ -1138,23 +1138,23 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     visibility: visible;
     pointer-events: auto;
     transform: translateY(0);
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s linear;
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, visibility 0s 0s linear;
   }
 
   .closed-mode #months-strip {
-    opacity: 1;
+    opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transform: translateY(0);
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.7s linear;
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease 0.45s, visibility 0s 0.7s linear;
   }
 
   .expanded-mode #weeks-strip {
-    opacity: 1;
+    opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transform: translateY(var(--active-week-offset, 5.25rem));
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.7s linear;
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease 0.45s, visibility 0s 0.7s linear;
   }
 
   .expanded-mode #months-strip {
@@ -1162,7 +1162,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     visibility: visible;
     pointer-events: auto;
     transform: translateY(0);
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s linear;
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, visibility 0s 0s linear;
   }
 
   /* Closed mode: horizontal carousel of consecutive weeks */
@@ -1213,23 +1213,29 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   /* A single fixed day-labels header sits at the top of the strip. It contains
      one label set per month-section width so it can scroll with both the week
-     and month carousels via transform sync. */
+     and month carousels via transform sync. The flex layout mirrors the
+     weeks-strip button arrangement so the columns stay perfectly aligned. */
   #day-labels-header {
     opacity: 1;
     visibility: visible;
+    will-change: transform;
   }
 
   #day-labels-header .day-labels-set {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.25rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
-    justify-items: center;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
 
   #day-labels-header span {
+    flex: 1 1 0%;
+    max-width: 4.5rem;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
     color: #C93263;
   }
 
