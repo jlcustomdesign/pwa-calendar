@@ -1112,4 +1112,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     opacity: 0;
     transition: opacity 0.1s ease;
   }
+
+  /* During expand, hide the outgoing week strip so the falling dates don't
+     show through the day-label header. */
+  .is-animating.expanded-mode #weeks-strip {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
 </style>
