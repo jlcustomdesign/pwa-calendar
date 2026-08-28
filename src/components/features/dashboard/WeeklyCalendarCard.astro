@@ -741,7 +741,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       requestAnimationFrame(() => {
         const newActiveBtn = getVisibleActiveButton();
         if (newActiveBtn) {
-          updatePillForButton(newActiveBtn, { morph: true, duration: 700 });
+          updatePillForButton(newActiveBtn, { morph: true, duration: 550 });
         }
       });
 
@@ -749,7 +749,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         card.classList.remove("is-animating");
         strip.classList.remove("is-animating");
         isProgrammaticScroll = false;
-      }, 720);
+      }, 570);
     });
 
     const allButtons = Array.from(strip.querySelectorAll<HTMLButtonElement>('[data-calendar-item]'));
@@ -1066,7 +1066,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-card {
-    transition: max-height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.55s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 18rem;
     contain: layout paint;
     will-change: max-height;
@@ -1079,10 +1079,9 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   #calendar-strip {
     position: relative;
     height: 5.25rem;
-    transition: height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     contain: layout;
-    will-change: height, transform;
+    will-change: transform;
   }
 
   #calendar-strip.expanded-mode {
