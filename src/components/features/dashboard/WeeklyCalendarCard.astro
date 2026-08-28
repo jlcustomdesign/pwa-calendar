@@ -161,19 +161,6 @@ const fullMonthName = rawMonthName ? (rawMonthName.charAt(0).toUpperCase() + raw
 const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${fullMonthName}`;
 ---
 
-<div id="global-pill-layer" class="fixed inset-0 pointer-events-none z-[100] overflow-visible">
-  <div
-    id="calendar-active-pill"
-    class="absolute bg-brand-primary pointer-events-none"
-    style="left: 0; top: 0; width: 0; height: 0; opacity: 0; border-radius: 2rem;"
-  ></div>
-  <div
-    id="calendar-active-circle"
-    class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none"
-    style="left: 0; top: 0; opacity: 0;"
-  ></div>
-</div>
-
 <div id="calendar-card" class="bg-surface-card rounded-[2.5rem] p-6 shadow-sm overflow-hidden select-none closed-mode relative" data-expanded="false">
   <div class="flex flex-col gap-1 mb-6 relative z-10">
     <div class="flex items-center justify-between">
@@ -201,6 +188,17 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         </div>
       ))}
     </div>
+
+    <div
+      id="calendar-active-pill"
+      class="absolute bg-brand-primary pointer-events-none z-40"
+      style="left: 0; top: 0; width: 0; height: 0; opacity: 0; border-radius: 2rem;"
+    ></div>
+    <div
+      id="calendar-active-circle"
+      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-50"
+      style="left: 0; top: 0; opacity: 0;"
+    ></div>
 
     <div id="weeks-strip">
       {allWeeksFlat.map((week, weekIndex) => (
@@ -369,31 +367,34 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       syncDayLabelsHeader();
     }
 
-    const globalPillLayer = document.getElementById("global-pill-layer") as HTMLElement;
-
     function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number } = {}) {
-      if (!button || !pill || !circle || !globalPillLayer) return;
+      if (!button || !pill || !circle) return;
       const { immediate = false, morph = false, duration = 400 } = opts;
 
-      const layerRect = globalPillLayer.getBoundingClientRect();
-      const btnRect = button.getBoundingClientRect();
+      const section = button.closest('.week-section') as HTMLElement | null;
+      if (!section) return;
+
       const numSpan = button.querySelector<HTMLElement>('.date-number');
-      const numRect = numSpan ? numSpan.getBoundingClientRect() : btnRect;
+      const left = button.offsetLeft;
+      const top = button.offsetTop;
+      const width = button.offsetWidth;
+      const height = button.offsetHeight;
+      const cLeft = left + (numSpan ? numSpan.offsetLeft : 0);
+      const cTop = top + (numSpan ? numSpan.offsetTop : 0);
 
       const pillW = isExpanded ? 40 : 48;
-      const pillH = isExpanded ? 40 : btnRect.height;
-      const pillL = isExpanded
-        ? numRect.left - layerRect.left - 4
-        : btnRect.left - layerRect.left + (btnRect.width - pillW) / 2;
-      const pillT = isExpanded
-        ? numRect.top - layerRect.top - 4
-        : btnRect.top - layerRect.top;
+      const pillH = isExpanded ? 40 : height;
+      const pillL = isExpanded ? cLeft - 4 : left + (width - pillW) / 2;
+      const pillT = isExpanded ? cTop - 4 : top;
       const pillBR = isExpanded ? "50%" : "50px";
 
-      const cLeft = numRect.left - layerRect.left;
-      const cTop = numRect.top - layerRect.top;
+      const ensureParent = () => {
+        if (pill.parentElement !== section) section.appendChild(pill);
+        if (circle.parentElement !== section) section.appendChild(circle);
+      };
 
       if (immediate) {
+        ensureParent();
         pill.style.transition = "none";
         circle.style.transition = "none";
         pill.style.opacity = "1";
@@ -407,17 +408,19 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       if (morph) {
-        // FLIP: capture the current viewport position, then animate to the final
-        // viewport position. The pill/circle live in a fixed global layer so they
-        // are never clipped by the card or strip overflow.
+        // FLIP: capture the current visual position, reparent into the new
+        // week-section, then animate to the final position so there is no jump.
         const startPillRect = pill.getBoundingClientRect();
         const startCircleRect = circle.getBoundingClientRect();
         const startPillRadius = parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
+        const sectionRect = section.getBoundingClientRect();
 
-        const startPillLeft = startPillRect.left - layerRect.left;
-        const startPillTop = startPillRect.top - layerRect.top;
-        const startCircleLeft = startCircleRect.left - layerRect.left;
-        const startCircleTop = startCircleRect.top - layerRect.top;
+        ensureParent();
+
+        const startPillLeft = startPillRect.left - sectionRect.left;
+        const startPillTop = startPillRect.top - sectionRect.top;
+        const startCircleLeft = startCircleRect.left - sectionRect.left;
+        const startCircleTop = startCircleRect.top - sectionRect.top;
 
         pill.style.transition = "none";
         pill.style.opacity = "1";
@@ -450,6 +453,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       // Normal click animation: pill moves/resizes, circle drops in.
+      ensureParent();
       pill.style.transition = `transform ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1), width ${duration}ms, height ${duration}ms`;
       pill.style.width = `${pillW}px`;
       pill.style.height = `${pillH}px`;
