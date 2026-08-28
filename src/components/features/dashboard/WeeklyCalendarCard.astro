@@ -524,33 +524,30 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number } = {}) {
-      if (!button || !pill || !circle) return;
+      if (!button || !pill || !circle || !strip) return;
       const { immediate = false, morph = false, duration = 400 } = opts;
 
-      const section = button.closest('.week-section') as HTMLElement | null;
-      if (!section) return;
-
       const numSpan = button.querySelector<HTMLElement>('.date-number');
-      const left = button.offsetLeft;
-      const top = button.offsetTop;
-      const width = button.offsetWidth;
-      const height = button.offsetHeight;
-      const cLeft = left + (numSpan ? numSpan.offsetLeft : 0);
-      const cTop = top + (numSpan ? numSpan.offsetTop : 0);
+      const stripRect = strip.getBoundingClientRect();
+      const btnRect = button.getBoundingClientRect();
+      const numRect = numSpan ? numSpan.getBoundingClientRect() : btnRect;
+
+      // Target coordinates are relative to the stable calendar-strip container
+      // so the pill animates independently of any expanding/collapsing transforms.
+      const width = btnRect.width;
+      const height = btnRect.height;
+      const btnLeft = btnRect.left - stripRect.left;
+      const btnTop = btnRect.top - stripRect.top;
+      const cLeft = numRect.left - stripRect.left;
+      const cTop = numRect.top - stripRect.top;
 
       const pillW = isExpanded ? 40 : 48;
       const pillH = isExpanded ? 40 : height;
-      const pillL = isExpanded ? cLeft - 4 : left + (width - pillW) / 2;
-      const pillT = isExpanded ? cTop - 4 : top;
+      const pillL = isExpanded ? cLeft - 4 : btnLeft + (width - pillW) / 2;
+      const pillT = isExpanded ? cTop - 4 : btnTop;
       const pillBR = isExpanded ? "50%" : "50px";
 
-      const ensureParent = () => {
-        if (pill.parentElement !== section) section.appendChild(pill);
-        if (circle.parentElement !== section) section.appendChild(circle);
-      };
-
       if (immediate) {
-        ensureParent();
         pill.style.transition = "none";
         circle.style.transition = "none";
         pill.style.opacity = "1";
@@ -564,19 +561,18 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       if (morph) {
-        // FLIP: capture the current visual position, reparent into the new
-        // week-section, then animate to the final position so there is no jump.
+        // FLIP in the stable strip coordinate system: capture the pill/circle's
+        // current visual position, snap them there without transition, then
+        // animate to the new target. This keeps them perfectly in sync with the
+        // card's CSS expansion/collapse because both use the same easing curve.
         const startPillRect = pill.getBoundingClientRect();
         const startCircleRect = circle.getBoundingClientRect();
         const startPillRadius = parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
-        const sectionRect = section.getBoundingClientRect();
 
-        ensureParent();
-
-        const startPillLeft = startPillRect.left - sectionRect.left;
-        const startPillTop = startPillRect.top - sectionRect.top;
-        const startCircleLeft = startCircleRect.left - sectionRect.left;
-        const startCircleTop = startCircleRect.top - sectionRect.top;
+        const startPillLeft = startPillRect.left - stripRect.left;
+        const startPillTop = startPillRect.top - stripRect.top;
+        const startCircleLeft = startCircleRect.left - stripRect.left;
+        const startCircleTop = startCircleRect.top - stripRect.top;
 
         pill.style.transition = "none";
         pill.style.opacity = "1";
@@ -609,7 +605,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       // Normal click animation: pill moves/resizes, circle drops in.
-      ensureParent();
       pill.style.transition = `transform ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1), width ${duration}ms, height ${duration}ms`;
       pill.style.width = `${pillW}px`;
       pill.style.height = `${pillH}px`;
@@ -1170,6 +1165,23 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     border: 0 !important;
   }
 
+  /* Only one set of day labels is visible at a time. In the closed state the
+     labels live inside each date button (upper half of the pill). In the
+     expanded state they live as a single row at the top of each month section.
+     Short cross-fades hide the hand-off during expand/collapse. */
+  #weeks-strip .day-label {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.1s ease, visibility 0s linear 0s;
+  }
+
+  .expanded-mode #weeks-strip .day-label,
+  .is-animating.expanded-mode #weeks-strip .day-label {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.1s ease, visibility 0s linear 0.1s;
+  }
+
   .day-labels-row {
     opacity: 0;
     visibility: hidden;
@@ -1183,15 +1195,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     transition: opacity 0.1s ease, visibility 0s linear 0s;
   }
 
-  #weeks-strip .day-label {
+  /* During collapse the month labels fade out and the button labels fade back in. */
+  .is-animating.closed-mode .day-labels-row {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.1s ease, visibility 0s linear 0.1s;
+  }
+  .is-animating.closed-mode #weeks-strip .day-label {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.1s ease;
-  }
-
-  .expanded-mode #weeks-strip .day-label,
-  .is-animating #weeks-strip .day-label {
-    opacity: 0;
+    transition: opacity 0.1s ease, visibility 0s linear 0s;
   }
 
   /* Hide the week-strip numbers in expanded mode so only the month view
