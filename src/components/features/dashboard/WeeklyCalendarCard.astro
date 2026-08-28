@@ -179,11 +179,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-0 left-0 z-30 flex pointer-events-none bg-surface-card h-12 pt-[0.625rem]">
+    <div class="day-labels-header absolute top-[0.625rem] left-0 z-30 flex pointer-events-none">
       {allWeeksFlat.map(() => (
         <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
           {weekDayLabels.map((label) => (
-            <span class="relative z-40 text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
+            <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
           ))}
         </div>
       ))}
@@ -191,12 +191,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     <div
       id="calendar-active-pill"
-      class="absolute bg-brand-primary pointer-events-none z-[35]"
+      class="absolute bg-brand-primary pointer-events-none z-0"
       style="left: 0; top: 0; width: 0; height: 0; opacity: 0; border-radius: 2rem;"
     ></div>
     <div
       id="calendar-active-circle"
-      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-[36]"
+      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-10"
       style="left: 0; top: 0; opacity: 0;"
     ></div>
 
@@ -661,13 +661,40 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         weekOffsetRem = getActiveWeekOffset(activeBtn);
       }
 
+      // Pre-scroll the destination strip while it's still hidden, so the
+      // content doesn't jump horizontally once the layout becomes visible.
+      if (!isExpanded) {
+        const currentMonthSection = document.getElementById('current-month-section');
+        if (currentMonthSection) {
+          isProgrammaticScroll = true;
+          monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
+        }
+      } else if (activeBtn) {
+        const y = activeBtn.getAttribute("data-year");
+        const m = activeBtn.getAttribute("data-month");
+        const d = activeBtn.getAttribute("data-date");
+        if (y && m && d) {
+          const weeksBtn = findButtonByDate(y, m, d, weeksStrip);
+          const activeWeek = weeksBtn ? weeksBtn.closest('.week-section') as HTMLElement | null : null;
+          if (activeWeek) {
+            isProgrammaticScroll = true;
+            weeksStrip.scrollLeft = activeWeek.offsetLeft;
+          }
+        }
+      }
+
       const countSource = targetBtn || activeBtn;
       const monthSectionForCount = countSource?.closest('.month-section') as HTMLElement | null;
       const weekCount = monthSectionForCount
         ? Array.from(monthSectionForCount.children).filter((el) => el.classList.contains('week-section')).length
         : 6;
       strip.style.setProperty('--active-week-count', `${weekCount}`);
+
       strip.style.setProperty('--active-week-offset', `${weekOffsetRem}rem`);
+
+      // Snap pill/circle to the current active button so the morph starts
+      // from the exact visible position instead of fading or jumping in.
+      if (activeBtn) updatePillForButton(activeBtn, { immediate: true });
 
       isExpanded = !isExpanded;
       card.dataset.expanded = isExpanded ? "true" : "false";
@@ -679,8 +706,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
       const monthYearLabel = document.getElementById("calendar-month-year");
 
-      // Toggle layout classes immediately so the CSS transition can start on
-      // the very next paint.
       card.classList.add("is-animating");
       strip.classList.add("is-animating");
 
@@ -689,61 +714,34 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         card.classList.add("expanded-mode");
         strip.classList.remove("closed-mode");
         strip.classList.add("expanded-mode");
+
+        if (targetBtn) {
+          selectDay(targetBtn, false, true);
+        } else {
+          const currentMonthSection = document.getElementById('current-month-section');
+          if (currentMonthSection) {
+            isProgrammaticScroll = true;
+            monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
+          }
+        }
+
+        updateMonthYearLabel();
+        if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
+        if (dayLabelsHeader) dayLabelsHeader.style.transform = "translateX(0)";
       } else {
         card.classList.remove("expanded-mode");
         card.classList.add("closed-mode");
         strip.classList.remove("expanded-mode");
         strip.classList.add("closed-mode");
+        if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
+        syncDayLabelsHeader();
       }
 
-      // All expensive layout work is deferred to the next frame so it doesn't
-      // block the initial paint of the expand/collapse transition.
+      // Morph pill/circle to the new active button in the new layout.
       requestAnimationFrame(() => {
-        // Pre-scroll the destination strip while it's still hidden, so the
-        // content doesn't jump horizontally once the layout becomes visible.
-        if (isExpanded) {
-          const currentMonthSection = document.getElementById('current-month-section');
-          if (currentMonthSection) {
-            isProgrammaticScroll = true;
-            monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
-          }
-        } else if (activeBtn) {
-          const y = activeBtn.getAttribute("data-year");
-          const m = activeBtn.getAttribute("data-month");
-          const d = activeBtn.getAttribute("data-date");
-          if (y && m && d) {
-            const weeksBtn = findButtonByDate(y, m, d, weeksStrip);
-            const activeWeek = weeksBtn ? weeksBtn.closest('.week-section') as HTMLElement | null : null;
-            if (activeWeek) {
-              isProgrammaticScroll = true;
-              weeksStrip.scrollLeft = activeWeek.offsetLeft;
-            }
-          }
-        }
-
-        if (isExpanded && targetBtn) {
-          selectDay(targetBtn, false, true);
-        } else if (isExpanded) {
-          const currentMonthSection = document.getElementById('current-month-section');
-          if (currentMonthSection) {
-            isProgrammaticScroll = true;
-            monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
-          }
-        }
-
-        if (isExpanded) {
-          updateMonthYearLabel();
-          if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
-          if (dayLabelsHeader) dayLabelsHeader.style.transform = "translateX(0)";
-        } else {
-          if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
-          syncDayLabelsHeader();
-        }
-
-        // Morph pill/circle to the new active button in the new layout.
         const newActiveBtn = getVisibleActiveButton();
         if (newActiveBtn) {
-          updatePillForButton(newActiveBtn, { morph: true, duration: 550 });
+          updatePillForButton(newActiveBtn, { morph: true, duration: 700 });
         }
       });
 
@@ -751,7 +749,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         card.classList.remove("is-animating");
         strip.classList.remove("is-animating");
         isProgrammaticScroll = false;
-      }, 570);
+      }, 720);
     });
 
     const allButtons = Array.from(strip.querySelectorAll<HTMLButtonElement>('[data-calendar-item]'));
@@ -905,6 +903,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     opacity: 1;
   }
 
+  .week-section:not(.active-week) {
+    overflow: hidden;
+  }
+
   #weeks-strip,
   #months-strip {
     position: absolute;
@@ -920,11 +922,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     scrollbar-width: none;
     -ms-overflow-style: none;
-    will-change: transform;
-  }
-
-  #months-strip {
-    visibility: hidden;
   }
 
   #weeks-strip::-webkit-scrollbar,
@@ -933,10 +930,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   .closed-mode #weeks-strip,
-  .expanded-mode #weeks-strip,
+  .expanded-mode #weeks-strip {
+    z-index: 2;
+  }
+
   .closed-mode #months-strip,
   .expanded-mode #months-strip {
-    z-index: auto;
+    z-index: 1;
   }
 
   .closed-mode #weeks-strip {
@@ -951,7 +951,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     opacity: 1;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(calc(-1 * var(--active-week-offset, 0rem)));
+    transform: translateY(0);
     transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.7s linear;
   }
 
@@ -997,8 +997,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     flex: 0 0 100%;
     gap: 0;
     overflow: hidden;
-    content-visibility: auto;
-    contain-intrinsic-size: auto 25rem;
   }
 
   #months-strip .week-section {
@@ -1020,9 +1018,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   .day-labels-header {
-    top: 0;
-    height: 3rem;
-    padding-top: 0.75rem;
+    top: 0.75rem;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.1s ease, visibility 0s linear 0.1s;
@@ -1050,11 +1046,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     opacity: 0;
   }
 
-  /* Keep the active button above the pill/circle so its number/label stay readable. */
-  [data-calendar-item][data-active="true"] {
-    z-index: 45 !important;
-  }
-
   /* Hide the week-strip numbers in expanded mode so only the month view
      shows dates, while keeping the day labels visible in the fixed header. */
   .expanded-mode #weeks-strip [data-calendar-item] .date-number,
@@ -1074,10 +1065,18 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-card {
-    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    max-height: 16rem;
-    overflow: hidden;
+    transition: max-height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 18rem;
+    contain: layout paint;
+  }
+
+  #calendar-card.is-animating {
     will-change: max-height;
+    contain: none !important;
+  }
+
+  #calendar-strip.is-animating {
+    overflow: visible !important;
   }
 
   #calendar-card.expanded-mode {
@@ -1086,14 +1085,18 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   #calendar-strip {
     position: relative;
-    height: calc(var(--active-week-count, 6) * 5.25rem);
-    clip-path: inset(0 0 calc(100% - 8rem) 0);
-    transition: clip-path 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform, clip-path;
+    height: 5.25rem;
+    transition: height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    contain: layout;
   }
 
   #calendar-strip.expanded-mode {
-    clip-path: inset(0 0 0 0);
+    height: calc(var(--active-week-count, 6) * 5.25rem);
+  }
+
+  #calendar-strip.is-animating {
+    will-change: height, transform, opacity;
   }
 
   /* Hide only the date numbers/dots in the outgoing strip during expand/collapse
@@ -1105,19 +1108,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   .expanded-mode #weeks-strip [data-calendar-item] .today-dot,
   .is-animating.closed-mode #months-strip [data-calendar-item] .date-number,
   .is-animating.closed-mode #months-strip [data-calendar-item] .today-dot {
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
-
-  /* Avoid the full-month grid flashing while the card collapses. */
-  .is-animating.closed-mode #months-strip {
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
-
-  /* During expand, hide the outgoing week strip so the falling dates don't
-     show through the day-label header. */
-  .is-animating.expanded-mode #weeks-strip {
     opacity: 0;
     transition: opacity 0.1s ease;
   }
