@@ -177,19 +177,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     </div>
   </div>
 
-  <div id="pill-layer" class="absolute top-0 left-0 w-full h-full pointer-events-none z-20 overflow-visible">
-    <div
-      id="calendar-active-pill"
-      class="absolute bg-brand-primary pointer-events-none z-0"
-      style="left: 0; top: 0; width: 0; height: 0; opacity: 0; border-radius: 2rem;"
-    ></div>
-    <div
-      id="calendar-active-circle"
-      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-10"
-      style="left: 0; top: 0; opacity: 0;"
-    ></div>
-  </div>
-
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
     <div class="day-labels-header absolute top-0 left-0 z-30 flex pointer-events-none bg-surface-card h-12 pt-[0.625rem]">
@@ -201,6 +188,17 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         </div>
       ))}
     </div>
+
+    <div
+      id="calendar-active-pill"
+      class="absolute bg-brand-primary pointer-events-none z-0"
+      style="left: 0; top: 0; width: 0; height: 0; opacity: 0; border-radius: 2rem;"
+    ></div>
+    <div
+      id="calendar-active-circle"
+      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-10"
+      style="left: 0; top: 0; opacity: 0;"
+    ></div>
 
     <div id="weeks-strip">
       {allWeeksFlat.map((week, weekIndex) => (
@@ -306,8 +304,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const expandBtn = document.getElementById("calendar-expand-btn") as HTMLButtonElement;
     const pill = document.getElementById("calendar-active-pill") as HTMLElement;
     const circle = document.getElementById("calendar-active-circle") as HTMLElement;
-    const pillLayer = document.getElementById("pill-layer") as HTMLElement;
-    if (!strip || !weeksStrip || !monthsStrip || !pill || !circle || !card || !expandBtn || !pillLayer) return;
+    if (!strip || !weeksStrip || !monthsStrip || !pill || !circle || !card || !expandBtn) return;
     const dayLabelsHeader = strip.querySelector(".day-labels-header") as HTMLElement | null;
     if (strip.dataset.calendarAnimated === 'true') return;
     strip.dataset.calendarAnimated = 'true';
@@ -371,20 +368,19 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number } = {}) {
-      if (!button || !pill || !circle || !pillLayer) return;
+      if (!button || !pill || !circle) return;
       const { immediate = false, morph = false, duration = 400 } = opts;
 
-      const numSpan = button.querySelector<HTMLElement>('.date-number');
-      const buttonRect = button.getBoundingClientRect();
-      const layerRect = pillLayer.getBoundingClientRect();
-      const numRect = numSpan ? numSpan.getBoundingClientRect() : buttonRect;
+      const section = button.closest('.week-section') as HTMLElement | null;
+      if (!section) return;
 
-      const left = buttonRect.left - layerRect.left;
-      const top = buttonRect.top - layerRect.top;
-      const width = buttonRect.width;
-      const height = buttonRect.height;
-      const cLeft = numRect.left - layerRect.left;
-      const cTop = numRect.top - layerRect.top;
+      const numSpan = button.querySelector<HTMLElement>('.date-number');
+      const left = button.offsetLeft;
+      const top = button.offsetTop;
+      const width = button.offsetWidth;
+      const height = button.offsetHeight;
+      const cLeft = left + (numSpan ? numSpan.offsetLeft : 0);
+      const cTop = top + (numSpan ? numSpan.offsetTop : 0);
 
       const pillW = isExpanded ? 40 : 48;
       const pillH = isExpanded ? 40 : height;
@@ -393,8 +389,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const pillBR = isExpanded ? "50%" : "50px";
 
       const ensureParent = () => {
-        if (pill.parentElement !== pillLayer) pillLayer.appendChild(pill);
-        if (circle.parentElement !== pillLayer) pillLayer.appendChild(circle);
+        if (pill.parentElement !== section) section.appendChild(pill);
+        if (circle.parentElement !== section) section.appendChild(circle);
       };
 
       if (immediate) {
@@ -412,18 +408,19 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       if (morph) {
-        // FLIP: capture the current visual position, reparent into the pill
-        // layer, then animate to the final position so there is no jump.
+        // FLIP: capture the current visual position, reparent into the new
+        // week-section, then animate to the final position so there is no jump.
         const startPillRect = pill.getBoundingClientRect();
         const startCircleRect = circle.getBoundingClientRect();
         const startPillRadius = parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
+        const sectionRect = section.getBoundingClientRect();
 
         ensureParent();
 
-        const startPillLeft = startPillRect.left - layerRect.left;
-        const startPillTop = startPillRect.top - layerRect.top;
-        const startCircleLeft = startCircleRect.left - layerRect.left;
-        const startCircleTop = startCircleRect.top - layerRect.top;
+        const startPillLeft = startPillRect.left - sectionRect.left;
+        const startPillTop = startPillRect.top - sectionRect.top;
+        const startCircleLeft = startCircleRect.left - sectionRect.left;
+        const startCircleTop = startCircleRect.top - sectionRect.top;
 
         pill.style.transition = "none";
         pill.style.opacity = "1";
