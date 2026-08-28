@@ -1073,7 +1073,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   #calendar-card {
     transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    max-height: 14rem;
+    max-height: 16rem;
     overflow: hidden;
     will-change: max-height;
   }
@@ -1085,7 +1085,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   #calendar-strip {
     position: relative;
     height: calc(var(--active-week-count, 6) * 5.25rem);
-    will-change: transform;
+    clip-path: inset(0 0 calc(100% - 8rem) 0);
+    transition: clip-path 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, clip-path;
+  }
+
+  #calendar-strip.expanded-mode {
+    clip-path: inset(0 0 0 0);
   }
 
   /* Hide only the date numbers/dots in the outgoing strip during expand/collapse
