@@ -179,7 +179,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-[0.625rem] left-0 z-30 flex pointer-events-none bg-surface-card">
+    <div class="day-labels-header absolute top-0 left-0 z-30 flex pointer-events-none bg-surface-card h-12 pt-[0.625rem]">
       {allWeeksFlat.map(() => (
         <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
           {weekDayLabels.map((label) => (
@@ -1023,7 +1023,9 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   .day-labels-header {
-    top: 0.75rem;
+    top: 0;
+    height: 3rem;
+    padding-top: 0.75rem;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.1s ease, visibility 0s linear 0.1s;
