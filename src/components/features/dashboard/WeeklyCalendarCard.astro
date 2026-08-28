@@ -954,7 +954,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     opacity: 1;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(0);
+    transform: translateY(calc(-1 * var(--active-week-offset, 0rem)));
     transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.7s linear;
   }
 
