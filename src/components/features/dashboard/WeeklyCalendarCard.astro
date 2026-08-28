@@ -9,8 +9,8 @@ const now = new Date();
 const weekDayLabels = ["L", "M", "M", "J", "V"];
 const fullDayNames = ["Luni", "Marți", "Miercuri", "Joi", "Vineri"];
 
-const totalMonths = 24;
-const startMonthOffset = -12;
+const totalMonths = 12;
+const startMonthOffset = -6;
 
 const todayMonday = new Date(now);
 const currentDay = todayMonday.getDay();
@@ -1000,6 +1000,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     flex: 0 0 100%;
     gap: 0;
     overflow: hidden;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 25rem;
   }
 
   #months-strip .week-section {
