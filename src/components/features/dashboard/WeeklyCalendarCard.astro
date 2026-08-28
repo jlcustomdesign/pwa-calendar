@@ -179,11 +179,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-0 left-0 z-30 flex pointer-events-none bg-surface-card h-12 pt-[0.625rem]">
+    <div class="day-labels-header absolute top-0 left-0 z-30 flex pointer-events-none h-12 pt-[0.625rem]">
       {allWeeksFlat.map(() => (
         <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
           {weekDayLabels.map((label) => (
-            <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
+            <span class="text-center text-base font-black uppercase tracking-wider px-1 rounded-md bg-surface-card" style="color: #C93263 !important;">{label}</span>
           ))}
         </div>
       ))}
