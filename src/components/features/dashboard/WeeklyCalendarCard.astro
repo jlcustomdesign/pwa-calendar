@@ -179,8 +179,18 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-[0.625rem] left-0 z-30 flex pointer-events-none">
+    <div class="day-labels-header day-labels-header-weeks absolute top-[0.625rem] left-0 z-30 flex pointer-events-none">
       {allWeeksFlat.map(() => (
+        <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
+          {weekDayLabels.map((label) => (
+            <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
+          ))}
+        </div>
+      ))}
+    </div>
+
+    <div class="day-labels-header day-labels-header-months absolute top-[0.625rem] left-0 z-30 flex pointer-events-none opacity-0 invisible">
+      {allMonths.map(() => (
         <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
           {weekDayLabels.map((label) => (
             <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
@@ -305,7 +315,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const pill = document.getElementById("calendar-active-pill") as HTMLElement;
     const circle = document.getElementById("calendar-active-circle") as HTMLElement;
     if (!strip || !weeksStrip || !monthsStrip || !pill || !circle || !card || !expandBtn) return;
-    const dayLabelsHeader = strip.querySelector(".day-labels-header") as HTMLElement | null;
+    const dayLabelsHeaderWeeks = strip.querySelector(".day-labels-header-weeks") as HTMLElement | null;
+    const dayLabelsHeaderMonths = strip.querySelector(".day-labels-header-months") as HTMLElement | null;
     if (strip.dataset.calendarAnimated === 'true') return;
     strip.dataset.calendarAnimated = 'true';
 
@@ -352,18 +363,34 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     setTimeout(scrollToActiveWeek, 50);
 
     function syncDayLabelsHeader() {
-      if (!dayLabelsHeader || isExpanded) return;
-      dayLabelsHeader.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
+      if (isExpanded) {
+        if (!dayLabelsHeaderMonths) return;
+        dayLabelsHeaderMonths.style.transform = `translateX(${-monthsStrip.scrollLeft}px)`;
+      } else {
+        if (!dayLabelsHeaderWeeks) return;
+        dayLabelsHeaderWeeks.style.transform = `translateX(${-weeksStrip.scrollLeft}px)`;
+      }
     }
 
     function resizeDayLabelsHeader() {
-      if (!dayLabelsHeader) return;
-      const sets = Array.from(dayLabelsHeader.querySelectorAll<HTMLElement>(".day-labels-set"));
-      if (sets.length === 0) return;
-      const weekSections = weeksStrip.querySelectorAll<HTMLElement>(".week-section");
-      const weekWidth = weekSections[0]?.offsetWidth || weeksStrip.offsetWidth;
-      dayLabelsHeader.style.width = `${sets.length * weekWidth}px`;
-      sets.forEach((set) => { set.style.width = `${weekWidth}px`; });
+      if (dayLabelsHeaderWeeks) {
+        const sets = Array.from(dayLabelsHeaderWeeks.querySelectorAll<HTMLElement>(".day-labels-set"));
+        if (sets.length > 0) {
+          const weekSections = weeksStrip.querySelectorAll<HTMLElement>(".week-section");
+          const weekWidth = weekSections[0]?.offsetWidth || weeksStrip.offsetWidth;
+          dayLabelsHeaderWeeks.style.width = `${sets.length * weekWidth}px`;
+          sets.forEach((set) => { set.style.width = `${weekWidth}px`; });
+        }
+      }
+      if (dayLabelsHeaderMonths) {
+        const sets = Array.from(dayLabelsHeaderMonths.querySelectorAll<HTMLElement>(".day-labels-set"));
+        if (sets.length > 0) {
+          const monthSections = monthsStrip.querySelectorAll<HTMLElement>(".month-section");
+          const monthWidth = monthSections[0]?.offsetWidth || monthsStrip.offsetWidth;
+          dayLabelsHeaderMonths.style.width = `${sets.length * monthWidth}px`;
+          sets.forEach((set) => { set.style.width = `${monthWidth}px`; });
+        }
+      }
       syncDayLabelsHeader();
     }
 
@@ -727,7 +754,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
         updateMonthYearLabel();
         if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
-        if (dayLabelsHeader) dayLabelsHeader.style.transform = "translateX(0)";
+        syncDayLabelsHeader();
       } else {
         card.classList.remove("expanded-mode");
         card.classList.add("closed-mode");
@@ -878,6 +905,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     weeksStrip.addEventListener("scroll", handleWeeksScroll);
     weeksStrip.addEventListener("scroll", syncDayLabelsHeader);
     monthsStrip.addEventListener("scroll", handleMonthsScroll);
+    monthsStrip.addEventListener("scroll", syncDayLabelsHeader);
 
     updateMonthYearLabel();
   }
@@ -1018,7 +1046,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   .day-labels-header {
-    top: 0.75rem;
+    top: 0.625rem;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.1s ease, visibility 0s linear 0.1s;
@@ -1028,8 +1056,17 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     line-height: 1.25rem;
   }
 
-  .expanded-mode .day-labels-header,
-  .is-animating .day-labels-header {
+  /* Closed mode: only the weeks header follows the horizontal week scroll. */
+  .closed-mode .day-labels-header-weeks,
+  .is-animating.closed-mode .day-labels-header-weeks {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.1s ease, visibility 0s linear 0s;
+  }
+
+  /* Expanded mode: only the months header follows the horizontal month scroll. */
+  .expanded-mode .day-labels-header-months,
+  .is-animating.expanded-mode .day-labels-header-months {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.1s ease, visibility 0s linear 0s;
