@@ -922,6 +922,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     scrollbar-width: none;
     -ms-overflow-style: none;
+    will-change: transform;
   }
 
   #weeks-strip::-webkit-scrollbar,
@@ -1068,9 +1069,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     transition: max-height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 18rem;
     contain: layout paint;
-  }
-
-  #calendar-card.is-animating {
     will-change: max-height;
   }
 
@@ -1084,14 +1082,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     transition: height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     contain: layout;
+    will-change: height, transform;
   }
 
   #calendar-strip.expanded-mode {
     height: calc(var(--active-week-count, 6) * 5.25rem);
-  }
-
-  #calendar-strip.is-animating {
-    will-change: height, transform, opacity;
   }
 
   /* Hide only the date numbers/dots in the outgoing strip during expand/collapse
