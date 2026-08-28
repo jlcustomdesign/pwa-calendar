@@ -903,41 +903,40 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
       const monthYearLabel = document.getElementById("calendar-month-year");
 
-      card.classList.add("is-animating");
-      strip.classList.add("is-animating");
+      // Apply the layout change and the pill morph in the same animation frame
+      // so the CSS transition and the JS-driven transform start together.
+      requestAnimationFrame(() => {
+        card.classList.add("is-animating");
+        strip.classList.add("is-animating");
 
-      if (isExpanded) {
-        card.classList.remove("closed-mode");
-        card.classList.add("expanded-mode");
-        strip.classList.remove("closed-mode");
-        strip.classList.add("expanded-mode");
+        if (isExpanded) {
+          card.classList.remove("closed-mode");
+          card.classList.add("expanded-mode");
+          strip.classList.remove("closed-mode");
+          strip.classList.add("expanded-mode");
 
-        if (targetBtn) {
-          selectDay(targetBtn, false, true);
-        } else {
-          const currentMonthSection = document.getElementById('current-month-section');
-          if (currentMonthSection) {
-            isProgrammaticScroll = true;
-            monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
+          if (targetBtn) {
+            selectDay(targetBtn, false, true);
+          } else {
+            const currentMonthSection = document.getElementById('current-month-section');
+            if (currentMonthSection) {
+              isProgrammaticScroll = true;
+              monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
+            }
           }
+
+          updateMonthYearLabel();
+          if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
+          syncDayLabelsHeader();
+        } else {
+          card.classList.remove("expanded-mode");
+          card.classList.add("closed-mode");
+          strip.classList.remove("expanded-mode");
+          strip.classList.add("closed-mode");
+          if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
+          syncDayLabelsHeader();
         }
 
-        updateMonthYearLabel();
-        if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
-        syncDayLabelsHeader();
-      } else {
-        card.classList.remove("expanded-mode");
-        card.classList.add("closed-mode");
-        strip.classList.remove("expanded-mode");
-        strip.classList.add("closed-mode");
-        if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
-        syncDayLabelsHeader();
-      }
-
-      // Morph pill/circle to the new active button in the new layout.
-      // Defer to the next frame so the CSS transition and the JS-driven morph
-      // both start on the same paint and stay in sync.
-      requestAnimationFrame(() => {
         const newActiveBtn = getVisibleActiveButton();
         if (newActiveBtn) {
           updatePillForButton(newActiveBtn, { morph: true, duration: 700 });
@@ -1229,22 +1228,26 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     line-height: 1.25rem;
   }
 
-  /* Closed steady state: hide the weeks header because each button shows its own day label. */
-  .closed-mode .day-labels-header-weeks {
+.closed-mode .day-labels-header-weeks,
+  .expanded-mode .day-labels-header-weeks {
     opacity: 0;
     visibility: hidden;
   }
 
-  /* Expanded mode: show the months header and sync it with the horizontal month scroll. */
+  .closed-mode .day-labels-header-months {
+    opacity: 0;
+    visibility: hidden;
+  }
+
   .expanded-mode .day-labels-header-months {
     opacity: 1;
     visibility: visible;
   }
 
-  /* During open/close animation both headers stay visible so the letters never
-     appear to swap; the steady-state rules above hide the inactive one. */
-  .is-animating .day-labels-header-weeks,
-  .is-animating .day-labels-header-months {
+  /* During open/close animation show only the weeks header. It is aligned with
+     the weeks strip and has the same letters, so the user sees a single steady
+     row while the card morphs. */
+  .is-animating .day-labels-header-weeks {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.1s ease, visibility 0s linear 0s;
