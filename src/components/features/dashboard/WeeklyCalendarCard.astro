@@ -179,11 +179,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   <div id="calendar-strip" data-calendar-strip class="relative w-[calc(100%+3rem)] -mx-6 px-6 transition-[opacity,transform] duration-500 ease-in-out closed-mode">
 
-    <div class="day-labels-header absolute top-0 left-0 z-30 flex pointer-events-none h-12 pt-[0.625rem]">
+    <div class="day-labels-header absolute top-0 left-0 z-30 flex pointer-events-none bg-surface-card h-12 pt-[0.625rem]">
       {allWeeksFlat.map(() => (
         <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0">
           {weekDayLabels.map((label) => (
-            <span class="text-center text-base font-black uppercase tracking-wider px-1 rounded-md bg-surface-card" style="color: #C93263 !important;">{label}</span>
+            <span class="relative z-40 text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
           ))}
         </div>
       ))}
@@ -191,12 +191,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     <div
       id="calendar-active-pill"
-      class="absolute bg-brand-primary pointer-events-none z-40"
+      class="absolute bg-brand-primary pointer-events-none z-[35]"
       style="left: 0; top: 0; width: 0; height: 0; opacity: 0; border-radius: 2rem;"
     ></div>
     <div
       id="calendar-active-circle"
-      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-50"
+      class="absolute w-8 h-8 rounded-full bg-white shadow-md pointer-events-none z-[36]"
       style="left: 0; top: 0; opacity: 0;"
     ></div>
 
@@ -933,13 +933,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   .closed-mode #weeks-strip,
-  .expanded-mode #weeks-strip {
-    z-index: 2;
-  }
-
+  .expanded-mode #weeks-strip,
   .closed-mode #months-strip,
   .expanded-mode #months-strip {
-    z-index: 1;
+    z-index: auto;
   }
 
   .closed-mode #weeks-strip {
@@ -1051,6 +1048,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   .expanded-mode #weeks-strip .day-label,
   .is-animating #weeks-strip .day-label {
     opacity: 0;
+  }
+
+  /* Keep the active button above the pill/circle so its number/label stay readable. */
+  [data-calendar-item][data-active="true"] {
+    z-index: 45 !important;
   }
 
   /* Hide the week-strip numbers in expanded mode so only the month view
