@@ -200,48 +200,45 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       style="left: 0; top: 0; opacity: 0;"
     ></div>
 
-    <div id="day-labels-header" class="absolute top-[0.625rem] left-0 z-30 flex pointer-events-none" style={`width: ${totalMonths * 100}%;`}>
-      {Array.from({ length: totalMonths }).map(() => (
-        <div class="day-labels-set grid grid-cols-5 gap-1 px-2 shrink-0" style={`width: ${100 / totalMonths}%;`}>
-          {weekDayLabels.map((label) => (
-            <span class="text-center text-base font-black uppercase tracking-wider" style="color: #C93263 !important;">{label}</span>
-          ))}
-        </div>
-      ))}
-    </div>
-
     <div id="weeks-strip">
       {allWeeksFlat.map((week, weekIndex) => (
         <div
-          class={`week-section relative grid grid-cols-5 gap-1 px-2 transition-[height,opacity] duration-500 ease-in-out snap-center snap-always ${week.isCurrentWeek ? 'active-week' : ''}`}
+          class={`week-section relative flex flex-col shrink-0 w-full snap-center snap-always ${week.isCurrentWeek ? 'active-week' : ''}`}
           data-is-current-week={week.isCurrentWeek ? "true" : "false"}
           data-week-index={weekIndex}
         >
-          {week.days.map((item, index) => (
-            <button
-              type="button"
-              data-calendar-item
-              data-active={item.active ? "true" : "false"}
-              data-index={index}
-              data-month={item.monthNum}
-              data-year={item.year}
-              data-date={item.date}
-              data-is-current-month="true"
-              data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-              class={`relative z-20 flex flex-col items-center justify-end pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
-                item.active
-                  ? "text-black font-bold"
-                  : "text-text-main hover:opacity-100 opacity-100"
-              }`}
-            >
-              <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
-                {item.date}
-              </span>
-              {item.isToday && (
-                <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
-              )}
-            </button>
-          ))}
+          <div class="day-labels-row flex flex-row justify-between items-center px-2">
+            {weekDayLabels.map((label) => (
+              <span class="day-label text-center text-base font-black uppercase tracking-wider flex-1 max-w-[4.5rem] mx-auto leading-tight" style="color: #C93263 !important;">{label}</span>
+            ))}
+          </div>
+          <div class="dates-row flex flex-row justify-between items-center px-2">
+            {week.days.map((item, index) => (
+              <button
+                type="button"
+                data-calendar-item
+                data-active={item.active ? "true" : "false"}
+                data-index={index}
+                data-month={item.monthNum}
+                data-year={item.year}
+                data-date={item.date}
+                data-is-current-month="true"
+                data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
+                class={`relative z-20 flex flex-col items-center justify-center w-14 h-12 mx-auto rounded-2xl transition-colors duration-300 ${
+                  item.active
+                    ? "text-black font-bold"
+                    : "text-text-main hover:opacity-100 opacity-100"
+                }`}
+              >
+                <span class={`date-number w-8 h-8 flex items-center justify-center text-base font-black pointer-events-none relative z-20 shrink-0 ${item.active ? "text-black" : "text-text-main"}`}>
+                  {item.date}
+                </span>
+                {item.isToday && (
+                  <span class={`today-dot absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       ))}
     </div>
@@ -256,11 +253,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           id={month.isCurrentMonth ? "current-month-section" : undefined}
           class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
         >
+          <div class="day-labels-row flex flex-row justify-between items-center px-2">
+            {weekDayLabels.map((label) => (
+              <span class="day-label text-center text-base font-black uppercase tracking-wider flex-1 max-w-[4.5rem] mx-auto leading-tight" style="color: #C93263 !important;">{label}</span>
+            ))}
+          </div>
           {month.weekIndices.map(wi => {
             const week = allWeeksFlat[wi];
             return (
               <div
-                class={`week-section relative grid grid-cols-5 gap-1 px-2 transition-[height,opacity] duration-500 ease-in-out snap-center snap-always ${week.isCurrentWeek ? 'active-week' : ''}`}
+                class={`week-section relative flex flex-row justify-between items-center px-2 transition-[height,opacity] duration-500 ease-in-out snap-center snap-always ${week.isCurrentWeek ? 'active-week' : ''}`}
                 data-is-current-week={week.isCurrentWeek ? "true" : "false"}
                 data-week-index={wi}
               >
@@ -277,7 +279,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                       data-date={item.date}
                       data-is-current-month={isCurrentMonth ? "true" : "false"}
                       data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-                      class={`relative z-20 flex flex-col items-center justify-end pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+                      class={`relative z-20 flex flex-col items-center justify-center w-14 h-[46px] mx-auto rounded-2xl transition-colors duration-300 ${
                         item.active
                           ? "text-black font-bold"
                           : isCurrentMonth
@@ -289,7 +291,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                         {item.date}
                       </span>
                       {item.isToday && (
-                        <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
+                        <span class={`today-dot absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
                       )}
                     </button>
                   );
@@ -310,11 +312,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           data-year={month.year}
           class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
         >
+          <div class="day-labels-row flex flex-row justify-between items-center px-2">
+            {weekDayLabels.map((label) => (
+              <span class="day-label text-center text-base font-black uppercase tracking-wider flex-1 max-w-[4.5rem] mx-auto leading-tight" style="color: #C93263 !important;">{label}</span>
+            ))}
+          </div>
           {month.weekIndices.map(wi => {
             const week = allWeeksFlat[wi];
             return (
               <div
-                class={`week-section relative grid grid-cols-5 gap-1 px-2 transition-[height,opacity] duration-500 ease-in-out snap-center snap-always ${week.isCurrentWeek ? 'active-week' : ''}`}
+                class={`week-section relative flex flex-row justify-between items-center px-2 transition-[height,opacity] duration-500 ease-in-out snap-center snap-always ${week.isCurrentWeek ? 'active-week' : ''}`}
                 data-is-current-week={week.isCurrentWeek ? "true" : "false"}
                 data-week-index={wi}
               >
@@ -331,7 +338,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                       data-date={item.date}
                       data-is-current-month={isCurrentMonth ? "true" : "false"}
                       data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-                      class={`relative z-20 flex flex-col items-center justify-end pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+                      class={`relative z-20 flex flex-col items-center justify-center w-14 h-[46px] mx-auto rounded-2xl transition-colors duration-300 ${
                         item.active
                           ? "text-black font-bold"
                           : isCurrentMonth
@@ -343,7 +350,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                         {item.date}
                       </span>
                       {item.isToday && (
-                        <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
+                        <span class={`today-dot absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
                       )}
                     </button>
                   );
@@ -364,11 +371,16 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           data-year={month.year}
           class="month-section flex flex-col shrink-0 w-full snap-center snap-always gap-0 overflow-hidden"
         >
+          <div class="day-labels-row flex flex-row justify-between items-center px-2">
+            {weekDayLabels.map((label) => (
+              <span class="day-label text-center text-base font-black uppercase tracking-wider flex-1 max-w-[4.5rem] mx-auto leading-tight" style="color: #C93263 !important;">{label}</span>
+            ))}
+          </div>
           {month.weekIndices.map(wi => {
             const week = allWeeksFlat[wi];
             return (
               <div
-                class={`week-section relative grid grid-cols-5 gap-1 px-2 transition-[height,opacity] duration-500 ease-in-out snap-center snap-always ${week.isCurrentWeek ? 'active-week' : ''}`}
+                class={`week-section relative flex flex-row justify-between items-center px-2 transition-[height,opacity] duration-500 ease-in-out snap-center snap-always ${week.isCurrentWeek ? 'active-week' : ''}`}
                 data-is-current-week={week.isCurrentWeek ? "true" : "false"}
                 data-week-index={wi}
               >
@@ -385,7 +397,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                       data-date={item.date}
                       data-is-current-month={isCurrentMonth ? "true" : "false"}
                       data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
-                      class={`relative z-20 flex flex-col items-center justify-end pb-2 w-14 mx-auto h-20 rounded-2xl transition-colors duration-300 ${
+                      class={`relative z-20 flex flex-col items-center justify-center w-14 h-[46px] mx-auto rounded-2xl transition-colors duration-300 ${
                         item.active
                           ? "text-black font-bold"
                           : isCurrentMonth
@@ -397,7 +409,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                         {item.date}
                       </span>
                       {item.isToday && (
-                        <span class={`today-dot absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
+                        <span class={`today-dot absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full pointer-events-none bg-amber-400 transition-all duration-200 ${item.active ? 'opacity-0 z-0 scale-50' : 'opacity-100 z-20 scale-100'}`}></span>
                       )}
                     </button>
                   );
@@ -437,9 +449,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       return container.querySelector<HTMLButtonElement>('[data-active="true"]');
     }
 
-    function getVisibleActiveButton() {
-      return isExpanded ? getActiveButtonIn(monthsStrip) : getActiveButtonIn(weeksStrip);
-    }
+
 
     function findButtonByDate(year: string, month: string, date: string, container: HTMLElement) {
       return container.querySelector<HTMLButtonElement>(`[data-calendar-item][data-year="${year}"][data-month="${month}"][data-date="${date}"]`);
@@ -521,11 +531,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
     }
 
-    function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number } = {}) {
+    function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number; previousTarget?: HTMLButtonElement | null } = {}) {
       if (!button || !pill || !circle) return;
       const { immediate = false, morph = false, duration = 400 } = opts;
 
-      const section = button.closest('.week-section') as HTMLElement | null;
+      const section = (button.closest('.week-section') || button.closest('.month-section')) as HTMLElement | null;
       if (!section) return;
 
       const numSpan = button.querySelector<HTMLElement>('.date-number');
@@ -533,18 +543,22 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const top = button.offsetTop;
       const width = button.offsetWidth;
       const height = button.offsetHeight;
-      const cLeft = left + (numSpan ? numSpan.offsetLeft : 0);
-      const cTop = top + (numSpan ? numSpan.offsetTop : 0);
+      const cLeft = left + (numSpan ? numSpan.offsetLeft : (width - 32) / 2);
+      const cTop = top + (numSpan ? numSpan.offsetTop : (height - 32) / 2);
 
       const pillW = isExpanded ? 40 : 48;
-      const pillH = isExpanded ? 40 : height;
-      const pillL = isExpanded ? cLeft - 4 : left + (width - pillW) / 2;
-      const pillT = isExpanded ? cTop - 4 : top;
-      const pillBR = isExpanded ? "50%" : "50px";
+      const pillH = isExpanded ? 40 : 92;
+      const pillL = left + (width - pillW) / 2;
+      const pillT = isExpanded ? (top + (height - 40) / 2) : (top - 46);
+      const pillBR = isExpanded ? "50%" : "24px";
 
       const ensureParent = () => {
-        if (pill.parentElement !== section) section.appendChild(pill);
-        if (circle.parentElement !== section) section.appendChild(circle);
+        if (pill.parentElement !== section) {
+          section.insertBefore(pill, section.firstChild);
+        }
+        if (circle.parentElement !== section) {
+          section.appendChild(circle);
+        }
       };
 
       if (immediate) {
@@ -562,10 +576,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       if (morph) {
-        // FLIP inside the active week-section. The strip's CSS transition moves
-        // the section vertically during expand/collapse, so the pill naturally
-        // travels with the current week while we only morph shape/horizontal
-        // position inside the section.
         const startPillRect = pill.getBoundingClientRect();
         const startCircleRect = circle.getBoundingClientRect();
         const startPillRadius = parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
@@ -608,103 +618,142 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         return;
       }
 
-      // Normal click animation: pill moves/resizes, circle drops in.
+      const bouncyEasing = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+      
+      let startPillLeft = pillL;
+      let startPillTop = pillT;
+      let startCircleLeft = cLeft;
+      let startCircleTop = cTop;
+      
+      if (opts.previousTarget) {
+        const startPillRect = pill.getBoundingClientRect();
+        const startCircleRect = circle.getBoundingClientRect();
+        const sectionRect = section.getBoundingClientRect();
+        
+        startPillLeft = startPillRect.left - sectionRect.left;
+        startPillTop = startPillRect.top - sectionRect.top;
+        startCircleLeft = startCircleRect.left - sectionRect.left;
+        startCircleTop = startCircleRect.top - sectionRect.top;
+      }
+      
       ensureParent();
-      pill.style.transition = `transform ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1), width ${duration}ms, height ${duration}ms`;
+      
+      // Initial state: instantly at the old position
+      pill.style.transition = "none";
+      circle.style.transition = "none";
+      pill.style.opacity = "1";
+      circle.style.opacity = "1";
+      pill.style.transform = `translate(${startPillLeft}px, ${startPillTop}px) scale(1)`;
+      circle.style.transform = `translate(${startCircleLeft}px, ${startCircleTop}px) scale(1)`;
+      
+      // Force reflow
+      void pill.offsetWidth;
+      void circle.offsetWidth;
+      
+      // Final state: transition to the new position with bounce and circle delay
+      pill.style.transition = `transform 400ms ${bouncyEasing}, width 400ms, height 400ms, border-radius 400ms`;
+      circle.style.transition = `transform 400ms ${bouncyEasing} 150ms`; // 150ms delay
+      
       pill.style.width = `${pillW}px`;
       pill.style.height = `${pillH}px`;
       pill.style.borderRadius = pillBR;
-      pill.style.transform = `translate(${pillL}px, ${pillT}px)`;
-      pill.style.opacity = "1";
-
-      circle.style.transition = "none";
-      circle.style.opacity = "0";
-      circle.style.transform = `translate(${cLeft}px, ${cTop - 100}px) scale(1)`;
-      void circle.offsetWidth;
-      dropTimeout = window.setTimeout(() => {
-        circle.style.transition = `transform ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease-out`;
-        circle.style.opacity = "1";
-        circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
-      }, 300);
+      pill.style.transform = `translate(${pillL}px, ${pillT}px) scale(1)`;
+      
+      circle.style.transform = `translate(${cLeft}px, ${cTop}px) scale(1)`;
     }
 
-    function clearActiveState() {
-      const allActive = strip.querySelectorAll('[data-active="true"]');
-      allActive.forEach(el => {
-        const btn = el as HTMLButtonElement;
+    // --- SWIPE / DRAG LOGIC ---
+    let isDragging = false;
+    let startX = 0;
+    let currentX = 0;
+    let initialScrollLeft = 0;
+    let activeStrip: HTMLElement | null = null;
+
+    const startDrag = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button')) return;
+      activeStrip = isExpanded ? monthsStrip : weeksStrip;
+      isDragging = true;
+      startX = e.type.includes('mouse') ? (e as MouseEvent).pageX : (e as TouchEvent).touches[0].pageX;
+      initialScrollLeft = activeStrip.scrollLeft;
+      activeStrip.style.scrollSnapType = 'none';
+      activeStrip.style.scrollBehavior = 'auto';
+    };
+
+    const doDrag = (e: MouseEvent | TouchEvent) => {
+      if (!isDragging || !activeStrip) return;
+      e.preventDefault();
+      currentX = e.type.includes('mouse') ? (e as MouseEvent).pageX : (e as TouchEvent).touches[0].pageX;
+      const diff = startX - currentX;
+      activeStrip.scrollLeft = initialScrollLeft + diff;
+    };
+
+    const endDrag = () => {
+      if (!isDragging || !activeStrip) return;
+      isDragging = false;
+      activeStrip.style.scrollSnapType = 'x mandatory';
+      activeStrip.style.scrollBehavior = 'smooth';
+      const snapPoints = Array.from(activeStrip.children) as HTMLElement[];
+      let closest = snapPoints[0];
+      let minDiff = Infinity;
+      const center = activeStrip.scrollLeft + activeStrip.clientWidth / 2;
+      snapPoints.forEach(p => {
+        const pCenter = p.offsetLeft + p.clientWidth / 2;
+        const diff = Math.abs(pCenter - center);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = p;
+        }
+      });
+      if (closest) {
+        isProgrammaticScroll = true;
+        activeStrip.scrollLeft = closest.offsetLeft;
+        setTimeout(() => { isProgrammaticScroll = false; }, 300);
+      }
+      activeStrip = null;
+    };
+
+    strip.addEventListener('mousedown', startDrag);
+    strip.addEventListener('mousemove', doDrag);
+    window.addEventListener('mouseup', endDrag);
+    strip.addEventListener('touchstart', startDrag, { passive: true });
+    strip.addEventListener('touchmove', doDrag, { passive: false });
+    window.addEventListener('touchend', endDrag);
+
+    // --- EVENT LISTENERS FOR CLICKS & SCROLL ---
+    function selectDay(button: HTMLButtonElement, clickOriginated = false, skipScroll = false) {
+      if (dropTimeout) window.clearTimeout(dropTimeout);
+
+      const previousTarget = document.querySelector('[data-active="true"]') as HTMLButtonElement | null;
+
+      const allBtns = document.querySelectorAll('[data-calendar-item]');
+      allBtns.forEach(btn => {
         btn.setAttribute("data-active", "false");
         btn.classList.remove("text-black", "font-bold");
-        btn.classList.add("text-text-main");
-
-        if (btn.closest('#weeks-strip')) {
-          btn.classList.remove("opacity-70", "opacity-30");
-          btn.classList.add("opacity-100");
-        } else if (btn.getAttribute("data-is-current-month") === "true") {
-          btn.classList.add("opacity-70");
-        } else {
-          btn.classList.add("opacity-30");
-        }
-
+        btn.classList.add("text-text-main", "opacity-100");
         const dSpan = btn.querySelector("span:last-child");
         if (dSpan) {
           dSpan.classList.remove("text-black");
           dSpan.classList.add("text-text-main");
         }
-
         const tDot = btn.querySelector<HTMLElement>(".today-dot");
         if (tDot) {
           tDot.classList.remove("opacity-0", "z-0", "scale-50");
           tDot.classList.add("opacity-100", "z-20", "scale-100");
         }
+        const pw = btn.closest(".week-section") as HTMLElement | null;
+        if (pw) pw.classList.remove("active-week");
       });
 
-      const allWeeks = document.querySelectorAll(".week-section");
-      allWeeks.forEach(w => w.classList.remove("active-week"));
-    }
-
-    function updateSelectedLabel(button: HTMLButtonElement) {
-      const dateSuffixEl = document.getElementById("header-date-suffix");
-      const monthYearLabel = document.getElementById("calendar-month-year");
-
+      const parentStrip = button.closest("#weeks-strip, #months-strip");
       const y = button.getAttribute("data-year");
       const m = button.getAttribute("data-month");
       const d = button.getAttribute("data-date");
+      const fullDate = button.getAttribute("data-full-date");
 
-      if (y && d) {
-        const yearNum = parseInt(y, 10);
-        const dateNum = parseInt(d, 10);
-        const monthNum = m !== null && m !== undefined ? parseInt(m, 10) : new Date().getMonth();
+      const headerText = document.getElementById("calendar-selected-date");
+      if (headerText && fullDate) headerText.textContent = fullDate;
 
-        const dateObj = new Date(yearNum, monthNum, dateNum);
-        if (!isNaN(dateObj.getTime())) {
-          const fullDay = dateObj.toLocaleDateString('ro-RO', { weekday: 'long' });
-          const capitalizedDay = fullDay.charAt(0).toUpperCase() + fullDay.slice(1);
-          const fullMonth = dateObj.toLocaleDateString('ro-RO', { month: 'long' });
-          const fullMonthCapitalized = fullMonth ? (fullMonth.charAt(0).toUpperCase() + fullMonth.slice(1)) : '';
-
-          if (dateSuffixEl) {
-            dateSuffixEl.textContent = `${capitalizedDay}, ${dateNum} ${fullMonthCapitalized}`;
-          }
-
-          if (monthYearLabel && isExpanded) {
-            monthYearLabel.textContent = `${fullMonthCapitalized} ${yearNum}`;
-          }
-        }
-      }
-    }
-
-    function selectDay(button: HTMLButtonElement, animate = true, skipPill = false) {
-      const previousTarget = getVisibleActiveButton();
-      const parentStrip = button.closest('#weeks-strip') ? weeksStrip : monthsStrip;
-      const y = button.getAttribute("data-year");
-      const m = button.getAttribute("data-month");
-      const d = button.getAttribute("data-date");
-
-      clearActiveState();
-
-      // Activate the clicked button and its counterpart in the other strip.
-      // For the months-strip we must pick the instance in the correct month
-      // section so boundary weeks don't jump to the wrong month.
       if (y && m && d) {
         const weeksBtn = parentStrip === weeksStrip
           ? button
@@ -713,84 +762,84 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           ? button
           : findButtonByDateInMonths(y, m, d);
 
-        [weeksBtn, monthsBtn].forEach((btn) => {
-          if (!btn) return;
-          btn.setAttribute("data-active", "true");
-          btn.classList.add("text-black", "font-bold");
-          btn.classList.remove("opacity-70", "opacity-30", "opacity-100");
-          const targetDSpan = btn.querySelector("span:last-child");
-          if (targetDSpan) {
-            targetDSpan.classList.add("text-black");
-            targetDSpan.classList.remove("text-text-main");
-          }
-          const tDot = btn.querySelector<HTMLElement>(".today-dot");
-          if (tDot) {
-            tDot.classList.remove("opacity-100", "z-20", "scale-100");
-            tDot.classList.add("opacity-0", "z-0", "scale-50");
-          }
+        [weeksBtn, monthsBtn].forEach(btn => {
+            if (!btn) return;
+            btn.setAttribute("data-active", "true");
+            btn.classList.add("text-black", "font-bold");
+            btn.classList.remove("opacity-100");
+            const dSpan = btn.querySelector("span:last-child");
+            if (dSpan) {
+              dSpan.classList.add("text-black");
+              dSpan.classList.remove("text-text-main");
+            }
+            const tDot = btn.querySelector<HTMLElement>(".today-dot");
+            if (tDot) {
+              tDot.classList.add("opacity-0", "z-0", "scale-50");
+              tDot.classList.remove("opacity-100", "z-20", "scale-100");
+            }
         });
       }
 
       const parentWeek = button.closest(".week-section") as HTMLElement | null;
       if (parentWeek) parentWeek.classList.add("active-week");
 
-      if (!isExpanded && parentStrip === weeksStrip && parentWeek) {
-        isProgrammaticScroll = true;
-        weeksStrip.scrollLeft = parentWeek.offsetLeft;
-        setTimeout(() => { isProgrammaticScroll = false; }, 300);
-      }
-
-      if (isExpanded && parentStrip === monthsStrip) {
-        const activeMonthSection = button.closest('[data-month-section]') as HTMLElement | null;
-        if (activeMonthSection) {
+      if (!skipScroll) {
+        if (!isExpanded && parentStrip === weeksStrip && parentWeek) {
           isProgrammaticScroll = true;
-          monthsStrip.scrollLeft = activeMonthSection.offsetLeft;
+          weeksStrip.scrollLeft = parentWeek.offsetLeft;
           setTimeout(() => { isProgrammaticScroll = false; }, 300);
+        }
+
+        if (isExpanded && parentStrip === monthsStrip) {
+          const activeMonthSection = button.closest('[data-month-section]') as HTMLElement | null;
+          if (activeMonthSection) {
+            isProgrammaticScroll = true;
+            monthsStrip.scrollLeft = activeMonthSection.offsetLeft;
+            setTimeout(() => { isProgrammaticScroll = false; }, 300);
+          }
         }
       }
 
-      updateSelectedLabel(button);
-      if (!skipPill) updatePillForButton(button, animate ? {} : { immediate: true });
-
       if (y && m && d) {
-        const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
-        localStorage.setItem('selectedCalendarDate', dateStr);
-        window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
+        localStorage.setItem('selectedCalendarDate', `${y}-${m}-${d}`);
       }
+
+      updatePillForButton(button, { immediate: !clickOriginated, previousTarget });
+      updateMonthYearLabel();
     }
 
-    function getCurrentMonthTargetButton(): HTMLButtonElement | null {
-      const currentMonthSection = document.getElementById('current-month-section');
-      if (!currentMonthSection) return null;
-
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      const currentDate = now.getDate();
-      const currentDay = now.getDay();
-
-      // Prefer today's date if it is a weekday.
-      if (currentDay >= 1 && currentDay <= 5) {
-        const todayBtn = currentMonthSection.querySelector<HTMLButtonElement>(
-          `[data-calendar-item][data-year="${currentYear}"][data-month="${currentMonth}"][data-date="${currentDate}"]`
-        );
-        if (todayBtn) return todayBtn;
+    function getVisibleActiveButton() {
+      if (isExpanded) {
+        let active = monthsStrip.querySelector<HTMLButtonElement>('[data-active="true"]');
+        if (active) return active;
+        const currentMonthSection = document.getElementById('current-month-section');
+        if (currentMonthSection) {
+          return currentMonthSection.querySelector<HTMLButtonElement>('[data-is-current-month="true"]');
+        }
+        return null;
       }
+      return weeksStrip.querySelector<HTMLButtonElement>('[data-active="true"]') || weeksStrip.querySelector<HTMLButtonElement>('button');
+    }
 
-      // Otherwise use Monday of the current week.
-      const today = new Date(now);
-      today.setHours(0, 0, 0, 0);
-      const offsetToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-      const monday = new Date(today);
-      monday.setDate(today.getDate() + offsetToMonday);
-
-      const mondayBtn = currentMonthSection.querySelector<HTMLButtonElement>(
-        `[data-calendar-item][data-year="${monday.getFullYear()}"][data-month="${monday.getMonth()}"][data-date="${monday.getDate()}"]`
-      );
-      if (mondayBtn) return mondayBtn;
-
-      // Final fallback: the first day that actually belongs to the current month.
-      return currentMonthSection.querySelector<HTMLButtonElement>('[data-is-current-month="true"]');
+    function updateMonthYearLabel() {
+      const activeBtn = getVisibleActiveButton();
+      if (!activeBtn) return;
+      const monthYearLabel = document.getElementById("calendar-month-year");
+      if (monthYearLabel) {
+        let y = activeBtn.getAttribute("data-year");
+        let mNum = parseInt(activeBtn.getAttribute("data-month") || "1", 10);
+        if (isExpanded) {
+          const monthSection = activeBtn.closest('.month-section');
+          if (monthSection) {
+            const mName = monthSection.getAttribute("data-month-name") || "";
+            monthYearLabel.textContent = `${mName} ${y}`;
+            return;
+          }
+        }
+        const d = new Date(parseInt(y || "2026", 10), mNum - 1, 1);
+        const mName = d.toLocaleString('ro-RO', { month: 'long' });
+        monthYearLabel.textContent = `${mName.charAt(0).toUpperCase() + mName.slice(1)} ${y}`;
+      }
     }
 
     function getActiveWeekOffset(button: HTMLButtonElement | null) {
@@ -802,7 +851,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         (el): el is HTMLElement => el.classList.contains('week-section')
       );
       const weekIndex = siblings.indexOf(weekSection);
-      return Math.max(0, weekIndex) * 5.25;
+      return Math.max(0, weekIndex) * 3.5;
     }
 
     expandBtn.addEventListener("click", () => {
@@ -811,8 +860,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       let weekOffsetRem = 0;
 
       if (!isExpanded && activeBtn) {
-        // Open the month that contains the currently selected/visible date,
-        // not necessarily the current calendar month.
         const y = activeBtn.getAttribute("data-year") || "";
         const m = activeBtn.getAttribute("data-month") || "";
         const d = activeBtn.getAttribute("data-date") || "";
@@ -822,15 +869,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         weekOffsetRem = getActiveWeekOffset(activeBtn);
       }
 
-      // Pre-scroll the destination strip while it's still hidden, so the
-      // content doesn't jump horizontally once the layout becomes visible.
       if (!isExpanded && targetBtn) {
-        const targetSection = targetBtn.closest('[data-month-section]') as HTMLElement | null;
-        if (targetSection) {
+        const activeMonthSection = targetBtn.closest('[data-month-section]') as HTMLElement | null;
+        if (activeMonthSection) {
           isProgrammaticScroll = true;
-          monthsStrip.scrollLeft = targetSection.offsetLeft;
+          monthsStrip.scrollLeft = activeMonthSection.offsetLeft;
         }
-      } else if (activeBtn) {
+      } else if (isExpanded && activeBtn) {
         const y = activeBtn.getAttribute("data-year");
         const m = activeBtn.getAttribute("data-month");
         const d = activeBtn.getAttribute("data-date");
@@ -843,8 +888,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           }
         }
       }
-      syncDayLabelsHeader();
-
       const countSource = targetBtn || activeBtn;
       const monthSectionForCount = countSource?.closest('.month-section') as HTMLElement | null;
       const weekCount = monthSectionForCount
@@ -853,18 +896,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       strip.style.setProperty('--active-week-count', `${weekCount}`);
 
       strip.style.setProperty('--active-week-offset', `${weekOffsetRem}rem`);
-
-      // Keep the pill inside the weeks-strip active section during the
-      // transition so it travels down/up together with the current week.
-      const weeksActiveBtn = activeBtn
-        ? findButtonByDate(
-            activeBtn.getAttribute("data-year") || "",
-            activeBtn.getAttribute("data-month") || "",
-            activeBtn.getAttribute("data-date") || "",
-            weeksStrip
-          )
-        : null;
-      if (weeksActiveBtn) updatePillForButton(weeksActiveBtn, { immediate: true });
 
       isExpanded = !isExpanded;
       card.dataset.expanded = isExpanded ? "true" : "false";
@@ -876,8 +907,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
       const monthYearLabel = document.getElementById("calendar-month-year");
 
-      // Apply the layout change and the pill morph in the same animation frame
-      // so the CSS transition and the JS-driven transform start together.
       requestAnimationFrame(() => {
         card.classList.add("is-animating");
         strip.classList.add("is-animating");
@@ -897,7 +926,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
               monthsStrip.scrollLeft = currentMonthSection.offsetLeft;
             }
           }
-          syncDayLabelsHeader();
 
           updateMonthYearLabel();
           if (monthYearLabel) monthYearLabel.classList.remove("opacity-0");
@@ -909,21 +937,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           if (monthYearLabel) monthYearLabel.classList.add("opacity-0");
         }
 
-        // Morph the pill while it rides inside the weeks-strip active section.
-        // The strip's CSS translateY handles the vertical travel.
-        const transitionBtn = getVisibleActiveButton();
-        const weeksBtnForMorph = transitionBtn
-          ? findButtonByDate(
-              transitionBtn.getAttribute("data-year") || "",
-              transitionBtn.getAttribute("data-month") || "",
-              transitionBtn.getAttribute("data-date") || "",
-              weeksStrip
-            )
-          : null;
-        if (weeksBtnForMorph) {
-          updatePillForButton(weeksBtnForMorph, { morph: true, duration: 700 });
+        const targetForMorph = isExpanded ? targetBtn : activeBtn;
+        if (targetForMorph) {
+          updatePillForButton(targetForMorph, { morph: true, duration: 600 });
         }
-        syncDayLabelsHeader();
       });
 
       window.setTimeout(() => {
@@ -931,10 +948,9 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         strip.classList.remove("is-animating");
         isProgrammaticScroll = false;
 
-        // Reparent the pill to the steady-state visible active button.
         const steadyActiveBtn = getVisibleActiveButton();
         if (steadyActiveBtn) updatePillForButton(steadyActiveBtn, { immediate: true });
-      }, 720);
+      }, 620);
     });
 
     const allButtons = Array.from(strip.querySelectorAll<HTMLButtonElement>('[data-calendar-item]'));
@@ -970,16 +986,15 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       if (activeBtn) {
-        const initialMonthTarget = getCurrentMonthTargetButton();
+        const y = activeBtn.getAttribute("data-year");
+        const m = activeBtn.getAttribute("data-month");
+        const d = activeBtn.getAttribute("data-date");
+        const initialMonthTarget = findButtonByDateInMonths(y || "", m || "", d || "");
         if (initialMonthTarget) {
           const offset = getActiveWeekOffset(initialMonthTarget);
           strip.style.setProperty('--active-week-offset', `${offset}rem`);
         }
         updatePillForButton(activeBtn, { immediate: true });
-        syncDayLabelsHeader();
-        const y = activeBtn.getAttribute("data-year");
-        const m = activeBtn.getAttribute("data-month");
-        const d = activeBtn.getAttribute("data-date");
         if (y && m && d) {
           const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
           window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
@@ -994,14 +1009,13 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     const handleResize = () => {
       const activeBtn = getVisibleActiveButton();
       if (activeBtn) updatePillForButton(activeBtn, { immediate: true });
-      syncDayLabelsHeader();
       if (isExpanded) requestAnimationFrame(updateMonthYearLabel);
     };
     (window as any)._weeklyCalendarResizeHandler = handleResize;
     window.addEventListener("resize", handleResize);
 
-    function updateMonthYearLabel() {
-      const monthSections = Array.from(monthsStrip.querySelectorAll(".month-section"));
+    function updateExpandedMonthYearLabel() {
+      const monthSections = Array.from(monthsStrip.querySelectorAll<HTMLElement>(".month-section"));
       if (!monthSections.length) return;
 
       const center = monthsStrip.scrollLeft + monthsStrip.offsetWidth / 2;
@@ -1026,19 +1040,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
     }
 
-    function syncDayLabelsHeader() {
-      const header = document.getElementById("day-labels-header") as HTMLElement | null;
-      if (!header || !weeksStrip || !monthsStrip) return;
-      const activeStrip = isExpanded ? monthsStrip : weeksStrip;
-      header.style.transform = `translate3d(${-activeStrip.scrollLeft}px, 0, 0)`;
-    }
-
     function handleWeeksScroll() {
-      syncDayLabelsHeader();
       if (isProgrammaticScroll) return;
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
-        const allWeeks = Array.from(weeksStrip.querySelectorAll(".week-section"));
+        const allWeeks = Array.from(weeksStrip.querySelectorAll<HTMLElement>(".week-section"));
         if (allWeeks.length === 0) return;
 
         const center = weeksStrip.scrollLeft + weeksStrip.offsetWidth / 2;
@@ -1064,9 +1070,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     function handleMonthsScroll() {
-      syncDayLabelsHeader();
       if (isProgrammaticScroll) return;
-      requestAnimationFrame(updateMonthYearLabel);
+      requestAnimationFrame(updateExpandedMonthYearLabel);
     }
 
     weeksStrip.addEventListener("scroll", handleWeeksScroll);
@@ -1137,54 +1142,67 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform: translateY(0);
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, visibility 0s 0s linear;
   }
 
   .closed-mode #months-strip {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(0);
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease 0.45s, visibility 0s 0.7s linear;
   }
 
   .expanded-mode #weeks-strip {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(var(--active-week-offset, 5.25rem));
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease 0.45s, visibility 0s 0.7s linear;
   }
 
   .expanded-mode #months-strip {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform: translateY(0);
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, visibility 0s 0s linear;
+  }
+
+  .is-animating #months-strip {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .is-animating #weeks-strip {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
   /* Closed mode: horizontal carousel of consecutive weeks */
   #weeks-strip .week-section {
     flex: 0 0 100%;
     display: flex !important;
+    flex-direction: column;
+    gap: 0;
+    height: 5.75rem;
+  }
+
+  #weeks-strip .dates-row {
+    display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    height: 5.25rem;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
+    height: 2.875rem;
   }
 
-  #weeks-strip [data-calendar-item] {
+  #weeks-strip [data-calendar-item],
+  #months-strip [data-calendar-item] {
     flex: 1 1 0%;
     max-width: 4.5rem;
+    height: 2.875rem;
     margin-left: auto;
     margin-right: auto;
   }
 
-  /* Expanded mode: months stacked side-by-side, weeks stacked vertically */
+  /* Expanded mode: months stacked side-by-side, weeks stacked vertically with comfortable row spacing */
   #months-strip .month-section {
     display: flex;
     flex-direction: column;
@@ -1193,12 +1211,78 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     overflow: hidden;
   }
 
-  #months-strip .week-section {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.25rem;
+  .day-labels-row {
+    position: relative;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
-    justify-items: center;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    height: 2.875rem;
+  }
+
+  .day-labels-row span,
+  .day-label {
+    position: relative;
+    z-index: 10;
+    flex: 1 1 0%;
+    max-width: 4.5rem;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    color: #C93263;
+  }
+
+  #calendar-active-pill {
+    z-index: 0;
+  }
+
+  #calendar-active-circle {
+    z-index: 15;
+  }
+
+  #weeks-strip .week-section {
+    position: relative;
+    z-index: 5;
+  }
+
+  #months-strip .week-section {
+    position: relative;
+    z-index: 5;
+    display: flex !important;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    height: 2.875rem;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  }
+
+  #months-strip .week-section + .week-section {
+    margin-top: 0.625rem;
+  }
+
+  .closed-mode #months-strip .week-section:not(.active-week) {
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
+  }
+
+  .closed-mode #months-strip .week-section.active-week {
+    transform: translateY(calc(-1 * var(--active-week-offset, 0rem)));
+  }
+
+  .expanded-mode #months-strip .week-section {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .expanded-mode #months-strip .week-section:not(.active-week) {
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s, opacity 0.35s ease 0.18s;
   }
 
   .week-section.collapsed-week {
@@ -1211,54 +1295,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     border: 0 !important;
   }
 
-  /* A single fixed day-labels header sits at the top of the strip. It contains
-     one label set per month-section width so it can scroll with both the week
-     and month carousels via transform sync. The flex layout mirrors the
-     weeks-strip button arrangement so the columns stay perfectly aligned. */
-  #day-labels-header {
-    opacity: 1;
-    visibility: visible;
-    will-change: transform;
-  }
-
-  #day-labels-header .day-labels-set {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-
-  #day-labels-header span {
-    flex: 1 1 0%;
-    max-width: 4.5rem;
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-    color: #C93263;
-  }
-
-  /* Hide the week-strip numbers in expanded mode so only the month view
-     shows dates, while keeping the day labels visible in the fixed header. */
-  .expanded-mode #weeks-strip [data-calendar-item] .date-number,
-  .expanded-mode #weeks-strip [data-calendar-item] .today-dot,
-  .is-animating.expanded-mode #weeks-strip [data-calendar-item] .date-number,
-  .is-animating.expanded-mode #weeks-strip [data-calendar-item] .today-dot {
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
-
-  /* Hide the month-strip numbers while collapsing so the week strip can
-     slide back in without a duplicated row of dates. */
-  .is-animating.closed-mode #months-strip [data-calendar-item] .date-number,
-  .is-animating.closed-mode #months-strip [data-calendar-item] .today-dot {
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
-
   #calendar-card {
-    transition: max-height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 18rem;
     contain: layout paint;
   }
@@ -1273,35 +1311,22 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-card.expanded-mode {
-    max-height: calc(var(--active-week-count, 6) * 5.25rem + 8rem);
+    max-height: calc(var(--active-week-count, 6) * 3.5rem + 8.375rem);
   }
 
   #calendar-strip {
     position: relative;
-    height: 5.25rem;
-    transition: height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 5.75rem;
+    transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     contain: layout;
   }
 
   #calendar-strip.expanded-mode {
-    height: calc(var(--active-week-count, 6) * 5.25rem);
+    height: calc(2.25rem + var(--active-week-count, 6) * 3.5rem);
   }
 
   #calendar-strip.is-animating {
-    will-change: height, transform, opacity;
-  }
-
-  /* Hide only the date numbers/dots in the outgoing strip during expand/collapse
-     so the sliding week animation doesn't show a duplicated row of dates,
-     while keeping the day labels and pill/circle transitions intact. */
-  .is-animating.expanded-mode #weeks-strip [data-calendar-item] .date-number,
-  .is-animating.expanded-mode #weeks-strip [data-calendar-item] .today-dot,
-  .expanded-mode #weeks-strip [data-calendar-item] .date-number,
-  .expanded-mode #weeks-strip [data-calendar-item] .today-dot,
-  .is-animating.closed-mode #months-strip [data-calendar-item] .date-number,
-  .is-animating.closed-mode #months-strip [data-calendar-item] .today-dot {
-    opacity: 0;
-    transition: opacity 0.1s ease;
+    will-change: height, opacity;
   }
 </style>
