@@ -540,21 +540,19 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number; previousTarget?: HTMLButtonElement | null; startRects?: any } = {}) {
-      if (!button || !pill || !circle || !strip) return;
+      if (!button || !pill || !circle) return;
       const { immediate = false, morph = false, duration = 400 } = opts;
 
-      const stripRect = strip.getBoundingClientRect();
-      const btnRect = button.getBoundingClientRect();
-      const numSpan = button.querySelector<HTMLElement>('.date-number');
-      const numRect = numSpan ? numSpan.getBoundingClientRect() : btnRect;
+      const section = (button.closest('.week-section') || button.closest('.month-section')) as HTMLElement | null;
+      if (!section) return;
 
-      // Coordinates relative to #calendar-strip so pill never disappears or jumps relative to section offsets
-      const left = btnRect.left - stripRect.left;
-      const top = btnRect.top - stripRect.top;
-      const width = btnRect.width;
-      const height = btnRect.height;
-      const cLeft = numRect.left - stripRect.left;
-      const cTop = numRect.top - stripRect.top;
+      const numSpan = button.querySelector<HTMLElement>('.date-number');
+      const left = button.offsetLeft;
+      const top = button.offsetTop;
+      const width = button.offsetWidth;
+      const height = button.offsetHeight;
+      const cLeft = left + (numSpan ? numSpan.offsetLeft : (width - 32) / 2);
+      const cTop = top + (numSpan ? numSpan.offsetTop : (height - 32) / 2);
 
       const pillW = isExpanded ? 40 : 48;
       const pillH = isExpanded ? 40 : 92;
@@ -563,11 +561,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const pillBR = isExpanded ? "50%" : "24px";
 
       const ensureParent = () => {
-        if (pill.parentElement !== strip) {
-          strip.insertBefore(pill, strip.firstChild);
+        if (pill.parentElement !== section) {
+          section.insertBefore(pill, section.firstChild);
         }
-        if (circle.parentElement !== strip) {
-          strip.insertBefore(circle, strip.firstChild);
+        if (circle.parentElement !== section) {
+          section.appendChild(circle);
         }
       };
 
@@ -591,12 +589,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         const startPillRadius = opts.startRects?.radius || parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
 
         ensureParent();
-        const stripRectAfter = strip.getBoundingClientRect();
+        const sectionRect = section.getBoundingClientRect();
 
-        const startPillLeft = startPillRect.left - stripRectAfter.left;
-        const startPillTop = startPillRect.top - stripRectAfter.top;
-        const startCircleLeft = startCircleRect.left - stripRectAfter.left;
-        const startCircleTop = startCircleRect.top - stripRectAfter.top;
+        const startPillLeft = startPillRect.left - sectionRect.left;
+        const startPillTop = startPillRect.top - sectionRect.top;
+        const startCircleLeft = startCircleRect.left - sectionRect.left;
+        const startCircleTop = startCircleRect.top - sectionRect.top;
 
         pill.style.transition = "none";
         pill.style.opacity = "1";
@@ -638,12 +636,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       if (opts.previousTarget) {
         const startPillRect = pill.getBoundingClientRect();
         const startCircleRect = circle.getBoundingClientRect();
-        const stripRectAfter = strip.getBoundingClientRect();
+        const sectionRect = section.getBoundingClientRect();
         
-        startPillLeft = startPillRect.left - stripRectAfter.left;
-        startPillTop = startPillRect.top - stripRectAfter.top;
-        startCircleLeft = startCircleRect.left - stripRectAfter.left;
-        startCircleTop = startCircleRect.top - stripRectAfter.top;
+        startPillLeft = startPillRect.left - sectionRect.left;
+        startPillTop = startPillRect.top - sectionRect.top;
+        startCircleLeft = startCircleRect.left - sectionRect.left;
+        startCircleTop = startCircleRect.top - sectionRect.top;
       }
       
       ensureParent();
@@ -662,7 +660,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       
       // Final state: transition to the new position with bounce and circle delay
       pill.style.transition = `transform 400ms ${bouncyEasing}, width 400ms, height 400ms, border-radius 400ms`;
-      circle.style.transition = `transform 400ms ${bouncyEasing} 150ms`;
+      circle.style.transition = `transform 400ms ${bouncyEasing} 150ms`; // 150ms delay
       
       pill.style.width = `${pillW}px`;
       pill.style.height = `${pillH}px`;
@@ -731,7 +729,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     window.addEventListener('touchend', endDrag);
 
     // --- EVENT LISTENERS FOR CLICKS & SCROLL ---
-    function selectDay(button: HTMLButtonElement, clickOriginated = false, skipScroll = false) {
+    function selectDay(button: HTMLButtonElement, clickOriginated = false, skipScroll = false, skipPill = false) {
       if (dropTimeout) window.clearTimeout(dropTimeout);
 
       const previousTarget = document.querySelector('[data-active="true"]') as HTMLButtonElement | null;
@@ -765,8 +763,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       if (headerText && fullDate) headerText.textContent = fullDate;
 
       const headerSuffix = document.getElementById("header-date-suffix");
-      if (headerSuffix && y && m !== null && d) {
-        const parsed = new Date(parseInt(y, 10), parseInt(m, 10), parseInt(d, 10));
+      if (headerSuffix && y && m && d) {
+        const parsed = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
         if (!isNaN(parsed.getTime())) {
           const rawDay = parsed.toLocaleDateString('ro-RO', { weekday: 'long' });
           const rawMonth = parsed.toLocaleDateString('ro-RO', { month: 'long' });
@@ -826,7 +824,9 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         localStorage.setItem('selectedCalendarDate', `${y}-${m}-${d}`);
       }
 
-      updatePillForButton(button, { immediate: !clickOriginated, previousTarget });
+      if (!skipPill) {
+        updatePillForButton(button, { immediate: !clickOriginated, previousTarget });
+      }
       updateMonthYearLabel();
     }
 
@@ -944,7 +944,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           strip.classList.add("expanded-mode");
 
           if (targetBtn) {
-            selectDay(targetBtn, false, true);
+            selectDay(targetBtn, false, true, true);
           } else {
             const currentMonthSection = document.getElementById('current-month-section');
             if (currentMonthSection) {
@@ -1160,12 +1160,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
   .closed-mode #weeks-strip,
   .expanded-mode #weeks-strip {
-    z-index: 3;
+    z-index: 2;
   }
 
   .closed-mode #months-strip,
   .expanded-mode #months-strip {
-    z-index: 3;
+    z-index: 1;
   }
 
   .closed-mode #weeks-strip {
@@ -1267,19 +1267,21 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   }
 
   #calendar-active-pill {
-    z-index: 1;
+    z-index: 0;
   }
 
   #calendar-active-circle {
-    z-index: 2;
+    z-index: 15;
   }
 
   #weeks-strip .week-section {
     position: relative;
+    z-index: 5;
   }
 
   #months-strip .week-section {
     position: relative;
+    z-index: 5;
     display: flex !important;
     flex-direction: row;
     justify-content: space-between;
