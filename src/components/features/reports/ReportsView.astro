@@ -583,14 +583,11 @@
 
     setupIncomeDetailsGestures();
 
-    // Start fetching data in parallel
-    const paymentsPromise = getDetailedPayments(startDate, endDate);
-    
-    // Wait for the 300ms transition to finish before updating DOM
-    const animationDelay = new Promise(resolve => setTimeout(resolve, 250));
+    // Wait for the slide-up transition to fully complete before starting database calls
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
-      const [payments] = await Promise.all([paymentsPromise, animationDelay]);
+      const payments = await getDetailedPayments(startDate, endDate);
       const sumTotal = payments.reduce((acc, p) => acc + p.suma, 0);
       const displayTotal = expectedTotal !== undefined && expectedTotal > 0 ? expectedTotal : sumTotal;
 
@@ -1319,14 +1316,11 @@
 
     setupUnpaidDetailsGestures();
 
-    // Start fetching data in parallel
-    const unpaidPromise = getUnpaidPatients();
-    
-    // Wait for the slide-up animation (500ms) to complete before rendering DOM items to keep the animation at 60fps
-    const animationDelay = new Promise(resolve => setTimeout(resolve, 350));
+    // Wait for the slide-up transition to fully complete before starting database calls
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
-      const [unpaid] = await Promise.all([unpaidPromise, animationDelay]);
+      const unpaid = await getUnpaidPatients();
       
       if (totalEl) totalEl.innerHTML = `${unpaid.totalRON} <span class="text-sm font-sans font-black">RON</span>`;
       if (badgeEl) badgeEl.textContent = `${unpaid.count} pacienți`;
