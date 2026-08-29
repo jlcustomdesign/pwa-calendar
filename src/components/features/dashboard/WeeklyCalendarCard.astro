@@ -535,16 +535,21 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       if (!button || !pill || !circle) return;
       const { immediate = false, morph = false, duration = 400 } = opts;
 
-      const section = (button.closest('.week-section') || button.closest('.month-section')) as HTMLElement | null;
-      if (!section) return;
+      const parentContainer = isExpanded ? monthsStrip : weeksStrip;
+      if (!parentContainer) return;
 
+      const containerRect = parentContainer.getBoundingClientRect();
+      const btnRect = button.getBoundingClientRect();
       const numSpan = button.querySelector<HTMLElement>('.date-number');
-      const left = button.offsetLeft;
-      const top = button.offsetTop;
-      const width = button.offsetWidth;
-      const height = button.offsetHeight;
-      const cLeft = left + (numSpan ? numSpan.offsetLeft : (width - 32) / 2);
-      const cTop = top + (numSpan ? numSpan.offsetTop : (height - 32) / 2);
+      const numRect = numSpan ? numSpan.getBoundingClientRect() : btnRect;
+
+      // Coordinate systems relative to the parent scrollable container
+      const left = btnRect.left - containerRect.left + parentContainer.scrollLeft;
+      const top = btnRect.top - containerRect.top;
+      const width = btnRect.width;
+      const height = btnRect.height;
+      const cLeft = numRect.left - containerRect.left + parentContainer.scrollLeft;
+      const cTop = numRect.top - containerRect.top;
 
       const pillW = isExpanded ? 40 : 48;
       const pillH = isExpanded ? 40 : 92;
@@ -553,11 +558,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const pillBR = isExpanded ? "50%" : "24px";
 
       const ensureParent = () => {
-        if (pill.parentElement !== section) {
-          section.insertBefore(pill, section.firstChild);
+        if (pill.parentElement !== parentContainer) {
+          parentContainer.insertBefore(pill, parentContainer.firstChild);
         }
-        if (circle.parentElement !== section) {
-          section.appendChild(circle);
+        if (circle.parentElement !== parentContainer) {
+          parentContainer.appendChild(circle);
         }
       };
 
@@ -581,12 +586,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         const startPillRadius = opts.startRects?.radius || parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
 
         ensureParent();
-        const sectionRect = section.getBoundingClientRect();
+        const containerRectAfter = parentContainer.getBoundingClientRect();
 
-        const startPillLeft = startPillRect.left - sectionRect.left;
-        const startPillTop = startPillRect.top - sectionRect.top;
-        const startCircleLeft = startCircleRect.left - sectionRect.left;
-        const startCircleTop = startCircleRect.top - sectionRect.top;
+        const startPillLeft = startPillRect.left - containerRectAfter.left;
+        const startPillTop = startPillRect.top - containerRectAfter.top;
+        const startCircleLeft = startCircleRect.left - containerRectAfter.left;
+        const startCircleTop = startCircleRect.top - containerRectAfter.top;
 
         pill.style.transition = "none";
         pill.style.opacity = "1";
@@ -628,12 +633,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       if (opts.previousTarget) {
         const startPillRect = pill.getBoundingClientRect();
         const startCircleRect = circle.getBoundingClientRect();
-        const sectionRect = section.getBoundingClientRect();
+        const containerRectAfter = parentContainer.getBoundingClientRect();
         
-        startPillLeft = startPillRect.left - sectionRect.left;
-        startPillTop = startPillRect.top - sectionRect.top;
-        startCircleLeft = startCircleRect.left - sectionRect.left;
-        startCircleTop = startCircleRect.top - sectionRect.top;
+        startPillLeft = startPillRect.left - containerRectAfter.left + parentContainer.scrollLeft;
+        startPillTop = startPillRect.top - containerRectAfter.top;
+        startCircleLeft = startCircleRect.left - containerRectAfter.left + parentContainer.scrollLeft;
+        startCircleTop = startCircleRect.top - containerRectAfter.top;
       }
       
       ensureParent();

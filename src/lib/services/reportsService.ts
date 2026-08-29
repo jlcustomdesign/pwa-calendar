@@ -436,10 +436,15 @@ export async function getDetailedPayments(startStr: string, endStr?: string): Pr
 }
 
 // ── Pacienți neachitați ───────────────────────────────────────
-export async function getUnpaidPatients() {
-  const { data: rawPatients, error: pErr } = await supabase
+export async function getUnpaidPatients(startStr?: string, endStr?: string) {
+  let query = supabase
     .from('pacienti_view')
-    .select('id, name, cost, achitat, suma_incasata');
+    .select('id, name, cost, achitat, suma_incasata, created_at');
+
+  if (startStr) query = query.gte('created_at', startStr);
+  if (endStr) query = query.lte('created_at', endStr + 'T23:59:59');
+
+  const { data: rawPatients, error: pErr } = await query;
 
   if (pErr) throw new Error('Eroare la citirea pacienților neachitați: ' + pErr.message);
 

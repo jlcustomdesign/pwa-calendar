@@ -296,16 +296,11 @@
         return;
       }
 
-      let next = new Set(this.activeFilters);
-      next.delete('all');
-
-      if (next.has(filter)) {
-        next.delete(filter);
+      if (this.activeFilters.includes(filter)) {
+        this.activeFilters = ['all'];
       } else {
-        next.add(filter);
+        this.activeFilters = [filter];
       }
-
-      this.activeFilters = next.size > 0 ? Array.from(next) : ['all'];
     }
 
     async loadActiveCategories() {
