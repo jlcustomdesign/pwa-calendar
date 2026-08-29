@@ -52,19 +52,25 @@
     <!-- Unified Stats Cards Row -->
     <div class="grid grid-cols-3 gap-3 mb-7">
       <!-- Card 1: Ședințe -->
-      <div class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-transparent flex flex-col items-center justify-center text-center transition-all hover:border-transparent">
+      <button type="button" onclick="openSessionsDetails()" class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-transparent flex flex-col items-center justify-center text-center transition-all hover:border-transparent cursor-pointer active:scale-95 group">
         <div class="flex items-baseline gap-1">
-          <span id="period-done" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">0</span>
+          <span id="period-done" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none group-hover:text-brand-secondary transition-colors">0</span>
           <span class="text-xl font-bold text-text-muted opacity-40">/</span>
           <span id="period-total" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none">0</span>
         </div>
-        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Ședințe</div>
-      </div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2 flex items-center gap-1">
+          <span>Ședințe</span>
+          <svg class="w-3.5 h-3.5 text-text-muted opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </button>
       <!-- Card 2: Absent -->
-      <div class="bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-transparent flex flex-col items-center justify-center text-center transition-all hover:border-transparent">
-        <div id="period-absent" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none">0</div>
-        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2">Absent</div>
-      </div>
+      <button type="button" onclick="openAbsentDetails()" class="bg-surface-card rounded-tr-[2.2rem] rounded-bl-[2.2rem] rounded-tl-md rounded-br-md p-4 shadow-sm border border-transparent flex flex-col items-center justify-center text-center transition-all hover:border-transparent cursor-pointer active:scale-95 group">
+        <div id="period-absent" class="text-3xl sm:text-4xl font-black text-brand-secondary tracking-tight leading-none group-hover:text-rose-500 transition-colors">0</div>
+        <div class="text-sm sm:text-base font-sans font-black text-text-main leading-tight mt-2 flex items-center gap-1 justify-center">
+          <span>Absent</span>
+          <svg class="w-3.5 h-3.5 text-text-muted opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </button>
       <!-- Card 3: Încasat -->
       <button type="button" id="period-income-card" class="bg-surface-card rounded-tl-[2.2rem] rounded-br-[2.2rem] rounded-tr-md rounded-bl-md p-4 shadow-sm border border-transparent flex flex-col items-center justify-center text-center transition-all hover:border-transparent cursor-pointer active:scale-95 group">
         <div id="period-income" class="text-3xl sm:text-4xl font-black text-text-main tracking-tight leading-none group-hover:text-brand-secondary transition-colors">0</div>
@@ -201,7 +207,7 @@
 </div>
 
 <!-- Custom Date Picker Popup (floating, smaller, no native calendar UI) -->
-<div id="day-picker-sheet" data-sheet-root class="fixed inset-0 w-screen h-screen h-[100dvh] z-[9999] pointer-events-none">
+<div id="day-picker-sheet" data-sheet-root class="fixed inset-0 w-screen h-screen h-[100dvh] z-[9999] hidden">
   <div id="day-picker-overlay" class="fixed inset-0 bg-black/25 opacity-0 pointer-events-none transition-opacity duration-200"></div>
   <div id="day-picker-content" class="fixed w-[19rem] bg-surface-card rounded-[1.75rem] p-4 shadow-2xl pointer-events-auto transform scale-95 opacity-0 transition-all duration-200 ease-out origin-top-left border border-transparent z-[10000]">
     <div class="flex items-center justify-between mb-3">
@@ -230,7 +236,7 @@
 
 
 <!-- Unpaid Details Popup Sheet -->
-<div id="unpaid-details-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
+<div id="unpaid-details-sheet" data-sheet-root class="fixed inset-0 z-[120] hidden">
   <div id="unpaid-details-backdrop" class="fixed inset-0 bg-black/25 opacity-0 pointer-events-none transition-opacity duration-300"></div>
   <div id="unpaid-details-content" style="will-change: transform;" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
     <div class="w-12 h-1.5 bg-text-main/15 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -260,7 +266,7 @@
 </div>
 
 <!-- Income Details Popup Sheet (Card cu proveniența banilor) -->
-<div id="income-details-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
+<div id="income-details-sheet" data-sheet-root class="fixed inset-0 z-[120] hidden">
   <div id="income-details-backdrop" class="fixed inset-0 bg-black/25 opacity-0 pointer-events-none transition-opacity duration-300"></div>
   <div id="income-details-content" style="will-change: transform;" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
     <div class="w-12 h-1.5 bg-text-main/15 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
@@ -289,8 +295,59 @@
   </div>
 </div>
 
+<!-- Sessions Details Popup Sheet -->
+<div id="sessions-details-sheet" data-sheet-root class="fixed inset-0 z-[120] hidden">
+  <div id="sessions-details-backdrop" class="fixed inset-0 bg-black/25 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+  <div id="sessions-details-content" style="will-change: transform;" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
+    <div class="w-12 h-1.5 bg-text-main/15 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
+    
+    <div class="flex items-start justify-between mb-4 shrink-0">
+      <div class="min-w-0 pr-2">
+        <h2 id="sessions-details-title" class="text-xl sm:text-2xl font-black text-text-main tracking-tight truncate">Ședințe</h2>
+      </div>
+    </div>
+
+    <div class="mb-4 bg-brand-primary/10 rounded-2xl p-4 flex items-center justify-between shrink-0 border border-brand-primary/20 shadow-2xs">
+      <div>
+        <span class="text-xs font-black uppercase tracking-wider text-brand-primary">Total ședințe</span>
+        <div id="sessions-details-total" class="text-2xl sm:text-3xl font-black text-brand-primary mt-0.5">0</div>
+      </div>
+      <div id="sessions-details-count-badge" class="px-3.5 py-1.5 rounded-xl bg-white text-brand-primary text-xs sm:text-sm font-black border border-brand-primary/20">
+        0 finalizate
+      </div>
+    </div>
+
+    <div id="sessions-details-list" class="space-y-2.5 overflow-y-auto flex-1 pr-1 overscroll-contain">
+    </div>
+  </div>
+</div>
+
+<!-- Absent Details Popup Sheet -->
+<div id="absent-details-sheet" data-sheet-root class="fixed inset-0 z-[120] hidden">
+  <div id="absent-details-backdrop" class="fixed inset-0 bg-black/25 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+  <div id="absent-details-content" style="will-change: transform;" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
+    <div class="w-12 h-1.5 bg-text-main/15 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
+    
+    <div class="flex items-start justify-between mb-4 shrink-0">
+      <div class="min-w-0 pr-2">
+        <h2 id="absent-details-title" class="text-xl sm:text-2xl font-black text-text-main tracking-tight truncate">Absențe</h2>
+      </div>
+    </div>
+
+    <div class="mb-4 bg-rose-50 rounded-2xl p-4 flex items-center justify-between shrink-0 border border-rose-100 shadow-2xs">
+      <div>
+        <span class="text-xs font-black uppercase tracking-wider text-rose-600">Pacienți absenți</span>
+        <div id="absent-details-total" class="text-2xl sm:text-3xl font-black text-rose-600 mt-0.5">0</div>
+      </div>
+    </div>
+
+    <div id="absent-details-list" class="space-y-2.5 overflow-y-auto flex-1 pr-1 overscroll-contain">
+    </div>
+  </div>
+</div>
+
 <script>
-  import { getTodayStats, getWeekStats, getMonthStats, getQuarterStats, getYearStats, getUnpaidPatients, getDetailedPayments, type DetailedPayment } from '../../../lib/services/reportsService';
+  import { getTodayStats, getWeekStats, getMonthStats, getQuarterStats, getYearStats, getUnpaidPatients, getDetailedPayments, getDetailedSessions, type DetailedPayment } from '../../../lib/services/reportsService';
   import { toLocalISOString, formatDateRO } from '../../../utils/date';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
@@ -308,7 +365,7 @@
   let isUnpaidDetailsOpen = false;
 
   function removeStaleSheets(exclude?: Element) {
-    document.querySelectorAll('#day-picker-sheet, #income-details-sheet, #unpaid-details-sheet').forEach(el => {
+    document.querySelectorAll('#day-picker-sheet, #income-details-sheet, #unpaid-details-sheet, #sessions-details-sheet, #absent-details-sheet').forEach(el => {
       if (el !== exclude && el.parentElement === document.body) {
         el.remove();
       }
@@ -386,7 +443,9 @@
 
     isDayPickerOpen = true;
     sheet.dataset.open = 'true';
-    sheet.classList.remove('pointer-events-none');
+    sheet.classList.remove('hidden');
+    void sheet.offsetWidth;
+    
     overlay.classList.remove('opacity-0', 'pointer-events-none');
     overlay.classList.add('opacity-100', 'pointer-events-auto');
 
@@ -413,7 +472,7 @@
     setTimeout(() => {
       isDayPickerOpen = false;
       sheet.dataset.open = 'false';
-      sheet.classList.add('pointer-events-none');
+      sheet.classList.add('hidden');
       unlockBodyScroll();
     }, 200);
   }
@@ -565,16 +624,17 @@
     if (badgeEl) badgeEl.textContent = 'Se încarcă...';
 
     listEl.innerHTML = `
-      <div class="py-10 text-center space-y-2">
-        <div class="w-8 h-8 border-3 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="text-xs font-bold text-text-muted">Se caută plățile...</p>
+      <div class="h-[50vh] flex flex-col items-center justify-center space-y-4">
+        <div class="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm font-bold text-text-muted">Se caută plățile...</p>
       </div>
     `;
 
     // Animate open
     isIncomeDetailsOpen = true;
     sheet.dataset.open = 'true';
-    sheet.classList.remove('pointer-events-none');
+    sheet.classList.remove('hidden');
+    void sheet.offsetWidth;
     backdrop.classList.remove('opacity-0', 'pointer-events-none');
     backdrop.classList.add('opacity-100', 'pointer-events-auto');
     content.classList.remove('translate-y-full');
@@ -676,7 +736,7 @@
     backdrop.classList.add('opacity-0', 'pointer-events-none');
     
     setTimeout(() => {
-      sheet.classList.add('pointer-events-none');
+      sheet.classList.add('hidden');
       unlockBodyScroll();
     }, 300);
   }
@@ -1195,9 +1255,14 @@
     const dayPicker = document.getElementById('day-picker-sheet');
     const incomeDetails = document.getElementById('income-details-sheet');
     const unpaidDetails = document.getElementById('unpaid-details-sheet');
+    const sessionsDetails = document.getElementById('sessions-details-sheet');
+    const absentDetails = document.getElementById('absent-details-sheet');
+    
     if (dayPicker && dayPicker.parentElement !== document.body) document.body.appendChild(dayPicker);
     if (incomeDetails && incomeDetails.parentElement !== document.body) document.body.appendChild(incomeDetails);
     if (unpaidDetails && unpaidDetails.parentElement !== document.body) document.body.appendChild(unpaidDetails);
+    if (sessionsDetails && sessionsDetails.parentElement !== document.body) document.body.appendChild(sessionsDetails);
+    if (absentDetails && absentDetails.parentElement !== document.body) document.body.appendChild(absentDetails);
 
     const skeleton = document.getElementById('reports-skeleton');
     const data = document.getElementById('reports-data');
@@ -1277,7 +1342,306 @@
   }
 
 
-  // ── UNPAID DETAILS POPUP SHEET ────────────────────────────────
+  // ── SESSIONS & ABSENT DETAILS POPUPS ────────────────────────────────
+  
+  function getStatusStyle(status: string) {
+    if (status === 'finalizat' || status === 'finalizata') {
+      return { class: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Finalizat' };
+    }
+    if (status === 'absent') {
+      return { class: 'bg-rose-50 text-rose-700 border-rose-200', label: 'Absent' };
+    }
+    if (status === 'anulat') {
+      return { class: 'bg-orange-50 text-orange-700 border-orange-200', label: 'Anulat' };
+    }
+    return { class: 'bg-surface-base text-text-muted border-black/10', label: 'Programat' };
+  }
+
+  async function openSessionsDetails(startDate: string, endDate?: string) {
+    const sheet = document.getElementById('sessions-details-sheet');
+    const backdrop = document.getElementById('sessions-details-backdrop');
+    const content = document.getElementById('sessions-details-content');
+    const totalEl = document.getElementById('sessions-details-total');
+    const badgeEl = document.getElementById('sessions-details-count-badge');
+    const listEl = document.getElementById('sessions-details-list');
+
+    if (!sheet || !backdrop || !content || !listEl) return;
+
+    if (totalEl) totalEl.textContent = '--';
+    if (badgeEl) badgeEl.textContent = 'Se încarcă...';
+
+    listEl.innerHTML = `
+      <div class="h-[50vh] flex flex-col items-center justify-center space-y-4">
+        <div class="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm font-bold text-text-muted">Se caută ședințele...</p>
+      </div>
+    `;
+
+    // Hide navigation dock
+    const dock = document.getElementById('persistent-dock');
+    if (dock) {
+      dock.style.transition = 'opacity 0.25s ease';
+      dock.style.opacity = '0';
+      dock.style.pointerEvents = 'none';
+    }
+
+    sheet.dataset.open = 'true';
+    sheet.classList.remove('hidden');
+    void sheet.offsetWidth;
+    backdrop.classList.remove('opacity-0', 'pointer-events-none');
+    backdrop.classList.add('opacity-100', 'pointer-events-auto');
+    content.classList.remove('translate-y-full');
+    content.classList.add('translate-y-0');
+    lockBodyScroll();
+
+    setupSheetGestures('sessions');
+
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    try {
+      const sessions = await getDetailedSessions(startDate, endDate, 'all');
+      
+      const doneCount = sessions.filter(s => s.status === 'finalizat' || s.status === 'finalizata').length;
+      
+      if (totalEl) totalEl.textContent = sessions.length.toString();
+      if (badgeEl) badgeEl.textContent = `${doneCount} finalizate`;
+
+      if (sessions.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-8 px-4 text-center rounded-2xl bg-surface-base/50 border border-dashed border-border-subtle/50 flex flex-col items-center justify-center space-y-2">
+            <div class="w-12 h-12 rounded-2xl bg-surface-card flex items-center justify-center text-text-muted shadow-2xs">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <p class="text-sm font-black text-text-main">Nicio ședință găsită</p>
+            <p class="text-xs font-bold text-text-muted">Nu există programări în această perioadă.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = sessions.map(s => {
+        const { class: badgeClass, label } = getStatusStyle(s.status);
+        const nameParts = (s.numeComplet || 'Pacient').split(' ').filter(Boolean);
+        const initials = nameParts.length >= 2 
+          ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase() 
+          : (nameParts[0]?.slice(0, 2).toUpperCase() || 'PA');
+          
+        return `
+          <a href="/dashboard/patients/${s.pacientId || ''}" data-astro-history="push" class="block p-3 rounded-2xl bg-surface-base border border-border-subtle/30 flex items-center gap-3 shadow-2xs hover:border-brand-primary/30 transition-colors">
+            <div class="w-10 h-10 rounded-xl bg-surface-card text-text-main flex items-center justify-center font-black text-sm shrink-0 shadow-sm border border-border-subtle">
+              ${initials}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="font-black text-text-main text-sm truncate">${s.numeComplet}</div>
+              <div class="text-xs font-bold text-text-muted flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                ${s.data.split('-').reverse().join('.')} la ${s.ora?.slice(0,5)}
+              </div>
+            </div>
+            <div class="px-2.5 py-1 rounded-lg border ${badgeClass} text-[10px] font-black uppercase tracking-wider shrink-0 text-center">
+              ${label}
+            </div>
+          </a>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Eroare încărcare sedinte:', err);
+      listEl.innerHTML = `<div class="p-4 rounded-2xl bg-rose-50 text-rose-700 text-xs font-bold text-center">Eroare la încărcare.</div>`;
+    }
+  }
+
+  async function openAbsentDetails(startDate: string, endDate?: string) {
+    const sheet = document.getElementById('absent-details-sheet');
+    const backdrop = document.getElementById('absent-details-backdrop');
+    const content = document.getElementById('absent-details-content');
+    const totalEl = document.getElementById('absent-details-total');
+    const listEl = document.getElementById('absent-details-list');
+
+    if (!sheet || !backdrop || !content || !listEl) return;
+
+    if (totalEl) totalEl.textContent = '--';
+
+    listEl.innerHTML = `
+      <div class="h-[50vh] flex flex-col items-center justify-center space-y-4">
+        <div class="w-10 h-10 border-4 border-rose-600 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm font-bold text-text-muted">Se caută absențele...</p>
+      </div>
+    `;
+
+    // Hide navigation dock
+    const dock = document.getElementById('persistent-dock');
+    if (dock) {
+      dock.style.transition = 'opacity 0.25s ease';
+      dock.style.opacity = '0';
+      dock.style.pointerEvents = 'none';
+    }
+
+    sheet.dataset.open = 'true';
+    sheet.classList.remove('hidden');
+    void sheet.offsetWidth;
+    backdrop.classList.remove('opacity-0', 'pointer-events-none');
+    backdrop.classList.add('opacity-100', 'pointer-events-auto');
+    content.classList.remove('translate-y-full');
+    content.classList.add('translate-y-0');
+    lockBodyScroll();
+
+    setupSheetGestures('absent');
+
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    try {
+      const absences = await getDetailedSessions(startDate, endDate, 'absent');
+      
+      if (totalEl) totalEl.textContent = absences.length.toString();
+
+      if (absences.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-8 px-4 text-center rounded-2xl bg-surface-base/50 border border-dashed border-border-subtle/50 flex flex-col items-center justify-center space-y-2">
+            <div class="w-12 h-12 rounded-2xl bg-surface-card flex items-center justify-center text-emerald-500 shadow-2xs">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <p class="text-sm font-black text-text-main">Toți pacienții au fost prezenți</p>
+            <p class="text-xs font-bold text-text-muted">Nu există nicio absență în această perioadă.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = absences.map(s => {
+        const nameParts = (s.numeComplet || 'Pacient').split(' ').filter(Boolean);
+        const initials = nameParts.length >= 2 
+          ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase() 
+          : (nameParts[0]?.slice(0, 2).toUpperCase() || 'PA');
+          
+        return `
+          <a href="/dashboard/patients/${s.pacientId || ''}" data-astro-history="push" class="block p-3 rounded-2xl bg-surface-base border border-border-subtle/30 flex items-center gap-3 shadow-2xs hover:border-rose-500/30 transition-colors">
+            <div class="w-10 h-10 rounded-xl bg-surface-card text-text-main flex items-center justify-center font-black text-sm shrink-0 shadow-sm border border-border-subtle">
+              ${initials}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="font-black text-text-main text-sm truncate">${s.numeComplet}</div>
+              <div class="text-xs font-bold text-text-muted flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                ${s.data.split('-').reverse().join('.')} la ${s.ora?.slice(0,5)}
+              </div>
+            </div>
+            <div class="px-2.5 py-1 rounded-lg border bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-black uppercase tracking-wider shrink-0 text-center">
+              Absent
+            </div>
+          </a>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Eroare încărcare absente:', err);
+      listEl.innerHTML = `<div class="p-4 rounded-2xl bg-rose-50 text-rose-700 text-xs font-bold text-center">Eroare la încărcare.</div>`;
+    }
+  }
+
+  function closeSheet(prefix: string) {
+    const sheet = document.getElementById(`${prefix}-details-sheet`);
+    const backdrop = document.getElementById(`${prefix}-details-backdrop`);
+    const content = document.getElementById(`${prefix}-details-content`);
+
+    if (!sheet || !backdrop || !content) return;
+
+    sheet.dataset.open = 'false';
+    content.style.transform = ''; 
+    content.classList.remove('translate-y-0');
+    content.classList.add('translate-y-full');
+    backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+    backdrop.classList.add('opacity-0', 'pointer-events-none');
+    
+    // Show navigation dock again
+    const dock = document.getElementById('persistent-dock');
+    if (dock) {
+      dock.style.opacity = '1';
+      dock.style.pointerEvents = 'auto';
+    }
+
+    setTimeout(() => {
+      sheet.classList.add('hidden');
+      unlockBodyScroll();
+    }, 300);
+  }
+
+  function getDateRangeForTab(tab: string): { start: string, end?: string } {
+    if (tab === 'day') {
+      return { start: toLocalISOString(currentBaseDate).split('T')[0] };
+    }
+    if (lastStatData) {
+      if (lastStatData.startStr && lastStatData.endStr) {
+        return { start: lastStatData.startStr.split('T')[0], end: lastStatData.endStr.split('T')[0] };
+      }
+    }
+    return { start: toLocalISOString(currentBaseDate).split('T')[0] };
+  }
+
+  (window as any).openSessionsDetails = () => {
+    const period = getDateRangeForTab(activeStatsTab);
+    openSessionsDetails(period.start, period.end);
+  };
+
+  (window as any).openAbsentDetails = () => {
+    const period = getDateRangeForTab(activeStatsTab);
+    openAbsentDetails(period.start, period.end);
+  };
+
+  function setupSheetGestures(prefix: string) {
+    const sheet = document.getElementById(`${prefix}-details-sheet`);
+    const backdrop = document.getElementById(`${prefix}-details-backdrop`);
+    const content = document.getElementById(`${prefix}-details-content`);
+
+    if (!sheet || !backdrop || !content) return;
+
+    if (sheet.dataset.gesturesBound === 'true') return;
+    sheet.dataset.gesturesBound = 'true';
+
+    backdrop.addEventListener('click', () => closeSheet(prefix));
+
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+
+    const resetDrag = () => {
+      isDragging = false;
+      content.style.transform = '';
+    };
+
+    content.addEventListener('touchstart', (e: TouchEvent) => {
+      if (content.scrollTop === 0) {
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        isDragging = true;
+      }
+    }, { passive: true });
+
+    content.addEventListener('touchmove', (e: TouchEvent) => {
+      if (!isDragging) return;
+      currentY = e.touches[0].clientY;
+      const deltaY = currentY - startY;
+      if (deltaY > 0) {
+        content.style.transform = `translateY(${deltaY}px)`;
+      }
+    }, { passive: true });
+
+    content.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      const deltaY = currentY - startY;
+      content.style.transform = '';
+      if (deltaY > 80) {
+        closeSheet(prefix);
+      }
+    });
+
+    content.addEventListener('touchcancel', resetDrag);
+  }
+
+  // ── UPDATE UI FOR REPORTS ──────────────────────────────────────
   (window as any).openUnpaidDetails = async function() {
     const sheet = document.getElementById('unpaid-details-sheet');
     const backdrop = document.getElementById('unpaid-details-backdrop');
@@ -1290,9 +1654,9 @@
 
     if (badgeEl) badgeEl.textContent = 'Se încarcă...';
     listEl.innerHTML = `
-      <div class="py-10 text-center space-y-2">
-        <div class="w-8 h-8 border-3 border-rose-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="text-xs font-bold text-text-muted">Se caută plățile restante...</p>
+      <div class="h-[50vh] flex flex-col items-center justify-center space-y-4">
+        <div class="w-10 h-10 border-4 border-rose-600 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm font-bold text-text-muted">Se caută plățile restante...</p>
       </div>
     `;
 
@@ -1307,7 +1671,8 @@
     // Animate open
     isUnpaidDetailsOpen = true;
     sheet.dataset.open = 'true';
-    sheet.classList.remove('pointer-events-none');
+    sheet.classList.remove('hidden');
+    void sheet.offsetWidth;
     backdrop.classList.remove('opacity-0', 'pointer-events-none');
     backdrop.classList.add('opacity-100', 'pointer-events-auto');
     content.classList.remove('translate-y-full');
@@ -1398,7 +1763,7 @@
     }
 
     setTimeout(() => {
-      sheet.classList.add('pointer-events-none');
+      sheet.classList.add('hidden');
       unlockBodyScroll();
     }, 300);
   }

@@ -435,6 +435,44 @@ export async function getDetailedPayments(startStr: string, endStr?: string): Pr
   }
 }
 
+// ── Programări detaliate pentru popups ────────────────────────
+export async function getDetailedSessions(startStr: string, endStr?: string, statusFilter?: 'absent' | 'all') {
+  const endDate = endStr || startStr;
+  try {
+    const user = await getCurrentUser();
+    let query = supabase
+      .from('programari')
+      .select('id, data, ora, status, pacienti(id, nume, prenume)')
+      .gte('data', startStr)
+      .lte('data', endDate)
+      .eq('user_id', user.id)
+      .order('data', { ascending: false })
+      .order('ora', { ascending: false });
+      
+    if (statusFilter === 'absent') {
+      query = query.eq('status', 'absent');
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.warn('Eroare citire programari detailed:', error);
+      return [];
+    }
+
+    return (data || []).map((p: any) => ({
+      id: p.id,
+      data: p.data,
+      ora: p.ora,
+      status: p.status,
+      pacientId: p.pacienti?.id,
+      numeComplet: `${p.pacienti?.prenume || ''} ${p.pacienti?.nume || ''}`.trim() || 'Pacient'
+    }));
+  } catch (err) {
+    console.error('Eroare getDetailedSessions:', err);
+    return [];
+  }
+}
+
 // ── Pacienți neachitați ───────────────────────────────────────
 export async function getUnpaidPatients(startStr?: string, endStr?: string) {
   let query = supabase
