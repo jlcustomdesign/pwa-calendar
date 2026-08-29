@@ -369,10 +369,6 @@
     const trigger = document.getElementById('today-date-display');
     if (!sheet || !overlay || !content) return;
 
-    if (sheet.parentElement !== document.body) {
-      document.body.appendChild(sheet);
-    }
-
     const rect = trigger?.getBoundingClientRect();
     if (rect) {
       const screenWidth = window.innerWidth;
@@ -561,9 +557,7 @@
 
     if (!sheet || !backdrop || !content || !listEl) return;
 
-    if (sheet.parentElement !== document.body) {
-      document.body.appendChild(sheet);
-    }
+    if (titleEl) titleEl.textContent = title;
 
     if (titleEl) titleEl.textContent = title;
     if (subtitleEl) subtitleEl.textContent = subtitle;
@@ -1194,6 +1188,14 @@
     const container = document.getElementById('stats-tabs-container');
     if (!container) return; // Not on this page
 
+    // Move popup sheets to body once during initialization to avoid animation lag on click
+    const dayPicker = document.getElementById('day-picker-sheet');
+    const incomeDetails = document.getElementById('income-details-sheet');
+    const unpaidDetails = document.getElementById('unpaid-details-sheet');
+    if (dayPicker && dayPicker.parentElement !== document.body) document.body.appendChild(dayPicker);
+    if (incomeDetails && incomeDetails.parentElement !== document.body) document.body.appendChild(incomeDetails);
+    if (unpaidDetails && unpaidDetails.parentElement !== document.body) document.body.appendChild(unpaidDetails);
+
     const skeleton = document.getElementById('reports-skeleton');
     const data = document.getElementById('reports-data');
     if (skeleton) skeleton.classList.remove('hidden');
@@ -1282,10 +1284,6 @@
     const listEl = document.getElementById('unpaid-details-list');
 
     if (!sheet || !backdrop || !content || !listEl) return;
-
-    if (sheet.parentElement !== document.body) {
-      document.body.appendChild(sheet);
-    }
 
     if (badgeEl) badgeEl.textContent = 'Se încarcă...';
     listEl.innerHTML = `
