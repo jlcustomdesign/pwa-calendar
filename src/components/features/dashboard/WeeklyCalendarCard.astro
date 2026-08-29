@@ -1001,7 +1001,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     window.addEventListener("resize", handleResize);
 
     function updateMonthYearLabel() {
-      const monthSections = Array.from(monthsStrip.querySelectorAll(".month-section"));
+      const monthSections = Array.from(monthsStrip.querySelectorAll(".month-section")) as HTMLElement[];
       if (!monthSections.length) return;
 
       const center = monthsStrip.scrollLeft + monthsStrip.offsetWidth / 2;
@@ -1038,7 +1038,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       if (isProgrammaticScroll) return;
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
-        const allWeeks = Array.from(weeksStrip.querySelectorAll(".week-section"));
+        const allWeeks = Array.from(weeksStrip.querySelectorAll(".week-section")) as HTMLElement[];
         if (allWeeks.length === 0) return;
 
         const center = weeksStrip.scrollLeft + weeksStrip.offsetWidth / 2;
