@@ -77,7 +77,7 @@ while (currentMonday <= lastMonthDate) {
     weekDays.push({
       date: dayDate.getDate(),
       shortMonthName: dayDate.toLocaleString('ro-RO', { month: 'short' }),
-      monthNum: dayDate.getMonth(),
+      monthNum: dayDate.getMonth() + 1,
       year: dayDate.getFullYear(),
       fullDay: fullDayNames[d],
       dayLabel: weekDayLabels[d],
@@ -100,7 +100,7 @@ const allMonths = Array.from({ length: totalMonths }).map((_, monthIndex) => {
   const mOffset = startMonthOffset + monthIndex;
   const targetDate = new Date(now.getFullYear(), now.getMonth() + mOffset, 1);
   const year = targetDate.getFullYear();
-  const monthNum = targetDate.getMonth();
+  const monthNum = targetDate.getMonth() + 1;
   const monthName = targetDate.toLocaleString('ro-RO', { month: 'long' });
   const shortMonthName = targetDate.toLocaleString('ro-RO', { month: 'short' });
   const isCurrentMonth = mOffset === 0;
@@ -164,7 +164,7 @@ const serverDate = new Date();
 let initialDate = serverDate;
 if (activeDayObj) {
   const yearVal = activeDayObj.year || serverDate.getFullYear();
-  const monthVal = typeof activeDayObj.monthNum === 'number' ? activeDayObj.monthNum : (currentMonthData ? currentMonthData.monthNum : serverDate.getMonth());
+  const monthVal = typeof activeDayObj.monthNum === 'number' ? activeDayObj.monthNum - 1 : (currentMonthData ? currentMonthData.monthNum - 1 : serverDate.getMonth());
   const dateVal = activeDayObj.date || serverDate.getDate();
   const parsed = new Date(yearVal, monthVal, dateVal);
   if (!isNaN(parsed.getTime())) {
@@ -821,7 +821,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       if (y && m && d) {
+        const dateStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        (window as any).currentCalendarDate = dateStr;
         localStorage.setItem('selectedCalendarDate', `${y}-${m}-${d}`);
+        window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
       }
 
       if (!skipPill) {
@@ -1026,7 +1029,8 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
         }
         updatePillForButton(activeBtn, { immediate: true });
         if (y && m && d) {
-          const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
+          const dateStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+          (window as any).currentCalendarDate = dateStr;
           window.dispatchEvent(new CustomEvent('calendarDateSelected', { detail: { date: dateStr } }));
         }
       }
