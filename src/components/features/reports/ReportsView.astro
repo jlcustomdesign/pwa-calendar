@@ -232,7 +232,7 @@
 <!-- Unpaid Details Popup Sheet -->
 <div id="unpaid-details-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
   <div id="unpaid-details-backdrop" class="fixed inset-0 bg-black/25 opacity-0 pointer-events-none transition-opacity duration-300"></div>
-  <div id="unpaid-details-content" style="will-change: transform;" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
+  <div id="unpaid-details-content" style="will-change: transform;" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
     <div class="w-12 h-1.5 bg-text-main/15 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
     
     <div class="flex items-start justify-between mb-4 shrink-0">
@@ -262,7 +262,7 @@
 <!-- Income Details Popup Sheet (Card cu proveniența banilor) -->
 <div id="income-details-sheet" data-sheet-root class="fixed inset-0 z-[120] pointer-events-none">
   <div id="income-details-backdrop" class="fixed inset-0 bg-black/25 opacity-0 pointer-events-none transition-opacity duration-300"></div>
-  <div id="income-details-content" style="will-change: transform;" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
+  <div id="income-details-content" style="will-change: transform;" class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface-card rounded-t-[2.5rem] p-6 pb-safe shadow-2xl pointer-events-auto transform translate-y-full transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-h-[85vh] flex flex-col border border-border-subtle/30 z-[10000]">
     <div class="w-12 h-1.5 bg-text-main/15 rounded-full mx-auto mb-4 shrink-0 cursor-grab active:cursor-grabbing"></div>
     
     <div class="flex items-start justify-between mb-4 shrink-0">
@@ -583,8 +583,14 @@
 
     setupIncomeDetailsGestures();
 
+    // Start fetching data in parallel
+    const paymentsPromise = getDetailedPayments(startDate, endDate);
+    
+    // Wait for the 300ms transition to finish before updating DOM
+    const animationDelay = new Promise(resolve => setTimeout(resolve, 250));
+
     try {
-      const payments = await getDetailedPayments(startDate, endDate);
+      const [payments] = await Promise.all([paymentsPromise, animationDelay]);
       const sumTotal = payments.reduce((acc, p) => acc + p.suma, 0);
       const displayTotal = expectedTotal !== undefined && expectedTotal > 0 ? expectedTotal : sumTotal;
 
