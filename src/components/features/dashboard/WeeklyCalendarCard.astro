@@ -531,7 +531,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
     }
 
-    function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number; previousTarget?: HTMLButtonElement | null } = {}) {
+    function updatePillForButton(button: HTMLButtonElement | null, opts: { immediate?: boolean; morph?: boolean; duration?: number; previousTarget?: HTMLButtonElement | null; startRects?: any } = {}) {
       if (!button || !pill || !circle) return;
       const { immediate = false, morph = false, duration = 400 } = opts;
 
@@ -576,12 +576,12 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       }
 
       if (morph) {
-        const startPillRect = pill.getBoundingClientRect();
-        const startCircleRect = circle.getBoundingClientRect();
-        const startPillRadius = parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
-        const sectionRect = section.getBoundingClientRect();
+        const startPillRect = opts.startRects?.pill || pill.getBoundingClientRect();
+        const startCircleRect = opts.startRects?.circle || circle.getBoundingClientRect();
+        const startPillRadius = opts.startRects?.radius || parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
 
         ensureParent();
+        const sectionRect = section.getBoundingClientRect();
 
         const startPillLeft = startPillRect.left - sectionRect.left;
         const startPillTop = startPillRect.top - sectionRect.top;
@@ -855,6 +855,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     }
 
     expandBtn.addEventListener("click", () => {
+      const startPillRect = pill.getBoundingClientRect();
+      const startCircleRect = circle.getBoundingClientRect();
+      const startPillRadius = parseFloat(getComputedStyle(pill).borderRadius) || Math.min(startPillRect.width, startPillRect.height) / 2;
+
       const activeBtn = getVisibleActiveButton();
       let targetBtn: HTMLButtonElement | null = null;
       let weekOffsetRem = 0;
@@ -939,7 +943,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
         const targetForMorph = isExpanded ? targetBtn : activeBtn;
         if (targetForMorph) {
-          updatePillForButton(targetForMorph, { morph: true, duration: 600 });
+          updatePillForButton(targetForMorph, { 
+            morph: true, 
+            duration: 600,
+            startRects: { pill: startPillRect, circle: startCircleRect, radius: startPillRadius }
+          });
         }
       });
 
