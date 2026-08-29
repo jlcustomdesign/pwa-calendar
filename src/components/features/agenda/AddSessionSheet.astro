@@ -563,6 +563,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     
     selectDate(dateStr: string) {
       if (!dateStr || !this.dateInput) return;
+      const parsed = new Date(dateStr + 'T00:00:00');
+      if (!isNaN(parsed.getTime()) && (parsed.getDay() === 0 || parsed.getDay() === 6)) {
+        return; // Weekend is not allowed for appointments
+      }
       this.dateInput.value = dateStr;
 
       const dateLabel = document.getElementById('display-date-label');
@@ -1110,7 +1114,17 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const timeStr = detail.time || session?.selectedTime || '08:00';
       const dateStr = detail.date || session?.selectedDate;
       const patientName = detail.patientName || session?.patientName;
-      const effectiveDate = dateStr || (window as any).currentCalendarDate || new Date().toISOString().split('T')[0];
+      let effectiveDate = dateStr || (window as any).currentCalendarDate || new Date().toISOString().split('T')[0];
+      const effDateObj = new Date(effectiveDate + 'T00:00:00');
+      if (!isNaN(effDateObj.getTime())) {
+        if (effDateObj.getDay() === 6) { // Saturday -> Monday
+          effDateObj.setDate(effDateObj.getDate() + 2);
+          effectiveDate = effDateObj.toISOString().split('T')[0];
+        } else if (effDateObj.getDay() === 0) { // Sunday -> Monday
+          effDateObj.setDate(effDateObj.getDate() + 1);
+          effectiveDate = effDateObj.toISOString().split('T')[0];
+        }
+      }
 
       this.isGroupEdit = isGroupEdit;
       this.groupEditMemberIds = isGroupEdit ? (detail.memberIds || []) : [];

@@ -56,6 +56,12 @@ export async function updateAppointment(id: string, updates: {
   locatie?: 'Belaqva' | 'Ghimbav';
   group_id?: string | null;
 }) {
+  if (updates.data) {
+    const d = new Date(updates.data + 'T00:00:00');
+    if (d.getDay() === 0 || d.getDay() === 6) {
+      throw new Error('Nu se pot muta programări în weekend (Sâmbătă sau Duminică).');
+    }
+  }
   const user = await getCurrentUser();
   const { error } = await (supabase as any)
     .from('programari')
@@ -162,6 +168,11 @@ export async function createAppointment(input: {
   locatie?:   'Belaqva' | 'Ghimbav';
   group_id?:  string | null;
 }): Promise<string> { // returnează ID-ul programării
+  const d = new Date(input.data + 'T00:00:00');
+  if (d.getDay() === 0 || d.getDay() === 6) {
+    throw new Error('Nu se pot crea programări în weekend (Sâmbătă sau Duminică).');
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Trebuie să fii autentificat pentru a crea o programare.');
 
