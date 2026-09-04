@@ -667,9 +667,16 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
     const inputBreakBetween = document.getElementById('breakBetween') as HTMLInputElement | null;
     const inputDefaultPrice = document.getElementById('defaultPrice') as HTMLInputElement | null;
 
-    if (inputDuration)     inputDuration.value     = (settings.session_duration ?? 50).toString();
-    if (inputBreakBetween) inputBreakBetween.value  = (settings.break_buffer      ?? 10).toString();
-    if (inputDefaultPrice) inputDefaultPrice.value  = (settings.default_price     ?? 150).toString();
+    // Nu suprascrie câmpul dacă utilizatorul a început deja să editeze
+    // (hydrate-ul rulează după un await — altfel s-ar pierde ce a tastat).
+    const setIfNotFocused = (el: HTMLInputElement | null, val: number | string) => {
+      if (!el || document.activeElement === el) return;
+      el.value = val.toString();
+    };
+
+    setIfNotFocused(inputDuration,     settings.session_duration ?? 50);
+    setIfNotFocused(inputBreakBetween, settings.break_buffer      ?? 10);
+    setIfNotFocused(inputDefaultPrice, settings.default_price     ?? 150);
 
 
 

@@ -484,7 +484,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
             </div>
 
             <!-- Draggable Foreground -->
-            <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}">
+            <div class="swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses} ${session.isDuplicate ? 'opacity-45 saturate-50 border-2 border-dashed border-black/40' : ''}">
               
               <div class="card-summary relative z-20 flex flex-col justify-between cursor-pointer transition-transform active:scale-[0.98] min-h-[80px] p-6">
                 <div class="flex items-center gap-3 w-full relative z-10 justify-between">
@@ -621,6 +621,16 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
             groupId: a.group_id || null,
           };
         }));
+
+        // Marchează duplicatele (același pacient la aceeași oră) — se afișează transparent
+        const dupCounts = new Map();
+        for (const s of storedSessions) {
+          const key = `${s.patientId}|${(s.selectedTime || '').substring(0, 5)}`;
+          dupCounts.set(key, (dupCounts.get(key) || 0) + 1);
+        }
+        for (const s of storedSessions) {
+          s.isDuplicate = (dupCounts.get(`${s.patientId}|${(s.selectedTime || '').substring(0, 5)}`) || 0) > 1;
+        }
       } catch (e) {
         console.error('Eroare citire programari din DB:', e);
       }
@@ -655,12 +665,6 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         });
       }
 
-      function findSessionsForHour(slotTimeStr: string) {
-        const [sh, sm] = slotTimeStr.split(':').map(Number);
-        const slotStartMin = (sh || 0) * 60 + (sm || 0);
-        return findSessionsInRange(slotStartMin, slotStartMin + currentSessionDuration);
-      }
-
       const breakBuffer = Number(settings.break_buffer) || 0;
       const slotStep = currentSessionDuration + breakBuffer; // ex: 50 min ședință + 10 min pauză = slot la fiecare oră
 
@@ -690,6 +694,22 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       const lunchInRange = lunchEndMin > startHour * 60 && lunchStartMin < endMin;
       let lunchInserted = false;
 
+      // Repartizează fiecare ședință în slotul în care ÎNCEPE (o ședință de 50 min
+      // de la 07:45 se afișează DOAR la 07:45, nu și ca duplicat estompat la 08:00).
+      const slotBuckets = new Map<string, any[]>(timeSlots.map((t) => [t, []]));
+      for (const s of storedSessions) {
+        if (!s.selectedTime) continue;
+        const parts = s.selectedTime.split(':');
+        const startMin = (parseInt(parts[0] || '0', 10) * 60) + parseInt(parts[1] || '0', 10);
+        let chosen = timeSlots[0];
+        for (const t of timeSlots) {
+          const [th, tm] = t.split(':').map(Number);
+          if ((th || 0) * 60 + (tm || 0) <= startMin) chosen = t;
+          else break;
+        }
+        slotBuckets.get(chosen)!.push(s);
+      }
+
       for (let i = 0; i < timeSlots.length; i++) {
         const slotTimeStr = timeSlots[i];
         const [sh, sm] = slotTimeStr.split(':').map(Number);
@@ -699,7 +719,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           items.push({ type: 'lunch', slots: [lunchStart] });
           lunchInserted = true;
         }
-        items.push({ type: 'slot', time: slotTimeStr, sessions: findSessionsForHour(slotTimeStr) });
+        items.push({ type: 'slot', time: slotTimeStr, sessions: slotBuckets.get(slotTimeStr) || [] });
       }
 
       if (!lunchInserted && lunchInRange) {
@@ -827,7 +847,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           }
 
           return `
-            <div class="member-card p-3.5 rounded-2xl ${memberClasses} shadow-sm space-y-2.5 border border-black/5" onclick="event.stopPropagation();">
+            <div class="member-card p-3.5 rounded-2xl ${memberClasses} shadow-sm space-y-2.5 border border-black/5 ${m.isDuplicate ? 'opacity-45 saturate-50 border-dashed !border-black/40' : ''}" onclick="event.stopPropagation();">
               <!-- Row 1: Nume & Actions -->
               <div class="flex items-center justify-between gap-2">
                 <span class="font-black text-sm text-neutral-900 truncate flex-1">${safeName}</span>
