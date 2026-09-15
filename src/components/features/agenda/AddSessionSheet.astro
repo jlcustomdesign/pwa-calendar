@@ -237,7 +237,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
   import { getPatients, getPatient, addPatient, updatePatient } from '../../../lib/services/patientService';
-  import { createAppointment, updateAppointment, deleteAppointment } from '../../../lib/services/appointmentService';
+  import { createAppointment, updateAppointment, deleteAppointment, getFutureDemand, wouldExceedSupply } from '../../../lib/services/appointmentService';
   import { escapeHtml } from '../../../utils/html';
 
   class AddSessionSheetManager {
@@ -958,6 +958,28 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       });
     }
 
+    // Guard cerere vs ofertă: avertizează (fără a bloca) când programările viitoare
+    // depășesc ședințele rămase în pachet. Returnează false dacă utilizatorul renunță.
+    private async confirmIfBeyondSupply(pid: string): Promise<boolean> {
+      try {
+        const p = this.patientsCache.find(x => x.id === pid);
+        if (!p) return true;
+        const total = Number(p.sedinte_total || 0);
+        if (total <= 0) return true;
+        const demand = await getFutureDemand(pid);
+        if (wouldExceedSupply({ sedinte_total: total, sedinte_folosite: Number(p.sedinte_folosite || 0) }, demand + 1)) {
+          const ramase = total - Number(p.sedinte_folosite || 0);
+          const nume = (p as any).name || `${(p as any).prenume || ''} ${(p as any).nume || ''}`.trim() || 'Pacient';
+          return window.confirm(
+            `${nume}: mai sunt ${ramase} ședințe în pachet, dar deja sunt ${demand} programate (aceasta ar fi a ${demand + 1}-a).\n\nProgramezi oricum? Excesul va fi marcat „în afara pachetului".`
+          );
+        }
+      } catch (e) {
+        console.warn('Guard cerere vs ofertă indisponibil:', e);
+      }
+      return true;
+    }
+
     async handleSubmit(e?: Event) {
       if (e) e.preventDefault();
 
@@ -1009,6 +1031,15 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           `Ora ${selectedTime} se suprapune cu pauza de masă (${lunchStart} - ${lunchEnd}).\n\nDorești să programezi oricum?`
         );
         if (!proceed) return;
+      }
+
+      // Guard cerere vs ofertă: la creare (nu la editare/reprogramare), avertizează
+      // când programările viitoare ale pacientului depășesc ședințele rămase.
+      const idsToBook = this.isGroupEdit
+        ? this.selectedPatientIds.filter(pid => !(this.groupEditMembers || []).some(m => m.patientId === pid))
+        : (sessionId ? [] : patientIds);
+      for (const pid of idsToBook) {
+        if (!(await this.confirmIfBeyondSupply(pid))) return;
       }
 
       const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;

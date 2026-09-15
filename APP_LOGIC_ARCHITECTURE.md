@@ -15,7 +15,8 @@ Aplicația se bazează pe o bază de date relațională cu securitate Row Level 
 - `plan` (text): **'Subscription'** (abonament) sau **'One Time'** (o singură ședință).
 - `cost` (numeric): Prețul stabilit pentru acel pacient (per ședință sau per pachet întreg).
 - `sedinte_total` (int): Numărul de ședințe din pachet (ex. 10 pentru abonament, 1 pentru standard).
-- `sedinte_folosite` (int): Contorul ședințelor finalizate efectiv de pacient din acest pachet.
+- `sedinte_folosite` (int): Contorul ședințelor finalizate efectiv de pacient din acest pachet. **Protejat la scriere:** poate fi modificat doar de triggerul de pe `programari` (finalizare/anulare ședință) sau de RPC-ul de reînnoire — o încercare directă de UPDATE din aplicație/manaul e respinsă de triggerul `trg_protejeaza_contor`.
+- `abonament_start` (date, nullable): Data de început a pachetului curent; setată automat la crearea pacientului și la fiecare reînnoire. `NULL` = rânduri vechi (legacy) create înainte de introducerea câmpului.
 - `status_abonament` (text): 
   - `'activ'` (pachet în derulare)
   - `'ultima_sedinta'` (când sedinte_folosite = sedinte_total - 1)
@@ -99,7 +100,7 @@ La apăsare, se deschide Wrap-Up Sheet cu următoarele reguli:
 
 1. **Acțiunea 'Confirmare':**
    - Schimbă starea în baza de date pentru intrarea din `programari` din `'programat'` în `'finalizat'`.
-   - Execută direct **Incrementul (+1) pe tabela `pacienti`** pentru coloana `sedinte_folosite`.
+   - **Triggerul DB** `trg_incrementeaza_sedinte` incrementează automat `sedinte_folosite` (cu plafon la `sedinte_total`). Aplicația nu scrie niciodată direct în contor.
 2. **Următorul Pas Automat (Next-Week Schedule):**
    - Modalul oferă un checkbox bifat default: *"Programează automat pacientul X la aceeași oră peste o săptămână"*.
    - Dacă e lăsat bifat, sistemul creează instant o nouă intrare în `programari` la +7 Zile cu status `'programat'`, ținând calendarul plin pentru retenția pacienților.
@@ -110,15 +111,25 @@ La apăsare, se deschide Wrap-Up Sheet cu următoarele reguli:
 
 Problema clasică era că pacienții ajungeau la ședința 10/10, dar nu se putea începe un pachet nou fără un cont nou sau editări complicate.
 
-**Soluția Curentă Implementată:**
+**Soluția Curentă Implementată (actualizată — reînnoire atomică `renew_subscription`):**
 - Când un pacient a consumat toate ședințele (`sedinte_folosite >= sedinte_total`), pe cardul său din UI textul de progres ("7/10 Ședințe") este înlocuit **complet** de un banner roz, apăsabil:  
   **`ABONAMENT TERMINAT — REÎNNOIEȘTE (0/X)`** (unde X este ultimul număr de ședințe avut în pachet).
 - La click pe banner, se execută funcția globală `window.renewSubscription(patientId, newTotal)`:
-  1. API-ul face update în Supabase `pacienti`: 
-     - Setează `sedinte_folosite = 0`.
-     - Setează `status_abonament = 'activ'`.
-  2. Apelarea `window.dispatchEvent('patientsUpdated')` curăță instant vizual ecranul (dispare butonul roz și reapare progresul de la `0/10`). 
-  - Noul pachet începe astfel imaculat.
+  1. Aplicația apelează RPC-ul Supabase `renew_subscription` (funcție SECURITY DEFINER, o singură tranzacție):
+     - Setează noul `sedinte_total` și `cost`, `status_abonament = 'activ'`, `abonament_start = azi`.
+     - Contorul NU mai este resetat oarbă la 0: ședințele finalizate neacoperite de pachetul anterior (cele depășit `sedinte_total` de la `abonament_start` încoace) se **poartă** în noul pachet (`sedinte_folosite = LEAST(neacoperite, noul_total)`).
+     - **NU se șterge nimic din `plati`** — istoricul plăților se păstrează integral (abonamentele vechi rămân vizibile).
+     - Înregistrează și plata inițială (`p_paid`) în `plati`, dacă există.
+  2. Triggerul `trg_protejeaza_contor` permite schimbarea contorului doar din acest RPC (sau din triggerul de ședințe) — editările manuale/stale sunt respinse.
+  3. Apelarea `window.dispatchEvent('patientsUpdated')` curăță instant vizual ecranul (dispare butonul roz și reapare progresul).
+
+---
+
+## 6.1 🛡️ GĂRZILE „CERERE VS OFERTĂ" (anti-suprabooking)
+
+Pentru a preveni programarea unui pacient peste ședințele rămase în pachet:
+- **La crearea unei programări** (`AddSessionSheet`) și la reprogramarea automată din Wrap-Up (`SessionWrapUpSheet`): dacă numărul de programări viitoare active + aceasta depășește `sedinte_ramase`, utilizatorul primește un dialog de avertizare (ne-blocant) cu numărul de ședințe rămase vs. programate.
+- **Marcaj vizual:** programările viitoare a căror poziție în lista pacientului depășește ședințele rămase sunt etichetate **„În afara pachetului"** (amber) în calendar (`calendar.astro`) și agendă (`AgendaBlock.astro`). Devin automat acoperite la reînnoire (prin portarea ședințelor neacoperite).
 
 ---
 

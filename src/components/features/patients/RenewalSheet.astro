@@ -39,7 +39,7 @@
       <svg class="w-4 h-4 text-amber-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
       </svg>
-      <span class="text-xs font-black text-neutral-800 leading-snug">Contorul de ședințe va fi reluat de la 0 (istoricul rămâne salvat).</span>
+      <span class="text-xs font-black text-neutral-800 leading-snug">Se deschide un pachet nou de ședințe: ședințele neacoperite din pachetul anterior se păstrează, iar istoricul plăților rămâne salvat.</span>
     </div>
 
     <!-- CARD: PREȚ & ȘEDINȚE (Clean Design) -->
@@ -474,8 +474,10 @@
               this.pricePerSession = Math.round(Number(patient.cost) / Number(patient.sedinte_total));
             }
 
-            // Calcul restanță anterioară (dacă nu e achitat integral)
-            const paymentsTotal = await getPatientPayments(this.currentPatientId);
+            // Calcul restanță pentru pachetul CURENT: doar plățile făcute de la
+            // abonament_start (plățile pachetelor vechi rămân în istoric, dar nu
+            // acoperă restanța pachetului curent).
+            const paymentsTotal = await getPatientPayments(this.currentPatientId, patient.abonament_start || undefined);
             const unpaidDebt = Math.max(0, (patient.cost || 0) - paymentsTotal);
             if (unpaidDebt > 0 && debtCard && debtAmountEl) {
                debtAmountEl.textContent = `${unpaidDebt} RON`;

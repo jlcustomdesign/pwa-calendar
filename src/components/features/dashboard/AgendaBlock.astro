@@ -29,7 +29,7 @@
   </div>
 </div>
 <script>
-  import { getAppointmentsByDate, cancelAppointment, deleteAppointment } from '../../../lib/services/appointmentService';
+  import { getAppointmentsByDate, cancelAppointment, deleteAppointment, getFutureActiveAppointments } from '../../../lib/services/appointmentService';
   import { getPatients, getPatientPayments, isRenewalDismissed } from '../../../lib/services/patientService';
   import { escapeHtml, escapeJsString } from '../../../utils/html';
   import { isPushSubscribed } from '../../../lib/services/pushService';
@@ -229,6 +229,9 @@
       } else if (m.status === 'anulat') {
         statusBadge = `<span class="inline-flex items-center gap-1 text-[11px] font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg shrink-0">Anulat</span>`;
       }
+      const beyondBadge = m.beyondSupply
+        ? `<span class="inline-flex items-center text-[10px] font-black uppercase tracking-wide text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-lg shrink-0" title="În afara pachetului — devine activă la reînnoire">În afara pachetului</span>`
+        : '';
 
       return `
         <div class="member-swipe-wrapper relative rounded-2xl ${memberClasses} shadow-sm border border-black/5 overflow-hidden" data-member-appointment-id="${m.id}" data-member-patient-id="${m.patientId}" data-member-patient-name="${safeName}">
@@ -263,7 +266,7 @@
             <div class="flex items-center justify-between gap-2">
               <span class="font-black text-sm text-neutral-900 truncate flex-1">${safeName}</span>
               <div class="flex items-center gap-1.5 shrink-0">
-                ${statusBadge}
+                ${statusBadge}${beyondBadge}
                 <span class="text-xs font-black text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-lg font-mono">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
               </div>
             </div>
@@ -504,6 +507,10 @@
         statusIcon = `<svg class="w-7 h-7 ${isGhimbav ? 'text-brand-primary' : 'text-brand-secondary'} shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
       }
 
+      const beyondSupplyBadge = session.beyondSupply
+        ? `<span class="shrink-0 px-2.5 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-black uppercase tracking-wide" title="În afara pachetului — devine activă la reînnoire">În afara pachetului</span>`
+        : '';
+
       const subscriptionWarningDetails = isTerminat && !isRenewalDismissed(session.patientId)
         ? `<div class="px-6 pb-4">
             <div class="flex items-center gap-3 rounded-2xl bg-brand-secondary/15 border border-brand-secondary/30 p-3">
@@ -591,6 +598,7 @@
                 <div class="flex-1 min-w-0">
                   <h4 class="text-xl font-bold tracking-tight leading-none truncate">${safePatientName}</h4>
                 </div>
+                ${beyondSupplyBadge}
                 ${statusIcon}
               </div>
             </div>
@@ -751,6 +759,28 @@
           groupId: a.group_id || null,
         };
       }));
+
+      // Marchează programările viitoare care depășesc ședințele rămase
+      // (cerere vs ofertă): poziția în lista viitoare a pacientului > ședințe rămase.
+      try {
+        const pids = [...new Set(stored.map((s: any) => s.patientId).filter(Boolean))] as string[];
+        const futureAppts = await getFutureActiveAppointments(pids);
+        const byPatient = new Map<string, any[]>();
+        for (const fa of futureAppts as any[]) {
+          if (!byPatient.has(fa.pacient_id)) byPatient.set(fa.pacient_id, []);
+          byPatient.get(fa.pacient_id)!.push(fa);
+        }
+        for (const s of stored) {
+          s.beyondSupply = false;
+          if (!s.patientId || !['programat', 'confirmat'].includes(s.status)) continue;
+          if ((s.selectedDate || '') < todayStr) continue;
+          const lst = byPatient.get(s.patientId) || [];
+          const pos = lst.findIndex((fa: any) => fa.id === s.id);
+          if (pos >= 0 && pos + 1 > (s.remainingSessions || 0)) s.beyondSupply = true;
+        }
+      } catch (e) {
+        console.warn('Marcaj „în afara pachetului” indisponibil:', e);
+      }
     } catch (e) {
       console.error('Eroare citire agenda din DB:', e);
     }

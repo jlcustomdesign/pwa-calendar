@@ -201,6 +201,7 @@ export type Database = {
       }
       pacienti: {
         Row: {
+          abonament_start: string | null
           achitat: boolean
           cost: number
           created_at: string
@@ -221,6 +222,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          abonament_start?: string | null
           achitat?: boolean
           cost?: number
           created_at?: string
@@ -241,6 +243,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          abonament_start?: string | null
           achitat?: boolean
           cost?: number
           created_at?: string
@@ -595,6 +598,7 @@ export type Database = {
     Views: {
       pacienti_view: {
         Row: {
+          abonament_start: string | null
           achitat: boolean | null
           cost: number | null
           created_at: string | null

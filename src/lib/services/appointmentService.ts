@@ -272,6 +272,55 @@ export async function rebookNextWeek(originalId: string): Promise<string> {
   });
 }
 
+// ── Cerere vs ofertă (guard pachet) ────────────────────────────
+// future demand = viitoarele programari active (status 'programat' sau 'confirmat',
+// data >= azi); programarea nou creată implicită se adaugă de apelant ca +1.
+export async function getFutureDemand(pacientId: string): Promise<number> {
+  const now = new Date();
+  const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const user = await getCurrentUser();
+
+  const { count, error } = await (supabase as any)
+    .from('programari')
+    .select('id', { count: 'exact', head: true })
+    .eq('pacient_id', pacientId)
+    .eq('user_id', user.id)
+    .gte('data', todayStr)
+    .in('status', ['programat', 'confirmat']);
+
+  if (error) throw new Error('Eroare la numărarea programărilor viitoare: ' + error.message);
+  return count ?? 0;
+}
+
+export function wouldExceedSupply(
+  patient: { sedinte_total: number; sedinte_folosite: number },
+  futureDemand: number
+): boolean {
+  return futureDemand > (patient.sedinte_total - patient.sedinte_folosite);
+}
+
+// ── Programări active viitoare pentru o listă de pacienți ─────
+// Folosită de renderere (calendar / agendă) pentru marcarea "în afara pachetului".
+export async function getFutureActiveAppointments(patientIds: string[]): Promise<Programare[]> {
+  if (patientIds.length === 0) return [];
+  const now = new Date();
+  const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const user = await getCurrentUser();
+
+  const { data, error } = await (supabase as any)
+    .from('programari')
+    .select('id, pacient_id, data, ora')
+    .in('pacient_id', patientIds)
+    .eq('user_id', user.id)
+    .gte('data', todayStr)
+    .in('status', ['programat', 'confirmat'])
+    .order('data', { ascending: true })
+    .order('ora', { ascending: true });
+
+  if (error) throw new Error('Eroare la citirea programărilor viitoare: ' + error.message);
+  return data ?? [];
+}
+
 // ── Wrap-up: sesiuni trecute încă nerezolvate ─────────────────
 // (status 'programat', data trecută sau azi dar ora + 1h a trecut)
 export interface PendingWrapUp {

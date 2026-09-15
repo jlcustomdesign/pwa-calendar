@@ -237,63 +237,50 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
   }
 }
 
-// ── Reînnoire / Resetare pachet pacient (reia ședințele de la 0) ──
+// ── Reînnoire / pachet nou pacient (renew_subscription RPC) ──
+// Reînnoirea atomica deschide un pachet nou, poartă ședințele neacoperite din
+// pachetul anterior și PĂSTREAZĂ istoricul plăților (nu se șterge nimic din `plati`).
 export async function resetPatientSubscription(
-  id: string, 
-  newTotalSessions?: number, 
-  newCostTotal: number = 0, 
+  id: string,
+  newTotalSessions?: number,
+  newCostTotal: number = 0,
   paymentOption: { status: 'Neachitat' | 'Parțial' | 'Achitat'; paidAmount?: number } | boolean = false
 ): Promise<void> {
   const current = await getPatient(id);
-  // ✅ FIX: costul noului abonament ÎNLOCUIEȘTE costul vechi, nu se acumulează
+  // ✅ costul noului abonament ÎNLOCUIEȘTE costul vechi, nu se acumulează
   const nextTotal = newTotalSessions ?? (current.sedinte_total || 10);
   const nextCost = newCostTotal > 0 ? newCostTotal : (current.cost || 0);
 
-  let isAchitat = false;
+  let pStatus: 'Neachitat' | 'Parțial' | 'Achitat' = 'Neachitat';
   let amountToAdd = 0;
 
   if (typeof paymentOption === 'boolean') {
     if (paymentOption) {
       amountToAdd = nextCost;
-      isAchitat = true;
+      pStatus = 'Achitat';
     }
   } else if (paymentOption) {
     if (paymentOption.status === 'Achitat') {
       amountToAdd = nextCost;
-      isAchitat = true;
+      pStatus = 'Achitat';
     } else if (paymentOption.status === 'Parțial') {
       amountToAdd = paymentOption.paidAmount || 0;
-      isAchitat = false;
+      pStatus = 'Parțial';
     }
   }
 
-  // Reînnoirea înseamnă un pachet nou: resetăm contorul de ședințe folosite la 0
-  // și setăm noul total. Istoricul programărilor rămâne în DB.
-  // ✅ FIX: ștergem și plățile vechi la reînnoire (abonament nou = calcule noi)
-  try {
-    await (supabase as any).from('plati').delete().eq('pacient_id', id);
-  } catch (e) { console.warn('Eroare ștergere plăți la reînnoire:', e); }
-  if (typeof window !== 'undefined') {
-    try { localStorage.removeItem(`kineto_plati_${id}`); } catch (e) {}
-  }
+  // Totul (pachet nou + plata inițială) se face într-o singură tranzacție în DB.
+  // Istoricul `plati` rămâne intact — nu se mai șterg plăți vechi la reînnoire.
+  const { error } = await (supabase as any).rpc('renew_subscription', {
+    p_pacient_id: id,
+    p_total: nextTotal,
+    p_cost: nextCost,
+    p_paid: amountToAdd,
+    p_status: pStatus,
+  });
 
-  const { error } = await (supabase as any)
-    .from('pacienti')
-    .update({
-      sedinte_total: nextTotal,
-      sedinte_folosite: 0,
-      cost: nextCost,
-      status_abonament: 'activ',
-      achitat: isAchitat
-    })
-    .eq('id', id);
+  if (error) throw new Error(error.message || 'Eroare la reînnoirea abonamentului');
 
-  if (error) throw new Error('Eroare la reînnoirea abonamentului: ' + error.message);
-  
-  if (amountToAdd > 0) {
-    await addPayment(id, amountToAdd, isAchitat);
-  }
-  
   clearRenewalDismissal(id);
 }
 
@@ -345,13 +332,17 @@ export async function renewWithPrompt(patientId: string, currentTotal: number, p
 }
 
 // ── Obținere plăți pacient (Local + Supabase Hybrid) ───────────
-export async function getPatientPayments(id: string): Promise<number> {
+// `fromDate` (YYYY-MM-DD) limitează suma la plățile făcute de la data respectivă
+// (folosit la reînnoire: restanța pachetului curent, fără plățile pachetelor vechi).
+export async function getPatientPayments(id: string, fromDate?: string): Promise<number> {
   // Sursa unică de adevăr este tabela `plati` din Supabase.
   let dbTotal = 0;
   let hasDbPayments = false;
   try {
     const currentUser = await getCurrentUser();
-    const { data, error } = await (supabase as any).from('plati').select('suma').eq('pacient_id', id).eq('user_id', currentUser.id);
+    let query = (supabase as any).from('plati').select('suma').eq('pacient_id', id).eq('user_id', currentUser.id);
+    if (fromDate) query = query.gte('data_platii', fromDate);
+    const { data, error } = await query;
     if (!error && data && data.length > 0) {
       dbTotal = data.reduce((total: number, plata: any) => total + (plata.suma || 0), 0);
       hasDbPayments = true;
@@ -362,6 +353,12 @@ export async function getPatientPayments(id: string): Promise<number> {
 
   if (hasDbPayments) {
     return dbTotal;
+  }
+
+  // Cu filtru de dată, lipsa rândurilor înseamnă 0 lei plătiți în perioadă
+  // (fallback-urile de mai jos ar include plăți din afara perioadei).
+  if (fromDate) {
+    return 0;
   }
 
   // Fallback localStorage doar pentru dispozitive care nu au încă sincronizate plățile.

@@ -197,7 +197,7 @@
 </div>
 
 <script>
-  import { completeSession, createAppointment, markAbsent } from '../../../lib/services/appointmentService';
+  import { completeSession, createAppointment, markAbsent, getFutureDemand, wouldExceedSupply } from '../../../lib/services/appointmentService';
   import { getPatient, resetPatientSubscription } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { toLocalISOString } from '../../../utils/date';
@@ -565,6 +565,30 @@
         }
 
         // 3. Schedule next week session if subscription still active
+        // Guard cerere vs ofertă: avertizează când programarea viitoare depășește ședințele rămase.
+        if (this.selectedRecurrence !== 'none') {
+          try {
+            const total = Number(freshPatient?.sedinte_total || appt.pacienti?.sedinte_total || 0);
+            if (total > 0) {
+              const demand = await getFutureDemand(patientId);
+              if (wouldExceedSupply({ sedinte_total: total, sedinte_folosite: Number(freshPatient?.sedinte_folosite || 0) }, demand + 1)) {
+                const ramase = total - Number(freshPatient?.sedinte_folosite || 0);
+                const nume = freshPatient?.name || (appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : 'Pacient');
+                const proceed = window.confirm(
+                  `${nume}: mai sunt ${ramase} ședințe în pachet, dar deja sunt ${demand} programate (aceasta ar fi a ${demand + 1}-a).\n\nProgramezi oricum? Excesul va fi marcat „în afara pachetului".`
+                );
+                if (!proceed) {
+                  (window as any).showToast('Programarea viitoare nu a fost creată. Se poate adăuga după reînnoire.', 'info');
+                  this.close();
+                  return;
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Guard cerere vs ofertă indisponibil:', e);
+          }
+        }
+
         if (this.selectedRecurrence === 'same') {
           const timeStr = appt.ora || appt.selectedTime || '08:00';
           const locatie = appt.location || appt.pacienti?.locatie || 'Belaqva';
