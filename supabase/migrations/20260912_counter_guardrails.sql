@@ -31,9 +31,13 @@ DROP TRIGGER IF EXISTS trg_protejeaza_contor ON pacienti;
 CREATE TRIGGER trg_protejeaza_contor BEFORE UPDATE ON pacienti FOR EACH ROW EXECUTE FUNCTION protejeaza_contor_sedinte();
 
 -- c) Reînnoire atomică — NU șterge din plati, păstrează istoricul plăților
---    Reînnoirea NU pornește pachetul de la data plății: noul pachet începe la
---    PRIMA ședință reală neacoperită, iar ședințele finalizate peste plafon se
---    poartă în noul pachet (contorul nu se resetează la 0).
+--    Contorul NU se resetează niciodată la reînnoire:
+--    • pachet NEEPUIZAT (sedinte_folosite < sedinte_total): reînnoirea confirmă
+--      plata pe pachetul curent — contorul și data de start rămân; la pachete
+--      urmărite contorul e adus la realitate cu ședințele livrate necontorizate;
+--    • pachet EPUIZAT: pachet nou care poartă în cont ședințele livrate peste
+--      plafonul anterior (exces = datorie, nu se pierde); noul pachet începe la
+--      PRIMA ședință reală neacoperită, nu la data plății.
 CREATE OR REPLACE FUNCTION renew_subscription(
   p_pacient_id uuid,
   p_total int,
@@ -45,7 +49,8 @@ DECLARE
   v_pacient pacienti%ROWTYPE;
   v_n_all int;
   v_n int;
-  v_uncovered int := 0;
+  v_old_total int;
+  v_new_used int;
   v_new_start date;
 BEGIN
   SELECT * INTO v_pacient FROM pacienti WHERE id = p_pacient_id FOR UPDATE;
@@ -56,35 +61,49 @@ BEGIN
   SELECT count(*) INTO v_n_all FROM programari
     WHERE pacient_id = p_pacient_id AND status = 'finalizat';
 
-  IF v_pacient.abonament_start IS NOT NULL THEN
-    -- pachet urmărit deja: ședințele acestui pachet = finalizate de la abonament_start
-    SELECT count(*) INTO v_n FROM programari
-      WHERE pacient_id = p_pacient_id AND status = 'finalizat' AND data >= v_pacient.abonament_start;
-    v_uncovered := GREATEST(0, v_n - GREATEST(1, v_pacient.sedinte_total));
-  ELSE
-    -- legacy (fără dată de start): contorul e singura sursă — sesiunile livrate
-    -- peste contor sunt neacoperite și se poartă în noul pachet
-    v_uncovered := GREATEST(0, v_n_all - v_pacient.sedinte_folosite);
-  END IF;
+  v_old_total := GREATEST(1, v_pacient.sedinte_total);
 
-  -- noul pachet începe la PRIMA ședință reală neacoperită, nu la data plății
-  IF v_uncovered > 0 THEN
-    SELECT data INTO v_new_start FROM (
-      SELECT data, row_number() OVER (ORDER BY data, ora) AS rn
-      FROM programari WHERE pacient_id = p_pacient_id AND status = 'finalizat'
-    ) t WHERE rn = (v_n_all - v_uncovered + 1);
+  IF v_pacient.sedinte_folosite >= v_old_total THEN
+    -- Pachet EPUIZAT: pachet nou; în el se poartă doar ședințele livrate
+    -- peste plafonul pachetului anterior (exces = datorie, nu se pierde)
+    IF v_pacient.abonament_start IS NOT NULL THEN
+      SELECT count(*) INTO v_n FROM programari
+        WHERE pacient_id = p_pacient_id AND status = 'finalizat' AND data >= v_pacient.abonament_start;
+    ELSE
+      v_n := v_n_all;
+    END IF;
+    v_new_used := GREATEST(0, v_n - v_old_total);
+    IF v_new_used > 0 THEN
+      SELECT data INTO v_new_start FROM (
+        SELECT data, row_number() OVER (ORDER BY data, ora) AS rn
+        FROM programari WHERE pacient_id = p_pacient_id AND status = 'finalizat'
+      ) t WHERE rn = (v_n_all - v_new_used + 1);
+    ELSE
+      v_new_start := CURRENT_DATE;
+    END IF;
   ELSE
-    v_new_start := CURRENT_DATE;
+    -- Pachet NEEPUIZAT: reînnoirea confirmă plata pe pachetul curent —
+    -- contorul NU se resetează. La pachete urmărite aducem contorul la
+    -- realitate cu ședințele livrate necontorizate (drift de import).
+    IF v_pacient.abonament_start IS NOT NULL THEN
+      SELECT count(*) INTO v_n FROM programari
+        WHERE pacient_id = p_pacient_id AND status = 'finalizat' AND data >= v_pacient.abonament_start;
+      v_new_used := GREATEST(v_pacient.sedinte_folosite, v_n);
+      v_new_start := v_pacient.abonament_start;
+    ELSE
+      v_new_used := v_pacient.sedinte_folosite; -- legacy: istoricul vechi nu e decodabil
+      v_new_start := v_pacient.abonament_start; -- rămâne NULL (legacy)
+    END IF;
   END IF;
 
   PERFORM set_config('app.allow_counter_write', 'on', true); -- local to transaction
   UPDATE pacienti SET
     sedinte_total = GREATEST(1, p_total),
-    sedinte_folosite = LEAST(v_uncovered, GREATEST(1, p_total)),
+    sedinte_folosite = LEAST(v_new_used, GREATEST(1, p_total)),
     cost = GREATEST(0, p_cost),
     achitat = (p_status = 'Achitat'),
     status_abonament = 'activ',
-    abonament_start = COALESCE(v_new_start, CURRENT_DATE)
+    abonament_start = v_new_start
   WHERE id = p_pacient_id;
   IF p_paid > 0 THEN
     INSERT INTO plati (pacient_id, suma, data_platii, user_id)
