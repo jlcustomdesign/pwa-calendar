@@ -13,12 +13,6 @@ export interface PricingPreset {
   price: number;
 }
 
-export const DEFAULT_PRICING_PRESETS: PricingPreset[] = [
-  { id: 'p1', name: 'Abonament Standard', plan: 'Abonament', total_sessions: 10, price: 1500 },
-  { id: 'p2', name: 'Program Individual', plan: 'Abonament', total_sessions: 10, price: 1800 },
-  { id: 'p3', name: 'Ședință unică', plan: 'Ședință unică', total_sessions: 1, price: 150 },
-];
-
 const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
   therapist_name: 'Roxana',
   work_start: '08:00',
@@ -225,7 +219,7 @@ export async function saveProfile(updates: {
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem('kineto_profile_cache', JSON.stringify(fullProfile));
-      window.dispatchEvent(new CustomEvent('profileUpdated', { detail: fullProfile }));
+      emit(EVENTS.profileUpdated, fullProfile);
     } catch (e) {}
   }
 

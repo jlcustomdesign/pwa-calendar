@@ -231,6 +231,7 @@
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { isAllowedUrl } from '../../../utils/html';
+  import { EVENTS, emit } from '../../../lib/events';
 
   class AddPatientSheetManager {
     sheet: HTMLElement | null;
@@ -585,17 +586,15 @@
           }
         }
 
-        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        emit(EVENTS.patientsUpdated);
         this.close();
 
         if (bookSession) {
           setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('openAddSession', {
-              detail: {
-                patientName: patientName,
-                showDateTime: true
-              }
-            }));
+            emit(EVENTS.openAddSession, {
+              patientName: patientName,
+              showDateTime: true
+            });
           }, 300);
         }
       } catch (err: any) {
@@ -808,7 +807,7 @@
   function initPatientSheet() {
     // Only bind the window event listener once globally
     if (!(window as any)._patientSheetListenerBound) {
-      window.addEventListener('openAddPatient', (e: any) => {
+      window.addEventListener(EVENTS.openAddPatient, (e: any) => {
         if ((window as any).currentPatientSheetManager) {
           (window as any).currentPatientSheetManager.handleOpenEvent(e);
         }

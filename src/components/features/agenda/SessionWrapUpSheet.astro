@@ -198,9 +198,10 @@
 
 <script>
   import { completeSession, createAppointment, markAbsent, getFutureDemand, wouldExceedSupply } from '../../../lib/services/appointmentService';
-  import { getPatient, resetPatientSubscription } from '../../../lib/services/patientService';
+  import { getPatient } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { toLocalISOString } from '../../../utils/date';
+  import { EVENTS, emit } from '../../../lib/events';
 
   class WrapUpSheetManager {
     private sheet: HTMLElement | null;
@@ -373,13 +374,11 @@
       const total = this.currentAppointment.pacienti?.sedinte_total || 10;
       
       // Open RenewalSheet on top of the current confirm card
-      window.dispatchEvent(new CustomEvent('openRenewalSheet', {
-        detail: {
-          patientId,
-          currentTotal: total,
-          patientName
-        }
-      }));
+      emit(EVENTS.openRenewalSheet, {
+        patientId,
+        currentTotal: total,
+        patientName
+      });
     }
 
     private async initView() {
@@ -518,8 +517,8 @@
 
         // Event must be dispatched if session completed, even if next steps fail
         if (sessionCompleted) {
-          window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-          window.dispatchEvent(new CustomEvent('patientsUpdated'));
+          emit(EVENTS.sessionsUpdated);
+          emit(EVENTS.patientsUpdated);
         }
 
         // Fetch fresh patient info to get updated session count after completeSession
@@ -547,18 +546,16 @@
           this.close();
 
           // Open RenewalSheet on top
-          window.dispatchEvent(new CustomEvent('openRenewalSheet', {
-            detail: {
-              patientId,
-              currentTotal: total,
-              patientName,
-              pendingAppointment: {
-                data: targetDate,
-                ora: targetTime,
-                locatie: locatie
-              }
+          emit(EVENTS.openRenewalSheet, {
+            patientId,
+            currentTotal: total,
+            patientName,
+            pendingAppointment: {
+              data: targetDate,
+              ora: targetTime,
+              locatie: locatie
             }
-          }));
+          });
           (window as any).showToast('Abonament completat! Reînnoiește pachetul pentru a confirma programarea viitoare.', 'warning');
 
           return;
@@ -635,8 +632,8 @@
       try {
         await markAbsent(this.currentAppointment.id, 'Pacientul nu a venit');
         (window as any).showToast('Ședința a fost marcată ca neefectuată (nu a venit).', 'info');
-        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-        window.dispatchEvent(new CustomEvent('patientsUpdated'));
+        emit(EVENTS.sessionsUpdated);
+        emit(EVENTS.patientsUpdated);
         this.close();
       } catch (err: any) {
         (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
@@ -1006,7 +1003,7 @@
         }
         this.currentAppointment = null;
       }, 500);
-      window.dispatchEvent(new CustomEvent('sessionWrapupClosed'));
+      emit(EVENTS.sessionWrapupClosed);
     }
 
     private unlockBodyScrollSafe() {
@@ -1023,7 +1020,7 @@
     // Only bind the window event listener once globally; route each open event
     // to the current manager so it survives Astro view transitions.
     if (!(window as any)._wrapUpWindowListenerBound) {
-      window.addEventListener('openWrapUp', (e: Event) => {
+      window.addEventListener(EVENTS.openWrapUp, (e: Event) => {
         (window as any).currentWrapUpSheetManager?.handleOpenEvent(e as CustomEvent);
       });
       (window as any)._wrapUpWindowListenerBound = true;

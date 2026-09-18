@@ -350,6 +350,7 @@
   import { getTodayStats, getWeekStats, getMonthStats, getQuarterStats, getYearStats, getUnpaidPatients, getDetailedPayments, getDetailedSessions, type DetailedPayment } from '../../../lib/services/reportsService';
   import { toLocalISOString, formatDateRO } from '../../../utils/date';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { EVENTS } from '../../../lib/events';
 
   type TabType = 'all' | 'day' | 'week' | 'month' | 'quarter' | 'year';
   let activeStatsTab: TabType = 'day';
@@ -1334,9 +1335,9 @@
         loadChartStats();
       }
     };
-    window.addEventListener('sessionsUpdated', reloadData);
-    window.addEventListener('patientsUpdated', reloadData);
-    window.addEventListener('paymentsUpdated', reloadData);
+    window.addEventListener(EVENTS.sessionsUpdated, reloadData);
+    window.addEventListener(EVENTS.patientsUpdated, reloadData);
+    window.addEventListener(EVENTS.paymentsUpdated, reloadData);
 
     (window as any)._reportsNavSetup = true;
   }

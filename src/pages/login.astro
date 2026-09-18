@@ -157,7 +157,8 @@ import '../styles/global.css';
         }
       }
 
-      document.addEventListener('DOMContentLoaded', initLoginPage);
+      // astro:page-load se declanșează și la încărcarea rece (înainte de DOMContentLoaded),
+      // deci un singur listener e suficient; dublul bind apela login() de două ori per submit.
       document.addEventListener('astro:page-load', initLoginPage);
     </script>
   </body>

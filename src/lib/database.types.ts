@@ -631,6 +631,10 @@ export type Database = {
       }
       genereaza_notificari_zilnice: { Args: never; Returns: undefined }
       get_vapid_secrets: { Args: never; Returns: Json }
+      record_payment: {
+        Args: { p_pacient_id: string; p_suma: number; p_mark_achitat: boolean }
+        Returns: undefined
+      }
       run_check_reminders_cron: { Args: never; Returns: undefined }
     }
     Enums: {

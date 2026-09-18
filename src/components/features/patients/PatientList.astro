@@ -124,6 +124,7 @@
   import { getPatients, deletePatient as deletePatientDB, isRenewalDismissed } from '../../../lib/services/patientService';
   import { getSettings } from '../../../lib/services/settingsService';
   import { escapeHtml } from '../../../utils/html';
+  import { EVENTS, emit } from '../../../lib/events';
 
   class PatientListManager {
     container: HTMLElement | null;
@@ -162,7 +163,7 @@
     bindEvents() {
       // Prevent duplicate global listeners
       if (!(window as any)._patientEventsBound) {
-        window.addEventListener('patientsUpdated', async (e: any) => {
+        window.addEventListener(EVENTS.patientsUpdated, async (e: any) => {
           const c = document.getElementById('patient-list-container');
           if (!c) return;
           this.container = c;
@@ -178,7 +179,7 @@
           await this.render();
         });
 
-        window.addEventListener('settingsUpdated', async () => {
+        window.addEventListener(EVENTS.settingsUpdated, async () => {
           await this.loadActiveCategories();
           this.renderFilterButtons();
           await this.render();
@@ -220,7 +221,7 @@
         });
 
         addBtn.addEventListener('click', () => {
-          window.dispatchEvent(new CustomEvent('openAddPatient'));
+          emit(EVENTS.openAddPatient);
         });
       }
 
@@ -403,9 +404,7 @@
 
         await deletePatientDB(id);
         (window as any).showToast('Pacientul a fost șters cu succes.', 'success');
-        window.dispatchEvent(new CustomEvent('patientsUpdated', {
-          detail: { source: 'patientListDelete', deletedId: id }
-        }));
+        emit(EVENTS.patientsUpdated, { source: 'patientListDelete', deletedId: id });
       } catch (err: any) {
         (window as any).showToast('Eroare la ștergerea pacientului: ' + err.message, 'error');
         this.render();
@@ -414,21 +413,17 @@
 
     editPatient(patient: any) {
       if (!patient) return;
-      window.dispatchEvent(new CustomEvent('openAddPatient', {
-        detail: {
-          isEdit: true,
-          patient: patient
-        }
-      }));
+      emit(EVENTS.openAddPatient, {
+        isEdit: true,
+        patient: patient
+      });
     }
 
     bookSession(patientName: string) {
-      window.dispatchEvent(new CustomEvent('openAddSession', {
-        detail: {
-          patientName: patientName,
-          showDateTime: true
-        }
-      }));
+      emit(EVENTS.openAddSession, {
+        patientName: patientName,
+        showDateTime: true
+      });
     }
 
     async render() {
@@ -443,48 +438,29 @@
       let patients: any[] = [];
       try {
         const filtersActive = !this.activeFilters.includes('all') && this.activeFilters.length > 0;
-
-        const activeLocations = filtersActive
-          ? this.activeFilters.filter((f: string) => f === 'belaqva' || f === 'ghimbav')
-          : [];
-        const activePayments = filtersActive
-          ? this.activeFilters.filter((f: string) => f === 'unpaid' || f === 'paid')
-          : [];
         const expiredActive = filtersActive && this.activeFilters.includes('expired');
 
-        patients = await getPatients({
-          search: this.currentSearchQuery || undefined
-        });
+        // Locația și plata au suport server-side în getPatients; doar filtrul
+        // de pachet expirat rămâne client-side (nu există coloană pentru el).
+        const serverFilter: {
+          search?: string;
+          locatie?: 'Belaqva' | 'Ghimbav';
+          achitat?: boolean;
+        } = { search: this.currentSearchQuery || undefined };
 
         if (filtersActive) {
-          patients = patients.filter((p: any) => {
-            const loc = (p.locatie || '').toLowerCase();
-            const locMatch =
-              activeLocations.length === 0 ||
-              activeLocations.some((f: string) => {
-                if (f === 'belaqva') return loc === 'belaqva' || loc === 'belaqua';
-                if (f === 'ghimbav') return loc === 'ghimbav';
-                return false;
-              });
+          if (this.activeFilters.includes('belaqva')) serverFilter.locatie = 'Belaqva';
+          if (this.activeFilters.includes('ghimbav')) serverFilter.locatie = 'Ghimbav';
+          if (this.activeFilters.includes('unpaid')) serverFilter.achitat = false;
+          if (this.activeFilters.includes('paid')) serverFilter.achitat = true;
+        }
 
-            let paymentMatch = true;
-            if (activePayments.length > 0) {
-              const suma = Number(p.suma_incasata || 0);
-              const cost = Number(p.cost || 0);
-              const isPaid = p.achitat || (cost > 0 && suma >= cost);
-              paymentMatch = activePayments.some((f: string) => {
-                if (f === 'paid') return isPaid;
-                if (f === 'unpaid') return !isPaid;
-                return false;
-              });
-            }
+        patients = await getPatients(serverFilter);
 
-            const expiredMatch =
-              !expiredActive ||
-              ((p.sedinte_total || 0) > 0 && (p.sedinte_folosite || 0) >= (p.sedinte_total || 0));
-
-            return locMatch && paymentMatch && expiredMatch;
-          });
+        if (expiredActive) {
+          patients = patients.filter((p: any) =>
+            (p.sedinte_total || 0) > 0 && (p.sedinte_folosite || 0) >= (p.sedinte_total || 0)
+          );
         }
 
         // Sortare
@@ -737,7 +713,7 @@
         const historyBtn = actionsBg.querySelector('.history-btn');
         historyBtn?.addEventListener('click', (e) => {
           e.stopPropagation();
-          window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: patient.id } }));
+          emit(EVENTS.openPaymentSheet, { patientId: patient.id });
         });
 
         const deleteBtn = actionsBg.querySelector('.delete-btn');
@@ -754,7 +730,7 @@
         card.querySelectorAll('.open-payment-btn').forEach((btn) => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            window.dispatchEvent(new CustomEvent('openPaymentSheet', { detail: { patientId: patient.id } }));
+            emit(EVENTS.openPaymentSheet, { patientId: patient.id });
           });
         });
 
@@ -762,14 +738,12 @@
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const el = btn as HTMLElement;
-            window.dispatchEvent(new CustomEvent('openShareScheduleSheet', {
-              detail: {
-                patientId: el.dataset.patientId || patient.id,
-                patientName: el.dataset.patientName || patient.name,
-                patientPhone: el.dataset.patientPhone || patient.telefon || '',
-                patientLocation: el.dataset.patientLocation || patient.locatie || ''
-              }
-            }));
+            emit(EVENTS.openShareScheduleSheet, {
+              patientId: el.dataset.patientId || patient.id,
+              patientName: el.dataset.patientName || patient.name,
+              patientPhone: el.dataset.patientPhone || patient.telefon || '',
+              patientLocation: el.dataset.patientLocation || patient.locatie || ''
+            });
           });
         });
 

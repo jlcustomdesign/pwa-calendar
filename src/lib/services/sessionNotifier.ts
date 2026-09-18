@@ -4,6 +4,7 @@
 import { getAppointmentsByDate, getPendingWrapUps } from './appointmentService';
 import { getSettings } from './settingsService';
 import { toLocalISOString } from '../../utils/date';
+import { EVENTS, emit } from '../events';
 
 let isNotifierRunning = false;
 let checkIntervalId: any = null;
@@ -217,7 +218,7 @@ async function promptMissedSessionWrapUp() {
 
 // Când utilizatorul închide un popup de wrap-up, afișează următorul din coadă.
 if (typeof window !== 'undefined') {
-  window.addEventListener('sessionWrapupClosed', () => {
+  window.addEventListener(EVENTS.sessionWrapupClosed, () => {
     wrapUpQueue.shift();
     setQueuedWrapUpIds(wrapUpQueue);
     wrapUpQueueActive = false;
@@ -373,9 +374,7 @@ async function checkTodaySessionsForNotifications() {
           // Popup în app — deschide wrapup pentru prima sesiune din grup/individuală
           if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
             setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('openWrapUp', {
-                detail: { appointment: item.appointments[0] }
-              }));
+              emit(EVENTS.openWrapUp, { appointment: item.appointments[0] });
             }, 500);
           }
 

@@ -95,6 +95,7 @@
   import { supabase } from '../../../lib/supabase';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { parseLocalDate, toLocalISOString } from '../../../utils/date';
+  import { EVENTS } from '../../../lib/events';
 
   class ShareScheduleSheetManager {
     private sheet: HTMLElement | null = null;
@@ -633,7 +634,7 @@
       const handler = (e: Event) => {
         (window as any).currentShareScheduleSheetManager?.handleOpenEvent(e as CustomEvent);
       };
-      window.addEventListener('openShareScheduleSheet', handler);
+      window.addEventListener(EVENTS.openShareScheduleSheet, handler);
       window.addEventListener('openShareSchedule', handler);
       (window as any)._shareScheduleSheetWindowListenerBound = true;
     }

@@ -67,6 +67,8 @@ const navItems = [
 </div>
 
 <script>
+  import { EVENTS } from '../../lib/events';
+
   // Dock persistent — se inițializează o singură dată, iar la navigare doar se
   // updatează starea activă și poziția pill-ului, fără re-animare dublă.
   function updateDockVisibility() {
@@ -188,9 +190,9 @@ const navItems = [
     updateDockActiveState(true);
     updateDockBadges();
 
-    window.addEventListener('patientsUpdated', updateDockBadges);
-    window.addEventListener('sessionsUpdated', updateDockBadges);
-    window.addEventListener('paymentsUpdated', updateDockBadges);
+    window.addEventListener(EVENTS.patientsUpdated, updateDockBadges);
+    window.addEventListener(EVENTS.sessionsUpdated, updateDockBadges);
+    window.addEventListener(EVENTS.paymentsUpdated, updateDockBadges);
     document.addEventListener('astro:after-swap', updateDockBadges);
 
     dockNav?.querySelectorAll('[data-dock-item]').forEach((item) => {

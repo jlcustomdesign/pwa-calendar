@@ -5,8 +5,13 @@
 import { supabase, getCurrentUser } from '../supabase';
 import type { PacientInsert, PacientUpdate, PacientView } from '../database.types';
 import { toLocalISOString } from '../../utils/date';
+import { EVENTS, emit } from '../events';
 
 // ── Listare pacienți (cu filtru opțional și verificare inactivitate 30 zile) ─────────────────────
+// Sweep-ul de inactivare rulează o singură dată pe sesiune de pagină — nu la fiecare
+// citire. Interogarea principală de mai jos (pacienti_view) rulează de fiecare dată.
+let inactivitySweepDone = false;
+
 export async function getPatients(filter?: {
   locatie?: 'Belaqva' | 'Ghimbav';
   achitat?: boolean;
@@ -14,38 +19,44 @@ export async function getPatients(filter?: {
   inactivi?: boolean;
 }): Promise<PacientView[]> {
   // 1. Verificăm și marcăm pacienții neprogramați de peste 30 de zile ca inactivi
-  const date30DaysAgo = new Date();
-  date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
-  const iso30DaysAgo = toLocalISOString(date30DaysAgo);
+  if (!inactivitySweepDone) {
+    inactivitySweepDone = true;
+    const date30DaysAgo = new Date();
+    date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
+    const iso30DaysAgo = toLocalISOString(date30DaysAgo);
+    const today = toLocalISOString(new Date());
 
-  try {
-    const currentUser = await getCurrentUser();
+    try {
+      const currentUser = await getCurrentUser();
 
-    // Preluăm toate programările recente
-    const { data: recentAppts } = await (supabase as any)
-      .from('programari')
-      .select('pacient_id, data')
-      .eq('user_id', currentUser.id)
-      .gte('data', iso30DaysAgo);
+      // Preluăm toate programările recente (trecute + de azi; o programare
+      // viitoare NU contează ca activitate recentă)
+      const { data: recentAppts } = await (supabase as any)
+        .from('programari')
+        .select('pacient_id, data')
+        .eq('user_id', currentUser.id)
+        .gte('data', iso30DaysAgo)
+        .lte('data', today);
 
-    const activePatientIds = new Set((recentAppts || []).map((a: any) => a.pacient_id));
+      const activePatientIds = new Set((recentAppts || []).map((a: any) => a.pacient_id));
 
-    // Preluăm pacienții existenți
-    const { data: allPatients } = await (supabase as any)
-      .from('pacienti')
-      .select('id, created_at, status_abonament')
-      .eq('user_id', currentUser.id);
-    if (allPatients) {
-      for (const p of allPatients as any[]) {
-        const isRecentCreated = new Date(p.created_at) >= date30DaysAgo;
-        // Dacă nu are ședințe în ultimele 30 zile și nu a fost creat în ultimele 30 zile -> inactivați
-        if (!activePatientIds.has(p.id) && !isRecentCreated && p.status_abonament !== 'inactiv') {
-          await (supabase as any).from('pacienti').update({ status_abonament: 'inactiv' }).eq('id', p.id).eq('user_id', currentUser.id);
+      // Preluăm pacienții existenți
+      const { data: allPatients } = await (supabase as any)
+        .from('pacienti')
+        .select('id, created_at, status_abonament')
+        .eq('user_id', currentUser.id);
+      if (allPatients) {
+        for (const p of allPatients as any[]) {
+          const isRecentCreated = new Date(p.created_at) >= date30DaysAgo;
+          // Dacă nu are ședințe în ultimele 30 zile și nu a fost creat în ultimele 30 zile -> inactivați
+          if (!activePatientIds.has(p.id) && !isRecentCreated && p.status_abonament !== 'inactiv') {
+            await (supabase as any).from('pacienti').update({ status_abonament: 'inactiv' }).eq('id', p.id).eq('user_id', currentUser.id);
+          }
         }
       }
+    } catch (e) {
+      console.error('Eroare verificare inactivitate pacienti:', e);
     }
-  } catch (e) {
-    console.error('Eroare verificare inactivitate pacienti:', e);
   }
 
   const user = await getCurrentUser();
@@ -76,10 +87,12 @@ export async function getPatients(filter?: {
 
 // ── Citire pacient unic ───────────────────────────────────────
 export async function getPatient(id: string): Promise<PacientView> {
+  const user = await getCurrentUser();
   const { data, error } = await supabase
     .from('pacienti_view')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)
     .single();
 
   if (error) throw new Error('Pacientul nu a fost găsit: ' + error.message);
@@ -204,36 +217,18 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
 }
 
 // ── Adăugare plată custom (PaymentSheet) ──────────────────────
+// RPC atomic: inserează plata și recalculează `achitat` DOAR pentru pachetul
+// curent (plățile de la abonament_start; plățile pachetelor vechi nu contează).
 export async function addPayment(id: string, amount: number, markAchitat: boolean) {
-  // Salvare plată în Supabase (sursa unică de adevăr)
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Trebuie să fii autentificat pentru a adăuga o plată.');
-
-  const { error } = await (supabase as any).from('plati').insert({
-    pacient_id: id,
-    suma: amount,
-    data_platii: toLocalISOString(new Date()),
-    user_id: user.id
+  const { error } = await supabase.rpc('record_payment', {
+    p_pacient_id: id,
+    p_suma: amount,
+    p_mark_achitat: markAchitat,
   });
+
   if (error) {
-    console.error('[addPayment] insert error:', error);
+    console.error('[addPayment] record_payment error:', error);
     throw new Error('Eroare la salvarea plății: ' + error.message);
-  }
-
-  // Actualizăm statusul pacientului pe baza sumei totale achitate
-  const totalPaid = await getPatientPayments(id);
-  const patient = await getPatient(id);
-  const cost = patient?.cost || 0;
-
-  const shouldMarkAchitat = markAchitat || (cost > 0 && totalPaid >= cost);
-  const { error: updateErr } = await (supabase as any)
-    .from('pacienti')
-    .update({ achitat: shouldMarkAchitat })
-    .eq('id', id);
-
-  if (updateErr) {
-    console.error('[addPayment] achitat update error:', updateErr);
-    throw new Error('Eroare la actualizarea statusului de plată: ' + updateErr.message);
   }
 }
 
@@ -320,15 +315,11 @@ export function clearRenewalDismissal(patientId: string): void {
 }
 
 export async function renewWithPrompt(patientId: string, currentTotal: number, patientName?: string): Promise<void> {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('openRenewalSheet', {
-      detail: {
-        patientId,
-        currentTotal: currentTotal || 10,
-        patientName
-      }
-    }));
-  }
+  emit(EVENTS.openRenewalSheet, {
+    patientId,
+    currentTotal: currentTotal || 10,
+    patientName
+  });
 }
 
 // ── Obținere plăți pacient (Local + Supabase Hybrid) ───────────

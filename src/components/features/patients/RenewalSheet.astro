@@ -139,6 +139,7 @@
   import { createAppointment } from '../../../lib/services/appointmentService';
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { EVENTS, emit } from '../../../lib/events';
 
   class RenewalSheetManager {
     private sheet: HTMLElement | null = null;
@@ -547,8 +548,8 @@
         }
 
         (window as any).showToast?.('Abonament reînnoit cu succes!', 'success');
-        window.dispatchEvent(new CustomEvent('patientsUpdated'));
-        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+        emit(EVENTS.patientsUpdated);
+        emit(EVENTS.sessionsUpdated);
         this.close();
       } catch (err: any) {
         (window as any).showToast?.('Eroare la reînnoire: ' + (err?.message || err), 'error');
@@ -601,17 +602,9 @@
     }
   }
 
-  // Global selector for payment status (used by inline onclick fallback).
-  (window as any).selectRenewalPayment = (status: 'Neachitat' | 'Parțial' | 'Achitat') => {
-    const mgr = (window as any).currentRenewalSheetManager;
-    if (mgr && typeof mgr.setPaymentStatus === 'function') {
-      mgr.setPaymentStatus(status);
-    }
-  };
-
   function initRenewalSheet() {
     if (!(window as any)._renewalSheetWindowListenerBound) {
-      window.addEventListener('openRenewalSheet', (e: Event) => {
+      window.addEventListener(EVENTS.openRenewalSheet, (e: Event) => {
         (window as any).currentRenewalSheetManager?.handleOpenEvent(e as CustomEvent);
       });
       (window as any)._renewalSheetWindowListenerBound = true;

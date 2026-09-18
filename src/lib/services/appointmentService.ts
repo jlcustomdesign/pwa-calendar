@@ -5,7 +5,6 @@
 import { supabase, getCurrentUser } from '../supabase';
 import type { Programare, ProgramareInsert } from '../database.types';
 import { getSettings } from './settingsService';
-import { toLocalISOString } from '../../utils/date';
 
 // ── Citire programare unică (editare) ─────────────────────────
 export async function getAppointment(id: string): Promise<Programare & { pacienti: any }> {
@@ -88,18 +87,21 @@ export async function swapAppointmentPatients(idA: string, idB: string) {
 
   const pacientA = a.pacient_id;
   const pacientB = b.pacient_id;
+  const user = await getCurrentUser();
 
   try {
     const { error: updA } = await (supabase as any)
       .from('programari')
       .update({ pacient_id: pacientB })
-      .eq('id', idA);
+      .eq('id', idA)
+      .eq('user_id', user.id);
     if (updA) throw updA;
 
     const { error: updB } = await (supabase as any)
       .from('programari')
       .update({ pacient_id: pacientA })
-      .eq('id', idB);
+      .eq('id', idB)
+      .eq('user_id', user.id);
     if (updB) {
       // Rollback best-effort
       await (supabase as any).from('programari').update({ pacient_id: pacientA }).eq('id', idA);
@@ -149,10 +151,12 @@ export async function getAppointmentsByRange(startDate: string, endDate: string)
 
 // ── Toate programările unui pacient ───────────────────────────
 export async function getAppointmentsByPatient(patientId: string): Promise<Programare[]> {
+  const user = await getCurrentUser();
   const { data, error } = await supabase
     .from('programari')
     .select('*')
     .eq('pacient_id', patientId)
+    .eq('user_id', user.id)
     .order('data', { ascending: false });
 
   if (error) throw new Error('Eroare la citirea programărilor pacientului: ' + error.message);
@@ -245,31 +249,6 @@ export async function cancelAppointment(id: string, motiv?: string) {
     console.error('cancelAppointment error:', error, { id });
     throw new Error('Eroare la anularea programării: ' + (error.message || JSON.stringify(error)));
   }
-}
-
-// ── Reprogramare (rebook next week din WrapUp) ────────────────
-export async function rebookNextWeek(originalId: string): Promise<string> {
-  const user = await getCurrentUser();
-  const { data: orig, error: fetchErr } = await (supabase as any)
-    .from('programari')
-    .select('pacient_id, data, ora, locatie')
-    .eq('id', originalId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (fetchErr || !orig) throw new Error('Programarea originală nu a fost găsită.');
-
-  // Calculăm data săptămânii viitoare (folosind fusul orar local)
-  const nextDate = new Date(orig.data + 'T00:00:00');
-  nextDate.setDate(nextDate.getDate() + 7);
-  const nextDateStr = toLocalISOString(nextDate);
-
-  return createAppointment({
-    pacient_id: orig.pacient_id,
-    data:       nextDateStr,
-    ora:        orig.ora,
-    locatie:    orig.locatie as 'Belaqva' | 'Ghimbav',
-  });
 }
 
 // ── Cerere vs ofertă (guard pachet) ────────────────────────────
@@ -367,26 +346,4 @@ export async function getPendingWrapUps(): Promise<PendingWrapUp[]> {
   });
 }
 
-// ── Câte programări are pacientul în săptămâna datei (L–D) ────
-export async function countPatientWeekAppointments(patientId: string, dateStr: string): Promise<number> {
-  const d = new Date(dateStr + 'T00:00:00');
-  const dow = d.getDay(); // 0 = Duminică
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-
-  const fmt = (x: Date) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
-
-  const { count, error } = await (supabase as any)
-    .from('programari')
-    .select('id', { count: 'exact', head: true })
-    .eq('pacient_id', patientId)
-    .gte('data', fmt(monday))
-    .lte('data', fmt(sunday))
-    .not('status', 'in', '("anulat","absent")');
-
-  if (error) throw new Error('Eroare la numărarea programărilor săptămânale: ' + error.message);
-  return count ?? 0;
-}
 

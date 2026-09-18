@@ -236,9 +236,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
 
-  import { getPatients, getPatient, addPatient, updatePatient } from '../../../lib/services/patientService';
+  import { getPatients } from '../../../lib/services/patientService';
   import { createAppointment, updateAppointment, deleteAppointment, getFutureDemand, wouldExceedSupply } from '../../../lib/services/appointmentService';
   import { escapeHtml } from '../../../utils/html';
+  import { EVENTS, emit } from '../../../lib/events';
 
   class AddSessionSheetManager {
     sheet: HTMLElement | null;
@@ -294,7 +295,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.bindCustomTimeModal();
       this.bindGroupLocation();
 
-      window.addEventListener('settingsUpdated', () => {
+      window.addEventListener(EVENTS.settingsUpdated, () => {
         this.loadSettings();
       });
     }
@@ -1125,7 +1126,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           }
         }
 
-        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+        emit(EVENTS.sessionsUpdated);
         this.close();
       } catch (err: any) {
         (window as any).showToast('Eroare la salvarea programării: ' + (err.message || err), 'error');
@@ -1548,7 +1549,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     // Only bind global listeners once; route every action to the current
     // manager instance so it survives Astro view transitions.
     if (!(window as any)._addSessionWindowListenerBound) {
-      window.addEventListener('openAddSession', (e: Event) => {
+      window.addEventListener(EVENTS.openAddSession, (e: Event) => {
         (window as any).currentAddSessionSheetManager?.handleOpenEvent(e);
       });
       (window as any)._addSessionWindowListenerBound = true;

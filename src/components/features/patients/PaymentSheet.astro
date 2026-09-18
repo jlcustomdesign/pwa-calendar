@@ -127,6 +127,7 @@
   import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPaymentHistoryDetails } from '../../../lib/services/patientService';
   import { getAppointmentsByPatient } from '../../../lib/services/appointmentService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { EVENTS, emit } from '../../../lib/events';
 
   class PaymentSheetManager {
     private sheet: HTMLElement | null = null;
@@ -378,9 +379,9 @@
         if (!isNaN(parsed) && parsed > 0) {
           try {
             await addPayment(this.currentPatientId, parsed, false);
-            window.dispatchEvent(new CustomEvent('patientsUpdated'));
-            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-            window.dispatchEvent(new CustomEvent('paymentsUpdated', { detail: { patientId: this.currentPatientId } }));
+            emit(EVENTS.patientsUpdated);
+            emit(EVENTS.sessionsUpdated);
+            emit(EVENTS.paymentsUpdated, { patientId: this.currentPatientId });
             this.close();
           } catch (err: any) {
             (window as any).showToast('Eroare la adăugarea plății: ' + (err.message || err), 'error');
@@ -403,9 +404,9 @@
            await setPaymentStatus(this.currentPatientId, true);
         }
         (window as any).showToast('Plata a fost marcată ca achitată integral.', 'success');
-        window.dispatchEvent(new CustomEvent('patientsUpdated'));
-        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-        window.dispatchEvent(new CustomEvent('paymentsUpdated', { detail: { patientId: this.currentPatientId } }));
+        emit(EVENTS.patientsUpdated);
+        emit(EVENTS.sessionsUpdated);
+        emit(EVENTS.paymentsUpdated, { patientId: this.currentPatientId });
         this.close();
       } catch (err: any) {
         (window as any).showToast('Eroare la actualizarea plății: ' + (err.message || err), 'error');
@@ -417,9 +418,9 @@
       try {
         await resetPayments(this.currentPatientId);
         (window as any).showToast('Plățile pacientului au fost resetate.', 'info');
-        window.dispatchEvent(new CustomEvent('patientsUpdated'));
-        window.dispatchEvent(new CustomEvent('sessionsUpdated'));
-        window.dispatchEvent(new CustomEvent('paymentsUpdated', { detail: { patientId: this.currentPatientId } }));
+        emit(EVENTS.patientsUpdated);
+        emit(EVENTS.sessionsUpdated);
+        emit(EVENTS.paymentsUpdated, { patientId: this.currentPatientId });
         this.close();
       } catch (err: any) {
         (window as any).showToast('Eroare la resetarea plății: ' + (err.message || err), 'error');
@@ -768,7 +769,7 @@
     // Only bind the window event listener once globally; route each open event
     // to the current manager so it survives Astro view transitions.
     if (!(window as any)._paymentSheetWindowListenerBound) {
-      window.addEventListener('openPaymentSheet', (e: Event) => {
+      window.addEventListener(EVENTS.openPaymentSheet, (e: Event) => {
         (window as any).currentPaymentSheetManager?.handleOpenEvent(e as CustomEvent);
       });
       (window as any)._paymentSheetWindowListenerBound = true;
