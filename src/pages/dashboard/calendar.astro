@@ -426,6 +426,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
             sumaIncasata,
             paymentStatus: pStatus,
             groupId: a.group_id || null,
+            contorizeaza: a.contorizeaza !== false,
+            plan: a.pacienti?.plan,
           };
         });
 

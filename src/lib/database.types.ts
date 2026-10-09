@@ -349,6 +349,7 @@ export type Database = {
           id: string
           metoda: string | null
           pacient_id: string
+          programare_id: string | null
           suma: number
           user_id: string | null
         }
@@ -358,6 +359,7 @@ export type Database = {
           id?: string
           metoda?: string | null
           pacient_id: string
+          programare_id?: string | null
           suma: number
           user_id?: string | null
         }
@@ -367,6 +369,7 @@ export type Database = {
           id?: string
           metoda?: string | null
           pacient_id?: string
+          programare_id?: string | null
           suma?: number
           user_id?: string | null
         }
@@ -453,6 +456,7 @@ export type Database = {
           ora: string
           pacient_id: string
           status: string
+          contorizeaza: boolean
           user_id: string | null
         }
         Insert: {
@@ -466,6 +470,7 @@ export type Database = {
           ora: string
           pacient_id: string
           status?: string
+          contorizeaza?: boolean
           user_id?: string | null
         }
         Update: {
@@ -479,6 +484,7 @@ export type Database = {
           ora?: string
           pacient_id?: string
           status?: string
+          contorizeaza?: boolean
           user_id?: string | null
         }
         Relationships: [

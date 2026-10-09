@@ -312,7 +312,7 @@ export function createSessionCardHTML(session: any, isContinuation: boolean, ctx
     ? `<span class="shrink-0 px-2.5 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-black uppercase tracking-wide" title="În afara pachetului — devine activă la reînnoire">În afara pachetului</span>`
     : '';
 
-  const subscriptionWarningDetails = isTerminat && !isRenewalDismissed(session.patientId)
+  const subscriptionWarningDetails = isTerminat && session.plan !== 'Ședință unică' && !isRenewalDismissed(session.patientId)
     ? `<div class="px-6 pb-3">
         <div class="flex items-center gap-3 rounded-2xl bg-brand-secondary/15 border border-brand-secondary/30 p-3">
           <div class="flex-1 min-w-0">
@@ -471,6 +471,18 @@ export function createSessionCardHTML(session: any, isContinuation: boolean, ctx
                   <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary text-black' : 'bg-brand-secondary text-white'} font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent hover:opacity-95" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
                     <span>CONFIRMĂ ȘEDINȚA</span>
                   </button>
+                </div>
+              ` : ''}
+
+              ${sessionStatus === 'finalizat' ? `
+                <div class="px-6 pb-6 pt-1 flex items-center justify-between">
+                  <span class="text-[11px] font-black uppercase tracking-wide text-black/60">Se scade din pachet</span>
+                  <button
+                    type="button"
+                    class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide active:scale-95 transition-all ${session.contorizeaza !== false ? 'bg-black text-white' : 'bg-black/10 text-black/60 line-through'}"
+                    title="${session.contorizeaza !== false ? 'Ședința contorizează spre pachet — apasă pentru a exclude' : 'Ședința NU contorizează — apasă pentru a include'}"
+                    onclick="event.stopPropagation(); window.toggleSessionCounted('${session.id}', ${session.contorizeaza !== false});"
+                  >${session.contorizeaza !== false ? 'Da' : 'Nu'}</button>
                 </div>
               ` : ''}
             </div>

@@ -433,10 +433,10 @@
       this.pickerDate = new Date(this.nextWeekDateStr + 'T00:00:00');
       this.updateCustomDateTimeDisplay();
 
-      // Show subscription warning if needed
+      // Show subscription warning if needed (ședințele unice nu se reînnoiesc)
       const alertEl = document.getElementById('wrapup-subscription-alert');
       if (alertEl) {
-        if (folosite >= total) {
+        if (folosite >= total && appt.pacienti?.plan !== 'Ședință unică') {
           alertEl.classList.remove('hidden');
         } else {
           alertEl.classList.add('hidden');
@@ -534,8 +534,17 @@
         const folosite = freshPatient ? freshPatient.sedinte_folosite : ((appt.pacienti?.sedinte_folosite ?? 0) + 1);
         const total = freshPatient ? freshPatient.sedinte_total : (appt.pacienti?.sedinte_total || 10);
         const isSubscriptionDone = folosite >= total;
+        // Ședințele unice nu se reînnoiesc — după finalizare se marchează plata
+        const isSingleSession = (freshPatient?.plan ?? appt.pacienti?.plan) === 'Ședință unică';
 
         // 2. Check if subscription is complete and user wants to schedule next week
+        if (isSubscriptionDone && isSingleSession) {
+          this.close();
+          window.dispatchEvent(new CustomEvent(EVENTS.openPaymentSheet, { detail: { patientId } }));
+          (window as any).showToast('Ședința unică a fost finalizată. Marchează plata când primești banii.', 'info');
+          return;
+        }
+
         if (isSubscriptionDone && this.selectedRecurrence !== 'none') {
           const targetDate = this.selectedRecurrence === 'same' ? this.nextWeekDateStr : (this.customDate || this.nextWeekDateStr);
           const targetTime = this.selectedRecurrence === 'same' ? (appt.ora || appt.selectedTime || '08:00') : (this.customTime || '08:00');

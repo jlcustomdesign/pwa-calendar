@@ -96,7 +96,7 @@ const { title, hideDock = false } = Astro.props;
     <script>
       import { initErrorLogger } from '../lib/errorLogger';
       import { renewWithPrompt, dismissRenewalNotification } from '../lib/services/patientService';
-      import { getAppointment, deleteAppointment, cancelAppointment, markAbsent } from '../lib/services/appointmentService';
+      import { getAppointment, deleteAppointment, cancelAppointment, markAbsent, setSessionCounted } from '../lib/services/appointmentService';
 
       // Prevent horizontal swipe navigation inside the PWA (Safari/Chrome back/forward gestures)
       function preventHorizontalSwipeNavigation() {
@@ -706,8 +706,20 @@ const { title, hideDock = false } = Astro.props;
           }
         };
 
-        (window as any).confirmGroupSession = async (memberIds: string) => {
-          const ids = (memberIds || '').split(',').filter(Boolean);
+        // Include/exclude o ședință finalizată din contorul pachetului
+        (window as any).toggleSessionCounted = async (sessionId: string, currentlyCounted: boolean) => {
+          if (!sessionId) return;
+          try {
+            await setSessionCounted(sessionId, !currentlyCounted);
+            window.dispatchEvent(new CustomEvent('sessionsUpdated'));
+            window.dispatchEvent(new CustomEvent('patientsUpdated'));
+            (window as any).showToast(!currentlyCounted ? 'Ședința contorizează spre pachet.' : 'Ședința a fost exclusă din pachet (nu se scade).', 'success');
+          } catch (err: any) {
+            (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
+          }
+        };
+
+        (window as any).confirmGroupSession = async (memberIds: string) => {          const ids = (memberIds || '').split(',').filter(Boolean);
           if (ids.length === 0) return;
           try {
             const todayStr = new Date().toISOString().split('T')[0];

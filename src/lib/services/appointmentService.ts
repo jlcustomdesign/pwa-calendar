@@ -54,6 +54,7 @@ export async function updateAppointment(id: string, updates: {
   ora?: string;
   locatie?: 'Belaqva' | 'Ghimbav';
   group_id?: string | null;
+  contorizeaza?: boolean;
 }) {
   if (updates.data) {
     const d = new Date(updates.data + 'T00:00:00');
@@ -203,6 +204,22 @@ export async function createAppointment(input: {
   }
 
   return data.id;
+}
+
+// ── Include/exclude ședință din contorul pachetului ────────────
+// Doar pentru ședințe finalizate; triggerul DB ajustează sedinte_folosite ±1.
+export async function setSessionCounted(id: string, contorizeaza: boolean) {
+  const user = await getCurrentUser();
+  const { error } = await (supabase as any)
+    .from('programari')
+    .update({ contorizeaza })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('setSessionCounted error:', error, { id, contorizeaza });
+    throw new Error('Eroare la actualizarea contorizării: ' + (error.message || JSON.stringify(error)));
+  }
 }
 
 export async function completeSession(id: string, note?: string) {

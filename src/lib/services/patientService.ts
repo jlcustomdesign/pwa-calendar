@@ -219,11 +219,12 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
 // ── Adăugare plată custom (PaymentSheet) ──────────────────────
 // RPC atomic: inserează plata și recalculează `achitat` DOAR pentru pachetul
 // curent (plățile de la abonament_start; plățile pachetelor vechi nu contează).
-export async function addPayment(id: string, amount: number, markAchitat: boolean) {
+export async function addPayment(id: string, amount: number, markAchitat: boolean, programareId?: string) {
   const { error } = await supabase.rpc('record_payment', {
     p_pacient_id: id,
     p_suma: amount,
     p_mark_achitat: markAchitat,
+    p_programare_id: programareId ?? null,
   });
 
   if (error) {
