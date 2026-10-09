@@ -371,3 +371,95 @@ CREATE TRIGGER trg_pachet_pacient_nou
 ALTER TABLE pacienti DROP CONSTRAINT IF EXISTS pacienti_status_abonament_check;
 ALTER TABLE pacienti ADD CONSTRAINT pacienti_status_abonament_check
   CHECK (status_abonament = ANY (ARRAY['activ'::text, 'ultima_sedinta'::text, 'terminat'::text, 'inactiv'::text]));
+
+-- l) Confirmare întârziată: ședința se leagă de pachetul care EXISTA la data
+--    ei (created_at..closed_at acoperă data), nu de ce e deschis acum —
+--    altfel o ședință livrată în pachetul vechi dar confirmată după reînnoire
+--    ar contamina pachetul nou (exact reclamația originală, pe altă ușă).
+CREATE OR REPLACE FUNCTION public.lega_sedinta_de_pachet()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  v_pkg uuid;
+  v_plan text;
+  v_nu_reinnoi boolean;
+BEGIN
+  IF TG_OP IN ('INSERT', 'UPDATE') THEN
+    IF NEW.status = 'finalizat' AND NEW.contorizeaza THEN
+      IF NEW.abonament_id IS NULL THEN
+        SELECT a.id INTO v_pkg
+          FROM public.abonamente a
+          WHERE a.pacient_id = NEW.pacient_id
+            AND a.created_at::date <= NEW.data
+            AND (a.closed_at IS NULL OR a.closed_at::date >= NEW.data)
+          ORDER BY a.created_at DESC LIMIT 1;
+        IF v_pkg IS NULL THEN
+          SELECT a.id INTO v_pkg
+            FROM public.abonamente a
+            WHERE a.pacient_id = NEW.pacient_id AND a.status = 'activ'
+            ORDER BY a.created_at DESC LIMIT 1;
+        END IF;
+        IF v_pkg IS NULL THEN
+          SELECT p.nu_reinnoi, p.plan INTO v_nu_reinnoi, v_plan
+            FROM public.pacienti p WHERE p.id = NEW.pacient_id;
+          IF v_plan IS DISTINCT FROM 'One Time' AND COALESCE(v_nu_reinnoi, false) = false THEN
+            RAISE EXCEPTION 'Pacientul nu are un pachet activ. Reînnoiește abonamentul înainte de a confirma ședința.';
+          END IF;
+        END IF;
+        NEW.abonament_id := v_pkg;
+      END IF;
+    ELSE
+      NEW.abonament_id := NULL;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- Datoria la reînnoire = overflow pe TOATE pachetele (închise + deschis),
+-- altfel ședințele confirmate târziu pe un pachet închis nu se mai poartă.
+CREATE OR REPLACE FUNCTION public.renew_package(
+  p_pacient_id uuid, p_total int, p_cost numeric, p_paid numeric DEFAULT 0, p_status text DEFAULT 'Neachitat'
+) RETURNS void AS $f$
+DECLARE
+  v_pacient pacienti%ROWTYPE;
+  v_old abonamente%ROWTYPE;
+  v_debt int;
+BEGIN
+  SELECT * INTO v_pacient FROM pacienti WHERE id = p_pacient_id FOR UPDATE;
+  IF NOT FOUND OR v_pacient.user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'Pacient invalid sau neautorizat.';
+  END IF;
+  SELECT * INTO v_old FROM abonamente
+    WHERE pacient_id = p_pacient_id AND status = 'activ' FOR UPDATE;
+  IF FOUND AND v_old.sedinte_folosite - v_old.datorie_initiala < v_old.nr_sedinte THEN
+    UPDATE abonamente SET nr_sedinte = GREATEST(1, p_total), pret = GREATEST(0, p_cost)
+      WHERE id = v_old.id;
+  ELSE
+    SELECT COALESCE((
+        SELECT sum(GREATEST(0, a.sedinte_folosite - a.nr_sedinte))
+        FROM abonamente a WHERE a.pacient_id = p_pacient_id AND a.status = 'inchis'
+      ), 0) + GREATEST(0, COALESCE(v_old.sedinte_folosite, 0) - COALESCE(v_old.nr_sedinte, 0))
+      INTO v_debt;
+    IF FOUND THEN
+      UPDATE abonamente SET status = 'inchis', closed_at = now() WHERE id = v_old.id;
+    END IF;
+    INSERT INTO abonamente (pacient_id, user_id, nr_sedinte, pret, sedinte_folosite, datorie_initiala, status)
+    VALUES (p_pacient_id, auth.uid(), GREATEST(1, p_total), GREATEST(0, p_cost), v_debt, v_debt, 'activ');
+  END IF;
+  PERFORM set_config('app.allow_counter_write', 'on', true);
+  UPDATE pacienti SET
+    sedinte_total = GREATEST(1, p_total),
+    sedinte_folosite = LEAST(
+      COALESCE((SELECT sedinte_folosite FROM abonamente WHERE pacient_id = p_pacient_id AND status = 'activ'), 0),
+      GREATEST(1, p_total)),
+    cost = GREATEST(0, p_cost),
+    achitat = (p_status = 'Achitat'),
+    status_abonament = 'activ',
+    abonament_start = CURRENT_DATE
+  WHERE id = p_pacient_id;
+  IF p_paid > 0 THEN
+    INSERT INTO plati (pacient_id, suma, data_platii, user_id, abonament_id)
+    SELECT p_pacient_id, p_paid, CURRENT_DATE, auth.uid(), id
+      FROM abonamente WHERE pacient_id = p_pacient_id AND status = 'activ';
+  END IF;
+END $f$ LANGUAGE plpgsql SECURITY DEFINER;
