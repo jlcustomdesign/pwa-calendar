@@ -346,3 +346,28 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- j) Pacient nou cu abonament primește automat pachetul deschis (fără asta,
+--    prima ședință finalizată ar lovi eroarea "nu are pachet activ").
+CREATE OR REPLACE FUNCTION public.creeaza_pachet_la_pacient_nou()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.plan IS DISTINCT FROM 'One Time'
+     AND NOT EXISTS (SELECT 1 FROM public.abonamente WHERE pacient_id = NEW.id) THEN
+    INSERT INTO public.abonamente (pacient_id, user_id, nr_sedinte, pret, status)
+    VALUES (NEW.id, NEW.user_id, GREATEST(1, NEW.sedinte_total), GREATEST(0, NEW.cost), 'activ');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_pachet_pacient_nou ON public.pacienti;
+CREATE TRIGGER trg_pachet_pacient_nou
+  AFTER INSERT ON public.pacienti FOR EACH ROW
+  EXECUTE FUNCTION public.creeaza_pachet_la_pacient_nou();
+
+-- k) status_abonament 'inactiv' era folosit de sweep-ul de inactivitate dar
+--    lipsea din CHECK constraint → fiecare PATCH de dezactivare dădea 400.
+ALTER TABLE pacienti DROP CONSTRAINT IF EXISTS pacienti_status_abonament_check;
+ALTER TABLE pacienti ADD CONSTRAINT pacienti_status_abonament_check
+  CHECK (status_abonament = ANY (ARRAY['activ'::text, 'ultima_sedinta'::text, 'terminat'::text, 'inactiv'::text]));
