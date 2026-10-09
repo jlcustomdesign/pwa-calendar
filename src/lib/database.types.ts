@@ -249,6 +249,7 @@ export type Database = {
           id: string
           locatie: string
           nu_reinnoi: boolean
+          sters_la: string | null
           notite: string | null
           nume: string
           plan: string
@@ -271,7 +272,7 @@ export type Database = {
           id?: string
           locatie?: string
           nu_reinnoi?: boolean
-          nu_reinnoi?: boolean
+          sters_la?: string | null
           notite?: string | null
           nume: string
           plan?: string
@@ -713,6 +714,8 @@ export type Database = {
           telefon: string | null
           updated_at: string | null
           user_id: string | null
+          nu_reinnoi: boolean | null
+          sters_la: string | null
         }
         Relationships: []
       }

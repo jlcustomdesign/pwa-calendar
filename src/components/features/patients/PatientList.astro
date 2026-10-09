@@ -403,7 +403,7 @@
         }
 
         await deletePatientDB(id);
-        (window as any).showToast('Pacientul a fost șters cu succes.', 'success');
+        (window as any).showToast('Pacientul a fost arhivat (se poate recupera din baza de date).', 'success');
         emit(EVENTS.patientsUpdated, { source: 'patientListDelete', deletedId: id });
       } catch (err: any) {
         (window as any).showToast('Eroare la ștergerea pacientului: ' + err.message, 'error');
@@ -720,7 +720,7 @@
         deleteBtn?.addEventListener('click', async (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const confirmed = await (window as any).showConfirm('Ștergere Pacient', `Sigur dorești să ștergi pacientul ${patient.name}?`);
+          const confirmed = await (window as any).showConfirm('Arhivare Pacient', `Sigur dorești să arhivezi pacientul ${patient.name}? Istoricul (plăți, ședințe) se păstrează.`);
           if (confirmed) {
             this.deletePatient(patient.id);
           }

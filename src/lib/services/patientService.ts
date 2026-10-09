@@ -82,7 +82,53 @@ export async function getPatients(filter?: {
 
   const { data, error } = await query;
   if (error) throw new Error('Eroare la citirea pacienților: ' + error.message);
-  return data ?? [];
+  const rows = (data ?? []).filter((p: any) => !p.sters_la); // arhivați = ascunși
+  return await applyPackageTruth(rows);
+}
+
+// ── Adevărul pachetului peste rândurile pacient ───────────────
+// Suprascrie câmpurile legacy (sedinte_total/folosite/cost/achitat) cu valorile
+// pachetului deschis + plățile lui. Toate citirile trec prin aici, deci
+// coloanele vechi rămân doar oglindă internă (nu mai sunt sursă de adevăr).
+async function applyPackageTruth(rows: any[]): Promise<any[]> {
+  if (!rows || rows.length === 0) return rows;
+  const ids = rows.map(r => r.id).filter(Boolean);
+  if (ids.length === 0) return rows;
+  const user = await getCurrentUser();
+
+  const { data: pkgs } = await (supabase as any)
+    .from('pachet_curent')
+    .select('pacient_id, id, nr_sedinte, pret, sedinte_folosite')
+    .in('pacient_id', ids)
+    .eq('user_id', user.id);
+  const pkgByPatient = new Map<string, any>();
+  const pkgIds: string[] = [];
+  for (const p of (pkgs ?? []) as any[]) {
+    pkgByPatient.set(p.pacient_id, p);
+    pkgIds.push(p.id);
+  }
+  if (pkgIds.length === 0) return rows;
+
+  const { data: plati } = await (supabase as any)
+    .from('plati')
+    .select('abonament_id, suma')
+    .in('abonament_id', pkgIds);
+  const paidByPkg = new Map<string, number>();
+  for (const pl of (plati ?? []) as any[]) {
+    paidByPkg.set(pl.abonament_id, (paidByPkg.get(pl.abonament_id) || 0) + (Number(pl.suma) || 0));
+  }
+
+  for (const row of rows) {
+    const pkg = pkgByPatient.get(row.id);
+    if (!pkg) continue;
+    row.sedinte_total = Number(pkg.nr_sedinte) || 0;
+    row.sedinte_folosite = Math.min(Number(pkg.sedinte_folosite) || 0, row.sedinte_total);
+    row.cost = Number(pkg.pret) || 0;
+    const paid = paidByPkg.get(pkg.id) || 0;
+    row.suma_incasata = paid;
+    row.achitat = row.cost > 0 && paid >= row.cost;
+  }
+  return rows;
 }
 
 // ── Citire pacient unic ───────────────────────────────────────
@@ -96,7 +142,8 @@ export async function getPatient(id: string): Promise<PacientView> {
     .single();
 
   if (error) throw new Error('Pacientul nu a fost găsit: ' + error.message);
-  return data;
+  const [withTruth] = await applyPackageTruth([data]);
+  return withTruth;
 }
 
 function normalizePlan(plan: string | undefined | null): 'Subscription' | 'One Time' {
@@ -532,15 +579,17 @@ export async function resetPayments(id: string) {
 }
 
 // ── Ștergere pacient ──────────────────────────────────────────
+// Soft delete: pacientul se arhivează (sters_la), nu se pierde istoricul.
+// Ștergerea reală e blocată în DB pentru pacienții cu plăți/ședințe.
 export async function deletePatient(id: string) {
   const user = await getCurrentUser();
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('pacienti')
-    .delete()
+    .update({ sters_la: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) throw new Error('Eroare la ștergerea pacientului: ' + error.message);
+  if (error) throw new Error('Eroare la arhivarea pacientului: ' + error.message);
 }
 
 // ── Export CSV complet — pacienți + agendă programări ─────────────
@@ -569,6 +618,8 @@ export async function exportPatientsCSV(): Promise<string> {
         // Luam telefonul ca atare — fara fallback la '' ca sa vedem valoarea reala
         telefon: p.telefon
       }));
+      // Contoarele din export = adevărul pachetului, nu oglinda legacy.
+      patients = await applyPackageTruth(patients);
     }
   } catch (e) {
     console.warn('Eroare citire directă pacienți:', e);

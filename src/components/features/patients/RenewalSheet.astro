@@ -135,7 +135,7 @@
 </div>
 
 <script>
-  import { resetPatientSubscription, getPatient, getPatientPayments } from '../../../lib/services/patientService';
+  import { resetPatientSubscription, getPatient, getPatientPackages } from '../../../lib/services/patientService';
   import { createAppointment } from '../../../lib/services/appointmentService';
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
@@ -475,11 +475,12 @@
               this.pricePerSession = Math.round(Number(patient.cost) / Number(patient.sedinte_total));
             }
 
-            // Calcul restanță pentru pachetul CURENT: doar plățile făcute de la
-            // abonament_start (plățile pachetelor vechi rămân în istoric, dar nu
-            // acoperă restanța pachetului curent).
-            const paymentsTotal = await getPatientPayments(this.currentPatientId, patient.abonament_start || undefined);
-            const unpaidDebt = Math.max(0, (patient.cost || 0) - paymentsTotal);
+            // Restanța pachetului curent = prețul pachetului deschis minus
+            // plățile legate de el (fără ferestre de date).
+            const packages = await getPatientPackages(this.currentPatientId);
+            const openPkg = packages.find(x => x.status === 'activ');
+            const paidOnOpen = openPkg ? openPkg.plati.reduce((t, p) => t + p.suma, 0) : 0;
+            const unpaidDebt = openPkg ? Math.max(0, openPkg.pret - paidOnOpen) : 0;
             if (unpaidDebt > 0 && debtCard && debtAmountEl) {
                debtAmountEl.textContent = `${unpaidDebt} RON`;
                debtCard.classList.remove('hidden');
