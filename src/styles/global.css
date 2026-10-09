@@ -92,3 +92,14 @@
     transition: opacity 0.2s ease-out;
   }
 }
+
+/* ═══ Scroll fix: zonele cu scroll din interiorul sheet-urilor/popup-urilor ═══
+   overscroll-behavior: contain oprește "scroll chaining"-ul spre pagina din
+   spate și rubber-band-ul pe iOS când se ajunge la capătul listei. */
+.overflow-y-auto,
+.overflow-x-auto,
+[id$="-sheet"] .overflow-y-auto,
+.max-h-48 {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}

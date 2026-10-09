@@ -433,10 +433,10 @@
       this.pickerDate = new Date(this.nextWeekDateStr + 'T00:00:00');
       this.updateCustomDateTimeDisplay();
 
-      // Show subscription warning if needed (ședințele unice nu se reînnoiesc)
+      // Show subscription warning if needed (ședințele unice și "nu reînnoi" nu cer reînnoire)
       const alertEl = document.getElementById('wrapup-subscription-alert');
       if (alertEl) {
-        if (folosite >= total && appt.pacienti?.plan !== 'Ședință unică') {
+        if (folosite >= total && appt.pacienti?.plan !== 'Ședință unică' && appt.pacienti?.nu_reinnoi !== true) {
           alertEl.classList.remove('hidden');
         } else {
           alertEl.classList.add('hidden');
@@ -536,6 +536,8 @@
         const isSubscriptionDone = folosite >= total;
         // Ședințele unice nu se reînnoiesc — după finalizare se marchează plata
         const isSingleSession = (freshPatient?.plan ?? appt.pacienti?.plan) === 'Ședință unică';
+        // "Nu reînnoi": nu forțăm reînnoirea — confirmă ca ședință necontorizată
+        const skipRenewal = (freshPatient as any)?.nu_reinnoi === true || appt.pacienti?.nu_reinnoi === true;
 
         // 2. Check if subscription is complete and user wants to schedule next week
         if (isSubscriptionDone && isSingleSession) {
@@ -545,7 +547,7 @@
           return;
         }
 
-        if (isSubscriptionDone && this.selectedRecurrence !== 'none') {
+        if (isSubscriptionDone && !skipRenewal && this.selectedRecurrence !== 'none') {
           const targetDate = this.selectedRecurrence === 'same' ? this.nextWeekDateStr : (this.customDate || this.nextWeekDateStr);
           const targetTime = this.selectedRecurrence === 'same' ? (appt.ora || appt.selectedTime || '08:00') : (this.customTime || '08:00');
           const locatie = (appt.location || appt.pacienti?.locatie || 'Belaqva') as 'Belaqva' | 'Ghimbav';

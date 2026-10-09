@@ -327,6 +327,61 @@ export async function renewWithPrompt(patientId: string, currentTotal: number, p
   });
 }
 
+// ── Istoric pachete reale (PaymentSheet) ──────────────────────
+// Fiecare pachet e un rând `abonamente` real, cu ședințele și plățile
+// legate prin FK — nu o reconstrucție aritmetică din sume.
+export interface PachetIstoric {
+  id: string;
+  nr_sedinte: number;
+  pret: number;
+  sedinte_folosite: number;
+  datorie_initiala: number;
+  status: string;
+  created_at: string;
+  closed_at: string | null;
+  plati: { suma: number; data_platii: string }[];
+  sedinte: { data: string; ora: string }[];
+}
+
+export async function getPatientPackages(patientId: string): Promise<PachetIstoric[]> {
+  const user = await getCurrentUser();
+
+  const [{ data: pkgs, error: errP }, { data: plati }, { data: sedinte }] = await Promise.all([
+    (supabase as any).from('abonamente').select('id, nr_sedinte, pret, sedinte_folosite, datorie_initiala, status, created_at, closed_at')
+      .eq('pacient_id', patientId).eq('user_id', user.id).order('created_at', { ascending: true }),
+    (supabase as any).from('plati').select('abonament_id, suma, data_platii')
+      .eq('pacient_id', patientId).eq('user_id', user.id),
+    (supabase as any).from('programari').select('abonament_id, data, ora')
+      .eq('pacient_id', patientId).eq('user_id', user.id).eq('status', 'finalizat').not('abonament_id', 'is', null),
+  ]);
+  if (errP) throw new Error('Eroare la citirea pachetelor: ' + errP.message);
+
+  const platiByPkg = new Map<string, { suma: number; data_platii: string }[]>();
+  for (const pl of (plati ?? []) as any[]) {
+    if (!pl.abonament_id) continue;
+    if (!platiByPkg.has(pl.abonament_id)) platiByPkg.set(pl.abonament_id, []);
+    platiByPkg.get(pl.abonament_id)!.push({ suma: Number(pl.suma) || 0, data_platii: pl.data_platii });
+  }
+  const sedinteByPkg = new Map<string, { data: string; ora: string }[]>();
+  for (const s of (sedinte ?? []) as any[]) {
+    if (!sedinteByPkg.has(s.abonament_id)) sedinteByPkg.set(s.abonament_id, []);
+    sedinteByPkg.get(s.abonament_id)!.push({ data: s.data, ora: s.ora });
+  }
+
+  return ((pkgs ?? []) as any[]).map((p: any) => ({
+    id: p.id,
+    nr_sedinte: Number(p.nr_sedinte) || 0,
+    pret: Number(p.pret) || 0,
+    sedinte_folosite: Number(p.sedinte_folosite) || 0,
+    datorie_initiala: Number(p.datorie_initiala) || 0,
+    status: p.status,
+    created_at: p.created_at,
+    closed_at: p.closed_at,
+    plati: (platiByPkg.get(p.id) ?? []).sort((a, b) => (a.data_platii || '').localeCompare(b.data_platii || '')),
+    sedinte: (sedinteByPkg.get(p.id) ?? []).sort((a, b) => `${a.data}T${a.ora}`.localeCompare(`${b.data}T${b.ora}`)),
+  }));
+}
+
 // ── Obținere plăți pacient (Local + Supabase Hybrid) ───────────
 // `fromDate` (YYYY-MM-DD) limitează suma la plățile făcute de la data respectivă
 // (folosit la reînnoire: restanța pachetului curent, fără plățile pachetelor vechi).

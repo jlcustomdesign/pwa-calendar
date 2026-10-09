@@ -346,7 +346,7 @@ export function createSessionCardHTML(session: any, isContinuation: boolean, ctx
     ? `<span class="shrink-0 px-2.5 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-black uppercase tracking-wide" title="În afara pachetului — devine activă la reînnoire">În afara pachetului</span>`
     : '';
 
-  const subscriptionWarningDetails = isTerminat && session.plan !== 'Ședință unică' && !isRenewalDismissed(session.patientId)
+  const subscriptionWarningDetails = isTerminat && session.plan !== 'Ședință unică' && !session.nuReinnoi && !isRenewalDismissed(session.patientId)
     ? `<div class="px-6 pb-3">
         <div class="flex items-center gap-3 rounded-2xl bg-brand-secondary/15 border border-brand-secondary/30 p-3">
           <div class="flex-1 min-w-0">

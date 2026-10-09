@@ -248,6 +248,7 @@ export type Database = {
           frecventa: string
           id: string
           locatie: string
+          nu_reinnoi: boolean
           notite: string | null
           nume: string
           plan: string
@@ -269,6 +270,8 @@ export type Database = {
           frecventa?: string
           id?: string
           locatie?: string
+          nu_reinnoi?: boolean
+          nu_reinnoi?: boolean
           notite?: string | null
           nume: string
           plan?: string

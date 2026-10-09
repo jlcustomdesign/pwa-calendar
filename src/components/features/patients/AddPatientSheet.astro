@@ -69,6 +69,20 @@
                 Ședință unică
               </button>
             </div>
+
+            <!-- Nu reînnoi (doar Abonament): nu se mai cere reînnoirea -->
+            <div id="nu-reinnoi-row" class="hidden mt-2.5">
+              <input type="hidden" name="nuReinnoi" id="patientNuReinnoi" value="false" />
+              <button
+                type="button"
+                id="btn-nu-reinnoi"
+                class="w-full py-3 px-4 rounded-2xl border-2 border-black/10 bg-white text-left flex items-center justify-between transition-all active:scale-[0.98]"
+              >
+                <span class="text-xs sm:text-sm font-black text-black">Nu reînnoi abonamentul</span>
+                <span id="nu-reinnoi-state" class="text-xs font-black uppercase tracking-wide text-neutral-400">Off</span>
+              </button>
+              <p class="text-[10px] font-bold text-neutral-400 mt-1 px-1">Când e activ, aplicația nu mai cere reînnoirea pentru acest pacient; ședințele se pot finaliza fără pachet activ.</p>
+            </div>
           </div>
 
           <!-- Locație -->
@@ -359,6 +373,16 @@
       });
 
 
+      // Bind "Nu reînnoi" toggle
+      const nuReinnoiBtn = document.getElementById('btn-nu-reinnoi');
+      if (nuReinnoiBtn && nuReinnoiBtn.dataset.bound !== 'true') {
+        nuReinnoiBtn.dataset.bound = 'true';
+        nuReinnoiBtn.addEventListener('click', () => {
+          const input = document.getElementById('patientNuReinnoi') as HTMLInputElement | null;
+          this.setNuReinnoi(input?.value !== 'true');
+        });
+      }
+
       // Bind stepper buttons (replaces inline onclick)
       const stepperBtns = this.sheet.querySelectorAll<HTMLButtonElement>('.stepper-btn');
       stepperBtns.forEach((btn) => {
@@ -421,6 +445,32 @@
       });
 
       this.movePillTo('plan-active-pill', selectedChip);
+      this.updateNuReinnoiRow(normSelected.includes('abonament') || normSelected.includes('subscrip'));
+    }
+
+    // Rândul "Nu reînnoi" e relevant doar pentru Abonament.
+    private updateNuReinnoiRow(isSubscription: boolean) {
+      const row = document.getElementById('nu-reinnoi-row');
+      if (!row) return;
+      row.classList.toggle('hidden', !isSubscription);
+    }
+
+    private setNuReinnoi(on: boolean) {
+      const input = document.getElementById('patientNuReinnoi') as HTMLInputElement | null;
+      const state = document.getElementById('nu-reinnoi-state');
+      const btn = document.getElementById('btn-nu-reinnoi');
+      if (input) input.value = on ? 'true' : 'false';
+      if (state) {
+        state.textContent = on ? 'On' : 'Off';
+        state.className = on
+          ? 'text-xs font-black uppercase tracking-wide text-white bg-black px-2.5 py-1 rounded-xl'
+          : 'text-xs font-black uppercase tracking-wide text-neutral-400';
+      }
+      if (btn) {
+        btn.className = on
+          ? 'w-full py-3 px-4 rounded-2xl border-2 border-black bg-black text-left flex items-center justify-between transition-all active:scale-[0.98]'
+          : 'w-full py-3 px-4 rounded-2xl border-2 border-black/10 bg-white text-left flex items-center justify-between transition-all active:scale-[0.98]';
+      }
     }
 
     private movePillTo(pillId: string, target: HTMLElement | null) {
@@ -566,6 +616,7 @@
         cost: formData.get('cost') ? Number(formData.get('cost')) : 0,
         sedinte_total: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
         achitat: paymentStatus === 'Achitat' || paymentStatus === 'Paid fully' || paymentStatus === 'Paid',
+        nu_reinnoi: formData.get('nuReinnoi') === 'true',
         drive_link: driveVal,
       };
 
@@ -662,6 +713,7 @@
           this.updatePaymentChips(editPaymentStatus);
           this.applyPlanDefaults(patient.plan || 'Abonament', false);
           this.togglePartialAmountBox(editPaymentStatus);
+          this.setNuReinnoi(!!(patient as any).nu_reinnoi);
 
           // Show sticky renewal button in edit mode
           const stickyRenewBtn = document.getElementById('btn-renew-sticky');
@@ -686,6 +738,7 @@
           this.updateLocationChips('Belaqva');
           this.updatePaymentChips('Neachitat');
           this.togglePartialAmountBox('Neachitat');
+          this.setNuReinnoi(false);
           const stickyRenewBtn = document.getElementById('btn-renew-sticky');
           if (stickyRenewBtn) stickyRenewBtn.classList.add('hidden');
           

@@ -24,7 +24,8 @@ export async function getAppointment(id: string): Promise<Programare & { pacient
         sedinte_total,
         achitat,
         cost,
-        drive_link
+        drive_link,
+        nu_reinnoi
       )
     `)
     .eq('id', id)
@@ -121,7 +122,7 @@ export async function getAppointmentsByDate(date: string): Promise<Programare[]>
     .from('programari')
     .select(`
       *,
-      pacienti ( prenume, nume, telefon, locatie, status_abonament, sedinte_folosite, sedinte_total, achitat, cost )
+      pacienti ( prenume, nume, telefon, locatie, status_abonament, sedinte_folosite, sedinte_total, achitat, cost, nu_reinnoi )
     `)
     .eq('data', date)
     .eq('user_id', user.id)

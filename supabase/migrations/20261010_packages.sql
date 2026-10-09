@@ -298,3 +298,51 @@ REVOKE EXECUTE ON FUNCTION public.record_payment(uuid, numeric, boolean, uuid, u
 GRANT EXECUTE ON FUNCTION public.record_payment(uuid, numeric, boolean, uuid, uuid) TO authenticated;
 REVOKE EXECUTE ON FUNCTION public.renew_package(uuid, int, numeric, numeric, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.renew_package(uuid, int, numeric, numeric, text) TO authenticated;
+
+-- h) Garda contorului pe abonamente (simetrica cu cea de pe pacienti).
+CREATE OR REPLACE FUNCTION public.protejeaza_contor_abonament() RETURNS trigger AS $f$
+BEGIN
+  IF NEW.sedinte_folosite IS DISTINCT FROM OLD.sedinte_folosite THEN
+    IF current_setting('app.allow_counter_write', true) IS DISTINCT FROM 'on' AND pg_trigger_depth() <= 1 THEN
+      RAISE EXCEPTION 'Contorul pachetului poate fi modificat doar de sistem: finalizarea/anularea ședințelor sau reînnoirea.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END $f$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_protejeaza_contor_abonament ON public.abonamente;
+CREATE TRIGGER trg_protejeaza_contor_abonament
+  BEFORE UPDATE ON public.abonamente FOR EACH ROW
+  EXECUTE FUNCTION public.protejeaza_contor_abonament();
+
+-- i) Opt-out reînnoire: "nu reînnoi" — finalizarea fără pachet activ NU e
+--    eroare; ședința se finalizează necontorizată.
+ALTER TABLE pacienti ADD COLUMN IF NOT EXISTS nu_reinnoi boolean NOT NULL DEFAULT false;
+
+CREATE OR REPLACE FUNCTION public.lega_sedinta_de_pachet()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  v_pkg uuid;
+  v_plan text;
+  v_nu_reinnoi boolean;
+BEGIN
+  IF TG_OP IN ('INSERT', 'UPDATE') THEN
+    IF NEW.status = 'finalizat' AND NEW.contorizeaza THEN
+      IF NEW.abonament_id IS NULL THEN
+        SELECT a.id, p.nu_reinnoi, p.plan INTO v_pkg, v_nu_reinnoi, v_plan
+          FROM public.pacienti p
+          LEFT JOIN public.abonamente a
+            ON a.pacient_id = p.id AND a.status = 'activ'
+          WHERE p.id = NEW.pacient_id;
+        IF v_pkg IS NULL AND v_plan IS DISTINCT FROM 'One Time' AND COALESCE(v_nu_reinnoi, false) = false THEN
+          RAISE EXCEPTION 'Pacientul nu are un pachet activ. Reînnoiește abonamentul înainte de a confirma ședința.';
+        END IF;
+        NEW.abonament_id := v_pkg;
+      END IF;
+    ELSE
+      NEW.abonament_id := NULL;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
