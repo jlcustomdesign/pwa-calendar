@@ -30,7 +30,7 @@
 </div>
 <script>
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
-  import { applyBeyondSupplyMarks, createGroupCardHTML, createSessionCardHTML, fetchPaymentsForPatients, groupSessions } from '../../../lib/render/sessionCard';
+  import { applyBeyondSupplyMarks, createGroupCardHTML, createSessionCardHTML, fetchPaymentsForPatients, fetchOpenPackages, groupSessions } from '../../../lib/render/sessionCard';
   import { isPushSubscribed } from '../../../lib/services/pushService';
   import { getSettings } from '../../../lib/services/settingsService';
 
@@ -218,11 +218,13 @@
       // O singură interogare grupată pentru plăți (în loc de câte una per ședință).
       const pidsForPayments = [...new Set(appts.map((a: any) => a.pacient_id).filter(Boolean))] as string[];
       const paymentsByPatient = await fetchPaymentsForPatients(pidsForPayments);
+      const packagesByPatient = await fetchOpenPackages(pidsForPayments);
       stored = appts.map((a: any) => {
         const sumaIncasata = paymentsByPatient.get(a.pacient_id) ?? 0;
-        const costTotal = Number(a.pacienti?.cost || 0);
-        const folosite = a.pacienti?.sedinte_folosite ?? 0;
-        const totalSess = a.pacienti?.sedinte_total || 10;
+        const pkg = packagesByPatient.get(a.pacient_id);
+        const costTotal = pkg ? pkg.pret : Number(a.pacienti?.cost || 0);
+        const folosite = pkg ? Math.min(pkg.sedinte_folosite, pkg.nr_sedinte) : (a.pacienti?.sedinte_folosite ?? 0);
+        const totalSess = pkg ? pkg.nr_sedinte : (a.pacienti?.sedinte_total || 10);
         const sedinteRamase = Math.max(0, totalSess - folosite);
 
         let pStatus = 'Neachitat';

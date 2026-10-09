@@ -104,6 +104,40 @@ export async function fetchPaymentsForPatients(patientIds: string[]): Promise<Ma
   }
 }
 
+// ── Pachet deschis per pacient ──────────────────────────────────
+// Sursa de adevăr pentru X/8 și cost: rândul `pachet_curent` (abonamente),
+// nu coloanele de pe pacienti (menținute doar pentru compatibilitate).
+export interface OpenPackage {
+  nr_sedinte: number;
+  sedinte_folosite: number;
+  pret: number;
+}
+
+export async function fetchOpenPackages(patientIds: string[]): Promise<Map<string, OpenPackage>> {
+  const map = new Map<string, OpenPackage>();
+  const uniqueIds = [...new Set((patientIds || []).filter(Boolean))] as string[];
+  if (uniqueIds.length === 0) return map;
+  try {
+    const user = await getCurrentUser();
+    const { data, error } = await (supabase as any)
+      .from('pachet_curent')
+      .select('pacient_id, nr_sedinte, sedinte_folosite, pret')
+      .in('pacient_id', uniqueIds)
+      .eq('user_id', user.id);
+    if (error) throw error;
+    for (const row of (data ?? []) as any[]) {
+      map.set(row.pacient_id, {
+        nr_sedinte: Number(row.nr_sedinte) || 0,
+        sedinte_folosite: Number(row.sedinte_folosite) || 0,
+        pret: Number(row.pret) || 0,
+      });
+    }
+  } catch (e) {
+    console.warn('Citire pachete deschise indisponibilă:', e);
+  }
+  return map;
+}
+
 // ── „În afara pachetului” (cerere vs ofertă) ────────────────────
 // Marchează programările viitoare care depășesc ședințele rămase:
 // poziția în lista viitoare a pacientului > ședințe rămase.

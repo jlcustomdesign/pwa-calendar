@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      abonamente: {
+        Row: {
+          id: string
+          pacient_id: string
+          user_id: string | null
+          nr_sedinte: number
+          pret: number
+          sedinte_folosite: number
+          datorie_initiala: number
+          status: string
+          created_at: string
+          closed_at: string | null
+        }
+        Insert: {
+          id?: string
+          pacient_id: string
+          user_id?: string | null
+          nr_sedinte?: number
+          pret?: number
+          sedinte_folosite?: number
+          datorie_initiala?: number
+          status?: string
+          created_at?: string
+          closed_at?: string | null
+        }
+        Update: {
+          id?: string
+          pacient_id?: string
+          user_id?: string | null
+          nr_sedinte?: number
+          pret?: number
+          sedinte_folosite?: number
+          datorie_initiala?: number
+          status?: string
+          created_at?: string
+          closed_at?: string | null
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           absence_reason: string | null
@@ -350,6 +389,7 @@ export type Database = {
           metoda: string | null
           pacient_id: string
           programare_id: string | null
+          abonament_id: string | null
           suma: number
           user_id: string | null
         }
@@ -360,6 +400,7 @@ export type Database = {
           metoda?: string | null
           pacient_id: string
           programare_id?: string | null
+          abonament_id?: string | null
           suma: number
           user_id?: string | null
         }
@@ -370,6 +411,7 @@ export type Database = {
           metoda?: string | null
           pacient_id?: string
           programare_id?: string | null
+          abonament_id?: string | null
           suma?: number
           user_id?: string | null
         }
@@ -457,6 +499,7 @@ export type Database = {
           pacient_id: string
           status: string
           contorizeaza: boolean
+          abonament_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -471,6 +514,7 @@ export type Database = {
           pacient_id: string
           status?: string
           contorizeaza?: boolean
+          abonament_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -485,6 +529,7 @@ export type Database = {
           pacient_id?: string
           status?: string
           contorizeaza?: boolean
+          abonament_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -602,6 +647,45 @@ export type Database = {
       }
     }
     Views: {
+      pachet_curent: {
+        Row: {
+          id: string
+          pacient_id: string
+          user_id: string | null
+          nr_sedinte: number
+          pret: number
+          sedinte_folosite: number
+          datorie_initiala: number
+          status: string
+          created_at: string
+          closed_at: string | null
+        }
+        Insert: {
+          id?: string
+          pacient_id: string
+          user_id?: string | null
+          nr_sedinte?: number
+          pret?: number
+          sedinte_folosite?: number
+          datorie_initiala?: number
+          status?: string
+          created_at?: string
+          closed_at?: string | null
+        }
+        Update: {
+          id?: string
+          pacient_id?: string
+          user_id?: string | null
+          nr_sedinte?: number
+          pret?: number
+          sedinte_folosite?: number
+          datorie_initiala?: number
+          status?: string
+          created_at?: string
+          closed_at?: string | null
+        }
+        Relationships: []
+      }
       pacienti_view: {
         Row: {
           abonament_start: string | null
@@ -638,7 +722,23 @@ export type Database = {
       genereaza_notificari_zilnice: { Args: never; Returns: undefined }
       get_vapid_secrets: { Args: never; Returns: Json }
       record_payment: {
-        Args: { p_pacient_id: string; p_suma: number; p_mark_achitat: boolean }
+        Args: {
+          p_pacient_id: string
+          p_suma: number
+          p_mark_achitat?: boolean
+          p_programare_id?: string
+          p_abonament_id?: string
+        }
+        Returns: undefined
+      }
+      renew_package: {
+        Args: {
+          p_pacient_id: string
+          p_total: number
+          p_cost: number
+          p_paid?: number
+          p_status?: string
+        }
         Returns: undefined
       }
       run_check_reminders_cron: { Args: never; Returns: undefined }

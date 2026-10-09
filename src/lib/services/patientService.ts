@@ -219,6 +219,9 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
 // ── Adăugare plată custom (PaymentSheet) ──────────────────────
 // RPC atomic: inserează plata și recalculează `achitat` DOAR pentru pachetul
 // curent (plățile de la abonament_start; plățile pachetelor vechi nu contează).
+// RPC atomic: inserează plata (legată de pachetul deschis sau de ședința
+// indicată) și recalculează `achitat` ca SUM(plati pe pachet) >= pret —
+// fără ferestre de date.
 export async function addPayment(id: string, amount: number, markAchitat: boolean, programareId?: string) {
   const { error } = await supabase.rpc('record_payment', {
     p_pacient_id: id,
@@ -265,9 +268,10 @@ export async function resetPatientSubscription(
     }
   }
 
-  // Totul (pachet nou + plata inițială) se face într-o singură tranzacție în DB.
-  // Istoricul `plati` rămâne intact — nu se mai șterg plăți vechi la reînnoire.
-  const { error } = await (supabase as any).rpc('renew_subscription', {
+  // Totul (pachet nou + plata inițială) se face într-o singură tranzacție în DB:
+  // renew_package închide rândul vechi din `abonamente` și deschide unul nou
+  // (cu datoria de over-delivery), iar plata se leagă de noul pachet.
+  const { error } = await (supabase as any).rpc('renew_package', {
     p_pacient_id: id,
     p_total: nextTotal,
     p_cost: nextCost,
