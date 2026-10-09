@@ -65,16 +65,39 @@ export async function fetchPaymentsForPatients(patientIds: string[]): Promise<Ma
 
   try {
     const user = await getCurrentUser();
+    // Doar plățile pachetului DESCHIS se compară cu prețul lui — suma
+    // all-time ar marca greșit badge-ul după o reînnoire.
+    const { data: pkgs, error: pkgErr } = await (supabase as any)
+      .from('pachet_curent')
+      .select('pacient_id, id')
+      .in('pacient_id', uniqueIds)
+      .eq('user_id', user.id);
+    if (pkgErr) throw pkgErr;
+
+    const pkgByPatient = new Map<string, string>();
+    const pkgIds: string[] = [];
+    for (const row of (pkgs ?? []) as any[]) {
+      pkgByPatient.set(row.pacient_id, row.id);
+      pkgIds.push(row.id);
+    }
+
     const { data, error } = await (supabase as any)
       .from('plati')
-      .select('pacient_id, suma')
+      .select('pacient_id, suma, abonament_id')
       .in('pacient_id', uniqueIds)
       .eq('user_id', user.id);
     if (error) throw error;
 
     const dbTotals = new Map<string, number>();
     for (const row of (data ?? []) as any[]) {
+      if (pkgByPatient.get(row.pacient_id) !== row.abonament_id) continue;
       dbTotals.set(row.pacient_id, (dbTotals.get(row.pacient_id) || 0) + (row.suma || 0));
+    }
+    // Pacienții fără pachet deschis (Ședință unică): total istoric.
+    for (const row of (data ?? []) as any[]) {
+      if (!pkgByPatient.has(row.pacient_id)) {
+        dbTotals.set(row.pacient_id, (dbTotals.get(row.pacient_id) || 0) + (row.suma || 0));
+      }
     }
     for (const id of uniqueIds) {
       totals.set(id, dbTotals.has(id) ? dbTotals.get(id)! : readLocalFallback(id));

@@ -463,3 +463,23 @@ BEGIN
       FROM abonamente WHERE pacient_id = p_pacient_id AND status = 'activ';
   END IF;
 END $f$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- m) Schimbarea planului (Ședință unică → Abonament) după creare deschide
+--    automat pachetul; altfel prima ședință finalizată lovește eroarea.
+CREATE OR REPLACE FUNCTION public.sincronizeaza_pachet_la_plan()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.plan IS DISTINCT FROM OLD.plan
+     AND NEW.plan IS DISTINCT FROM 'One Time'
+     AND NOT EXISTS (SELECT 1 FROM public.abonamente WHERE pacient_id = NEW.id) THEN
+    INSERT INTO public.abonamente (pacient_id, user_id, nr_sedinte, pret, status)
+    VALUES (NEW.id, NEW.user_id, GREATEST(1, NEW.sedinte_total), GREATEST(0, NEW.cost), 'activ');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_pachet_la_schimb_plan ON public.pacienti;
+CREATE TRIGGER trg_pachet_la_schimb_plan
+  AFTER UPDATE OF plan ON public.pacienti FOR EACH ROW
+  EXECUTE FUNCTION public.sincronizeaza_pachet_la_plan();
