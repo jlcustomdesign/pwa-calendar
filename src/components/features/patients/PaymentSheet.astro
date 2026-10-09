@@ -394,7 +394,9 @@
       try {
         const patient = await getPatient(this.currentPatientId);
         const cost = patient.cost || 0;
-        const totalPaid = await getPatientPayments(this.currentPatientId);
+        // suma_incasata e deja suprascrisă de applyPackageTruth cu plățile
+        // pachetului deschis — nu totalul istoric.
+        const totalPaid = Number((patient as any).suma_incasata || 0);
         const remaining = cost - totalPaid;
         
         if (remaining > 0) {

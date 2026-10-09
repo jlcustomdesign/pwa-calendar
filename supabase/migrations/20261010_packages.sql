@@ -188,6 +188,9 @@ BEGIN
   IF NOT FOUND OR v_pacient.user_id IS DISTINCT FROM auth.uid() THEN
     RAISE EXCEPTION 'Pacient invalid sau neautorizat.';
   END IF;
+  IF v_pacient.plan IS NOT DISTINCT FROM 'One Time' THEN
+    RAISE EXCEPTION 'Pacientul cu ședință unică nu are abonament de reînnoit.';
+  END IF;
 
   SELECT * INTO v_old FROM abonamente
     WHERE pacient_id = p_pacient_id AND status = 'activ' FOR UPDATE;

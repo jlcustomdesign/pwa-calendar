@@ -571,7 +571,17 @@ export async function resetPayments(id: string) {
 
   try {
     const currentUser = await getCurrentUser();
-    await (supabase as any).from('plati').delete().eq('pacient_id', id).eq('user_id', currentUser.id);
+    // Se șterg DOAR plățile pachetului deschis — istoricul pachetelor
+    // vechi (închise) rămâne intact. "Neachitat" nu mai distruge istoricul.
+    const { data: pkgs } = await (supabase as any)
+      .from('pachet_curent')
+      .select('id')
+      .eq('pacient_id', id)
+      .eq('user_id', currentUser.id);
+    const openIds = ((pkgs ?? []) as any[]).map((p: any) => p.id);
+    if (openIds.length > 0) {
+      await (supabase as any).from('plati').delete().eq('pacient_id', id).eq('user_id', currentUser.id).in('abonament_id', openIds);
+    }
     await (supabase as any).from('pacienti').update({ achitat: false }).eq('id', id).eq('user_id', currentUser.id);
   } catch (err) {
     console.warn('Eroare ștergere plăți Supabase:', err);
