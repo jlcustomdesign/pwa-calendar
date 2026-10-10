@@ -588,7 +588,7 @@
         const safeDriveLink = escapeHtml(patient.drive_link || '#');
         const hasDriveLink = Boolean(patient.drive_link);
 
-        const isLunar = patient.plan === 'Abonament lunar';
+        const isLunar = String(patient.plan || '').toLowerCase().includes('lunar') || (patient as any).lunar === true;
         const subscriptionDone = !isLunar && totalSessions > 0 && attendanceCount >= totalSessions;
         const displayCount = subscriptionDone ? totalSessions : attendanceCount;
         progressPercentage = isLunar ? 0 : (subscriptionDone ? 100 : (totalSessions > 0 ? Math.min(100, Math.round((attendanceCount / totalSessions) * 100)) : 0));
