@@ -1,0 +1,107 @@
+-- Abonamentul lunar devine efectiv lunar: oricând se activează, pachetul acoperă
+-- o lună DE LA ACTIVARE (nu de la 1 a lunii următoare), iar schimbarea planului
+-- pe un pacient cu pachet deschis convertește pachetul la lunar cu fereastră corectă.
+
+-- a) renew_package: pachet lunar = de azi, o lună (era: luna viitoare → ședințele
+--    lunii curente rămâneau fără pachet și se crea un al doilea pachet duplicat).
+CREATE OR REPLACE FUNCTION public.renew_package(
+  p_pacient_id uuid, p_total int, p_cost numeric, p_paid numeric DEFAULT 0, p_status text DEFAULT 'Neachitat', p_tip text DEFAULT 'sedinte'
+) RETURNS void AS $f$
+DECLARE
+  v_pacient pacienti%ROWTYPE;
+  v_old abonamente%ROWTYPE;
+  v_debt int;
+  v_start date;
+  v_end date;
+BEGIN
+  SELECT * INTO v_pacient FROM pacienti WHERE id = p_pacient_id FOR UPDATE;
+  IF NOT FOUND OR v_pacient.user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'Pacient invalid sau neautorizat.';
+  END IF;
+  IF v_pacient.plan IS NOT DISTINCT FROM 'One Time' THEN
+    RAISE EXCEPTION 'Pacientul cu ședință unică nu are abonament de reînnoit.';
+  END IF;
+
+  SELECT * INTO v_old FROM abonamente
+    WHERE pacient_id = p_pacient_id AND status = 'activ' FOR UPDATE;
+
+  IF FOUND AND v_old.sedinte_folosite - v_old.datorie_initiala < v_old.nr_sedinte THEN
+    -- Pachet NEEPUIZAT: reînnoirea confirmă plata pe pachetul curent — rândul rămâne.
+    -- Dacă devine lunar, primește și fereastra de o lună de la activare.
+    UPDATE abonamente SET nr_sedinte = GREATEST(1, p_total), pret = GREATEST(0, p_cost),
+      tip = CASE WHEN p_tip IN ('sedinte','lunar') THEN p_tip ELSE v_old.tip END,
+      closed_at = CASE
+        WHEN (p_tip = 'lunar' OR (p_tip IS DISTINCT FROM 'sedinte' AND v_old.tip = 'lunar'))
+             AND closed_at IS NULL
+        THEN (CURRENT_DATE + interval '1 month')::date
+        ELSE closed_at END
+      WHERE id = v_old.id;
+  ELSE
+    SELECT COALESCE((
+        SELECT sum(GREATEST(0, a.sedinte_folosite - a.nr_sedinte))
+        FROM abonamente a WHERE a.pacient_id = p_pacient_id AND a.status = 'inchis'
+      ), 0) + GREATEST(0, COALESCE(v_old.sedinte_folosite, 0) - COALESCE(v_old.nr_sedinte, 0))
+      INTO v_debt;
+    IF FOUND THEN
+      UPDATE abonamente SET status = 'inchis', closed_at = now() WHERE id = v_old.id;
+    END IF;
+    IF p_tip = 'lunar' THEN
+      v_start := CURRENT_DATE;
+      v_end := (CURRENT_DATE + interval '1 month')::date;
+    ELSE
+      v_start := CURRENT_DATE;
+      v_end := NULL;
+    END IF;
+    INSERT INTO public.abonamente (pacient_id, user_id, nr_sedinte, pret, sedinte_folosite, datorie_initiala, status, tip, created_at, closed_at)
+    VALUES (p_pacient_id, auth.uid(), GREATEST(1, p_total), GREATEST(0, p_cost), v_debt, v_debt, 'activ',
+            CASE WHEN p_tip = 'lunar' THEN 'lunar' ELSE 'sedinte' END, v_start, v_end);
+  END IF;
+
+  PERFORM set_config('app.allow_counter_write', 'on', true);
+  UPDATE pacienti SET
+    sedinte_total = GREATEST(1, p_total),
+    sedinte_folosite = LEAST(
+      COALESCE((SELECT sedinte_folosite FROM abonamente WHERE pacient_id = p_pacient_id AND status = 'activ'), 0),
+      GREATEST(1, p_total)),
+    cost = GREATEST(0, p_cost),
+    achitat = (p_status = 'Achitat'),
+    status_abonament = 'activ',
+    abonament_start = CURRENT_DATE
+  WHERE id = p_pacient_id;
+
+  IF p_paid > 0 THEN
+    INSERT INTO plati (pacient_id, suma, data_platii, user_id, abonament_id)
+    SELECT p_pacient_id, p_paid, CURRENT_DATE, auth.uid(), id
+      FROM abonamente WHERE pacient_id = p_pacient_id AND status = 'activ';
+  END IF;
+END $f$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE EXECUTE ON FUNCTION public.renew_package(uuid, int, numeric, numeric, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.renew_package(uuid, int, numeric, numeric, text, text) TO authenticated;
+
+-- b) Schimbarea planului spre 'Abonament lunar' converteste pachetul deschis la
+--    lunar cu fereastra de o lună de la activare (înainte rămânea tip='sedinte'
+--    cu closed_at=NULL → rostogolirea lunară nu pornea niciodată).
+CREATE OR REPLACE FUNCTION public.sincronizeaza_pachet_la_plan()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.plan IS DISTINCT FROM OLD.plan AND NEW.plan = 'Abonament lunar' THEN
+    IF EXISTS (SELECT 1 FROM public.abonamente WHERE pacient_id = NEW.id AND status = 'activ') THEN
+      UPDATE public.abonamente
+        SET tip = 'lunar', closed_at = (CURRENT_DATE + interval '1 month')::date
+        WHERE pacient_id = NEW.id AND status = 'activ' AND closed_at IS NULL;
+    ELSE
+      INSERT INTO public.abonamente (pacient_id, user_id, nr_sedinte, pret, status, tip, created_at, closed_at)
+      VALUES (NEW.id, NEW.user_id, GREATEST(1, NEW.sedinte_total), GREATEST(0, NEW.cost), 'activ', 'lunar',
+              CURRENT_DATE, (CURRENT_DATE + interval '1 month')::date);
+    END IF;
+  ELSIF NEW.plan IS DISTINCT FROM OLD.plan
+     AND NEW.plan IS DISTINCT FROM 'One Time' AND NEW.plan IS DISTINCT FROM 'Ședință unică'
+     AND NOT EXISTS (SELECT 1 FROM public.abonamente WHERE pacient_id = NEW.id) THEN
+    INSERT INTO public.abonamente (pacient_id, user_id, nr_sedinte, pret, status, tip, created_at, closed_at)
+    VALUES (NEW.id, NEW.user_id, GREATEST(1, NEW.sedinte_total), GREATEST(0, NEW.cost), 'activ', 'sedinte',
+            CURRENT_DATE, NULL);
+  END IF;
+  RETURN NEW;
+END;
+$$;
