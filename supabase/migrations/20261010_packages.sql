@@ -501,3 +501,12 @@ ALTER TABLE abonamente ADD COLUMN IF NOT EXISTS tip text NOT NULL DEFAULT 'sedin
 ALTER TABLE pacienti DROP CONSTRAINT IF EXISTS pacienti_plan_check;
 ALTER TABLE pacienti ADD CONSTRAINT pacienti_plan_check
   CHECK (plan = ANY (ARRAY['Abonament'::text, 'Abonament lunar'::text, 'Ședință unică'::text, 'Subscription'::text, 'One Time'::text]));
+
+-- p) View-ul pachet_curent era creat cu SELECT * INAINTE de coloana tip —
+-- in PostgreSQL * se expandeaza la CREAREA view-ului, deci lipsea tip si
+-- orice query PostgREST care o cerea dadea 400. Recreat cu coloane explicite.
+DROP VIEW IF EXISTS public.pachet_curent;
+CREATE VIEW public.pachet_curent
+WITH (security_invoker = true) AS
+SELECT id, pacient_id, user_id, nr_sedinte, pret, sedinte_folosite, datorie_initiala, status, tip, created_at, closed_at
+FROM public.abonamente WHERE status = 'activ';
