@@ -303,7 +303,8 @@ export async function resetPatientSubscription(
   id: string,
   newTotalSessions?: number,
   newCostTotal: number = 0,
-  paymentOption: { status: 'Neachitat' | 'Parțial' | 'Achitat'; paidAmount?: number } | boolean = false
+  paymentOption: { status: 'Neachitat' | 'Parțial' | 'Achitat'; paidAmount?: number } | boolean = false,
+  options: { tip?: 'sedinte' | 'lunar'; startDate?: string } = {}
 ): Promise<void> {
   const current = await getPatient(id);
   // ✅ costul noului abonament ÎNLOCUIEȘTE costul vechi, nu se acumulează
@@ -337,6 +338,8 @@ export async function resetPatientSubscription(
     p_cost: nextCost,
     p_paid: amountToAdd,
     p_status: pStatus,
+    p_tip: options.tip ?? null,
+    p_data_start: options.startDate ?? null,
   });
 
   if (error) throw new Error(error.message || 'Eroare la reînnoirea abonamentului');

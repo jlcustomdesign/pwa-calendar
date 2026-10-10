@@ -982,7 +982,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       if (!p) return Promise.resolve('proceed');
       const plan = (p as any).plan || '';
       const isSingle = plan === 'One Time' || plan === 'Ședință unică';
-      if (isSingle || (p as any).nu_reinnoi === true) return Promise.resolve('proceed');
+      const isLunar = plan === 'Abonament lunar' || (p as any).lunar === true;
+      // Lunar: abonamentul nu se termină niciodată pe contor — nu presăm reînnoirea.
+      if (isSingle || isLunar || (p as any).nu_reinnoi === true) return Promise.resolve('proceed');
       const total = Number(p.sedinte_total || 0);
       const used = Number(p.sedinte_folosite || 0);
       if (total <= 0 || used < total) return Promise.resolve('proceed');

@@ -85,7 +85,7 @@
                 id="btn-nu-reinnoi"
                 class="w-full py-3 px-4 rounded-2xl border-2 border-black/10 bg-white text-left flex items-center justify-between transition-all active:scale-[0.98]"
               >
-                <span class="text-xs sm:text-sm font-black text-black">Nu reînnoi abonamentul</span>
+                <span id="nu-reinnoi-label" class="text-xs sm:text-sm font-black text-black">Nu reînnoi abonamentul</span>
                 <span id="nu-reinnoi-state" class="text-xs font-black uppercase tracking-wide text-neutral-400">Off</span>
               </button>
               <p class="text-[10px] font-bold text-neutral-400 mt-1 px-1">Când e activ, aplicația nu mai cere reînnoirea pentru acest pacient; ședințele se pot finaliza fără pachet activ.</p>
@@ -121,7 +121,7 @@
       <!-- CARD 2: PREȚ & ȘEDINȚE                                 -->
       <!-- ═══════════════════════════════════════════════════════ -->
       <div class="rounded-3xl bg-black/[0.03] p-4 space-y-4 border border-black/5">
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3" id="price-sessions-grid">
           <div>
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Preț abonament</label>
             <div class="flex items-center bg-white rounded-2xl overflow-hidden shadow-sm p-1 gap-1 transition-all">
@@ -136,7 +136,7 @@
               <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientCost" data-stepper-step="10">+</button>
             </div>
           </div>
-          <div>
+          <div id="total-sessions-field">
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Nr. ședințe</label>
             <div class="flex items-center bg-white rounded-2xl overflow-hidden shadow-sm p-1 gap-1 transition-all">
               <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientTotalSessions" data-stepper-step="-1" data-stepper-min="1">-</button>
@@ -455,6 +455,13 @@
 
       this.movePillTo('plan-active-pill', selectedChip);
       this.updateNuReinnoiRow(normSelected.includes('abonament') || normSelected.includes('subscrip'));
+      // Abonament lunar: fără număr de ședințe — se ascunde câmpul.
+      const isLunarPlan = normSelected.includes('lunar');
+      const sessionsField = document.getElementById('total-sessions-field');
+      const grid = document.getElementById('price-sessions-grid');
+      if (sessionsField) sessionsField.classList.toggle('hidden', isLunarPlan);
+      if (grid) grid.classList.toggle('grid-cols-2', !isLunarPlan);
+      if (grid) grid.classList.toggle('grid-cols-1', isLunarPlan);
     }
 
     // Rândul "Nu reînnoi" e relevant doar pentru Abonament.
@@ -479,6 +486,12 @@
         btn.className = on
           ? 'w-full py-3 px-4 rounded-2xl border-2 border-black bg-black text-left flex items-center justify-between transition-all active:scale-[0.98]'
           : 'w-full py-3 px-4 rounded-2xl border-2 border-black/10 bg-white text-left flex items-center justify-between transition-all active:scale-[0.98]';
+      }
+      const label = document.getElementById('nu-reinnoi-label');
+      if (label) {
+        label.className = on
+          ? 'text-xs sm:text-sm font-black text-white'
+          : 'text-xs sm:text-sm font-black text-black';
       }
     }
 
