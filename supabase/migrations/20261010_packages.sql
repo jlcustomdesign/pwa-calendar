@@ -486,3 +486,11 @@ DROP TRIGGER IF EXISTS trg_pachet_la_schimb_plan ON public.pacienti;
 CREATE TRIGGER trg_pachet_la_schimb_plan
   AFTER UPDATE OF plan ON public.pacienti FOR EACH ROW
   EXECUTE FUNCTION public.sincronizeaza_pachet_la_plan();
+
+-- n) Abonament lunar: pachet cu viață de o lună calendaristică (tip 'lunar').
+-- renew_package accepta p_tip; la finalizare, pacientul lunar care lucrează în
+-- luna nouă primește automat pachetul lunii (cel vechi se închide).
+ALTER TABLE abonamente ADD COLUMN IF NOT EXISTS tip text NOT NULL DEFAULT 'sedinte'
+  CHECK (tip IN ('sedinte', 'lunar'));
+-- (Funcțiile renew_package 6-arg, wrapper 5-arg și lega_sedinta_de_pachet cu
+-- auto-reînnoire lunară sunt aplicate în DB; vezi commitul 20261010_monthly.)

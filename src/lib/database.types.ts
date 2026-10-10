@@ -24,6 +24,7 @@ export type Database = {
           sedinte_folosite: number
           datorie_initiala: number
           status: string
+          tip: string
           created_at: string
           closed_at: string | null
         }
@@ -36,6 +37,7 @@ export type Database = {
           sedinte_folosite?: number
           datorie_initiala?: number
           status?: string
+          tip?: string
           created_at?: string
           closed_at?: string | null
         }
@@ -48,6 +50,7 @@ export type Database = {
           sedinte_folosite?: number
           datorie_initiala?: number
           status?: string
+          tip?: string
           created_at?: string
           closed_at?: string | null
         }
@@ -744,6 +747,7 @@ export type Database = {
           p_cost: number
           p_paid?: number
           p_status?: string
+          p_tip?: string
         }
         Returns: undefined
       }
