@@ -398,10 +398,11 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           const sumaIncasata = paymentsByPatient.get(a.pacient_id) ?? 0;
           const pkg = packagesByPatient.get(a.pacient_id);
           const costTotal = pkg ? pkg.pret : Number(a.pacienti?.cost || 0);
-          // Contorul pachetului poate depăși plafonul (over-delivery) —
-          // afișarea îl limitează la plafon, ca înainte.
+          const isLunar = pkg?.tip === 'lunar';
+          // Abonament lunar: se afișează doar câte ședințe are luna aceasta,
+          // fără total (e "infinit" — se resetează lunar).
           const folosite = pkg ? Math.min(pkg.sedinte_folosite, pkg.nr_sedinte) : (a.pacienti?.sedinte_folosite ?? 0);
-          const totalSess = pkg ? pkg.nr_sedinte : (a.pacienti?.sedinte_total || 10);
+          const totalSess = isLunar ? 0 : (pkg ? pkg.nr_sedinte : (a.pacienti?.sedinte_total || 10));
           const sedinteRamase = Math.max(0, totalSess - folosite);
 
           let pStatus = 'Neachitat';
@@ -434,6 +435,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
             contorizeaza: a.contorizeaza !== false,
             plan: a.pacienti?.plan,
             nuReinnoi: a.pacienti?.nu_reinnoi === true,
+            lunar: isLunar,
           };
         });
 

@@ -98,6 +98,31 @@ const { title, hideDock = false } = Astro.props;
       import { renewWithPrompt, dismissRenewalNotification } from '../lib/services/patientService';
       import { getAppointment, deleteAppointment, cancelAppointment, markAbsent, setSessionCounted } from '../lib/services/appointmentService';
 
+      // ═══ Scroll-guard GLOBAL ═══
+      // Dupa un scroll cu degetul, browserul sintetizeaza un click la eliberare;
+      // acel click inchidea popup-urile. Daca degetul s-a miscat >10px, il ignoram.
+      // Acopera TOATE sheet-urile/popup-urile din dashboard, o singura data.
+      (function installGlobalScrollClickGuard() {
+        if ((window as any)._scrollClickGuardInstalled) return;
+        (window as any)._scrollClickGuardInstalled = true;
+        let startY: number | null = null;
+        let moved = false;
+        document.addEventListener('touchstart', (e: TouchEvent) => {
+          startY = e.touches[0].clientY;
+          moved = false;
+        }, { passive: true, capture: true });
+        document.addEventListener('touchmove', (e: TouchEvent) => {
+          if (startY != null && Math.abs(e.touches[0].clientY - startY) > 10) moved = true;
+        }, { passive: true, capture: true });
+        document.addEventListener('click', (e: MouseEvent) => {
+          if (moved) {
+            moved = false;
+            e.stopPropagation();
+            e.preventDefault();
+          }
+        }, { capture: true });
+      })();
+
       // Prevent horizontal swipe navigation inside the PWA (Safari/Chrome back/forward gestures)
       function preventHorizontalSwipeNavigation() {
         let startX = 0;
@@ -107,7 +132,6 @@ const { title, hideDock = false } = Astro.props;
           startX = e.touches[0].clientX;
           startY = e.touches[0].clientY;
         }, { passive: true });
-
         document.addEventListener('touchmove', (e: TouchEvent) => {
           if (e.touches.length === 0) return;
           const target = e.target as HTMLElement;

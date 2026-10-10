@@ -232,6 +232,20 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 </div>
 <div id="custom-date-picker-overlay" data-sheet-root class="fixed inset-0 bg-black/25 z-[105] opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
+<!-- Popup mic: abonament terminat la programare -->
+<div id="renew-mini-popup" class="fixed inset-0 z-[140] hidden items-end sm:items-center justify-center p-4">
+  <div id="renew-mini-backdrop" class="absolute inset-0 bg-black/40"></div>
+  <div class="relative w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl space-y-4">
+    <h3 class="text-lg font-black text-neutral-900">Abonament terminat</h3>
+    <p class="text-sm font-bold text-neutral-600" id="renew-mini-text">Vrei să reînnoiești cu aceleași setări?</p>
+    <div class="grid grid-cols-2 gap-3">
+      <button type="button" id="renew-mini-yes" class="py-3.5 rounded-2xl bg-brand-primary text-black font-extrabold text-sm active:scale-95 transition-all">Da, reînnoiește</button>
+      <button type="button" id="renew-mini-setup" class="py-3.5 rounded-2xl bg-black text-white font-extrabold text-sm active:scale-95 transition-all">Setup nou</button>
+    </div>
+    <button type="button" id="renew-mini-no" class="w-full py-3.5 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-extrabold text-sm active:scale-95 transition-all">Nu reînnoi</button>
+  </div>
+</div>
+
 <script>
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
@@ -961,6 +975,75 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
     // Guard cerere vs ofertă: avertizează (fără a bloca) când programările viitoare
     // depășesc ședințele rămase în pachet. Returnează false dacă utilizatorul renunță.
+    // Popup mic la programare: pachet epuizat → 3 opțiuni.
+    // 'proceed' = reînnoit cu aceleași setări sau fără reînnoire; 'abort' = anulat.
+    private askRenewIfExhausted(pid: string): Promise<'proceed' | 'abort'> {
+      const p = this.patientsCache.find(x => x.id === pid);
+      if (!p) return Promise.resolve('proceed');
+      const plan = (p as any).plan || '';
+      const isSingle = plan === 'One Time' || plan === 'Ședință unică';
+      if (isSingle || (p as any).nu_reinnoi === true) return Promise.resolve('proceed');
+      const total = Number(p.sedinte_total || 0);
+      const used = Number(p.sedinte_folosite || 0);
+      if (total <= 0 || used < total) return Promise.resolve('proceed');
+
+      return new Promise((resolve) => {
+        const popup = document.getElementById('renew-mini-popup');
+        const text = document.getElementById('renew-mini-text');
+        const nume = (p as any).name || `${(p as any).prenume || ''} ${(p as any).nume || ''}`.trim() || 'Pacient';
+        if (text) text.textContent = `${nume}: abonamentul e terminat (${used}/${total}). Vrei să reînnoiești cu aceleași setări?`;
+        if (!popup) { resolve('proceed'); return; }
+        popup.classList.remove('hidden');
+        popup.classList.add('flex');
+
+        const done = (result: 'proceed' | 'abort') => {
+          popup.classList.add('hidden');
+          popup.classList.remove('flex');
+          yesBtn?.removeEventListener('click', onYes);
+          setupBtn?.removeEventListener('click', onSetup);
+          noBtn?.removeEventListener('click', onNo);
+          backdrop?.removeEventListener('click', onNo);
+          resolve(result);
+        };
+        const yesBtn = document.getElementById('renew-mini-yes');
+        const setupBtn = document.getElementById('renew-mini-setup');
+        const noBtn = document.getElementById('renew-mini-no');
+        const backdrop = document.getElementById('renew-mini-backdrop');
+
+        const onYes = async () => {
+          try {
+            const { resetPatientSubscription } = await import('../../../lib/services/patientService');
+            await resetPatientSubscription(pid, total, Number((p as any).cost || 0), false);
+            (window as any).showToast?.('Abonament reînnoit cu aceleași setări.', 'success');
+            window.dispatchEvent(new CustomEvent('patientsUpdated'));
+            // Actualizează cache-ul local al sheet-ului
+            const cached = this.patientsCache.find(x => x.id === pid);
+            if (cached) { (cached as any).sedinte_folosite = 0; }
+            done('proceed');
+          } catch (err: any) {
+            (window as any).showToast?.('Eroare la reînnoire: ' + (err?.message || err), 'error');
+            done('abort');
+          }
+        };
+        const onSetup = () => {
+          emit(EVENTS.openRenewalSheet, {
+            patientId: pid,
+            currentTotal: total,
+            patientName: nume,
+            pendingAppointment: { data: undefined, ora: undefined, locatie: undefined },
+          });
+          (window as any).showToast?.('Setează noul pachet în fereastra de reînnoire.', 'info');
+          done('abort');
+        };
+        const onNo = () => done('proceed'); // fără reînnoire — programarea continuă
+
+        yesBtn?.addEventListener('click', onYes);
+        setupBtn?.addEventListener('click', onSetup);
+        noBtn?.addEventListener('click', onNo);
+        backdrop?.addEventListener('click', onNo);
+      });
+    }
+
     private async confirmIfBeyondSupply(pid: string): Promise<boolean> {
       try {
         const p = this.patientsCache.find(x => x.id === pid);
@@ -1041,6 +1124,12 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         : (sessionId ? [] : patientIds);
       for (const pid of idsToBook) {
         if (!(await this.confirmIfBeyondSupply(pid))) return;
+      }
+
+      // Popup abonament terminat: pacient cu pachet epuizat → întreabă dacă reînnoiește.
+      for (const pid of idsToBook) {
+        const decision = await this.askRenewIfExhausted(pid);
+        if (decision === 'abort') return;
       }
 
       const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;

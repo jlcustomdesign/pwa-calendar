@@ -134,6 +134,8 @@ export interface OpenPackage {
   nr_sedinte: number;
   sedinte_folosite: number;
   pret: number;
+  /** 'lunar' = abonament lunar (fara total, se afiseaza doar sedintele lunii). */
+  tip: string;
 }
 
 export async function fetchOpenPackages(patientIds: string[]): Promise<Map<string, OpenPackage>> {
@@ -144,7 +146,7 @@ export async function fetchOpenPackages(patientIds: string[]): Promise<Map<strin
     const user = await getCurrentUser();
     const { data, error } = await (supabase as any)
       .from('pachet_curent')
-      .select('pacient_id, nr_sedinte, sedinte_folosite, pret')
+      .select('pacient_id, nr_sedinte, sedinte_folosite, pret, tip')
       .in('pacient_id', uniqueIds)
       .eq('user_id', user.id);
     if (error) throw error;
@@ -153,6 +155,7 @@ export async function fetchOpenPackages(patientIds: string[]): Promise<Map<strin
         nr_sedinte: Number(row.nr_sedinte) || 0,
         sedinte_folosite: Number(row.sedinte_folosite) || 0,
         pret: Number(row.pret) || 0,
+        tip: row.tip || 'sedinte',
       });
     }
   } catch (e) {
@@ -319,11 +322,12 @@ export function createSessionCardHTML(session: any, isContinuation: boolean, ctx
 
   const count = session.attendanceCount ?? 0;
   const totalSess = session.totalSessions || 10;
-  // Abonament epuizat: aceeași regulă în calendar și agendă — progres plin
-  // („10/10” în rândul de progres) și „0/N ședințe” rămase în avertizare.
-  const isTerminat = session.subscriptionDone || (totalSess > 0 && count >= totalSess);
+  const isLunar = session.lunar === true;
+  // Abonament lunar: fara total/plafon — afisam doar cate sedinte are luna
+  // aceasta; nu exista conceptul de "abonament terminat".
+  const isTerminat = !isLunar && (session.subscriptionDone || (totalSess > 0 && count >= totalSess));
   const displayCount = isTerminat ? totalSess : count;
-  const progressPercentage = isTerminat ? 100 : (totalSess > 0 ? Math.min(100, Math.round((count / totalSess) * 100)) : 0);
+  const progressPercentage = isLunar ? 0 : (isTerminat ? 100 : (totalSess > 0 ? Math.min(100, Math.round((count / totalSess) * 100)) : 0));
   const progressBarFill = isGhimbav ? 'bg-brand-primary' : 'bg-brand-secondary';
   const progressBarTrack = isGhimbav ? 'bg-black/20' : 'bg-black/15';
 
@@ -474,10 +478,10 @@ export function createSessionCardHTML(session: any, isContinuation: boolean, ctx
               <div class="px-6 pt-2 pb-6 space-y-3">
                 <!-- Row 0: Progress Bar + Session Count -->
                 <div class="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white text-black text-sm font-extrabold shadow-sm">
-                  <div class="h-2 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative">
+                  <div class="h-2 flex-1 ${isLunar ? 'hidden' : progressBarTrack} rounded-full overflow-hidden relative">
                     <div class="h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out" style="width: ${progressPercentage}%;"></div>
                   </div>
-                  <span class="text-xs font-black tracking-wide shrink-0">${displayCount}/${totalSess}</span>
+                  <span class="text-xs font-black tracking-wide shrink-0">${isLunar ? `${count} șed. luna aceasta` : `${displayCount}/${totalSess}`}</span>
                 </div>
 
                 <!-- Row 1: White Pill with Black Text & Icons for Time & Location -->
@@ -614,7 +618,7 @@ function createGroupMemberCardHTML(m: any, ctx: { isGhimbav: boolean; progressBa
             <span class="font-black text-sm text-neutral-900 truncate flex-1">${safeName}</span>
             <div class="flex items-center gap-1.5 shrink-0">
               ${statusBadge}${beyondBadge}
-              <span class="text-xs font-black text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-lg font-mono">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
+              <span class="text-xs font-black text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-lg font-mono">${m.lunar ? `${m.attendanceCount || 0} șed. lună` : `${m.attendanceCount || 0}/${m.totalSessions || 10}`}</span>
             </div>
           </div>
 
@@ -699,7 +703,7 @@ function createGroupMemberCardHTML(m: any, ctx: { isGhimbav: boolean; progressBa
       <!-- Row 2: Status & Counter -->
       <div class="flex items-center justify-between gap-2">
         ${statusBadge || '<span></span>'}${beyondBadge}
-        <span class="text-xs font-black text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-lg font-mono">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
+        <span class="text-xs font-black text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-lg font-mono">${m.lunar ? `${m.attendanceCount || 0} șed. lună` : `${m.attendanceCount || 0}/${m.totalSessions || 10}`}</span>
       </div>
 
       <!-- Row 3: Progres -->
