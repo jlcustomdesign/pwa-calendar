@@ -374,6 +374,43 @@ export async function renewWithPrompt(patientId: string, currentTotal: number, p
   });
 }
 
+// ── Istoric ședințe individuale (pacienți Ședință unică, fără pachete) ──
+// Fiecare ședință apare cu plata ei (plati.programare_id), nu ca abonament.
+export interface SedintaUnicaIstoric {
+  programare_id: string;
+  data: string;
+  ora: string;
+  status: string;
+  platit: number; // suma plătită pe această ședință (0 = neplătită)
+}
+
+export async function getSingleSessionsHistory(patientId: string): Promise<SedintaUnicaIstoric[]> {
+  const user = await getCurrentUser();
+  const [{ data: appts }, { data: plati }] = await Promise.all([
+    (supabase as any).from('programari')
+      .select('id, data, ora, status')
+      .eq('pacient_id', patientId).eq('user_id', user.id)
+      .order('data', { ascending: true }),
+    (supabase as any).from('plati')
+      .select('programare_id, suma')
+      .eq('pacient_id', patientId).eq('user_id', user.id)
+      .not('programare_id', 'is', null),
+  ]);
+  const paidBySession = new Map<string, number>();
+  for (const pl of (plati ?? []) as any[]) {
+    paidBySession.set(pl.programare_id, (paidBySession.get(pl.programare_id) || 0) + (Number(pl.suma) || 0));
+  }
+  return ((appts ?? []) as any[])
+    .filter((a: any) => a.status !== 'anulat')
+    .map((a: any) => ({
+      programare_id: a.id,
+      data: a.data,
+      ora: a.ora,
+      status: a.status || 'programat',
+      platit: paidBySession.get(a.id) || 0,
+    }));
+}
+
 // ── Istoric pachete reale (PaymentSheet) ──────────────────────
 // Fiecare pachet e un rând `abonamente` real, cu ședințele și plățile
 // legate prin FK — nu o reconstrucție aritmetică din sume.

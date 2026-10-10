@@ -124,7 +124,7 @@
 </div>
 
 <script>
-  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPackages } from '../../../lib/services/patientService';
+  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPackages, getSingleSessionsHistory } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { EVENTS, emit } from '../../../lib/events';
 
@@ -142,6 +142,8 @@
     private previousAmount: number = 0;
     private patientCost: number = 0;
     private isOpen = false;
+    private suppressNextClick = false;
+    private touchStartForSuppression: number | null = null;
     private startY = 0;
     private currentY = 0;
     private startX = 0;
@@ -188,6 +190,9 @@
         this.sheet.dataset.paymentEventsBound = 'true';
         this.sheet.addEventListener('click', (e) => {
           const mgr = (window as any).currentPaymentSheetManager || this;
+          // Scroll cu degetul ≠ tap: browserul sintetizează un click la
+          // eliberare; nu-l lăsa să închidă popup-ul.
+          if (mgr.suppressNextClick) { mgr.suppressNextClick = false; e.stopPropagation(); e.preventDefault(); return; }
           mgr.handleClick(e);
         });
       }
@@ -197,6 +202,7 @@
         this.overlay.dataset.clickBound = 'true';
         this.overlay.addEventListener('click', () => {
           const mgr = (window as any).currentPaymentSheetManager || this;
+          if (mgr.suppressNextClick) { mgr.suppressNextClick = false; return; }
           mgr.close();
         });
       }
@@ -205,10 +211,17 @@
       if (this.sheet.dataset.paymentSwipeBound !== 'true') {
         this.sheet.dataset.paymentSwipeBound = 'true';
         this.sheet.addEventListener('touchstart', (e: any) => {
-          ((window as any).currentPaymentSheetManager || this).handleTouchStart(e);
+          const mgr = (window as any).currentPaymentSheetManager || this;
+          mgr.touchStartForSuppression = e.touches[0].clientY;
+          mgr.handleTouchStart(e);
         }, { passive: true });
         this.sheet.addEventListener('touchmove', (e: any) => {
-          ((window as any).currentPaymentSheetManager || this).handleTouchMove(e);
+          const mgr = (window as any).currentPaymentSheetManager || this;
+          if (mgr.touchStartForSuppression != null &&
+              Math.abs(e.touches[0].clientY - mgr.touchStartForSuppression) > 10) {
+            mgr.suppressNextClick = true;
+          }
+          mgr.handleTouchMove(e);
         }, { passive: false });
         this.sheet.addEventListener('touchend', (e: any) => {
           ((window as any).currentPaymentSheetManager || this).handleTouchEnd(e);
@@ -579,11 +592,34 @@
             const packages = await getPatientPackages(this.currentPatientId);
 
             if (packages.length === 0) {
-              historyListEl.innerHTML = `
-                <div class="py-3 px-4 rounded-2xl bg-white/70 border border-black/5 text-center text-xs font-semibold text-neutral-400">
-                  Nicio plată sau ședință înregistrată încă.
-                </div>
-              `;
+              // Pacienți Ședință unică: fiecare ședință apare individual, cu
+              // plata ei — fără abonamente, fără reînnoiri.
+              const sessions = await getSingleSessionsHistory(this.currentPatientId);
+              const fmtD = (d: string) => {
+                if (!d) return '';
+                const parts = d.split('T')[0].split('-');
+                return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0].slice(2)}` : d;
+              };
+              historyListEl.innerHTML = sessions.length === 0
+                ? `<div class="py-3 px-4 rounded-2xl bg-white/70 border border-black/5 text-center text-xs font-semibold text-neutral-400">
+                     Nicio ședință înregistrată încă.
+                   </div>`
+                : sessions.slice().reverse().map(s => {
+                    const isDone = s.status === 'finalizat';
+                    const statusLabel = isDone ? (s.platit > 0 ? `Plătită (${s.platit} RON)` : 'Neplătită')
+                      : s.status === 'absent' ? 'Absent' : 'Programată';
+                    const statusClass = !isDone ? 'text-sky-600'
+                      : s.platit > 0 ? 'text-emerald-600' : 'text-rose-600';
+                    return `
+                      <div class="p-3 rounded-2xl bg-white border border-black/5 shadow-2xs">
+                        <div class="flex items-center justify-between px-1 gap-2">
+                          <span class="text-xs font-black uppercase tracking-wider text-black">Ședință unică <span class="text-neutral-400 normal-case">(${fmtD(s.data)})</span></span>
+                          <span class="text-[11px] font-black px-2.5 py-1 rounded-xl ${isDone && s.platit > 0 ? 'text-emerald-700 bg-emerald-50' : isDone ? 'text-rose-700 bg-rose-50' : 'text-sky-700 bg-sky-50'}">${statusLabel}</span>
+                        </div>
+                        ${isDone ? `<div class="px-1 pt-1.5 text-[11px] font-bold ${statusClass}">ora ${(s.ora || '').substring(0,5)}</div>` : ''}
+                      </div>
+                    `;
+                  }).join('');
             } else {
               const fmtDate = (d: string) => {
                 if (!d) return '';
