@@ -78,7 +78,7 @@
             <button type="button" tabindex="-1" class="px-3 py-2 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-base rounded-xl cursor-pointer shrink-0" onclick="(() => { const el = document.getElementById('renewal-sessions-input'); if(el){ el.value = Number(el.value || 0) + 1; el.dispatchEvent(new Event('input', { bubbles: true })); } })()">+</button>
           </div>
         </div>
-        <div>
+        <div class="col-span-2">
           <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Valabil din (data de început)</label>
           <input
             type="date"
@@ -475,7 +475,8 @@
       const dateInput = document.getElementById('renewal-start-date') as HTMLInputElement | null;
 
       this.isLunarPatient = false;
-      if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+      // Resetăm data la fiecare deschidere — altfel rămânea cea a pacientului anterior.
+      if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
       this.applyLunarUI();
 
       if (sessionsInput) sessionsInput.value = count.toString();

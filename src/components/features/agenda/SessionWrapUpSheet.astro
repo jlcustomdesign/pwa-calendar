@@ -436,7 +436,7 @@
       // Show subscription warning if needed (ședințele unice și "nu reînnoi" nu cer reînnoire)
       const alertEl = document.getElementById('wrapup-subscription-alert');
       if (alertEl) {
-        if (folosite >= total && appt.pacienti?.plan !== 'Ședință unică' && appt.pacienti?.plan !== 'Abonament lunar' && appt.pacienti?.nu_reinnoi !== true) {
+        if (folosite >= total && appt.pacienti?.plan !== 'Ședință unică' && !String(appt.pacienti?.plan || '').includes('lunar') && appt.pacienti?.nu_reinnoi !== true) {
           alertEl.classList.remove('hidden');
         } else {
           alertEl.classList.add('hidden');
@@ -578,7 +578,9 @@
         // Guard cerere vs ofertă: avertizează când programarea viitoare depășește ședințele rămase.
         if (this.selectedRecurrence !== 'none') {
           try {
-            const total = Number(freshPatient?.sedinte_total || appt.pacienti?.sedinte_total || 0);
+            // Lunar: fără plafon de ședințe — guardul de stoc nu are sens.
+            if (!isLunarSession) {
+              const total = Number(freshPatient?.sedinte_total || appt.pacienti?.sedinte_total || 0);
             if (total > 0) {
               const demand = await getFutureDemand(patientId);
               if (wouldExceedSupply({ sedinte_total: total, sedinte_folosite: Number(freshPatient?.sedinte_folosite || 0) }, demand + 1)) {
@@ -593,6 +595,7 @@
                   return;
                 }
               }
+            }
             }
           } catch (e) {
             console.warn('Guard cerere vs ofertă indisponibil:', e);

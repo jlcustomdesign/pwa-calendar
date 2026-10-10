@@ -454,9 +454,10 @@
       });
 
       this.movePillTo('plan-active-pill', selectedChip);
-      this.updateNuReinnoiRow(normSelected.includes('abonament') || normSelected.includes('subscrip'));
       // Abonament lunar: fără număr de ședințe — se ascunde câmpul.
       const isLunarPlan = normSelected.includes('lunar');
+      // "Nu reînnoi" nu are sens la lunar (nu se epuizează niciodată pe contor).
+      this.updateNuReinnoiRow((normSelected.includes('abonament') || normSelected.includes('subscrip')) && !isLunarPlan);
       const sessionsField = document.getElementById('total-sessions-field');
       const grid = document.getElementById('price-sessions-grid');
       if (sessionsField) sessionsField.classList.toggle('hidden', isLunarPlan);

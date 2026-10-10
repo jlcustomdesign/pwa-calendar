@@ -1050,6 +1050,8 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       try {
         const p = this.patientsCache.find(x => x.id === pid);
         if (!p) return true;
+        // Lunar: fără plafon de ședințe — guardul de stoc nu are sens.
+        if ((p as any).lunar === true || String((p as any).plan || '').includes('lunar')) return true;
         const total = Number(p.sedinte_total || 0);
         if (total <= 0) return true;
         const demand = await getFutureDemand(pid);
