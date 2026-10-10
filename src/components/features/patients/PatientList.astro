@@ -588,9 +588,10 @@
         const safeDriveLink = escapeHtml(patient.drive_link || '#');
         const hasDriveLink = Boolean(patient.drive_link);
 
-        const subscriptionDone = totalSessions > 0 && attendanceCount >= totalSessions;
+        const isLunar = (patient as any).lunar === true;
+        const subscriptionDone = !isLunar && totalSessions > 0 && attendanceCount >= totalSessions;
         const displayCount = subscriptionDone ? totalSessions : attendanceCount;
-        progressPercentage = subscriptionDone ? 100 : (totalSessions > 0 ? Math.min(100, Math.round((attendanceCount / totalSessions) * 100)) : 0);
+        progressPercentage = isLunar ? 0 : (subscriptionDone ? 100 : (totalSessions > 0 ? Math.min(100, Math.round((attendanceCount / totalSessions) * 100)) : 0));
         const progressBarFill = isGhimbav ? 'bg-brand-primary' : 'bg-brand-secondary';
         const progressBarTrack = isGhimbav ? 'bg-black/20' : 'bg-black/15';
 
@@ -632,7 +633,7 @@
               <div class='h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative'>
                 <div class='h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out' style='width: ${progressPercentage}%;'></div>
               </div>
-              <div class='text-xs sm:text-sm font-black tracking-wide opacity-90 shrink-0'>${displayCount}/${totalSessions}</div>
+              <div class='text-xs sm:text-sm font-black tracking-wide opacity-90 shrink-0'>${isLunar ? `${attendanceCount} șed. lună` : `${displayCount}/${totalSessions}`}</div>
             </div>
           </div>
 

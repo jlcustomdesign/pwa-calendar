@@ -494,3 +494,10 @@ ALTER TABLE abonamente ADD COLUMN IF NOT EXISTS tip text NOT NULL DEFAULT 'sedin
   CHECK (tip IN ('sedinte', 'lunar'));
 -- (Funcțiile renew_package 6-arg, wrapper 5-arg și lega_sedinta_de_pachet cu
 -- auto-reînnoire lunară sunt aplicate în DB; vezi commitul 20261010_monthly.)
+
+-- o) Plan 'Abonament lunar' + auto-redeschidere lunara (varianta finala,
+-- aplicata in DB: creeaza_pachet_la_pacient_nou, sincronizeaza_pachet_la_plan
+-- si lega_sedinta_de_pachet recunosc planul lunar si pachete tip 'lunar').
+ALTER TABLE pacienti DROP CONSTRAINT IF EXISTS pacienti_plan_check;
+ALTER TABLE pacienti ADD CONSTRAINT pacienti_plan_check
+  CHECK (plan = ANY (ARRAY['Abonament'::text, 'Abonament lunar'::text, 'Ședință unică'::text, 'Subscription'::text, 'One Time'::text]));

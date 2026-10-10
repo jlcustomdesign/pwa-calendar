@@ -118,6 +118,15 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
     paidByPkg.set(pl.abonament_id, (paidByPkg.get(pl.abonament_id) || 0) + (Number(pl.suma) || 0));
   }
 
+  // pkg.tip lipseste din selectul de mai sus; il citim separat doar daca e nevoie
+  const { data: tipRows } = await (supabase as any)
+    .from('pachet_curent')
+    .select('pacient_id, tip')
+    .in('pacient_id', ids)
+    .eq('user_id', user.id);
+  const tipByPatient = new Map<string, string>();
+  for (const t of (tipRows ?? []) as any[]) tipByPatient.set(t.pacient_id, t.tip || 'sedinte');
+
   for (const row of rows) {
     const pkg = pkgByPatient.get(row.id);
     if (!pkg) continue;
@@ -127,6 +136,7 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
     const paid = paidByPkg.get(pkg.id) || 0;
     row.suma_incasata = paid;
     row.achitat = row.cost > 0 && paid >= row.cost;
+    (row as any).lunar = tipByPatient.get(row.id) === 'lunar';
   }
   return rows;
 }
@@ -146,11 +156,14 @@ export async function getPatient(id: string): Promise<PacientView> {
   return withTruth;
 }
 
-function normalizePlan(plan: string | undefined | null): 'Subscription' | 'One Time' {
+function normalizePlan(plan: string | undefined | null): 'Subscription' | 'One Time' | 'Abonament lunar' {
   if (!plan) return 'Subscription';
   const clean = plan.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
   if (clean.includes('sedinta') || clean.includes('unica') || clean.includes('one')) {
     return 'One Time';
+  }
+  if (clean.includes('lunar')) {
+    return 'Abonament lunar';
   }
   return 'Subscription';
 }
