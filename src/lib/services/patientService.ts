@@ -98,7 +98,7 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
 
   const { data: pkgs } = await (supabase as any)
     .from('pachet_curent')
-    .select('pacient_id, id, nr_sedinte, pret, sedinte_folosite')
+    .select('pacient_id, id, nr_sedinte, pret, sedinte_folosite, closed_at')
     .in('pacient_id', ids)
     .eq('user_id', user.id);
   const pkgByPatient = new Map<string, any>();
@@ -137,6 +137,7 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
     row.suma_incasata = paid;
     row.achitat = row.cost > 0 && paid >= row.cost;
     (row as any).lunar = tipByPatient.get(row.id) === 'lunar';
+    (row as any).lunarRenewal = pkg.closed_at || null;
   }
   return rows;
 }

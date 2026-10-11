@@ -589,6 +589,10 @@
         const hasDriveLink = Boolean(patient.drive_link);
 
         const isLunar = String(patient.plan || '').toLowerCase().includes('lunar') || (patient as any).lunar === true;
+        const renewalDate = (patient as any).lunarRenewal ? new Date((patient as any).lunarRenewal) : null;
+        const renewalDateStr = renewalDate && !isNaN(renewalDate.getTime())
+          ? `${renewalDate.getDate().toString().padStart(2, '0')}.${(renewalDate.getMonth() + 1).toString().padStart(2, '0')}.${renewalDate.getFullYear()}`
+          : null;
         const subscriptionDone = !isLunar && totalSessions > 0 && attendanceCount >= totalSessions;
         const displayCount = subscriptionDone ? totalSessions : attendanceCount;
         progressPercentage = isLunar ? 0 : (subscriptionDone ? 100 : (totalSessions > 0 ? Math.min(100, Math.round((attendanceCount / totalSessions) * 100)) : 0));
@@ -633,7 +637,7 @@
               <div class='h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative'>
                 <div class='h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out' style='width: ${progressPercentage}%;'></div>
               </div>
-              <div class='text-xs sm:text-sm font-black tracking-wide opacity-90 shrink-0'>${isLunar ? `${attendanceCount} șed. lună` : `${displayCount}/${totalSessions}`}</div>
+              <div class='text-xs sm:text-sm font-black tracking-wide opacity-90 shrink-0'>${isLunar ? `${attendanceCount} șed. lună${renewalDateStr ? ` · reînnoiește ${renewalDateStr}` : ''}` : `${displayCount}/${totalSessions}`}</div>
             </div>
           </div>
 
@@ -641,6 +645,14 @@
           <div class='card-details grid' style='grid-template-rows: 0fr; transition: grid-template-rows 300ms ease;'>
             <div class='overflow-hidden min-h-0'>
               <div class='px-6 pb-6 space-y-3'>
+                ${isLunar && renewalDateStr ? `
+                <!-- Lunar: card galben cu data reînnoirii -->
+                <div class='flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-brand-primary text-black text-sm font-extrabold shadow-sm border border-transparent'>
+                  <svg class='w-4 h-4 shrink-0 opacity-75' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/>
+                  </svg>
+                  <span>Se reînnoiește pe ${renewalDateStr}</span>
+                </div>` : ''}
                 <!-- Plan & Location White Pill -->
                 <div class='flex items-center justify-between px-5 py-3 rounded-2xl bg-white text-black text-sm font-extrabold shadow-sm border border-transparent'>
                   <span class='flex items-center gap-2 shrink-0 text-black'>
