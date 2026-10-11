@@ -150,14 +150,16 @@
               <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientTotalSessions" data-stepper-step="1" data-stepper-min="1">+</button>
             </div>
           </div>
-          <div id="renewal-date-field" class="hidden col-span-2">
+          <div id="renewal-date-field" class="hidden col-span-2 sticky bottom-0 z-10">
             <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Data reînnoirii (abonament lunar)</label>
-            <input
-              type="date"
-              name="renewalDate"
-              id="patientRenewalDate"
-              class="w-full py-2.5 px-4 rounded-2xl bg-white text-center font-extrabold text-black text-base focus:outline-none shadow-sm"
-            />
+            <input type="hidden" name="renewalDate" id="patientRenewalDate" />
+            <button
+              type="button"
+              id="renewal-date-btn"
+              class="w-full py-3 px-4 rounded-2xl bg-brand-primary text-black font-black text-base shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              Alege data reînnoirii
+            </button>
           </div>
         </div>
       </div>
@@ -244,6 +246,23 @@
         </form>
   </div>
 
+  <!-- Picker custom pentru data reînnoirii (abonament lunar) -->
+  <div id="renewal-picker" class="hidden fixed inset-0 z-[80]">
+    <div id="renewal-picker-backdrop" class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl p-5 pb-8 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <button type="button" id="rp-prev" class="w-11 h-11 rounded-2xl bg-black/[0.04] text-black font-black text-xl active:scale-95 transition-all">‹</button>
+        <div id="rp-month-label" class="font-black text-black text-base capitalize"></div>
+        <button type="button" id="rp-next" class="w-11 h-11 rounded-2xl bg-black/[0.04] text-black font-black text-xl active:scale-95 transition-all">›</button>
+      </div>
+      <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-black text-black/40 mb-1">
+        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+      </div>
+      <div id="rp-grid" class="grid grid-cols-7 gap-1"></div>
+      <p class="text-center text-[11px] font-bold text-black/40 mt-3">Zilele trecute sunt blocate — reînnoirea nu poate fi mutată în trecut.</p>
+    </div>
+  </div>
+
   <!-- Sticky Bottom Actions -->
   <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-surface-card via-surface-card to-transparent pt-8 flex flex-col gap-2.5">
     <button type="button" id="btn-renew-sticky" class="hidden w-full py-4 rounded-full bg-black text-white font-extrabold text-base uppercase tracking-wide shadow-md active:scale-95 transition-all cursor-pointer">
@@ -280,9 +299,95 @@
       
       this.createOverlay();
       this.bindEvents();
+      this.bindRenewalPicker();
       // Set initial pill positions for default selections
       this.updatePlanChips('Ședință unică');
       this.updateLocationChips('Belaqva');
+    }
+
+    // ── Picker custom data reînnoire lunar ─────────────────────
+    // Zilele din trecut sunt blocate: mutarea reînnoirii în trecut ar rupe
+    // legarea ședințelor viitoare de fereastra lunară.
+    renewalPickerMonth: Date | null = null;
+
+    bindRenewalPicker() {
+      const btn = document.getElementById('renewal-date-btn');
+      const picker = document.getElementById('renewal-picker');
+      const backdrop = document.getElementById('renewal-picker-backdrop');
+      const prev = document.getElementById('rp-prev');
+      const next = document.getElementById('rp-next');
+      if (!btn || !picker || !prev || !next) return;
+
+      btn.addEventListener('click', () => {
+        const hidden = document.getElementById('patientRenewalDate') as HTMLInputElement | null;
+        const current = hidden?.value ? new Date(hidden.value + 'T00:00:00') : null;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        this.renewalPickerMonth = (current && !isNaN(current.getTime())) ? new Date(current.getFullYear(), current.getMonth(), 1) : new Date(today.getFullYear(), today.getMonth(), 1);
+        this.renderRenewalPicker();
+        picker.classList.remove('hidden');
+      });
+      backdrop?.addEventListener('click', () => picker.classList.add('hidden'));
+      prev.addEventListener('click', () => {
+        if (!this.renewalPickerMonth) return;
+        const min = new Date(); min.setDate(1);
+        const prevMonth = new Date(this.renewalPickerMonth.getFullYear(), this.renewalPickerMonth.getMonth() - 1, 1);
+        if (prevMonth >= new Date(min.getFullYear(), min.getMonth(), 1)) {
+          this.renewalPickerMonth = prevMonth;
+          this.renderRenewalPicker();
+        }
+      });
+      next.addEventListener('click', () => {
+        if (!this.renewalPickerMonth) return;
+        this.renewalPickerMonth = new Date(this.renewalPickerMonth.getFullYear(), this.renewalPickerMonth.getMonth() + 1, 1);
+        this.renderRenewalPicker();
+      });
+    }
+
+    renderRenewalPicker() {
+      const picker = document.getElementById('renewal-picker');
+      const label = document.getElementById('rp-month-label');
+      const grid = document.getElementById('rp-grid');
+      const hidden = document.getElementById('patientRenewalDate') as HTMLInputElement | null;
+      const btn = document.getElementById('renewal-date-btn');
+      const m = this.renewalPickerMonth;
+      if (!picker || !label || !grid || !m) return;
+
+      const luni = ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
+      label.textContent = `${luni[m.getMonth()]} ${m.getFullYear()}`;
+
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const selected = hidden?.value ? new Date(hidden.value + 'T00:00:00') : null;
+      const year = m.getFullYear(), month = m.getMonth();
+      const firstDow = (new Date(year, month, 1).getDay() + 6) % 7; // Luni=0
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      grid.innerHTML = '';
+      for (let i = 0; i < firstDow; i++) {
+        const spacer = document.createElement('div');
+        grid.appendChild(spacer);
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const isPast = date < today;
+        const isSelected = selected && date.getTime() === selected.getTime();
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.textContent = String(d);
+        cell.disabled = isPast;
+        cell.className = isPast
+          ? 'h-11 rounded-2xl text-black/25 font-bold text-sm'
+          : (isSelected
+            ? 'h-11 rounded-2xl bg-brand-primary text-black font-black text-sm shadow-sm active:scale-95 transition-all'
+            : 'h-11 rounded-2xl bg-black/[0.04] text-black font-bold text-sm active:scale-95 transition-all');
+        if (!isPast) {
+          cell.addEventListener('click', () => {
+            if (hidden) hidden.value = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            if (btn) btn.textContent = `Reînnoiește pe ${String(d).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
+            picker.classList.add('hidden');
+          });
+        }
+        grid.appendChild(cell);
+      }
     }
 
     createOverlay() {
@@ -763,6 +868,12 @@
             renewalInput.value = (rd && !isNaN(rd.getTime()))
               ? `${rd.getFullYear()}-${(rd.getMonth() + 1).toString().padStart(2, '0')}-${rd.getDate().toString().padStart(2, '0')}`
               : '';
+            const renewalBtn = document.getElementById('renewal-date-btn');
+            if (renewalBtn) {
+              renewalBtn.textContent = (rd && !isNaN(rd.getTime()))
+                ? `Reînnoiește pe ${rd.getDate().toString().padStart(2, '0')}.${(rd.getMonth() + 1).toString().padStart(2, '0')}.${rd.getFullYear()}`
+                : 'Alege data reînnoirii';
+            }
           }
 
           // Show sticky renewal button in edit mode
@@ -795,6 +906,8 @@
           if (renewalFieldNew) renewalFieldNew.classList.add('hidden');
           const renewalInputNew = document.getElementById('patientRenewalDate') as HTMLInputElement | null;
           if (renewalInputNew) renewalInputNew.value = '';
+          const renewalBtnNew = document.getElementById('renewal-date-btn');
+          if (renewalBtnNew) renewalBtnNew.textContent = 'Alege data reînnoirii';
           
           const errorBanner = document.getElementById('patient-error-banner');
           if (errorBanner) {
