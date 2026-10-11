@@ -150,10 +150,18 @@
               <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientTotalSessions" data-stepper-step="1" data-stepper-min="1">+</button>
             </div>
           </div>
+          <div id="renewal-date-field" class="hidden col-span-2">
+            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Data reînnoirii (abonament lunar)</label>
+            <input
+              type="date"
+              name="renewalDate"
+              id="patientRenewalDate"
+              class="w-full py-2.5 px-4 rounded-2xl bg-white text-center font-extrabold text-black text-base focus:outline-none shadow-sm"
+            />
+          </div>
         </div>
       </div>
-
-<!-- ═══════════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════════ -->
       <!-- CARD 3: CONTACT & STATUS PLATĂ                         -->
       <!-- ═══════════════════════════════════════════════════════ -->
       <div class="rounded-3xl bg-black/[0.03] p-4 space-y-4 border border-black/5">
@@ -248,7 +256,7 @@
 </div>
 
 <script>
-  import { addPatient, updatePatient, addPayment } from '../../../lib/services/patientService';
+  import { addPatient, updatePatient, addPayment, setLunarRenewalDate } from '../../../lib/services/patientService';
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { isAllowedUrl } from '../../../utils/html';
@@ -647,6 +655,13 @@
         let savedPatientId = patientId || '';
         if (patientId) {
           await updatePatient(patientId, payload);
+
+          // Abonament lunar: data reînnoirii se mută pe pachetul lunar activ
+          const renewalDateRaw = formData.get('renewalDate') as string;
+          const isLunarPayload = String(payload.plan || '').toLowerCase().includes('lunar');
+          if (isLunarPayload && renewalDateRaw) {
+            await setLunarRenewalDate(patientId, renewalDateRaw);
+          }
         } else {
           savedPatientId = await addPatient(payload);
         }
@@ -738,6 +753,18 @@
           this.togglePartialAmountBox(editPaymentStatus);
           this.setNuReinnoi(!!(patient as any).nu_reinnoi);
 
+          // Data reînnoirii — vizibilă doar la edit pentru abonament lunar
+          const isLunarPlan = String(patient.plan || '').toLowerCase().includes('lunar') || (patient as any).lunar === true;
+          const renewalField = document.getElementById('renewal-date-field');
+          const renewalInput = document.getElementById('patientRenewalDate') as HTMLInputElement | null;
+          if (renewalField) renewalField.classList.toggle('hidden', !isLunarPlan);
+          if (renewalInput) {
+            const rd = (patient as any).lunarRenewal ? new Date((patient as any).lunarRenewal) : null;
+            renewalInput.value = (rd && !isNaN(rd.getTime()))
+              ? `${rd.getFullYear()}-${(rd.getMonth() + 1).toString().padStart(2, '0')}-${rd.getDate().toString().padStart(2, '0')}`
+              : '';
+          }
+
           // Show sticky renewal button in edit mode
           const stickyRenewBtn = document.getElementById('btn-renew-sticky');
           if (stickyRenewBtn) {
@@ -764,6 +791,10 @@
           this.setNuReinnoi(false);
           const stickyRenewBtn = document.getElementById('btn-renew-sticky');
           if (stickyRenewBtn) stickyRenewBtn.classList.add('hidden');
+          const renewalFieldNew = document.getElementById('renewal-date-field');
+          if (renewalFieldNew) renewalFieldNew.classList.add('hidden');
+          const renewalInputNew = document.getElementById('patientRenewalDate') as HTMLInputElement | null;
+          if (renewalInputNew) renewalInputNew.value = '';
           
           const errorBanner = document.getElementById('patient-error-banner');
           if (errorBanner) {

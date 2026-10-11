@@ -637,7 +637,7 @@
               <div class='h-1.5 flex-1 ${progressBarTrack} rounded-full overflow-hidden relative'>
                 <div class='h-full rounded-full ${progressBarFill} transition-all duration-500 ease-out' style='width: ${progressPercentage}%;'></div>
               </div>
-              <div class='text-xs sm:text-sm font-black tracking-wide opacity-90 shrink-0'>${isLunar ? `${attendanceCount} șed. lună${renewalDateStr ? ` · reînnoiește ${renewalDateStr}` : ''}` : `${displayCount}/${totalSessions}`}</div>
+              <div class='text-xs sm:text-sm font-black tracking-wide opacity-90 shrink-0'>${isLunar ? `${attendanceCount} șed. lună` : `${displayCount}/${totalSessions}`}</div>
             </div>
           </div>
 
@@ -646,12 +646,14 @@
             <div class='overflow-hidden min-h-0'>
               <div class='px-6 pb-6 space-y-3'>
                 ${isLunar && renewalDateStr ? `
-                <!-- Lunar: card galben cu data reînnoirii -->
-                <div class='flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-brand-primary text-black text-sm font-extrabold shadow-sm border border-transparent'>
-                  <svg class='w-4 h-4 shrink-0 opacity-75' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                    <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/>
-                  </svg>
-                  <span>Se reînnoiește pe ${renewalDateStr}</span>
+                <!-- Lunar: data reînnoirii (stil identic cu pill-ul Plan & Locație) -->
+                <div class='flex items-center justify-between px-5 py-3 rounded-2xl bg-white text-black text-sm font-extrabold shadow-sm border border-transparent'>
+                  <span class='flex items-center gap-2 shrink-0 text-black'>
+                    <svg class='w-4 h-4 text-black opacity-75 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/>
+                    </svg>
+                    <span class='text-black font-black'>Se reînnoiește pe ${renewalDateStr}</span>
+                  </span>
                 </div>` : ''}
                 <!-- Plan & Location White Pill -->
                 <div class='flex items-center justify-between px-5 py-3 rounded-2xl bg-white text-black text-sm font-extrabold shadow-sm border border-transparent'>

@@ -264,6 +264,19 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
   if (error) throw new Error('Eroare la actualizarea pacientului: ' + error.message);
 }
 
+// ── Data reînnoirii abonamentului lunar (editare din fișa pacientului) ──
+// Mută sfârșitul ferestrei lunare a pachetului lunar activ = noua dată de reînnoire.
+export async function setLunarRenewalDate(pacientId: string, renewalDate: string) {
+  const { error } = await (supabase as any)
+    .from('abonamente')
+    .update({ closed_at: renewalDate })
+    .eq('pacient_id', pacientId)
+    .eq('status', 'activ')
+    .eq('tip', 'lunar');
+
+  if (error) throw new Error('Eroare la actualizarea datei de reînnoire: ' + error.message);
+}
+
 // ── Marcare achitat / neachitat (PaymentSheet) ────────────────
 export async function setPaymentStatus(id: string, achitat: boolean) {
   const { error } = await (supabase as any)
