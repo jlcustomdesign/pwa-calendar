@@ -56,7 +56,7 @@
       <div class="flex items-center justify-between">
         <span class="text-xs sm:text-sm font-black uppercase tracking-wider text-black">Istoric plăți</span>
       </div>
-      <div id="payment-history-list" class="space-y-2.5 max-h-48 overflow-y-auto pr-0.5">
+      <div id="payment-history-list" class="space-y-2.5 max-h-48 overflow-y-auto overscroll-contain pr-0.5" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
         <div class="text-xs font-semibold text-neutral-400 py-2 text-center">Se încarcă istoricul…</div>
       </div>
     </div>
@@ -150,6 +150,7 @@
     private dragEngaged = false;
     private startTime = 0;
     private scrollAtTop: boolean = true;
+    private innerScrollEl: HTMLElement | null = null;
 
     constructor() {
       this.reconnect();
@@ -463,6 +464,9 @@
       this.dragEngaged = false;
 
       const target = e.target as HTMLElement;
+      // Dacă gestul pornește în lista de plăți (scroll-box propriu), nu angajăm
+      // niciodată drag-ul de închidere al sheet-ului — scroll-ul rămâne acolo.
+      this.innerScrollEl = (target && target.closest('#payment-history-list')) as HTMLElement | null;
       // If user drags directly on the handle, always engage swipe
       if (target && (target.id === 'payment-drag-handle' || target.closest('#payment-drag-handle'))) {
         this.scrollAtTop = true;
@@ -470,7 +474,11 @@
       }
 
       // Otherwise, only allow swipe if the content is at the top
-      this.scrollAtTop = !this.sheet || this.sheet.scrollTop <= 0;
+      if (this.innerScrollEl) {
+        this.scrollAtTop = false; // scroll în lista de plăți — nu tragem sheet-ul
+      } else {
+        this.scrollAtTop = !this.sheet || this.sheet.scrollTop <= 0;
+      }
     }
 
     private handleTouchMove(e: TouchEvent) {
