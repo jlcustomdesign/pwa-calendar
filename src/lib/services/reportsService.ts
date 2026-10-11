@@ -474,36 +474,100 @@ export async function getDetailedSessions(startStr: string, endStr?: string, sta
 }
 
 // ── Pacienți neachitați ───────────────────────────────────────
+// Adevărul e pe PACHETE: pret pachet vs plățile legate de acel pachet.
+// (pacienti_view.suma_incasata e pe toată istoria — acolo oricine arată achitat.)
 export async function getUnpaidPatients(startStr?: string, endStr?: string) {
-  let query = supabase
+  let pkgQuery = supabase
+    .from('abonamente')
+    .select('id, pacient_id, pret, status, tip, created_at');
+  if (startStr) pkgQuery = pkgQuery.gte('created_at', startStr);
+  if (endStr) pkgQuery = pkgQuery.lte('created_at', endStr + 'T23:59:59');
+  const { data: pkgs, error: pkgErr } = await pkgQuery;
+  if (pkgErr) throw new Error('Eroare la citirea pachetelor: ' + pkgErr.message);
+
+  const pkgRows = (pkgs || []) as any[];
+  const pkgIds = pkgRows.map(p => p.id).filter(Boolean);
+
+  let platiPkg: any[] = [];
+  if (pkgIds.length > 0) {
+    const { data } = await supabase.from('plati').select('abonament_id, suma').in('abonament_id', pkgIds);
+    platiPkg = data || [];
+  }
+  const paidByPkg = new Map<string, number>();
+  for (const pl of platiPkg) {
+    paidByPkg.set(pl.abonament_id, (paidByPkg.get(pl.abonament_id) || 0) + (Number(pl.suma) || 0));
+  }
+
+  // Restanțe pe pachete
+  const unpaidByPatient = new Map<string, { rest: number; datorat: number; latest: string }>();
+  for (const pkg of pkgRows) {
+    const pret = Number(pkg.pret || 0);
+    if (pret <= 0) continue;
+    const paid = paidByPkg.get(pkg.id) || 0;
+    const rest = pret - paid;
+    if (rest <= 0) continue;
+    const cur = unpaidByPatient.get(pkg.pacient_id) || { rest: 0, datorat: 0, latest: '' };
+    cur.rest += rest;
+    cur.datorat += pret;
+    const created = pkg.created_at || '';
+    if (created > cur.latest) cur.latest = created;
+    unpaidByPatient.set(pkg.pacient_id, cur);
+  }
+
+  // Restanțe individuale (ședință unică, fără pachete): ședințe × preț − plăți
+  let oneQuery = supabase
     .from('pacienti_view')
-    .select('id, name, cost, achitat, suma_incasata, created_at');
+    .select('id, name, cost, plan, created_at');
+  if (startStr) oneQuery = oneQuery.gte('created_at', startStr);
+  if (endStr) oneQuery = oneQuery.lte('created_at', endStr + 'T23:59:59');
+  const { data: oneRows } = await oneQuery;
 
-  if (startStr) query = query.gte('created_at', startStr);
-  if (endStr) query = query.lte('created_at', endStr + 'T23:59:59');
+  const pkgPatientIds = new Set(pkgRows.map(p => p.pacient_id));
+  const oneTimeIds = ((oneRows || []) as any[])
+    .filter(p => (p.plan === 'One Time' || p.plan === 'Ședință unică') && !pkgPatientIds.has(p.id) && Number(p.cost) > 0)
+    .map(p => p.id);
 
-  const { data: rawPatients, error: pErr } = await query;
+  const oneTimeNames = new Map<string, string>();
+  for (const p of (oneRows || []) as any[]) oneTimeNames.set(p.id, p.name);
 
-  if (pErr) throw new Error('Eroare la citirea pacienților neachitați: ' + pErr.message);
-
-  const patientsList = (rawPatients || []) as any[];
-  const unpaidPatients: any[] = [];
-  let totalDatorat = 0;
-
-  patientsList.forEach(p => {
-    const cost = Number(p.cost || 0);
-    const paid = Number(p.suma_incasata || 0);
-    const isFullyPaid = p.achitat === true || (cost > 0 && paid >= cost);
-
-    if (!isFullyPaid) {
-      const rest = Math.max(0, cost - paid);
-      unpaidPatients.push({
-        ...p,
-        name: p.name,
-        suma_restanta: rest > 0 ? rest : cost
-      });
-      totalDatorat += rest > 0 ? rest : cost;
+  if (oneTimeIds.length > 0) {
+    const { data: sess } = await supabase
+      .from('programari')
+      .select('pacient_id, contorizeaza, status')
+      .eq('status', 'finalizat')
+      .eq('contorizeaza', true)
+      .in('pacient_id', oneTimeIds);
+    const sessCount = new Map<string, number>();
+    for (const s of (sess || []) as any[]) {
+      sessCount.set(s.pacient_id, (sessCount.get(s.pacient_id) || 0) + 1);
     }
+    const { data: platiOne } = await supabase.from('plati').select('pacient_id, suma').in('pacient_id', oneTimeIds);
+    const paidByOne = new Map<string, number>();
+    for (const pl of (platiOne || []) as any[]) {
+      paidByOne.set(pl.pacient_id, (paidByOne.get(pl.pacient_id) || 0) + (Number(pl.suma) || 0));
+    }
+    const costById = new Map<string, number>();
+    for (const p of (oneRows || []) as any[]) costById.set(p.id, Number(p.cost) || 0);
+    for (const id of oneTimeIds) {
+      const datorat = (sessCount.get(id) || 0) * (costById.get(id) || 0);
+      const rest = datorat - (paidByOne.get(id) || 0);
+      if (rest > 0) unpaidByPatient.set(id, { rest, datorat, latest: '' });
+    }
+  }
+
+  const ids = [...unpaidByPatient.keys()];
+  let names = new Map<string, string>();
+  if (ids.length > 0) {
+    const { data: nameRows } = await supabase.from('pacienti_view').select('id, name').in('id', ids);
+    for (const r of (nameRows || []) as any[]) names.set(r.id, r.name);
+    for (const p of (oneRows || []) as any[]) if (!names.has(p.id)) names.set(p.id, p.name);
+  }
+
+  let totalDatorat = 0;
+  const unpaidPatients = ids.map(id => {
+    const u = unpaidByPatient.get(id)!;
+    totalDatorat += u.rest;
+    return { id, name: names.get(id) || 'Pacient', cost: u.datorat, suma_restanta: u.rest };
   });
 
   return { count: unpaidPatients.length, totalRON: totalDatorat, patients: unpaidPatients };
