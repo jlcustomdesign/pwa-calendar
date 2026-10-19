@@ -436,7 +436,7 @@
       // Show subscription warning if needed (ședințele unice și "nu reînnoi" nu cer reînnoire)
       const alertEl = document.getElementById('wrapup-subscription-alert');
       if (alertEl) {
-        if (folosite >= total && appt.pacienti?.plan !== 'Ședință unică' && !String(appt.pacienti?.plan || '').includes('lunar') && appt.pacienti?.nu_reinnoi !== true) {
+        if (folosite >= total && appt.pacienti?.plan !== 'Ședință unică' && appt.pacienti?.nu_reinnoi !== true) {
           alertEl.classList.remove('hidden');
         } else {
           alertEl.classList.add('hidden');
@@ -536,10 +536,8 @@
         const isSubscriptionDone = folosite >= total;
         // Ședințele unice nu se reînnoiesc — după finalizare se marchează plata
         const isSingleSession = (freshPatient?.plan ?? appt.pacienti?.plan) === 'Ședință unică';
-        // Lunar nu e niciodată "terminat" pe contor — nu deschidem foaia de reînnoire.
-        const isLunarSession = String(freshPatient?.plan ?? appt.pacienti?.plan ?? '').includes('lunar');
         // "Nu reînnoi": nu forțăm reînnoirea — confirmă ca ședință necontorizată
-        const skipRenewal = (freshPatient as any)?.nu_reinnoi === true || appt.pacienti?.nu_reinnoi === true || isLunarSession;
+        const skipRenewal = (freshPatient as any)?.nu_reinnoi === true || appt.pacienti?.nu_reinnoi === true;
 
         // 2. Check if subscription is complete and user wants to schedule next week
         if (isSubscriptionDone && isSingleSession) {
@@ -578,8 +576,7 @@
         // Guard cerere vs ofertă: avertizează când programarea viitoare depășește ședințele rămase.
         if (this.selectedRecurrence !== 'none') {
           try {
-            // Lunar: fără plafon de ședințe — guardul de stoc nu are sens.
-            if (!isLunarSession) {
+            {
               const total = Number(freshPatient?.sedinte_total || appt.pacienti?.sedinte_total || 0);
             if (total > 0) {
               const demand = await getFutureDemand(patientId);

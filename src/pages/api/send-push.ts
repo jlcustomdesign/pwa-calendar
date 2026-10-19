@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
             expiredSubIds.push(sub.id);
           } else {
-            console.warn('Eroare trimitere Web Push la endpoint:', sub.endpoint, pushErr);
+            console.error('Eroare trimitere Web Push la endpoint:', sub.endpoint, pushErr);
           }
         }
       })

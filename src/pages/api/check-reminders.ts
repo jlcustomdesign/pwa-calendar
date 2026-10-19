@@ -107,7 +107,9 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
                 }
               );
               pushSentCount++;
-            } catch (err) {}
+            } catch (err) {
+              console.error('Eroare trimitere Web Push la endpoint:', sub.endpoint, err);
+            }
           }
         }
       }
@@ -146,7 +148,9 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
                 }
               );
               pushSentCount++;
-            } catch (err) {}
+            } catch (err) {
+              console.error('Eroare trimitere Web Push la endpoint:', sub.endpoint, err);
+            }
           }
         }
       }

@@ -223,9 +223,8 @@
         const sumaIncasata = paymentsByPatient.get(a.pacient_id) ?? 0;
         const pkg = packagesByPatient.get(a.pacient_id);
         const costTotal = pkg ? pkg.pret : Number(a.pacienti?.cost || 0);
-        const isLunar = pkg?.tip === 'lunar';
         const folosite = pkg ? Math.min(pkg.sedinte_folosite, pkg.nr_sedinte) : (a.pacienti?.sedinte_folosite ?? 0);
-        const totalSess = isLunar ? 0 : (pkg ? pkg.nr_sedinte : (a.pacienti?.sedinte_total || 10));
+        const totalSess = pkg ? pkg.nr_sedinte : (a.pacienti?.sedinte_total || 10);
         const sedinteRamase = Math.max(0, totalSess - folosite);
 
         let pStatus = 'Neachitat';
@@ -258,7 +257,6 @@
           contorizeaza: a.contorizeaza !== false,
           plan: a.pacienti?.plan,
           nuReinnoi: a.pacienti?.nu_reinnoi === true,
-          lunar: isLunar,
         };
       });
 

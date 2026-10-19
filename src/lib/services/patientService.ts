@@ -118,15 +118,6 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
     paidByPkg.set(pl.abonament_id, (paidByPkg.get(pl.abonament_id) || 0) + (Number(pl.suma) || 0));
   }
 
-  // pkg.tip lipseste din selectul de mai sus; il citim separat doar daca e nevoie
-  const { data: tipRows } = await (supabase as any)
-    .from('pachet_curent')
-    .select('pacient_id, tip')
-    .in('pacient_id', ids)
-    .eq('user_id', user.id);
-  const tipByPatient = new Map<string, string>();
-  for (const t of (tipRows ?? []) as any[]) tipByPatient.set(t.pacient_id, t.tip || 'sedinte');
-
   for (const row of rows) {
     const pkg = pkgByPatient.get(row.id);
     if (!pkg) continue;
@@ -136,8 +127,6 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
     const paid = paidByPkg.get(pkg.id) || 0;
     row.suma_incasata = paid;
     row.achitat = row.cost > 0 && paid >= row.cost;
-    (row as any).lunar = tipByPatient.get(row.id) === 'lunar';
-    (row as any).lunarRenewal = pkg.closed_at || null;
   }
   return rows;
 }
@@ -157,14 +146,11 @@ export async function getPatient(id: string): Promise<PacientView> {
   return withTruth;
 }
 
-function normalizePlan(plan: string | undefined | null): 'Subscription' | 'One Time' | 'Abonament lunar' {
+function normalizePlan(plan: string | undefined | null): 'Subscription' | 'One Time' {
   if (!plan) return 'Subscription';
   const clean = plan.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
   if (clean.includes('sedinta') || clean.includes('unica') || clean.includes('one')) {
     return 'One Time';
-  }
-  if (clean.includes('lunar')) {
-    return 'Abonament lunar';
   }
   return 'Subscription';
 }
@@ -264,19 +250,6 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
   if (error) throw new Error('Eroare la actualizarea pacientului: ' + error.message);
 }
 
-// ── Data reînnoirii abonamentului lunar (editare din fișa pacientului) ──
-// Mută sfârșitul ferestrei lunare a pachetului lunar activ = noua dată de reînnoire.
-export async function setLunarRenewalDate(pacientId: string, renewalDate: string) {
-  const { error } = await (supabase as any)
-    .from('abonamente')
-    .update({ closed_at: renewalDate })
-    .eq('pacient_id', pacientId)
-    .eq('status', 'activ')
-    .eq('tip', 'lunar');
-
-  if (error) throw new Error('Eroare la actualizarea datei de reînnoire: ' + error.message);
-}
-
 // ── Marcare achitat / neachitat (PaymentSheet) ────────────────
 export async function setPaymentStatus(id: string, achitat: boolean) {
   const { error } = await (supabase as any)
@@ -318,7 +291,7 @@ export async function resetPatientSubscription(
   newTotalSessions?: number,
   newCostTotal: number = 0,
   paymentOption: { status: 'Neachitat' | 'Parțial' | 'Achitat'; paidAmount?: number } | boolean = false,
-  options: { tip?: 'sedinte' | 'lunar'; startDate?: string } = {}
+  options: { startDate?: string } = {}
 ): Promise<void> {
   const current = await getPatient(id);
   // ✅ costul noului abonament ÎNLOCUIEȘTE costul vechi, nu se acumulează
@@ -352,7 +325,7 @@ export async function resetPatientSubscription(
     p_cost: nextCost,
     p_paid: amountToAdd,
     p_status: pStatus,
-    p_tip: options.tip ?? null,
+    p_tip: null,
     p_data_start: options.startDate ?? null,
   });
 

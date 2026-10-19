@@ -86,7 +86,6 @@
             class="w-full py-2.5 px-4 rounded-2xl bg-white border border-black/10 text-center font-extrabold text-black text-base focus:outline-none focus:border-brand-primary shadow-sm"
           />
         </div>
-        <p id="renewal-lunar-hint" class="hidden text-[11px] font-bold text-neutral-500">Abonament lunar: fără număr de ședințe — valabil o lună de la data de început.</p>
       </div>
     </div>
 
@@ -453,19 +452,6 @@
 
     private pricePerSession: number = 150;
 
-    private isLunarPatient = false;
-
-    private applyLunarUI() {
-      const isLunar = this.isLunarPatient;
-      const field = document.getElementById('renewal-sessions-field');
-      const grid = document.getElementById('renewal-sessions-grid');
-      const hint = document.getElementById('renewal-lunar-hint');
-      if (field) field.classList.toggle('hidden', isLunar);
-      if (grid) grid.classList.toggle('grid-cols-2', !isLunar);
-      if (grid) grid.classList.toggle('grid-cols-1', isLunar);
-      if (hint) hint.classList.toggle('hidden', !isLunar);
-    }
-
     private async loadPatientInfo(providedName?: string, count: number = 10) {
       const nameEl = document.getElementById('renewal-patient-name');
       const sessionsInput = document.getElementById('renewal-sessions-input') as HTMLInputElement | null;
@@ -474,10 +460,8 @@
       const debtAmountEl = document.getElementById('renewal-debt-amount');
       const dateInput = document.getElementById('renewal-start-date') as HTMLInputElement | null;
 
-      this.isLunarPatient = false;
       // Resetăm data la fiecare deschidere — altfel rămânea cea a pacientului anterior.
       if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
-      this.applyLunarUI();
 
       if (sessionsInput) sessionsInput.value = count.toString();
 
@@ -498,10 +482,6 @@
           const patient = await getPatient(this.currentPatientId);
           if (patient) {
             if (nameEl) nameEl.textContent = `Pacient: ${patient.name}`;
-
-            const plan = String((patient as any).plan || '').toLowerCase();
-            this.isLunarPatient = plan.includes('lunar') || (patient as any).lunar === true;
-            this.applyLunarUI();
 
             if (patient.cost && patient.sedinte_total && Number(patient.sedinte_total) > 0) {
               this.pricePerSession = Math.round(Number(patient.cost) / Number(patient.sedinte_total));
@@ -543,8 +523,7 @@
       const partInput = document.getElementById('renewal-partial-amount') as HTMLInputElement | null;
       const dateInput = document.getElementById('renewal-start-date') as HTMLInputElement | null;
 
-      // Abonament lunar: nu are număr de ședințe — contorul e intern, nu îl arătăm.
-      const count = this.isLunarPatient ? 1 : Math.max(1, parseInt(sInput?.value || '10', 10));
+      const count = Math.max(1, parseInt(sInput?.value || '10', 10));
       const totalCost = Math.max(0, parseFloat(pInput?.value || '0'));
       const paidAmount = this.selectedPaymentStatus === 'Parțial' ? Math.max(0, parseFloat(partInput?.value || '0')) : 0;
       const startDate = dateInput?.value || undefined;
@@ -568,7 +547,7 @@
           count,
           totalCost,
           paymentOption,
-          { tip: this.isLunarPatient ? 'lunar' : undefined, startDate }
+          { startDate }
         );
 
         if (this.pendingAppointment && this.pendingAppointment.data && this.pendingAppointment.ora) {

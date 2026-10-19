@@ -148,8 +148,9 @@ Deno.serve(async (req) => {
 
                 const res = await fetch(endpoint, { method: "POST", headers, body });
                 if (res.ok || res.status === 201) pushSentCount++;
-              } catch (_err) {
-                // ignore per-subscription errors
+                else console.error("Web Push eșuat:", endpoint, "status", res.status);
+              } catch (err) {
+                console.error("Eroare trimitere Web Push la", endpoint, err);
               }
             }
           }
@@ -200,8 +201,9 @@ Deno.serve(async (req) => {
 
                 const res = await fetch(endpoint, { method: "POST", headers, body });
                 if (res.ok || res.status === 201) pushSentCount++;
-              } catch (_err) {
-                // ignore per-subscription errors
+                else console.error("Web Push eșuat:", endpoint, "status", res.status);
+              } catch (err) {
+                console.error("Eroare trimitere Web Push la", endpoint, err);
               }
             }
           }
