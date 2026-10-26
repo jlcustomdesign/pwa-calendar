@@ -553,25 +553,6 @@
               console.warn('Reset folosință unică nereușit:', e);
             }
 
-            // Guard cerere vs ofertă (0 ședințe rămase → confirmare explicită)
-            try {
-              const demand = await getFutureDemand(patientId);
-              const nume = freshPatient?.name || (appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : 'Pacient');
-              if (wouldExceedSupply({ sedinte_total: total, sedinte_folosite: Number(freshPatient?.sedinte_folosite || 0) }, demand + 1)) {
-                const proceed = window.confirm(
-                  `${nume}: pachetul de ședință unică e finalizat.\n\nProgramezi o nouă ședință? Plata se marchează separat.`
-                );
-                if (!proceed) {
-                  (window as any).showToast('Programarea viitoare nu a fost creată.', 'info');
-                  this.close();
-                  window.dispatchEvent(new CustomEvent(EVENTS.openPaymentSheet, { detail: { patientId } }));
-                  return;
-                }
-              }
-            } catch (e) {
-              console.warn('Guard cerere vs ofertă indisponibil:', e);
-            }
-
             try {
               const locatie = (appt.location || appt.pacienti?.locatie || 'Belaqva') as 'Belaqva' | 'Ghimbav';
               if (this.selectedRecurrence === 'same') {
@@ -600,9 +581,10 @@
             }
           }
 
+          // Fără popup suplimentar: alegerea din wrap-up e inputul ei, iar plata
+          // se marchează din profilul pacientului când primește banii.
           this.close();
-          window.dispatchEvent(new CustomEvent(EVENTS.openPaymentSheet, { detail: { patientId } }));
-          (window as any).showToast('Ședința unică a fost finalizată. Marchează plata când primești banii.', 'info');
+          (window as any).showToast('Ședința unică a fost finalizată. Marchează plata din profilul pacientului.', 'info');
           return;
         }
 
