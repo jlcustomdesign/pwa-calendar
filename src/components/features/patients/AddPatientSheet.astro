@@ -774,7 +774,10 @@
     }
 
     open() {
-      if (!this.sheet || !this.overlay) return;
+      if (!this.sheet) return;
+      // Dacă overlay-ul a fost înlocuit în DOM (navigare SPA), recrează-l —
+      // altfel sheet-ul se deschide fără backdrop sau cu unul sters.
+      if (!this.overlay || !this.overlay.isConnected) this.createOverlay();
       // Ensure the sheet is in the layout before animating (prevents flash on load)
       // Lock max-height in pixels to prevent jumping when iOS keyboard resizes the viewport
       this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;
@@ -790,10 +793,17 @@
     }
 
     close() {
-      if (!this.sheet || !this.overlay) return;
-      this.sheet.style.transform = '';
-      this.sheet.classList.add('translate-y-full');
-      this.overlay.classList.add('opacity-0', 'pointer-events-none');
+      if (!this.sheet && !this.overlay) return;
+      if (this.sheet) {
+        this.sheet.style.transform = '';
+        this.sheet.classList.add('translate-y-full');
+      }
+      // Ascunde ORICE overlay de-al acestui sheet — inclusiv unul „orfani"
+      // rămas în DOM după recrearea managerului la navigare (altfel rămâne
+      // fundalul întunecat blocant peste pagină).
+      document.querySelectorAll('.patient-sheet-overlay').forEach((o) => {
+        o.classList.add('opacity-0', 'pointer-events-none');
+      });
       unlockBodyScroll();
       setTimeout(() => {
         if (this.sheet) this.sheet.dataset.open = 'false';

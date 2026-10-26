@@ -598,16 +598,20 @@
     }
 
     close() {
-      if (!this.sheet || !this.overlay || !this.isOpen) return;
+      if (!this.sheet && !this.overlay && !this.isOpen) return;
       this.isOpen = false;
       unlockBodyScroll();
 
-      this.sheet.style.transition = '';
-      this.sheet.style.transform = '';
-
-      this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      this.overlay.classList.remove('pointer-events-auto');
-      this.sheet.classList.add('translate-y-full');
+      if (this.sheet) {
+        this.sheet.style.transition = '';
+        this.sheet.style.transform = '';
+        this.sheet.classList.add('translate-y-full');
+      }
+      // Ascunde și overlay-uri orfane (manager recreat la navigare SPA)
+      document.querySelectorAll('.renewal-sheet-overlay').forEach((o) => {
+        o.classList.add('opacity-0', 'pointer-events-none');
+        o.classList.remove('pointer-events-auto');
+      });
 
       setTimeout(() => {
         if (!this.isOpen && this.sheet) {

@@ -847,17 +847,21 @@
     }
 
     private close() {
-      if (!this.sheet || !this.overlay || !this.isOpen) return;
+      if (!this.sheet && !this.overlay && !this.isOpen) return;
       this.isOpen = false;
       unlockBodyScroll();
 
-      // Clear any inline drag styles so the class-based transition takes over
-      this.sheet.style.transition = '';
-      this.sheet.style.transform = '';
-
-      this.overlay.classList.add('opacity-0', 'pointer-events-none');
-      this.overlay.classList.remove('pointer-events-auto');
-      this.sheet.classList.add('translate-y-full');
+      if (this.sheet) {
+        // Clear any inline drag styles so the class-based transition takes over
+        this.sheet.style.transition = '';
+        this.sheet.style.transform = '';
+        this.sheet.classList.add('translate-y-full');
+      }
+      // Ascunde și overlay-uri orfane (manager recreat la navigare SPA)
+      document.querySelectorAll('.payment-sheet-overlay').forEach((o) => {
+        o.classList.add('opacity-0', 'pointer-events-none');
+        o.classList.remove('pointer-events-auto');
+      });
 
       // Remove focus to prevent keyboard from staying open on mobile
       if (this.customInput && document.activeElement === this.customInput) {
