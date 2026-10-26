@@ -240,7 +240,7 @@
 </div>
 
 <script>
-  import { addPatient, updatePatient, addPayment } from '../../../lib/services/patientService';
+  import { addPatient, updatePatient, addPayment, getPatient } from '../../../lib/services/patientService';
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { isAllowedUrl } from '../../../utils/html';
@@ -634,9 +634,22 @@
         }
 
         // Înregistrăm plata reală în tabela `plati` din baza de date
-        if (!patientId && savedPatientId) {
-          if (payload.achitat && payload.cost > 0) {
-            await addPayment(savedPatientId, payload.cost, true);
+        // (și la editare — altfel istoricul per ședință rămâne „neplătit"
+        // deși cardul pacientului arată achitat).
+        if (savedPatientId) {
+          if (!patientId) {
+            if (payload.achitat && payload.cost > 0) {
+              await addPayment(savedPatientId, payload.cost, true);
+            } else if (isPartial && partialAmount > 0) {
+              await addPayment(savedPatientId, partialAmount, false);
+            }
+          } else if (payload.achitat && payload.cost > 0) {
+            const fresh = await getPatient(savedPatientId);
+            const alreadyPaid = Number((fresh as any)?.suma_incasata || 0);
+            const remaining = payload.cost - alreadyPaid;
+            if (remaining > 0) {
+              await addPayment(savedPatientId, remaining, true);
+            }
           } else if (isPartial && partialAmount > 0) {
             await addPayment(savedPatientId, partialAmount, false);
           }
