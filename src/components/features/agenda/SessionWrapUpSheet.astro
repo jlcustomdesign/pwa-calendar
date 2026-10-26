@@ -198,7 +198,7 @@
 
 <script>
   import { completeSession, createAppointment, markAbsent, getFutureDemand, wouldExceedSupply } from '../../../lib/services/appointmentService';
-  import { getPatient } from '../../../lib/services/patientService';
+  import { getPatient, resetPatientSubscription } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { toLocalISOString } from '../../../utils/date';
   import { EVENTS, emit } from '../../../lib/events';
@@ -436,7 +436,7 @@
       // Show subscription warning if needed (ședințele unice și "nu reînnoi" nu cer reînnoire)
       const alertEl = document.getElementById('wrapup-subscription-alert');
       if (alertEl) {
-        if (folosite >= total && appt.pacienti?.plan !== 'Ședință unică' && appt.pacienti?.nu_reinnoi !== true) {
+        if (folosite >= total && appt.pacienti?.plan !== 'Ședință unică' && appt.pacienti?.plan !== 'One Time' && appt.pacienti?.nu_reinnoi !== true) {
           alertEl.classList.remove('hidden');
         } else {
           alertEl.classList.add('hidden');
@@ -534,13 +534,72 @@
         const folosite = freshPatient ? freshPatient.sedinte_folosite : ((appt.pacienti?.sedinte_folosite ?? 0) + 1);
         const total = freshPatient ? freshPatient.sedinte_total : (appt.pacienti?.sedinte_total || 10);
         const isSubscriptionDone = folosite >= total;
-        // Ședințele unice nu se reînnoiesc — după finalizare se marchează plata
-        const isSingleSession = (freshPatient?.plan ?? appt.pacienti?.plan) === 'Ședință unică';
+        // Ședințele unice nu au pachet — „reînnoirea" resetează folosința unică,
+        // plata rămâne per-ședință (PaymentSheet), iar reprogramarea respectă
+        // alegerea din popup (same/custom/none), ca la abonamente.
+        const patientPlan = freshPatient?.plan ?? appt.pacienti?.plan;
+        const isSingleSession = patientPlan === 'Ședință unică' || patientPlan === 'One Time';
         // "Nu reînnoi": nu forțăm reînnoirea — confirmă ca ședință necontorizată
         const skipRenewal = (freshPatient as any)?.nu_reinnoi === true || appt.pacienti?.nu_reinnoi === true;
 
-        // 2. Check if subscription is complete and user wants to schedule next week
+        // 2. Ședință unică finalizată: resetează folosința + reprogramează dacă a fost ales + marchează plata
         if (isSubscriptionDone && isSingleSession) {
+          if (this.selectedRecurrence !== 'none') {
+            try {
+              const currentCost = Number(freshPatient?.cost || appt.pacienti?.cost || 0);
+              await resetPatientSubscription(patientId, 1, currentCost, false);
+              emit(EVENTS.patientsUpdated);
+            } catch (e) {
+              console.warn('Reset folosință unică nereușit:', e);
+            }
+
+            // Guard cerere vs ofertă (0 ședințe rămase → confirmare explicită)
+            try {
+              const demand = await getFutureDemand(patientId);
+              const nume = freshPatient?.name || (appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : 'Pacient');
+              if (wouldExceedSupply({ sedinte_total: total, sedinte_folosite: Number(freshPatient?.sedinte_folosite || 0) }, demand + 1)) {
+                const proceed = window.confirm(
+                  `${nume}: pachetul de ședință unică e finalizat.\n\nProgramezi o nouă ședință? Plata se marchează separat.`
+                );
+                if (!proceed) {
+                  (window as any).showToast('Programarea viitoare nu a fost creată.', 'info');
+                  this.close();
+                  window.dispatchEvent(new CustomEvent(EVENTS.openPaymentSheet, { detail: { patientId } }));
+                  return;
+                }
+              }
+            } catch (e) {
+              console.warn('Guard cerere vs ofertă indisponibil:', e);
+            }
+
+            try {
+              const locatie = (appt.location || appt.pacienti?.locatie || 'Belaqva') as 'Belaqva' | 'Ghimbav';
+              if (this.selectedRecurrence === 'same') {
+                const timeStr = appt.ora || appt.selectedTime || '08:00';
+                await createAppointment({
+                  pacient_id: patientId,
+                  data: this.nextWeekDateStr,
+                  ora: timeStr,
+                  locatie: locatie,
+                });
+                (window as any).showToast(`S-a programat automat ${this.nextWeekDayName} viitoare la ${timeStr}!`, 'success');
+              } else {
+                const targetDate = this.customDate || this.nextWeekDateStr;
+                const targetTime = this.customTime || '08:00';
+                await createAppointment({
+                  pacient_id: patientId,
+                  data: targetDate,
+                  ora: targetTime,
+                  locatie: locatie,
+                });
+                (window as any).showToast(`Noua programare a fost creată pe ${targetDate} la ${targetTime}!`, 'success');
+              }
+              emit(EVENTS.sessionsUpdated);
+            } catch (err: any) {
+              (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
+            }
+          }
+
           this.close();
           window.dispatchEvent(new CustomEvent(EVENTS.openPaymentSheet, { detail: { patientId } }));
           (window as any).showToast('Ședința unică a fost finalizată. Marchează plata când primești banii.', 'info');

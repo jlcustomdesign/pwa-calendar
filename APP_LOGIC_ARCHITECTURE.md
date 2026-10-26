@@ -104,6 +104,7 @@ La apăsare, se deschide Wrap-Up Sheet cu următoarele reguli:
 2. **Următorul Pas Automat (Next-Week Schedule):**
    - Modalul oferă un checkbox bifat default: *"Programează automat pacientul X la aceeași oră peste o săptămână"*.
    - Dacă e lăsat bifat, sistemul creează instant o nouă intrare în `programari` la +7 Zile cu status `'programat'`, ținând calendarul plin pentru retenția pacienților.
+   - **Pacienți Ședință unică (One Time):** la finalizarea ședinței contorul se incrementează (trigger `numara_sedinte`, și pentru ei, fără pachet). Dacă în popup se alege reprogramarea, `renew_package` resetează folosința unică (fără rând în `abonamente`), se creează programarea viitoare (cu confirmarea guard cerere vs ofertă, 0 rămase), apoi se deschide PaymentSheet pentru plata per-ședință. "Nu, doar confirmă" → doar PaymentSheet.
 
 ---
 
