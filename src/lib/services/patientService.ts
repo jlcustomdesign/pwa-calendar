@@ -434,6 +434,21 @@ export async function deletePackagePlati(abonamentId: string) {
   if (error) throw new Error('Eroare la ștergerea plăților pachetului: ' + error.message);
 }
 
+// ── Ședințe finalizate necontorizate (bifat „nu contoriza" la wrap-up) ──
+// Apar separat în istoric — nu scad din pachet, dar sunt ședințe reale.
+export async function getUncountedSessions(patientId: string): Promise<{ data: string; ora: string }[]> {
+  const user = await getCurrentUser();
+  const { data } = await (supabase as any)
+    .from('programari')
+    .select('data, ora')
+    .eq('pacient_id', patientId)
+    .eq('user_id', user.id)
+    .eq('status', 'finalizat')
+    .eq('contorizeaza', false)
+    .order('data', { ascending: true });
+  return (data ?? []) as any[];
+}
+
 // ── Istoric pachete reale (PaymentSheet) ──────────────────────
 // Fiecare pachet e un rând `abonamente` real, cu ședințele și plățile
 // legate prin FK — nu o reconstrucție aritmetică din sume.

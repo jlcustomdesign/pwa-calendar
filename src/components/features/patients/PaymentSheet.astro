@@ -124,7 +124,7 @@
 </div>
 
 <script>
-  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPackages, getSingleSessionsHistory, deletePlata, deletePackagePlati } from '../../../lib/services/patientService';
+  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPackages, getSingleSessionsHistory, getUncountedSessions, deletePlata, deletePackagePlati } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { EVENTS, emit } from '../../../lib/events';
 
@@ -773,6 +773,27 @@
                   </div>
                 `;
               }).join('');
+
+              // Ședințe finalizate dar necontorizate (bifat „nu contoriza"):
+              // nu scad din pachet, dar sunt ședințe reale — le afișăm separat
+              // ca să fie vizibile, nu să pară dispărute.
+              try {
+                const uncounted = await getUncountedSessions(this.currentPatientId!);
+                if (uncounted.length > 0) {
+                  historyListEl.innerHTML += `
+                    <div class="p-3 rounded-2xl bg-neutral-50 border border-dashed border-neutral-300 space-y-1.5">
+                      <div class="px-1 text-[10px] font-black uppercase tracking-wider text-neutral-500">
+                        Ședințe necontorizate (${uncounted.length}) — nu scad din pachet
+                      </div>
+                      ${uncounted.map(s => `
+                        <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/70 text-xs">
+                          <span class="font-black text-black">${fmtDate(s.data)}</span>
+                          <span class="text-[11px] font-black px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700">ora ${(s.ora || '').substring(0,5)} · Necontorizată</span>
+                        </div>
+                      `).join('')}
+                    </div>`;
+                }
+              } catch (e) {}
             }
           } catch (e) {
             historyListEl.innerHTML = `<div class="text-xs font-bold text-rose-500 text-center py-2">Eroare la citirea istoricului.</div>`;
