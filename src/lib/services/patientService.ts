@@ -272,12 +272,13 @@ export async function setPaymentStatus(id: string, achitat: boolean) {
 // RPC atomic: inserează plata (legată de pachetul deschis sau de ședința
 // indicată) și recalculează `achitat` ca SUM(plati pe pachet) >= pret —
 // fără ferestre de date.
-export async function addPayment(id: string, amount: number, markAchitat: boolean, programareId?: string) {
+export async function addPayment(id: string, amount: number, markAchitat: boolean, programareId?: string, abonamentId?: string) {
   const { error } = await supabase.rpc('record_payment', {
     p_pacient_id: id,
     p_suma: amount,
     p_mark_achitat: markAchitat,
     p_programare_id: programareId ?? null,
+    p_abonament_id: abonamentId ?? null,
   });
 
   if (error) {
@@ -388,6 +389,7 @@ export interface SedintaUnicaIstoric {
   ora: string;
   status: string;
   platit: number; // suma plătită pe această ședință (0 = neplătită)
+  plati_ids: string[]; // rândurile de plată legate de ședință (pentru editare individuală)
 }
 
 export async function getSingleSessionsHistory(patientId: string): Promise<SedintaUnicaIstoric[]> {
@@ -398,13 +400,16 @@ export async function getSingleSessionsHistory(patientId: string): Promise<Sedin
       .eq('pacient_id', patientId).eq('user_id', user.id)
       .order('data', { ascending: true }),
     (supabase as any).from('plati')
-      .select('programare_id, suma')
+      .select('id, programare_id, suma')
       .eq('pacient_id', patientId).eq('user_id', user.id)
       .not('programare_id', 'is', null),
   ]);
-  const paidBySession = new Map<string, number>();
+  const paidBySession = new Map<string, { total: number; ids: string[] }>();
   for (const pl of (plati ?? []) as any[]) {
-    paidBySession.set(pl.programare_id, (paidBySession.get(pl.programare_id) || 0) + (Number(pl.suma) || 0));
+    const cur = paidBySession.get(pl.programare_id) || { total: 0, ids: [] };
+    cur.total += Number(pl.suma) || 0;
+    cur.ids.push(pl.id);
+    paidBySession.set(pl.programare_id, cur);
   }
   return ((appts ?? []) as any[])
     .filter((a: any) => a.status !== 'anulat')
@@ -413,8 +418,20 @@ export async function getSingleSessionsHistory(patientId: string): Promise<Sedin
       data: a.data,
       ora: a.ora,
       status: a.status || 'programat',
-      platit: paidBySession.get(a.id) || 0,
+      platit: paidBySession.get(a.id)?.total || 0,
+      plati_ids: paidBySession.get(a.id)?.ids || [],
     }));
+}
+
+// ── Șterge plăți individuale (editare per-ședință/per-pachet) ──
+export async function deletePlata(id: string) {
+  const { error } = await (supabase as any).from('plati').delete().eq('id', id);
+  if (error) throw new Error('Eroare la ștergerea plății: ' + error.message);
+}
+
+export async function deletePackagePlati(abonamentId: string) {
+  const { error } = await (supabase as any).from('plati').delete().eq('abonament_id', abonamentId);
+  if (error) throw new Error('Eroare la ștergerea plăților pachetului: ' + error.message);
 }
 
 // ── Istoric pachete reale (PaymentSheet) ──────────────────────

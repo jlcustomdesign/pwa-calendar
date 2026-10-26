@@ -124,7 +124,7 @@
 </div>
 
 <script>
-  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPackages, getSingleSessionsHistory } from '../../../lib/services/patientService';
+  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPackages, getSingleSessionsHistory, deletePlata, deletePackagePlati } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { EVENTS, emit } from '../../../lib/events';
 
@@ -297,6 +297,24 @@
       const target = e.target as HTMLElement;
       if (!target) return;
 
+      // Acțiuni individuale din istoric (per ședință / per pachet) —
+      // nu ating alte înregistrări.
+      const actionEl = target.closest('[data-pay-action]') as HTMLElement | null;
+      if (actionEl) {
+        e.stopPropagation();
+        const action = actionEl.dataset.payAction;
+        if (action === 'pay-session') {
+          this.handlePaySession(actionEl.dataset.session || '', Number(actionEl.dataset.amount || 0));
+        } else if (action === 'del-session-payments') {
+          this.handleDeletePlati((actionEl.dataset.ids || '').split(',').filter(Boolean));
+        } else if (action === 'pay-package') {
+          this.handlePayPackage(actionEl.dataset.pkg || '', Number(actionEl.dataset.amount || 0));
+        } else if (action === 'del-package-payments') {
+          this.handleDeletePackagePlati(actionEl.dataset.pkg || '');
+        }
+        return;
+      }
+
       const dropdown = document.getElementById('payment-status-dropdown');
       const toggleBtn = document.getElementById('btn-payment-status-toggle');
 
@@ -425,6 +443,57 @@
         this.close();
       } catch (err: any) {
         (window as any).showToast('Eroare la actualizarea plății: ' + (err.message || err), 'error');
+      }
+    }
+
+    // ── Acțiuni individuale din istoric ─────────────────────────
+    private refreshAfterPaymentChange(message: string) {
+      (window as any).showToast?.(message, 'success');
+      emit(EVENTS.patientsUpdated);
+      emit(EVENTS.sessionsUpdated);
+      emit(EVENTS.paymentsUpdated, { patientId: this.currentPatientId });
+      this.loadPatientFinancials();
+    }
+
+    private async handlePaySession(programareId: string, amount: number) {
+      if (!this.currentPatientId || !programareId || amount <= 0) return;
+      try {
+        await addPayment(this.currentPatientId, amount, false, programareId);
+        this.refreshAfterPaymentChange('Ședința a fost marcată ca plătită.');
+      } catch (err: any) {
+        (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
+      }
+    }
+
+    private async handleDeletePlati(ids: string[]) {
+      if (!this.currentPatientId || ids.length === 0) return;
+      try {
+        for (const id of ids) await deletePlata(id);
+        this.refreshAfterPaymentChange('Plata ședinței a fost ștearsă.');
+      } catch (err: any) {
+        (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
+      }
+    }
+
+    private async handlePayPackage(abonamentId: string, amount: number) {
+      if (!this.currentPatientId || !abonamentId) return;
+      try {
+        if (amount > 0) {
+          await addPayment(this.currentPatientId, amount, true, undefined, abonamentId);
+        }
+        this.refreshAfterPaymentChange('Pachetul a fost marcat ca achitat.');
+      } catch (err: any) {
+        (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
+      }
+    }
+
+    private async handleDeletePackagePlati(abonamentId: string) {
+      if (!this.currentPatientId || !abonamentId) return;
+      try {
+        await deletePackagePlati(abonamentId);
+        this.refreshAfterPaymentChange('Pachetul a fost marcat ca neachitat.');
+      } catch (err: any) {
+        (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
       }
     }
 
@@ -625,6 +694,12 @@
                           <span class="text-[11px] font-black px-2.5 py-1 rounded-xl ${isDone && s.platit > 0 ? 'text-emerald-700 bg-emerald-50' : isDone ? 'text-rose-700 bg-rose-50' : 'text-sky-700 bg-sky-50'}">${statusLabel}</span>
                         </div>
                         ${isDone ? `<div class="px-1 pt-1.5 text-[11px] font-bold ${statusClass}">ora ${(s.ora || '').substring(0,5)}</div>` : ''}
+                        ${isDone ? `
+                        <div class="pt-2 flex gap-2">
+                          ${s.platit > 0
+                            ? `<button type="button" data-pay-action="del-session-payments" data-ids="${s.plati_ids.join(',')}" class="flex-1 py-2 rounded-xl bg-rose-50 text-rose-700 text-[11px] font-black active:scale-[0.98] transition-transform cursor-pointer">Șterge plata</button>`
+                            : `<button type="button" data-pay-action="pay-session" data-session="${s.programare_id}" data-amount="${cost}" class="flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-black active:scale-[0.98] transition-transform cursor-pointer">Marchează plătită (${cost} RON)</button>`}
+                        </div>` : ''}
                       </div>
                     `;
                   }).join('');
@@ -690,6 +765,11 @@
                     </div>
                     ${paymentsHtml}
                     ${sessionsHtml}
+                    <div class="pt-1 flex gap-2">
+                      ${isPaid
+                        ? `<button type="button" data-pay-action="del-package-payments" data-pkg="${pkg.id}" class="flex-1 py-2 rounded-xl bg-rose-50 text-rose-700 text-[11px] font-black active:scale-[0.98] transition-transform cursor-pointer">Marchează neachitat</button>`
+                        : `<button type="button" data-pay-action="pay-package" data-pkg="${pkg.id}" data-amount="${rest}" class="flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-black active:scale-[0.98] transition-transform cursor-pointer">${rest > 0 ? `Marchează achitat (${rest} RON)` : 'Marchează achitat'}</button>`}
+                    </div>
                   </div>
                 `;
               }).join('');
