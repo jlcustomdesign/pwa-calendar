@@ -630,6 +630,29 @@
           statusBadgeClass = 'bg-orange-100 text-black border border-transparent font-black';
         }
 
+        const isOneTime = !openPkg && ((patient as any).plan === 'One Time' || (patient as any).plan === 'Ședință unică');
+
+        // Ședințe unice: badge-ul arată câte ședințe sunt plătite (per-ședință),
+        // nu un global achitat/neachitat calculat din totalul încasat.
+        if (isOneTime) {
+          try {
+            const sessions = await getSingleSessionsHistory(this.currentPatientId!);
+            const done = sessions.filter(s => s.status === 'finalizat');
+            const paidCnt = done.filter(s => s.platit > 0).length;
+            if (done.length === 0) {
+              displayStatusLabel = 'Neachitat';
+            } else if (paidCnt >= done.length) {
+              displayStatusLabel = `Toate plătite (${paidCnt}/${done.length})`;
+              statusBadgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-black';
+            } else if (paidCnt > 0) {
+              displayStatusLabel = `${paidCnt}/${done.length} ședințe plătite`;
+              statusBadgeClass = 'bg-orange-100 text-black border border-transparent font-black';
+            } else {
+              displayStatusLabel = `${done.length} ședințe neplătite`;
+            }
+          } catch (e) {}
+        }
+
         const nameEl = document.getElementById('payment-patient-name');
         const totalCostEl = document.getElementById('payment-total-cost');
         const totalPaidEl = document.getElementById('payment-total-paid');
