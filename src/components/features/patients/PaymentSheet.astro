@@ -640,15 +640,15 @@
             const done = sessions.filter(s => s.status === 'finalizat');
             const paidCnt = done.filter(s => s.platit > 0).length;
             if (done.length === 0) {
-              displayStatusLabel = 'Neachitat';
+              displayStatusLabel = 'Fără ședințe finalizate';
             } else if (paidCnt >= done.length) {
-              displayStatusLabel = `Toate plătite (${paidCnt}/${done.length})`;
+              displayStatusLabel = `Toate cele ${done.length} ședințe sunt plătite`;
               statusBadgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-black';
             } else if (paidCnt > 0) {
-              displayStatusLabel = `${paidCnt}/${done.length} ședințe plătite`;
+              displayStatusLabel = `${paidCnt} plătite, ${done.length - paidCnt} neplătite`;
               statusBadgeClass = 'bg-orange-100 text-black border border-transparent font-black';
             } else {
-              displayStatusLabel = `${done.length} ședințe neplătite`;
+              displayStatusLabel = `Nicio ședință plătită (${done.length} de plătit)`;
             }
           } catch (e) {}
         }

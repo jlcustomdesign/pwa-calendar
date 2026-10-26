@@ -452,7 +452,11 @@
       
       const folosite = (appt.pacienti?.sedinte_folosite ?? 0) + 1; // including today
       const total = appt.pacienti?.sedinte_total || 10;
-      if (countEl) countEl.textContent = `${folosite} / ${total}`;
+      // La ședințe unice fracțiunea "1/1" induce în eroare (pare plată/contor
+      // de abonament) — afișăm un eticheta clară.
+      if (appt.pacienti?.plan === 'One Time' || appt.pacienti?.plan === 'Ședință unică') {
+        if (countEl) countEl.textContent = 'Unică';
+      } else if (countEl) countEl.textContent = `${folosite} / ${total}`;
 
       if (sameSlotLabel) sameSlotLabel.textContent = 'Da, peste o săptămână';
       if (sameSlotDate) sameSlotDate.textContent = formattedNextDate;
