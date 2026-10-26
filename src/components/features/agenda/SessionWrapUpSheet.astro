@@ -98,6 +98,21 @@
       </div>
     </div>
 
+    <!-- Paid on the spot (One Time patients only, shown dynamically) -->
+    <div id="wrapup-paid-spot-row" class="hidden mb-6">
+      <button
+        type="button"
+        id="btn-paid-on-spot"
+        data-on="false"
+        class="w-full p-4 rounded-2xl border border-transparent bg-neutral-50 text-neutral-900 font-bold text-base flex items-center justify-between transition-all cursor-pointer active:scale-[0.98]"
+      >
+        <span class="font-black text-sm sm:text-base" id="wrapup-paid-spot-label">Pacientul a plătit pe loc?</span>
+        <span id="wrapup-paid-spot-toggle" class="w-11 h-6 rounded-full bg-neutral-300 relative transition-colors shrink-0">
+          <span id="wrapup-paid-spot-knob" class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"></span>
+        </span>
+      </button>
+    </div>
+
     <!-- Custom Date/Time Selectors (Hidden by default, shown if Custom option selected) -->
     <div id="wrapup-custom-datetime-box" class="hidden mb-6 p-4 rounded-2xl bg-surface-base border border-transparent space-y-3">
       <div class="text-xs font-black uppercase text-text-muted">Alege data și ora pentru săptămâna viitoare</div>
@@ -198,7 +213,7 @@
 
 <script>
   import { completeSession, createAppointment, markAbsent, getFutureDemand, wouldExceedSupply } from '../../../lib/services/appointmentService';
-  import { getPatient, resetPatientSubscription } from '../../../lib/services/patientService';
+  import { getPatient, resetPatientSubscription, addPayment } from '../../../lib/services/patientService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { toLocalISOString } from '../../../utils/date';
   import { EVENTS, emit } from '../../../lib/events';
@@ -213,6 +228,7 @@
 
     private currentAppointment: any = null;
     private selectedRecurrence: 'same' | 'custom' | 'none' = 'same';
+    private paidOnSpot = false;
 
     private nextWeekDateStr: string = '';
     private nextWeekDayName: string = '';
@@ -323,6 +339,11 @@
         return;
       }
 
+      if (target.closest('#btn-paid-on-spot')) {
+        this.togglePaidOnSpot();
+        return;
+      }
+
       if (target.closest('#btn-renew-package')) {
         e.stopPropagation();
         this.handleRenewPackage();
@@ -365,6 +386,16 @@
         this.close();
         return;
       }
+    }
+
+    private togglePaidOnSpot() {
+      this.paidOnSpot = !this.paidOnSpot;
+      const btn = document.getElementById('btn-paid-on-spot');
+      const toggle = document.getElementById('wrapup-paid-spot-toggle');
+      const knob = document.getElementById('wrapup-paid-spot-knob');
+      if (toggle) toggle.className = `w-11 h-6 rounded-full relative transition-colors shrink-0 ${this.paidOnSpot ? 'bg-emerald-500' : 'bg-neutral-300'}`;
+      if (knob) knob.className = `absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${this.paidOnSpot ? 'left-5' : 'left-0.5'}`;
+      if (btn) btn.dataset.on = String(this.paidOnSpot);
     }
 
     private async handleRenewPackage() {
@@ -440,6 +471,25 @@
           alertEl.classList.remove('hidden');
         } else {
           alertEl.classList.add('hidden');
+        }
+      }
+
+      // Show "paid on the spot" toggle for One Time patients only
+      const paidRow = document.getElementById('wrapup-paid-spot-row');
+      if (paidRow) {
+        const plan = appt.pacienti?.plan;
+        if (plan === 'One Time' || plan === 'Ședință unică') {
+          paidRow.classList.remove('hidden');
+          this.paidOnSpot = false;
+          const toggle = document.getElementById('wrapup-paid-spot-toggle');
+          const knob = document.getElementById('wrapup-paid-spot-knob');
+          const label = document.getElementById('wrapup-paid-spot-label');
+          if (toggle) toggle.className = 'w-11 h-6 rounded-full bg-neutral-300 relative transition-colors shrink-0';
+          if (knob) knob.className = 'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform';
+          if (label) label.textContent = `Pacientul a plătit pe loc? (${appt.pacienti?.cost || 0} RON)`;
+        } else {
+          paidRow.classList.add('hidden');
+          this.paidOnSpot = false;
         }
       }
 
@@ -539,6 +589,19 @@
         // alegerea din popup (same/custom/none), ca la abonamente.
         const patientPlan = freshPatient?.plan ?? appt.pacienti?.plan;
         const isSingleSession = patientPlan === 'Ședință unică' || patientPlan === 'One Time';
+
+        // Plată pe loc (ședințe unice): se înregistrează direct pe ședința curentă
+        if (this.paidOnSpot && isSingleSession) {
+          try {
+            const spotCost = Number(freshPatient?.cost || appt.pacienti?.cost || 0);
+            if (spotCost > 0) {
+              await addPayment(patientId, spotCost, true, appt.id);
+              (window as any).showToast(`Plata de ${spotCost} RON a fost înregistrată pe ședința de azi.`, 'success');
+            }
+          } catch (e: any) {
+            (window as any).showToast('Eroare la înregistrarea plății: ' + (e?.message || e), 'error');
+          }
+        }
         // "Nu reînnoi": nu forțăm reînnoirea — confirmă ca ședință necontorizată
         const skipRenewal = (freshPatient as any)?.nu_reinnoi === true || appt.pacienti?.nu_reinnoi === true;
 
