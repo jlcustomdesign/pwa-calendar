@@ -126,7 +126,9 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
     row.cost = Number(pkg.pret) || 0;
     const paid = paidByPkg.get(pkg.id) || 0;
     row.suma_incasata = paid;
-    row.achitat = row.cost > 0 && paid >= row.cost;
+    // Flag-ul explicit (marcat achitat la editare / PaymentSheet) rămâne
+    // valabil chiar dacă plățile pachetului nu acoperă încă prețul.
+    row.achitat = row.achitat === true || (row.cost > 0 && paid >= row.cost);
   }
   return rows;
 }
@@ -179,6 +181,7 @@ export async function addPatient(input: {
   const { data: existing } = await (supabase as any)
     .from('pacienti_view')
     .select('id, name')
+    .is('sters_la', null) // arhivații nu blochează recrearea numelui
     .or(`name.ilike.${nameTrimmed},name.ilike.${nameReversed}`);
 
   if (existing && existing.length > 0) {
