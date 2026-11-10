@@ -345,7 +345,11 @@
           }
           this.currentPlanFilter = planVal;
           this.updatePlanChips(planVal);
-          this.applyPlanDefaults(planVal, true);
+          // La editare nu suprascriem prețul/numărul cu defaulturile — pacientul
+          // are deja tariful lui (ex: switch la One Time rescria costul cu
+          // prețul din setări și umfla datoria fictiv). Doar la pacient nou.
+          const isEditing = Boolean((this.form?.querySelector('[name="patientId"]') as HTMLInputElement | null)?.value);
+          this.applyPlanDefaults(planVal, !isEditing);
         });
       });
 
