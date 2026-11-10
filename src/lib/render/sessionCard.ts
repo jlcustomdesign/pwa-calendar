@@ -193,6 +193,7 @@ export async function applyBeyondSupplyMarks(sessions: any[]): Promise<void> {
     }
     for (const s of sessions) {
       s.beyondSupply = false;
+      if (s.plan === 'Ședință unică' || s.plan === 'One Time') continue;
       if (!s.patientId || !['programat', 'confirmat'].includes(s.status)) continue;
       if ((s.selectedDate || '') < todayStr) continue;
       const list = byPatient.get(s.patientId) || [];

@@ -699,7 +699,8 @@
           try {
             {
               const total = Number(freshPatient?.sedinte_total || appt.pacienti?.sedinte_total || 0);
-            if (total > 0) {
+            const patientPlan = freshPatient?.plan ?? appt.pacienti?.plan;
+            if (total > 0 && patientPlan !== 'One Time' && patientPlan !== 'Ședință unică') {
               const demand = await getFutureDemand(patientId);
               if (wouldExceedSupply({ sedinte_total: total, sedinte_folosite: Number(freshPatient?.sedinte_folosite || 0) }, demand + 1)) {
                 const ramase = total - Number(freshPatient?.sedinte_folosite || 0);

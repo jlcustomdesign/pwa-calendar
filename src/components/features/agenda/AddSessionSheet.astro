@@ -906,6 +906,7 @@
       try {
         const p = this.patientsCache.find(x => x.id === pid);
         if (!p) return true;
+        if ((p as any).plan === 'One Time' || (p as any).plan === 'Ședință unică') return true;
         const { total, used } = await this.getPackageUsage(pid);
         if (total <= 0) return true;
         const demand = await getFutureDemand(pid);
