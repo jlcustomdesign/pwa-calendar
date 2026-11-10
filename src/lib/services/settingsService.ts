@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
   session_duration: 50,
   break_buffer: 10,
   zile_lucratoare: [1, 2, 3, 4, 5],
-  default_price: 150,
+  default_price: 0,
   default_total_sessions: 10,
   categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați', 'Expirați'],
   active_categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați', 'Expirați'],

@@ -531,8 +531,9 @@
       const costInput = this.form?.querySelector('[name="cost"]') as HTMLInputElement | null;
       if (!totalInput || !costInput) return;
 
-      // Extrage setările curente
-      const FALLBACK_PRICE_PER_SESSION = 150;
+      // Extrage setările curente. Fără preț configurat în Setări, câmpul rămâne
+      // 0 — nicio valoare inventată; Roxana setează prețul pacientului.
+      const FALLBACK_PRICE_PER_SESSION = 0;
       const FALLBACK_TOTAL_SESSIONS = 10;
       let defaultPricePerSession = FALLBACK_PRICE_PER_SESSION;
       let defaultSessionsVal = FALLBACK_TOTAL_SESSIONS;

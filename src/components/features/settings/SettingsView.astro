@@ -383,7 +383,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
                 <button type="button" data-stepper-dec="defaultPrice" class="w-9 h-9 rounded-xl bg-white text-text-main font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer">
                   -
                 </button>
-                <input type="number" id="defaultPrice" name="defaultPrice" value="150" min="0" max="2000" step="10" inputmode="numeric" class="w-16 text-center bg-transparent font-bold text-text-main text-base focus:outline-none focus:bg-white/80 rounded-lg" />
+                <input type="number" id="defaultPrice" name="defaultPrice" value="0" min="0" max="2000" step="10" inputmode="numeric" class="w-16 text-center bg-transparent font-bold text-text-main text-base focus:outline-none focus:bg-white/80 rounded-lg" />
                 <button type="button" data-stepper-inc="defaultPrice" class="w-9 h-9 rounded-xl bg-brand-primary text-black font-bold flex items-center justify-center shadow-sm active:scale-90 transition-transform cursor-pointer">
                   +
                 </button>
@@ -659,7 +659,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
 
     setIfNotFocused(inputDuration,     settings.session_duration ?? 50);
     setIfNotFocused(inputBreakBetween, settings.break_buffer      ?? 10);
-    setIfNotFocused(inputDefaultPrice, settings.default_price     ?? 150);
+    setIfNotFocused(inputDefaultPrice, settings.default_price     ?? 0);
 
 
 
@@ -1139,7 +1139,7 @@ const currentSectionInfo = section && sectionTitles[section] ? sectionTitles[sec
           savedSettings = await saveSettingsDB({
             session_duration: parseInt(inputDuration?.value     || '50',  10),
             break_buffer:     parseInt(inputBreakBetween?.value  || '10',  10),
-            default_price:    parseInt(inputDefaultPrice?.value || '150', 10),
+            default_price:    parseInt(inputDefaultPrice?.value || '0', 10),
           });
 
         } else if (section === 'categories') {

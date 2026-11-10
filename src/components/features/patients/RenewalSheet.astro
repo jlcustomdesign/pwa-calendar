@@ -150,7 +150,7 @@
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { EVENTS, emit } from '../../../lib/events';
 
-  const DEFAULT_PRICE_PER_SESSION = 150;
+  const DEFAULT_PRICE_PER_SESSION = 0; // 0 = fără preț inventat; Roxana îl setează (sau din Setări)
 
   class RenewalSheetManager {
     private sheet: HTMLElement | null = null;
