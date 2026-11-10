@@ -124,7 +124,8 @@
 </div>
 
 <script>
-  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPackages, getSingleSessionsHistory, getUncountedSessions, deletePlata, deletePackagePlati } from '../../../lib/services/patientService';
+  import { getPatient, setPaymentStatus, addPayment, getPatientPayments, resetPayments, getPatientPackages, getSingleSessionsHistory, getUncountedSessions, deletePlata, deletePackagePlati, getPatientHistoryNotes } from '../../../lib/services/patientService';
+  import { escapeHtml } from '../../../utils/html';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { EVENTS, emit } from '../../../lib/events';
 
@@ -874,6 +875,28 @@
                 }
               } catch (e) {}
             }
+
+            // Note de istoric (schimbări de plan etc.) — vizibile în ambele ramuri.
+            try {
+              const notes = await getPatientHistoryNotes(this.currentPatientId!);
+              if (notes.length > 0) {
+                const fmtN = (d: string) => {
+                  if (!d) return '';
+                  const parts = d.split('T')[0].split('-');
+                  return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0].slice(2)}` : d;
+                };
+                historyListEl.innerHTML += `
+                  <div class="space-y-1">
+                    <div class="px-1 text-[10px] font-black uppercase tracking-wider text-text-muted">Evenimente</div>
+                    ${notes.map(n => `
+                      <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-sky-50/60 border border-sky-100 text-xs">
+                        <span class="font-bold text-sky-900">${escapeHtml(n.text)}</span>
+                        <span class="font-black text-sky-500 shrink-0 ml-2">${fmtN(n.created_at)}</span>
+                      </div>
+                    `).join('')}
+                  </div>`;
+              }
+            } catch (e) {}
           } catch (e) {
             historyListEl.innerHTML = `<div class="text-xs font-bold text-rose-500 text-center py-2">Eroare la citirea istoricului.</div>`;
           }

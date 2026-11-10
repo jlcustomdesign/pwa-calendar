@@ -530,6 +530,16 @@ export async function getUncountedSessions(patientId: string): Promise<{ data: s
   return (data ?? []) as any[];
 }
 
+// ── Note de istoric (ex: schimbare tip abonament) ─────────────
+export async function getPatientHistoryNotes(patientId: string): Promise<{ text: string; created_at: string }[]> {
+  const user = await getCurrentUser();
+  const { data } = await (supabase as any).from('istoric_evenimente')
+    .select('text, created_at')
+    .eq('pacient_id', patientId).eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+  return (data ?? []) as any[];
+}
+
 // ── Istoric pachete reale (PaymentSheet) ──────────────────────
 // Fiecare pachet e un rând `abonamente` real, cu ședințele și plățile
 // legate prin FK — nu o reconstrucție aritmetică din sume.
