@@ -272,17 +272,34 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
     delete updates.name;
   }
 
-  // Dacă sedinte_total scade sub sedinte_folosite (ex. Abonament → Ședință unică),
-  // clamp pe folosite în același update, altfel pică check-ul sedinte_folosite <= sedinte_total
-  if (updates.sedinte_total != null && updates.sedinte_folosite == null) {
+  // Schimbarea efectivă de plan trece prin RPC: contorul e protejat de trigger
+  // în client și renew_package refuză One Time, deci switch_plan e singura cale
+  // legală; el închide/deschide pachetul și resetează contorul cu GUC-ul oficial.
+  // Fără schimbare de plan, update-ul normal e suficient (triggerul nu atinge
+  // sedinte_total/cost, doar contorul).
+  if (updates.plan) {
     const { data: cur } = await (supabase as any)
       .from('pacienti')
-      .select('sedinte_folosite')
+      .select('plan, sedinte_total, cost')
       .eq('id', id)
       .single();
-    const used = Number(cur?.sedinte_folosite) || 0;
-    if (used > updates.sedinte_total) updates.sedinte_folosite = updates.sedinte_total;
+    if (updates.plan !== cur?.plan) {
+      const total = updates.sedinte_total ?? Number(cur?.sedinte_total) || 1;
+      const cost  = updates.cost ?? Number(cur?.cost) || 0;
+      const { error: switchError } = await (supabase as any).rpc('switch_plan', {
+        p_pacient_id: id,
+        p_plan: updates.plan,
+        p_total: total,
+        p_cost: cost,
+      });
+      if (switchError) throw new Error('Eroare la schimbarea planului: ' + switchError.message);
+      delete updates.plan;
+      delete updates.sedinte_total;
+      delete updates.cost;
+    }
   }
+
+  if (Object.keys(updates).length === 0) return;
 
   const { error } = await (supabase as any)
     .from('pacienti')
