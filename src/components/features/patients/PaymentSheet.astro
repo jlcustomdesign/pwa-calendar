@@ -879,7 +879,25 @@
             // Note de istoric (schimbări de plan etc.) — vizibile în ambele ramuri.
             try {
               const notes = await getPatientHistoryNotes(this.currentPatientId!);
-              if (notes.length > 0) {
+              // Eveniment derivat (display-only, fără scriere în DB): pacient One Time
+              // cu pachete toate închise = a fost Abonament → Ședință unică la
+              // ultima închidere. Acoperă switch-urile de dinainte de note automate.
+              const derived: { text: string; created_at: string }[] = [];
+              try {
+                const plan = (patient as any)?.plan;
+                if (plan === 'One Time' || plan === 'Ședință unică') {
+                  const pkgs = await getPatientPackages(this.currentPatientId!);
+                  const closed = pkgs.filter((p: any) => p.status !== 'activ' && p.closed_at);
+                  if (pkgs.length > 0 && closed.length === pkgs.length && closed.length > 0) {
+                    const last = closed.reduce((a: any, b: any) => (a.closed_at > b.closed_at ? a : b));
+                    const text = 'Schimbare tip abonament: Abonament → Ședință unică';
+                    if (!notes.some(n => n.text === text)) derived.push({ text, created_at: last.closed_at });
+                  }
+                }
+              } catch {}
+              const allNotes = [...derived, ...notes]
+                .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+              if (allNotes.length > 0) {
                 const fmtN = (d: string) => {
                   if (!d) return '';
                   const parts = d.split('T')[0].split('-');
@@ -888,7 +906,7 @@
                 historyListEl.innerHTML += `
                   <div class="space-y-1">
                     <div class="px-1 text-[10px] font-black uppercase tracking-wider text-text-muted">Evenimente</div>
-                    ${notes.map(n => `
+                    ${allNotes.map(n => `
                       <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-sky-50/60 border border-sky-100 text-xs">
                         <span class="font-bold text-sky-900">${escapeHtml(n.text)}</span>
                         <span class="font-black text-sky-500 shrink-0 ml-2">${fmtN(n.created_at)}</span>
