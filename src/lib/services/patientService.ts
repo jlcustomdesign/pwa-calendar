@@ -341,6 +341,23 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
     }
   }
 
+  // Număr ședințe modificat din editare: fără schimbare de plan, update-ul
+  // normal rescria doar pacienti.sedinte_total și pachetul deschis rămânea
+  // cu nr_sedinte vechi (două surse de adevăr). RPC atomar, ca la preț.
+  if (updates.sedinte_total !== undefined) {
+    const { data: pkgRows } = await (supabase as any)
+      .from('abonamente').select('id')
+      .eq('pacient_id', id).eq('status', 'activ').limit(1);
+    if (pkgRows && pkgRows.length > 0) {
+      const { error: totalError } = await (supabase as any).rpc('update_package_sessions', {
+        p_pacient_id: id,
+        p_total: Number(updates.sedinte_total) || 1,
+      });
+      if (totalError) throw new Error('Eroare la modificarea numărului de ședințe: ' + totalError.message);
+      delete updates.sedinte_total;
+    }
+  }
+
   if (Object.keys(updates).length === 0) return;
 
   const { error } = await (supabase as any)
