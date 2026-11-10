@@ -169,20 +169,29 @@ function normalizePlan(plan: string | undefined | null): 'Subscription' | 'One T
 }
 
 // ── Verificare nume duplicat (exact, case-insensitive, normal + inversat) ──
-// Valorile sunt închise între ghilimele în filtrul or() ca numele cu spații sau
-// virgule să nu spargă sintaxa PostgREST; eroarea aruncă (fail-closed, nu sare
-// verificarea în tăcere). Arhivații (sters_la) nu blochează niciodată.
+// Două interogări ilike simple în loc de or() cu valori interpolate — parserul
+// PostgREST respinge ghilimelele în stringul or(), iar JS verifică egalitatea
+// exactă, deci % / _ din nume nu pot acționa ca wildcards. Arhivații (sters_la)
+// nu blochează niciodată.
 async function findPatientsByName(nameTrimmed: string, excludeId?: string): Promise<any[]> {
-  const esc = (s: string) => s.replace(/"/g, '""');
   const reversed = nameTrimmed.split(/\s+/).reverse().join(' ');
-  let q = (supabase as any)
-    .from('pacienti_view')
-    .select('id, name')
-    .is('sters_la', null);
-  if (excludeId) q = q.neq('id', excludeId);
-  const { data, error } = await q.or(`(name.ilike."${esc(nameTrimmed)}",name.ilike."${esc(reversed)}")`);
-  if (error) throw new Error('Eroare la verificarea numelui: ' + error.message);
-  return data || [];
+  const targets = [...new Set([nameTrimmed, reversed])].map((s) => s.toLowerCase());
+  const byId = new Map<string, any>();
+
+  for (const target of targets) {
+    let q = (supabase as any)
+      .from('pacienti_view')
+      .select('id, name')
+      .is('sters_la', null)
+      .ilike('name', target);
+    if (excludeId) q = q.neq('id', excludeId);
+    const { data, error } = await q;
+    if (error) throw new Error('Eroare la verificarea numelui: ' + error.message);
+    for (const row of data || []) {
+      if ((row.name || '').trim().toLowerCase() === target) byId.set(row.id, row);
+    }
+  }
+  return [...byId.values()];
 }
 
 // ── Adăugare pacient nou ──────────────────────────────────────
