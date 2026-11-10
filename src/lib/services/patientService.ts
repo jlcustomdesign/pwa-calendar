@@ -3,6 +3,7 @@
  * Folosit în: PatientList.astro, AddPatientSheet.astro, PaymentSheet.astro
  */
 import { supabase, getCurrentUser } from '../supabase';
+import { acoperaSesiuni, computeOneTime, computePackage, parseazaPreturiDinNote, FinanceState } from '../finance';
 import type { PacientInsert, PacientUpdate, PacientView } from '../database.types';
 import { toLocalISOString } from '../../utils/date';
 import { EVENTS, emit } from '../events';
@@ -137,9 +138,7 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
     row.cost = Number(pkg.pret) || 0;
     const paid = paidByPkg.get(pkg.id) || 0;
     row.suma_incasata = paid;
-    // Flag-ul explicit (marcat achitat la editare / PaymentSheet) rămâne
-    // valabil chiar dacă plățile pachetului nu acoperă încă prețul.
-    row.achitat = row.achitat === true || (row.cost > 0 && paid >= row.cost);
+    row.achitat = computePackage(row.cost, paid, row.achitat === true).badge.kind === 'paid';
   }
 
   // Același adevăr ca în PaymentSheet, dar batch pentru listă: pentru Ședință
@@ -149,44 +148,53 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
   const otRows = rows.filter((r: any) => r.plan === 'One Time' || r.plan === 'Ședință unică');
   if (otRows.length > 0) {
     try {
-      const otIds = otRows.map((r: any) => r.id);
-      const [{ data: appts }, { data: plati }] = await Promise.all([
-        (supabase as any).from('programari').select('id, pacient_id, data, status').in('pacient_id', otIds),
-        (supabase as any).from('plati').select('pacient_id, programare_id, suma').in('pacient_id', otIds),
-      ]);
-      const finalByPatient = new Map<string, any[]>();
-      for (const a of (appts ?? []) as any[]) {
-        if (a.status !== 'finalizat') continue;
-        if (!finalByPatient.has(a.pacient_id)) finalByPatient.set(a.pacient_id, []);
-        finalByPatient.get(a.pacient_id)!.push(a);
-      }
-      const linkedByAppt = new Map<string, number>();
-      const totalByPatient = new Map<string, number>();
-      for (const pl of (plati ?? []) as any[]) {
-        totalByPatient.set(pl.pacient_id, (totalByPatient.get(pl.pacient_id) || 0) + (Number(pl.suma) || 0));
-        if (pl.programare_id) linkedByAppt.set(pl.programare_id, (linkedByAppt.get(pl.programare_id) || 0) + (Number(pl.suma) || 0));
-      }
+      const truth = await getOneTimeBatch(otRows.map((r: any) => r.id));
       for (const row of otRows) {
-        const sessions = (finalByPatient.get(row.id) ?? []).slice()
-          .sort((a: any, b: any) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
-        const linkedTotal = sessions.reduce((t: number, a: any) => t + (linkedByAppt.get(a.id) || 0), 0);
-        const cost = Number(row.cost) || 0;
-        let pool = (totalByPatient.get(row.id) || 0) - linkedTotal;
-        let paidCnt = 0;
-        for (const a of sessions) {
-          let platit = linkedByAppt.get(a.id) || 0;
-          if (platit <= 0 && cost > 0 && pool > 0) {
-            platit = Math.min(cost, pool);
-            pool -= platit;
-          }
-          if (platit > 0) paidCnt++;
-        }
-        (row as any).ot_done = sessions.length;
-        (row as any).ot_rest = cost > 0 ? (sessions.length - paidCnt) * cost : 0;
+        const st = truth.get(row.id);
+        (row as any).ot_done = st?.done ?? 0;
+        (row as any).ot_rest = st?.rest ?? 0;
       }
     } catch {}
   }
   return rows;
+}
+
+// ── Adevăr financiar Ședință unică, batch (carduri, liste, statistici) ──
+// Aceeași derivare ca în PaymentSheet, pentru mulți pacienți dintr-o singură
+// tura de interogări. read-only.
+export async function getOneTimeBatch(ids: string[]): Promise<Map<string, FinanceState>> {
+  const map = new Map<string, FinanceState>();
+  const uniqueIds = [...new Set((ids || []).filter(Boolean))] as string[];
+  if (uniqueIds.length === 0) return map;
+  const user = await getCurrentUser();
+  const [{ data: appts }, { data: plati }, { data: note }, { data: prows }] = await Promise.all([
+    (supabase as any).from('programari').select('id, pacient_id, data, status').in('pacient_id', uniqueIds).eq('user_id', user.id),
+    (supabase as any).from('plati').select('pacient_id, programare_id, suma').in('pacient_id', uniqueIds).eq('user_id', user.id),
+    (supabase as any).from('istoric_evenimente').select('pacient_id, text, created_at').in('pacient_id', uniqueIds).eq('user_id', user.id),
+    (supabase as any).from('pacienti').select('id, cost').in('id', uniqueIds).eq('user_id', user.id),
+  ]);
+  const costById = new Map<string, number>();
+  for (const r of (prows ?? []) as any[]) costById.set(r.id, Number(r.cost) || 0);
+  const groupBy = (list: any[], key: string) => {
+    const m = new Map<string, any[]>();
+    for (const x of (list ?? []) as any[]) {
+      if (!m.has(x[key])) m.set(x[key], []);
+      m.get(x[key])!.push(x);
+    }
+    return m;
+  };
+  const apptsBy = groupBy(appts, 'pacient_id');
+  const platiBy = groupBy(plati, 'pacient_id');
+  const noteBy = groupBy(note, 'pacient_id');
+  for (const id of uniqueIds) {
+    map.set(id, computeOneTime(
+      (apptsBy.get(id) ?? []) as any[],
+      (platiBy.get(id) ?? []) as any[],
+      costById.get(id) || 0,
+      parseazaPreturiDinNote((noteBy.get(id) ?? []) as any[])
+    ));
+  }
+  return map;
 }
 
 // ── Citire pacient unic ───────────────────────────────────────
@@ -521,58 +529,24 @@ export interface SedintaUnicaIstoric {
 
 export async function getSingleSessionsHistory(patientId: string, sessionCost = 0): Promise<SedintaUnicaIstoric[]> {
   const user = await getCurrentUser();
-  const [{ data: appts }, { data: plati }] = await Promise.all([
+  const [{ data: appts }, { data: plati }, { data: note }] = await Promise.all([
     (supabase as any).from('programari')
       .select('id, data, ora, status')
-      .eq('pacient_id', patientId).eq('user_id', user.id)
-      .order('data', { ascending: true }),
+      .eq('pacient_id', patientId).eq('user_id', user.id),
     (supabase as any).from('plati')
       .select('id, programare_id, suma')
-      .eq('pacient_id', patientId).eq('user_id', user.id)
-      .not('programare_id', 'is', null),
+      .eq('pacient_id', patientId).eq('user_id', user.id),
+    (supabase as any).from('istoric_evenimente')
+      .select('text, created_at')
+      .eq('pacient_id', patientId).eq('user_id', user.id),
   ]);
-  const paidBySession = new Map<string, { total: number; ids: string[] }>();
-  for (const pl of (plati ?? []) as any[]) {
-    const cur = paidBySession.get(pl.programare_id) || { total: 0, ids: [] };
-    cur.total += Number(pl.suma) || 0;
-    cur.ids.push(pl.id);
-    paidBySession.set(pl.programare_id, cur);
-  }
-  const rows = ((appts ?? []) as any[])
-    .filter((a: any) => a.status !== 'anulat')
-    .map((a: any) => ({
-      programare_id: a.id,
-      data: a.data,
-      ora: a.ora,
-      status: a.status || 'programat',
-      platit: paidBySession.get(a.id)?.total || 0,
-      plati_ids: paidBySession.get(a.id)?.ids || [],
-      poolPaid: false,
-    }));
-
-  // Sursă unică de adevăr = banii. Plățile nelegate de o ședință (legacy,
-  // legate de pachetul vechi, sau fără ședință finalizată la momentul plății)
-  // se alocă display-only celor neplătite, de la cea mai veche — ca istoricul
-  // să nu arate „Neplătită” cât timp banii există. Nu scrie nimic în DB.
-  if (sessionCost > 0) {
-    try {
-      const { data: allPlati } = await (supabase as any).from('plati')
-        .select('suma').eq('pacient_id', patientId).eq('user_id', user.id);
-      const linkedTotal = rows.reduce((t, r) => t + r.platit, 0);
-      let pool = (allPlati ?? []).reduce((t: number, p: any) => t + (Number(p.suma) || 0), 0) - linkedTotal;
-      for (const r of rows) {
-        // Orici bani rămân alocați integral, celui mai vechi neacoperit.
-        // Suma creditată rămâne atașată sesiunii — acoperirea înseamnă „are bani",
-        // nu „a plătit prețul de azi" (prețul se poate schimba mâine).
-        if (r.status !== 'finalizat' || r.platit > 0 || pool <= 0) continue;
-        const use = Math.min(sessionCost, pool);
-        r.platit = use;
-        r.poolPaid = true;
-        pool -= use;
-      }
-    } catch {}
-  }
-  return rows;
+  // Algoritmul unic de acoperire + istoric de preț: src/lib/finance.ts
+  return acoperaSesiuni(
+    (appts ?? []) as any[],
+    (plati ?? []) as any[],
+    sessionCost,
+    parseazaPreturiDinNote((note ?? []) as any[])
+  ) as SedintaUnicaIstoric[];
 }
 
 // ── Șterge plăți individuale (editare per-ședință/per-pachet) ──
@@ -713,7 +687,7 @@ export async function getPatientPayments(id: string, fromDate?: string): Promise
   // Dacă pacientul este marcat ca achitat integral (ex: setat la creare), suma achitată este costul total
   try {
     const patient = await getPatient(id);
-    if (patient?.achitat === true || (patient as any)?.status_plata === 'Achitat' || (patient as any)?.status_plata === 'Achitat integral') {
+    if (patient?.achitat === true) {
       return Number(patient.cost || 0);
     }
   } catch (e) {}

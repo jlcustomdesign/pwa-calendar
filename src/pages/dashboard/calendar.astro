@@ -132,6 +132,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
     import { getAppointmentsByDate, updateAppointment, swapAppointmentPatients } from '../../lib/services/appointmentService';
     import { getSettings, saveSettings } from '../../lib/services/settingsService';
     import { applyBeyondSupplyMarks, createGroupCardHTML, createSessionCardHTML, fetchPaymentsForPatients, fetchOpenPackages, groupSessions } from '../../lib/render/sessionCard';
+    import { getOneTimeBatch } from '../../lib/services/patientService';
+    import { computePackage, badgeText } from '../../lib/finance';
 
     function localDateStr(d = new Date()) {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -388,6 +390,11 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         const paymentsByPatient = await fetchPaymentsForPatients(patientIds);
         // Pachetul deschis e sursa de adevăr pentru X/8 și cost.
         const packagesByPatient = await fetchOpenPackages(patientIds);
+        // Adevărul financiar (Ședință unică) vine din finance.ts, batch.
+        const otIds = [...new Set(appts
+          .filter((a: any) => !packagesByPatient.has(a.pacient_id) && (a.pacienti?.plan === 'One Time' || a.pacienti?.plan === 'Ședință unică'))
+          .map((a: any) => a.pacient_id))] as string[];
+        const otTruth = otIds.length > 0 ? await getOneTimeBatch(otIds) : new Map<string, any>();
         storedSessions = appts.map((a: any) => {
           const sumaIncasata = paymentsByPatient.get(a.pacient_id) ?? 0;
           const pkg = packagesByPatient.get(a.pacient_id);
@@ -396,14 +403,10 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           const totalSess = pkg ? pkg.nr_sedinte : (a.pacienti?.sedinte_total || 10);
           const sedinteRamase = Math.max(0, totalSess - folosite);
 
-          let pStatus = 'Neachitat';
-          if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
-            pStatus = 'Achitat integral';
-          } else if (sumaIncasata > 0) {
-            pStatus = 'Achitat parțial';
-          } else if (a.pacienti?.status_plata) {
-            pStatus = a.pacienti.status_plata;
-          }
+          // Derivare unică: finance.ts. Badge-ul nu mai e cost−sumă local.
+          const finState = otTruth.get(a.pacient_id)
+            ?? computePackage(costTotal, sumaIncasata, a.pacienti?.achitat === true);
+          const financeBadge = badgeText(finState);
 
           return {
             id: a.id,
@@ -421,7 +424,8 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
             status: a.status || 'programat',
             costTotal,
             sumaIncasata,
-            paymentStatus: pStatus,
+            financeBadge,
+            paymentStatus: financeBadge.label,
             groupId: a.group_id || null,
             contorizeaza: a.contorizeaza !== false,
             plan: a.pacienti?.plan,

@@ -31,6 +31,8 @@
 <script>
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
   import { applyBeyondSupplyMarks, createGroupCardHTML, createSessionCardHTML, fetchPaymentsForPatients, fetchOpenPackages, groupSessions } from '../../../lib/render/sessionCard';
+  import { getOneTimeBatch } from '../../../lib/services/patientService';
+  import { computePackage, badgeText } from '../../../lib/finance';
   import { isPushSubscribed } from '../../../lib/services/pushService';
   import { getSettings } from '../../../lib/services/settingsService';
 
@@ -228,6 +230,10 @@
       const pidsForPayments = [...new Set(appts.map((a: any) => a.pacient_id).filter(Boolean))] as string[];
       const paymentsByPatient = await fetchPaymentsForPatients(pidsForPayments);
       const packagesByPatient = await fetchOpenPackages(pidsForPayments);
+      const otIds = [...new Set(appts
+        .filter((a: any) => !packagesByPatient.has(a.pacient_id) && (a.pacienti?.plan === 'One Time' || a.pacienti?.plan === 'Ședință unică'))
+        .map((a: any) => a.pacient_id))] as string[];
+      const otTruth = otIds.length > 0 ? await getOneTimeBatch(otIds) : new Map<string, any>();
       stored = appts.map((a: any) => {
         const sumaIncasata = paymentsByPatient.get(a.pacient_id) ?? 0;
         const pkg = packagesByPatient.get(a.pacient_id);
@@ -236,14 +242,10 @@
         const totalSess = pkg ? pkg.nr_sedinte : (a.pacienti?.sedinte_total || 10);
         const sedinteRamase = Math.max(0, totalSess - folosite);
 
-        let pStatus = 'Neachitat';
-        if (a.pacienti?.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal)) {
-          pStatus = 'Achitat integral';
-        } else if (sumaIncasata > 0) {
-          pStatus = 'Achitat parțial';
-        } else if (a.pacienti?.status_plata) {
-          pStatus = a.pacienti.status_plata;
-        }
+        // Derivare unică: finance.ts. Badge-ul nu mai e cost−sumă local.
+        const finState = otTruth.get(a.pacient_id)
+          ?? computePackage(costTotal, sumaIncasata, a.pacienti?.achitat === true);
+        const financeBadge = badgeText(finState);
 
         return {
           id: a.id,
@@ -259,7 +261,8 @@
           remainingSessions: sedinteRamase,
           subscriptionDone: totalSess > 0 && folosite > 0 && folosite >= totalSess,
           status: a.status || 'programat',
-          paymentStatus: pStatus,
+          financeBadge,
+          paymentStatus: financeBadge.label,
           costTotal,
           sumaIncasata,
           groupId: a.group_id || null,

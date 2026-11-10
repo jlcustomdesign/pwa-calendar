@@ -260,6 +260,9 @@ export function groupSessions(sessions: any[], currentDate: string): any[] {
 // Regula unică pentru cardul individual: se verifică mai întâi statusul
 // explicit al plății (ordinea canonică din calendar).
 function deriveSinglePaymentBadge(session: any): { label: string; badgeClass: string } {
+  // Adevărul financiar vine din finance.ts (calculat de cel care randează cardul).
+  // Ramurile de mai jos rămân doar fallback pentru sesiuni încărcate din cache vechi.
+  if (session.financeBadge) return session.financeBadge;
   const sumaIncasata = session.sumaIncasata || 0;
   const costTotal = session.costTotal || 0;
   const restDePlata = Math.max(0, costTotal - sumaIncasata);
@@ -286,6 +289,7 @@ function deriveSinglePaymentBadge(session: any): { label: string; badgeClass: st
 // Regula pentru cardurile de membru din grup: suma încasată primește
 // prioritate (identic în ambele pagini înainte de unificare).
 function deriveMemberPaymentBadge(m: any): { label: string; badgeClass: string } {
+  if (m.financeBadge) return m.financeBadge;
   const sumaIncasata = m.sumaIncasata || 0;
   const costTotal = m.costTotal || 0;
   const restDePlata = Math.max(0, costTotal - sumaIncasata);
