@@ -31,6 +31,7 @@
 
 <script>
   import { lockBodyScroll, unlockBodyScroll } from '../../utils/scrollLock';
+  import { escapeHtml } from '../../utils/html';
 
   // Toast & Confirm Modal Global API Definition
   type ToastType = 'warning' | 'error' | 'success' | 'info';
@@ -81,8 +82,8 @@
     toast.innerHTML = `
       <div class="pt-0.5">${iconSvg}</div>
       <div class="flex-1 min-w-0 pr-1">
-        <h5 class="text-xs font-black uppercase tracking-wider opacity-90">${defaultTitle}</h5>
-        <p class="text-sm font-bold leading-snug mt-0.5 break-words">${message}</p>
+        <h5 class="text-xs font-black uppercase tracking-wider opacity-90">${escapeHtml(defaultTitle)}</h5>
+        <p class="text-sm font-bold leading-snug mt-0.5 break-words">${escapeHtml(message)}</p>
       </div>
       <button class="toast-close shrink-0 p-1 opacity-70 hover:opacity-100 transition-opacity">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
