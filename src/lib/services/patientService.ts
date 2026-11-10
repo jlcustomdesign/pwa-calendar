@@ -328,7 +328,11 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
       .select('plan, sedinte_total, cost')
       .eq('id', id)
       .single();
-    if (updates.plan !== cur?.plan) {
+    // Rândurile vechi pot avea planul nenormalizat ('Abonament') — comparam
+    // ambele părți normalizate, altor orice editare ar părea schimbare de plan
+    // și switch_plan ar reseta contorul / rescrie data pachetului.
+    const curPlanNorm = cur?.plan ? normalizePlan(cur.plan) : cur?.plan;
+    if (updates.plan !== curPlanNorm) {
       const total = (updates.sedinte_total ?? Number(cur?.sedinte_total)) || 1;
       const cost  = updates.cost ?? (Number(cur?.cost) || 0);
       const { error: switchError } = await (supabase as any).rpc('switch_plan', {
