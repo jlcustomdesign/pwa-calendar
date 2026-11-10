@@ -128,7 +128,7 @@
   import { escapeHtml } from '../../../utils/html';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { EVENTS, emit } from '../../../lib/events';
-  import { computePackage } from '../../../lib/finance';
+  import { computePackage, isOneTimePlan } from '../../../lib/finance';
 
   class PaymentSheetManager {
     private sheet: HTMLElement | null = null;
@@ -667,7 +667,7 @@
           statusBadgeClass = 'bg-orange-100 text-black border border-transparent font-black';
         }
 
-        const isOneTime = !openPkg && ((patient as any).plan === 'One Time' || (patient as any).plan === 'Ședință unică');
+        const isOneTime = !openPkg && isOneTimePlan((patient as any).plan);
 
         // Ședințe unice: datoria = doar sesiunile neacoperite, la prețul curent.
         // Istoricul plătit e blocat la sumele reale — cardul și istoricul nu mai

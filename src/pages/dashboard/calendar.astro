@@ -133,7 +133,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
     import { getSettings, saveSettings } from '../../lib/services/settingsService';
     import { applyBeyondSupplyMarks, createGroupCardHTML, createSessionCardHTML, fetchPaymentsForPatients, fetchOpenPackages, groupSessions } from '../../lib/render/sessionCard';
     import { getOneTimeBatch } from '../../lib/services/patientService';
-    import { computePackage, badgeText } from '../../lib/finance';
+    import { computePackage, badgeText, isOneTimePlan } from '../../lib/finance';
 
     function localDateStr(d = new Date()) {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -392,7 +392,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         const packagesByPatient = await fetchOpenPackages(patientIds);
         // Adevărul financiar (Ședință unică) vine din finance.ts, batch.
         const otIds = [...new Set(appts
-          .filter((a: any) => !packagesByPatient.has(a.pacient_id) && (a.pacienti?.plan === 'One Time' || a.pacienti?.plan === 'Ședință unică'))
+          .filter((a: any) => !packagesByPatient.has(a.pacient_id) && isOneTimePlan(a.pacienti?.plan))
           .map((a: any) => a.pacient_id))] as string[];
         const otTruth = otIds.length > 0 ? await getOneTimeBatch(otIds) : new Map<string, any>();
         storedSessions = appts.map((a: any) => {

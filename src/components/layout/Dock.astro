@@ -161,10 +161,9 @@ const navItems = [
       // Patients: abonamente terminate/ultima ședință NEdismissuite OR pacienți neachitați
       const needsAttentionPatients = patients.some((p: any) => {
         const subscriptionAlert = ['terminat', 'ultima_sedinta'].includes(p.status_abonament) && !isRenewalDismissed(p.id);
-        // Adevăr financiar din finance.ts (ot_rest pentru Ședință unică):
-        // neachitat = are rest de plată, nu flag-ul legacy.
-        const isOneTime = p.plan === 'One Time' || p.plan === 'Ședință unică';
-        const unpaidPatient = isOneTime ? (p.ot_rest ?? 0) > 0 : p.achitat !== true;
+        // Adevăr unic din finance.ts (pachetul deschis câștigă; Ședință
+        // unică doar fără pachet): are datorii = apare în Neachitați.
+        const unpaidPatient = p.are_datorii === true;
         return subscriptionAlert || unpaidPatient;
       });
       patientsDot?.classList.toggle('hidden', !needsAttentionPatients);

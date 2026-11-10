@@ -197,28 +197,40 @@ export function badgeText(st: FinanceState): { label: string; badgeClass: string
   }
 }
 
-// Dispatcher: decide planul după pachet deschis + plan normalizat.
+// Recunoaște planul indiferent de limbă/diacritice/variante stocate.
+export function isOneTimePlan(plan: string | null | undefined): boolean {
+  const p = String(plan || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return p.includes('sedinta') || p.includes('unica') || p.includes('one') || p.includes('single');
+}
+
+// Dispatcher: PACHETUL DESCHIS CÂȘTIGĂ ÎNTOTDEAUNA. Matematica de Ședință
+// unică se aplică doar când nu există pachet deschis — altfel un pacient cu
+// plan One Time + pachet activ e evaluat pe ambele căi și contrazis între
+// ecrane (cazul real: pachet plătit integral, dar rest fantomă din sesiunile
+// vechi).
 export function computeFinancialState(input: {
   plan: string;
   openPackagePret?: number | null;
   pacientCost?: number | null;
   explicitAchitat?: boolean;
-  sesiuni?: RawSesiune[];
-  plati?: RawPlata[]; // pentru One Time: TOATE plățile pacientului
+  sesiuni?: RawSesiune[]; // pentru One Time fără pachet
+  plati?: RawPlata[]; // One Time fără pachet: TOATE plățile; Subscription fără pachet: Σ plăți
   preturiIstoric?: PretIstoric[]; // pentru One Time: linie temporală de preț din istoric_evenimente
   openPackagePaid?: number; // pentru pachet: Σ plăți legate de pachetul deschis
 }): FinanceState {
-  const plan = String(input.plan || '');
-  const isOneTime = /sedinta|unica|one/i.test(plan.normalize('NFD').replace(/[\u0300-\u036f]/g, '')) || !input.openPackagePret;
-  if (isOneTime) {
+  if (input.openPackagePret) {
+    return computePackage(Number(input.openPackagePret) || 0, Number(input.openPackagePaid) || 0, input.explicitAchitat === true);
+  }
+  const totalPlati = (input.plati ?? []).reduce((t, p) => t + (Number(p.suma) || 0), 0);
+  if (isOneTimePlan(input.plan)) {
     return computeOneTime(
       input.sesiuni ?? [],
       input.plati ?? [],
-      Number(input.openPackagePret ?? input.pacientCost) || 0,
+      Number(input.pacientCost) || 0,
       input.preturiIstoric ?? []
     );
   }
-  return computePackage(Number(input.openPackagePret) || 0, Number(input.openPackagePaid) || 0, input.explicitAchitat === true);
+  return computePackage(Number(input.pacientCost) || 0, totalPlati, input.explicitAchitat === true);
 }
 
 // ── Auto-verificare (scripts/finance-check.mjs) ───────────────
@@ -267,6 +279,19 @@ export function demo(): string {
   // Flag explicit achitat rămâne valabil.
   pk = computePackage(1000, 600, true);
   assert(pk.badge.kind === 'paid', `flag explicit: ${pk.badge.kind}`);
+
+  // PACHETUL DESCHIS CÂȘTIGĂ: plan One Time + pachet plătit integral
+  // (cazul real Vasilescu) → paid, fără rest fantomă din sesiunile vechi.
+  const mixed = computeFinancialState({
+    plan: 'One Time',
+    openPackagePret: 390,
+    openPackagePaid: 780,
+    explicitAchitat: true,
+    sesiuni, // 7 finalizate cu bani — ar da rest dacă ar rula matematica OT
+    plati,
+    pacientCost: 260,
+  });
+  assert(mixed.badge.kind === 'paid' && mixed.rest === 0, `pachet peste One Time: ${mixed.badge.kind} rest ${mixed.rest}`);
 
   return 'finance demo OK';
 }

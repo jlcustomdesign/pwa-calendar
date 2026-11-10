@@ -3,7 +3,7 @@
  * Folosit în: PatientList.astro, AddPatientSheet.astro, PaymentSheet.astro
  */
 import { supabase, getCurrentUser } from '../supabase';
-import { acoperaSesiuni, computeOneTime, computePackage, parseazaPreturiDinNote, FinanceState } from '../finance';
+import { acoperaSesiuni, computeOneTime, computePackage, parseazaPreturiDinNote, FinanceState, isOneTimePlan } from '../finance';
 import type { PacientInsert, PacientUpdate, PacientView } from '../database.types';
 import { toLocalISOString } from '../../utils/date';
 import { EVENTS, emit } from '../events';
@@ -139,13 +139,24 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
     const paid = paidByPkg.get(pkg.id) || 0;
     row.suma_incasata = paid;
     row.achitat = computePackage(row.cost, paid, row.achitat === true).badge.kind === 'paid';
+    row.has_open_package = true;
+    row.are_datorii = row.achitat !== true;
   }
 
   // Același adevăr ca în PaymentSheet, dar batch pentru listă: pentru Ședință
   // unică banii existenți acoperă sesiunile (cel mai vechi primul), iar restul
   // se datorează doar pe sesiunile fără bani, la prețul curent — badge-ul din
   // listă nu mai poate arăta „Neachitat" pentru cine e plătit.
-  const otRows = rows.filter((r: any) => r.plan === 'One Time' || r.plan === 'Ședință unică');
+  // Etichete uniforme pentru filtre/dock: has_open_package + are_datorii.
+  for (const row of rows) {
+    if (!pkgByPatient.has(row.id)) {
+      row.has_open_package = false;
+      if (!isOneTimePlan(row.plan)) row.are_datorii = row.achitat !== true;
+    }
+  }
+  // Matematica de Ședință unică NU rulează pentru pacienții cu pachet
+  // deschis — pachetul câștigă (aceeași regulă ca în finance.ts).
+  const otRows = rows.filter((r: any) => isOneTimePlan(r.plan) && !pkgByPatient.has(r.id));
   if (otRows.length > 0) {
     try {
       const truth = await getOneTimeBatch(otRows.map((r: any) => r.id));
@@ -153,6 +164,7 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
         const st = truth.get(row.id);
         (row as any).ot_done = st?.done ?? 0;
         (row as any).ot_rest = st?.rest ?? 0;
+        (row as any).are_datorii = (st?.rest ?? 0) > 0;
       }
     } catch {}
   }

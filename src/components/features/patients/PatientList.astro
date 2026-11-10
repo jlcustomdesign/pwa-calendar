@@ -472,17 +472,14 @@
 
         patients = await getPatients(serverFilter);
 
+        // Adevăr unic: are_datorii, calculat de finance.ts prin applyPackageTruth
+        // (pachetul deschis câștigă; Ședință unică doar fără pachet).
         if (filtersActive && this.activeFilters.includes('unpaid')) {
-          patients = patients.filter((p: any) =>
-            p.plan === 'One Time' || p.plan === 'Ședință unică'
-              ? (p.ot_rest ?? 0) > 0
-              : p.achitat !== true
-          );
+          patients = patients.filter((p: any) => p.are_datorii === true);
         } else if (filtersActive && this.activeFilters.includes('paid')) {
           patients = patients.filter((p: any) =>
-            p.plan === 'One Time' || p.plan === 'Ședință unică'
-              ? (p.ot_rest ?? 0) <= 0 && (p.ot_done ?? 0) > 0
-              : p.achitat === true
+            p.are_datorii === false &&
+            (p.has_open_package === true || p.achitat === true || (p.ot_done ?? 0) > 0)
           );
         }
 
@@ -651,7 +648,7 @@
 
         // Ședință unică fără ședințe finalizate: nimic datorat, nimic plătit —
         // stare neutră, nu „achitat" (ședința a fost ștearsă / încă n-a venit).
-        const isSingleNoSessions = this.isOneTimePlanText(patient.plan) && otDone === 0;
+        const isSingleNoSessions = this.isOneTimePlanText(patient.plan) && otDone === 0 && patient.has_open_package !== true;
 
         if (this.isOneTimePlanText(patient.plan) && otDone > 0) {
           if (otRest <= 0) {

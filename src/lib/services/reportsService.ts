@@ -3,7 +3,7 @@
  * Folosit în: ReportsView.astro
  */
 import { supabase, getCurrentUser } from '../supabase';
-import { computeOneTime, parseazaPreturiDinNote } from '../finance';
+import { computeOneTime, parseazaPreturiDinNote, isOneTimePlan } from '../finance';
 import { toLocalISOString } from '../../utils/date';
 
 interface PaymentRecord {
@@ -553,7 +553,7 @@ export async function getUnpaidPatients(startStr?: string, endStr?: string) {
 
   const pkgPatientIds = new Set(pkgRows.map(p => p.pacient_id));
   const oneTimeIds = ((oneRows || []) as any[])
-    .filter(p => (p.plan === 'One Time' || p.plan === 'Ședință unică') && !pkgPatientIds.has(p.id) && Number(p.cost) > 0)
+    .filter(p => isOneTimePlan(p.plan) && !pkgPatientIds.has(p.id) && Number(p.cost) > 0)
     .map(p => p.id);
 
   const oneTimeNames = new Map<string, string>();

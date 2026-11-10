@@ -32,7 +32,7 @@
   import { getAppointmentsByDate } from '../../../lib/services/appointmentService';
   import { applyBeyondSupplyMarks, createGroupCardHTML, createSessionCardHTML, fetchPaymentsForPatients, fetchOpenPackages, groupSessions } from '../../../lib/render/sessionCard';
   import { getOneTimeBatch } from '../../../lib/services/patientService';
-  import { computePackage, badgeText } from '../../../lib/finance';
+  import { computePackage, badgeText, isOneTimePlan } from '../../../lib/finance';
   import { isPushSubscribed } from '../../../lib/services/pushService';
   import { getSettings } from '../../../lib/services/settingsService';
 
@@ -231,7 +231,7 @@
       const paymentsByPatient = await fetchPaymentsForPatients(pidsForPayments);
       const packagesByPatient = await fetchOpenPackages(pidsForPayments);
       const otIds = [...new Set(appts
-        .filter((a: any) => !packagesByPatient.has(a.pacient_id) && (a.pacienti?.plan === 'One Time' || a.pacienti?.plan === 'Ședință unică'))
+        .filter((a: any) => !packagesByPatient.has(a.pacient_id) && isOneTimePlan(a.pacienti?.plan))
         .map((a: any) => a.pacient_id))] as string[];
       const otTruth = otIds.length > 0 ? await getOneTimeBatch(otIds) : new Map<string, any>();
       stored = appts.map((a: any) => {
