@@ -245,6 +245,18 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
     delete updates.name;
   }
 
+  // Dacă sedinte_total scade sub sedinte_folosite (ex. Abonament → Ședință unică),
+  // clamp pe folosite în același update, altfel pică check-ul sedinte_folosite <= sedinte_total
+  if (updates.sedinte_total != null && updates.sedinte_folosite == null) {
+    const { data: cur } = await (supabase as any)
+      .from('pacienti')
+      .select('sedinte_folosite')
+      .eq('id', id)
+      .single();
+    const used = Number(cur?.sedinte_folosite) || 0;
+    if (used > updates.sedinte_total) updates.sedinte_folosite = updates.sedinte_total;
+  }
+
   const { error } = await (supabase as any)
     .from('pacienti')
     .update(updates)
