@@ -299,6 +299,23 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
     }
   }
 
+  // Preț pentru pacient CU pachet activ: coloana legacy pacienti.cost nu e
+  // sursa de adevăr la afișare (câștigă pretul pachetului) — mergem pe RPC
+  // care rescrie prețul pachetului deschis și lasă notă în istoric.
+  if (updates.cost !== undefined) {
+    const { data: pkgRows } = await (supabase as any)
+      .from('abonamente').select('id')
+      .eq('pacient_id', id).eq('status', 'activ').limit(1);
+    if (pkgRows && pkgRows.length > 0) {
+      const { error: priceError } = await (supabase as any).rpc('update_package_price', {
+        p_pacient_id: id,
+        p_cost: updates.cost,
+      });
+      if (priceError) throw new Error('Eroare la modificarea prețului pachetului: ' + priceError.message);
+      delete updates.cost;
+    }
+  }
+
   if (Object.keys(updates).length === 0) return;
 
   const { error } = await (supabase as any)
