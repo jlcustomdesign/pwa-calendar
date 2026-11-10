@@ -285,7 +285,7 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
       .single();
     if (updates.plan !== cur?.plan) {
       const total = (updates.sedinte_total ?? Number(cur?.sedinte_total)) || 1;
-      const cost  = updates.cost ?? Number(cur?.cost) || 0;
+      const cost  = updates.cost ?? (Number(cur?.cost) || 0);
       const { error: switchError } = await (supabase as any).rpc('switch_plan', {
         p_pacient_id: id,
         p_plan: updates.plan,
