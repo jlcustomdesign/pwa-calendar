@@ -572,9 +572,11 @@
 
         const sumaIncasata = Number(patient.suma_incasata || 0);
         const costTotal = Number(patient.cost || 0);
+        // Din pipeline: achitat e deja adevărul calculat de finance.ts
+        // (explicit || plăți ≥ preț) — nicio derivare locală.
         let paymentStatus = 'Neachitat';
 
-        if (patient.achitat || (costTotal > 0 && sumaIncasata >= costTotal)) {
+        if (patient.achitat === true) {
           paymentStatus = 'Achitat integral';
         } else if (sumaIncasata > 0) {
           paymentStatus = 'Achitat parțial';
@@ -590,8 +592,7 @@
         const totalSessions = patient.sedinte_total || 1;
         let progressPercentage = Math.min(100, Math.round((attendanceCount / totalSessions) * 100));
 
-        const isFullyPaid = paymentStatus === 'Achitat integral' || paymentStatus === 'Achitat' || patient.achitat === true || (costTotal > 0 && sumaIncasata >= costTotal);
-        const restDePlata = isFullyPaid ? 0 : Math.max(0, costTotal - sumaIncasata);
+        const isFullyPaid = paymentStatus === 'Achitat integral';
 
         const cardWrapper = document.createElement('div');
         cardWrapper.className = 'block relative rounded-[2.5rem] shadow-sm overflow-hidden mb-4 mx-0 sm:mx-4';
@@ -661,7 +662,7 @@
         } else if (isSingleNoSessions) {
           paymentBadgeHtml = `<span class='text-sm font-black text-neutral-500'>Fără ședințe</span>`;
           paymentBadgeBgClass = 'bg-neutral-100 hover:bg-neutral-200 border-neutral-200/60';
-        } else if (paymentStatus === 'Achitat parțial' || (sumaIncasata > 0 && restDePlata > 0)) {
+        } else if (paymentStatus === 'Achitat parțial') {
           // fără cost cunoscut afișăm doar suma, nu „X/X RON”
           const partialLabel = costTotal > 0 ? `${sumaIncasata}/${costTotal} RON` : `${sumaIncasata} RON`;
           paymentBadgeHtml = `<span class='text-sm font-black text-amber-900'>${partialLabel}</span>`;

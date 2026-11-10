@@ -928,6 +928,15 @@
       this.isOpen = true;
       this.loadPatientFinancials();
 
+      // Rețea instabilă / încărcare blocată: dacă după 8s numele e tot
+      // „Se încarcă…", reîncearcă o dată (altfel foaia rămâne blocată).
+      setTimeout(() => {
+        const nameEl = document.getElementById('payment-patient-name');
+        if (this.isOpen && nameEl && nameEl.textContent === 'Se încarcă…') {
+          this.loadPatientFinancials();
+        }
+      }, 8000);
+
       this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;
       if (document.activeElement && 'blur' in document.activeElement) {
         (document.activeElement as HTMLElement).blur();

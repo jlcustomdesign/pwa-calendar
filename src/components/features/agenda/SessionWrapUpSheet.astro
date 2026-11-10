@@ -228,7 +228,9 @@
     private isBodyScrollLocked = false;
 
     private currentAppointment: any = null;
-    private selectedRecurrence: 'same' | 'custom' | 'none' = 'same';
+    // Reprogramarea e EXPLICITĂ: implicit „none" — „peste o săptămână"
+    // doar dacă alege userul.
+    private selectedRecurrence: 'same' | 'custom' | 'none' = 'none';
     private paidOnSpot = false;
     private settings: any = null;
 
@@ -511,7 +513,8 @@
       }
 
       // Default option is ALWAYS "Da, peste o săptămână"
-      this.setRecurrenceOption('same');
+      this.selectedRecurrence = 'none'; // la fiecare deschidere: fără reprogramare implicită
+      this.setRecurrenceOption('none');
 
       // Reset submit button state so it works on every open
       const btnConfirm = document.getElementById('btn-confirm-wrapup') as HTMLButtonElement | null;
@@ -572,10 +575,15 @@
       const patientId = appt.pacient_id || appt.pacienti?.id;
 
       try {
-        // 1. Confirm current session
+        // 1. Confirm current session — idempotent: un al doilea confirm
+        // (dublu-tap/retry) nu re-declanșează plata, reprogramarea sau evenimentele.
         let sessionCompleted = false;
         try {
-          await completeSession(appt.id);
+          const res = await completeSession(appt.id);
+          if (res.alreadyFinalized) {
+            this.close();
+            return;
+          }
           sessionCompleted = true;
           (window as any).showToast('Ședința a fost marcată ca efectuată!', 'success');
         } catch (err: any) {

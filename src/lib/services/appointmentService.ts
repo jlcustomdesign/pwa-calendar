@@ -223,20 +223,24 @@ export async function setSessionCounted(id: string, contorizeaza: boolean) {
   }
 }
 
-export async function completeSession(id: string, note?: string) {
+export async function completeSession(id: string, note?: string): Promise<{ alreadyFinalized: boolean }> {
   // DB triggerul `trg_incrementeaza_sedinte` incrementează automat sedinte_folosite
-  // când statusul devine 'finalizat'.
+  // când statusul devine 'finalizat'. Guardul .neq() face operația idempotentă:
+  // dublu-tap / dublu-confirm NU mai incrementează contorul de două ori.
   const user = await getCurrentUser();
-  const { error } = await (supabase as any)
+  const { data, error } = await (supabase as any)
     .from('programari')
     .update({ status: 'finalizat', note: note ?? null })
     .eq('id', id)
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .neq('status', 'finalizat')
+    .select('id');
 
   if (error) {
     console.error('completeSession error:', error, { id });
     throw new Error('Eroare la finalizarea sesiunii: ' + (error.message || JSON.stringify(error)));
   }
+  return { alreadyFinalized: !data || data.length === 0 };
 }
 
 // ── Marcare absent ────────────────────────────────────────────

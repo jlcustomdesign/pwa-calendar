@@ -11,7 +11,6 @@ import { EVENTS, emit } from '../events';
 // ── Listare pacienți (cu filtru opțional și verificare inactivitate 30 zile) ─────────────────────
 // Sweep-ul de inactivare rulează o singură dată pe sesiune de pagină — nu la fiecare
 // citire. Interogarea principală de mai jos (pacienti_view) rulează de fiecare dată.
-let inactivitySweepDone = false;
 
 export async function getPatients(filter?: {
   locatie?: 'Belaqva' | 'Ghimbav';
@@ -19,54 +18,8 @@ export async function getPatients(filter?: {
   search?: string;
   inactivi?: boolean;
 }): Promise<PacientView[]> {
-  // 1. Verificăm și marcăm pacienții neprogramați de peste 30 de zile ca inactivi
-  if (!inactivitySweepDone) {
-    inactivitySweepDone = true;
-    const date30DaysAgo = new Date();
-    date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
-    const iso30DaysAgo = toLocalISOString(date30DaysAgo);
-    const today = toLocalISOString(new Date());
-
-    try {
-      const currentUser = await getCurrentUser();
-
-      // Preluăm toate programările recente (trecute + de azi; o programare
-      // viitoare NU contează ca activitate recentă)
-      const { data: recentAppts } = await (supabase as any)
-        .from('programari')
-        .select('pacient_id, data')
-        .eq('user_id', currentUser.id)
-        .gte('data', iso30DaysAgo)
-        .lte('data', today);
-
-      const activePatientIds = new Set((recentAppts || []).map((a: any) => a.pacient_id));
-
-      // Preluăm pacienții existenți
-      const { data: allPatients } = await (supabase as any)
-        .from('pacienti')
-        .select('id, created_at, status_abonament')
-        .eq('user_id', currentUser.id);
-      if (allPatients) {
-        // O singură actualizare în lot (nu câte una per pacient — N+1 interogări)
-        const staleIds = (allPatients as any[])
-          .filter((p: any) =>
-            !activePatientIds.has(p.id) &&
-            new Date(p.created_at) < date30DaysAgo &&
-            p.status_abonament !== 'inactiv'
-          )
-          .map((p: any) => p.id);
-        if (staleIds.length > 0) {
-          await (supabase as any)
-            .from('pacienti')
-            .update({ status_abonament: 'inactiv' })
-            .in('id', staleIds)
-            .eq('user_id', currentUser.id);
-        }
-      }
-    } catch (e) {
-      console.error('Eroare verificare inactivitate pacienti:', e);
-    }
-  }
+  // Fără auto-write: statusul de inactivitate nu se mai scrie silențios la
+  // citire (regula: aplicația nu modifică datele fără acțiunea userului).
 
   const user = await getCurrentUser();
   let query = supabase
