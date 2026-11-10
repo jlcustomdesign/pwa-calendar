@@ -141,6 +141,51 @@ async function applyPackageTruth(rows: any[]): Promise<any[]> {
     // valabil chiar dacă plățile pachetului nu acoperă încă prețul.
     row.achitat = row.achitat === true || (row.cost > 0 && paid >= row.cost);
   }
+
+  // Același adevăr ca în PaymentSheet, dar batch pentru listă: pentru Ședință
+  // unică banii existenți acoperă sesiunile (cel mai vechi primul), iar restul
+  // se datorează doar pe sesiunile fără bani, la prețul curent — badge-ul din
+  // listă nu mai poate arăta „Neachitat" pentru cine e plătit.
+  const otRows = rows.filter((r: any) => r.plan === 'One Time' || r.plan === 'Ședință unică');
+  if (otRows.length > 0) {
+    try {
+      const otIds = otRows.map((r: any) => r.id);
+      const [{ data: appts }, { data: plati }] = await Promise.all([
+        (supabase as any).from('programari').select('id, pacient_id, data, status').in('pacient_id', otIds),
+        (supabase as any).from('plati').select('pacient_id, programare_id, suma').in('pacient_id', otIds),
+      ]);
+      const finalByPatient = new Map<string, any[]>();
+      for (const a of (appts ?? []) as any[]) {
+        if (a.status !== 'finalizat') continue;
+        if (!finalByPatient.has(a.pacient_id)) finalByPatient.set(a.pacient_id, []);
+        finalByPatient.get(a.pacient_id)!.push(a);
+      }
+      const linkedByAppt = new Map<string, number>();
+      const totalByPatient = new Map<string, number>();
+      for (const pl of (plati ?? []) as any[]) {
+        totalByPatient.set(pl.pacient_id, (totalByPatient.get(pl.pacient_id) || 0) + (Number(pl.suma) || 0));
+        if (pl.programare_id) linkedByAppt.set(pl.programare_id, (linkedByAppt.get(pl.programare_id) || 0) + (Number(pl.suma) || 0));
+      }
+      for (const row of otRows) {
+        const sessions = (finalByPatient.get(row.id) ?? []).slice()
+          .sort((a: any, b: any) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
+        const linkedTotal = sessions.reduce((t: number, a: any) => t + (linkedByAppt.get(a.id) || 0), 0);
+        const cost = Number(row.cost) || 0;
+        let pool = (totalByPatient.get(row.id) || 0) - linkedTotal;
+        let paidCnt = 0;
+        for (const a of sessions) {
+          let platit = linkedByAppt.get(a.id) || 0;
+          if (platit <= 0 && cost > 0 && pool > 0) {
+            platit = Math.min(cost, pool);
+            pool -= platit;
+          }
+          if (platit > 0) paidCnt++;
+        }
+        (row as any).ot_done = sessions.length;
+        (row as any).ot_rest = cost > 0 ? (sessions.length - paidCnt) * cost : 0;
+      }
+    } catch {}
+  }
   return rows;
 }
 
@@ -299,19 +344,22 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
     }
   }
 
-  // Preț pentru pacient CU pachet activ: coloana legacy pacienti.cost nu e
-  // sursa de adevăr la afișare (câștigă pretul pachetului) — mergem pe RPC
-  // care rescrie prețul pachetului deschis și lasă notă în istoric.
+  // Preț modificat din editare: coloana legacy pacienti.cost nu e suficientă
+  // (afișarea citește prețul pachetului) și vrem notă în istoric — mergem pe
+  // RPC atât pentru pachetul activ, cât și pentru pacienții One Time.
   if (updates.cost !== undefined) {
+    const { data: pRow } = await (supabase as any)
+      .from('pacienti').select('plan').eq('id', id).single();
     const { data: pkgRows } = await (supabase as any)
       .from('abonamente').select('id')
       .eq('pacient_id', id).eq('status', 'activ').limit(1);
-    if (pkgRows && pkgRows.length > 0) {
+    const isOneTimePlan = pRow?.plan === 'One Time';
+    if (isOneTimePlan || (pkgRows && pkgRows.length > 0)) {
       const { error: priceError } = await (supabase as any).rpc('update_package_price', {
         p_pacient_id: id,
         p_cost: updates.cost,
       });
-      if (priceError) throw new Error('Eroare la modificarea prețului pachetului: ' + priceError.message);
+      if (priceError) throw new Error('Eroare la modificarea prețului: ' + priceError.message);
       delete updates.cost;
     }
   }
@@ -509,12 +557,14 @@ export async function getSingleSessionsHistory(patientId: string, sessionCost = 
       const linkedTotal = rows.reduce((t, r) => t + r.platit, 0);
       let pool = (allPlati ?? []).reduce((t: number, p: any) => t + (Number(p.suma) || 0), 0) - linkedTotal;
       for (const r of rows) {
-        // Doar sesiuni acoperite INTEGRAL — un credit parțial ar lăsa o
-        // ședință „pe jumătate plătită", stare pe care UI-ul nu o reprezintă.
-        if (r.status !== 'finalizat' || r.platit > 0 || pool < sessionCost) continue;
-        r.platit = sessionCost;
+        // Orici bani rămân alocați integral, celui mai vechi neacoperit.
+        // Suma creditată rămâne atașată sesiunii — acoperirea înseamnă „are bani",
+        // nu „a plătit prețul de azi" (prețul se poate schimba mâine).
+        if (r.status !== 'finalizat' || r.platit > 0 || pool <= 0) continue;
+        const use = Math.min(sessionCost, pool);
+        r.platit = use;
         r.poolPaid = true;
-        pool -= sessionCost;
+        pool -= use;
       }
     } catch {}
   }

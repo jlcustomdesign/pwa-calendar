@@ -679,12 +679,12 @@
             const costNum = Number(cost) || 0;
             const sessions = await getSingleSessionsHistory(this.currentPatientId!, costNum);
             const done = sessions.filter(s => s.status === 'finalizat');
-            // Istoricul e blocat la sumele plătite; prețul curent se aplică DOAR
-            // sesiunilor neacoperite — dacă mâine prețul trece de la 100 la 130,
-            // ședințele plătite la 100 rămân plătite, fără datorie fantomă.
-            const covered = (s: any) => costNum === 0 || (s.platit || 0) >= costNum;
+            // Acoperire = sesiunea are bani alocați, punct. Prețul de azi NU
+            // re-prețuiește istoricul: cine a plătit 100 când prețul era 100
+            // rămâne plătit și dacă mâine prețul devine 110 sau 90.
+            const covered = (s: any) => (s.platit || 0) > 0;
             const paidCnt = done.filter(covered).length;
-            remaining = done.reduce((t, s) => t + (covered(s) ? 0 : costNum), 0);
+            remaining = costNum === 0 ? 0 : (done.length - paidCnt) * costNum;
             if (done.length === 0) {
               displayStatusLabel = 'Fără ședințe finalizate';
             } else if (remaining <= 0 || costNum === 0) {
