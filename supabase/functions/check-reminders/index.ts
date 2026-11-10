@@ -148,7 +148,14 @@ Deno.serve(async (req) => {
 
                 const res = await fetch(endpoint, { method: "POST", headers, body });
                 if (res.ok || res.status === 201) pushSentCount++;
-                else console.error("Web Push eșuat:", endpoint, "status", res.status);
+                else {
+                  console.error("Web Push eșuat:", endpoint, "status", res.status);
+                  // 404/410 = abonament mort (din 26.10 toate push-urile cad pe 410/400 Apple);
+                  // 400 pe web.push.apple.com = dispozitiv expirat → îl ștergem, clientul se re-abonează la login
+                  if (res.status === 404 || res.status === 410 || (res.status === 400 && sub.endpoint.includes("web.push.apple.com"))) {
+                    await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+                  }
+                }
               } catch (err) {
                 console.error("Eroare trimitere Web Push la", endpoint, err);
               }
@@ -201,7 +208,14 @@ Deno.serve(async (req) => {
 
                 const res = await fetch(endpoint, { method: "POST", headers, body });
                 if (res.ok || res.status === 201) pushSentCount++;
-                else console.error("Web Push eșuat:", endpoint, "status", res.status);
+                else {
+                  console.error("Web Push eșuat:", endpoint, "status", res.status);
+                  // 404/410 = abonament mort (din 26.10 toate push-urile cad pe 410/400 Apple);
+                  // 400 pe web.push.apple.com = dispozitiv expirat → îl ștergem, clientul se re-abonează la login
+                  if (res.status === 404 || res.status === 410 || (res.status === 400 && sub.endpoint.includes("web.push.apple.com"))) {
+                    await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+                  }
+                }
               } catch (err) {
                 console.error("Eroare trimitere Web Push la", endpoint, err);
               }
