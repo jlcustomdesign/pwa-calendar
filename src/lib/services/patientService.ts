@@ -447,9 +447,10 @@ export interface SedintaUnicaIstoric {
   status: string;
   platit: number; // suma plătită pe această ședință (0 = neplătită)
   plati_ids: string[]; // rândurile de plată legate de ședință (pentru editare individuală)
+  poolPaid: boolean; // plată alocată display-only din banii nelegați de ședințe (ștergerea nu se aplică)
 }
 
-export async function getSingleSessionsHistory(patientId: string): Promise<SedintaUnicaIstoric[]> {
+export async function getSingleSessionsHistory(patientId: string, sessionCost = 0): Promise<SedintaUnicaIstoric[]> {
   const user = await getCurrentUser();
   const [{ data: appts }, { data: plati }] = await Promise.all([
     (supabase as any).from('programari')
@@ -468,7 +469,7 @@ export async function getSingleSessionsHistory(patientId: string): Promise<Sedin
     cur.ids.push(pl.id);
     paidBySession.set(pl.programare_id, cur);
   }
-  return ((appts ?? []) as any[])
+  const rows = ((appts ?? []) as any[])
     .filter((a: any) => a.status !== 'anulat')
     .map((a: any) => ({
       programare_id: a.id,
@@ -477,7 +478,29 @@ export async function getSingleSessionsHistory(patientId: string): Promise<Sedin
       status: a.status || 'programat',
       platit: paidBySession.get(a.id)?.total || 0,
       plati_ids: paidBySession.get(a.id)?.ids || [],
+      poolPaid: false,
     }));
+
+  // Sursă unică de adevăr = banii. Plățile nelegate de o ședință (legacy,
+  // legate de pachetul vechi, sau fără ședință finalizată la momentul plății)
+  // se alocă display-only celor neplătite, de la cea mai veche — ca istoricul
+  // să nu arate „Neplătită” cât timp banii există. Nu scrie nimic în DB.
+  if (sessionCost > 0) {
+    try {
+      const { data: allPlati } = await (supabase as any).from('plati')
+        .select('suma').eq('pacient_id', patientId).eq('user_id', user.id);
+      const linkedTotal = rows.reduce((t, r) => t + r.platit, 0);
+      let pool = (allPlati ?? []).reduce((t: number, p: any) => t + (Number(p.suma) || 0), 0) - linkedTotal;
+      for (const r of rows) {
+        if (r.status !== 'finalizat' || r.platit > 0 || pool <= 0) continue;
+        const use = Math.min(sessionCost, pool);
+        r.platit = use;
+        r.poolPaid = true;
+        pool -= use;
+      }
+    } catch {}
+  }
+  return rows;
 }
 
 // ── Șterge plăți individuale (editare per-ședință/per-pachet) ──
