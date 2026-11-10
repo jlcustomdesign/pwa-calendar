@@ -351,7 +351,7 @@
   import { getTodayStats, getWeekStats, getMonthStats, getQuarterStats, getYearStats, getUnpaidPatients, getDetailedPayments, getDetailedSessions, type DetailedPayment } from '../../../lib/services/reportsService';
   import { toLocalISOString, formatDateRO } from '../../../utils/date';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
-  import { EVENTS } from '../../../lib/events';
+  import { EVENTS, emit } from '../../../lib/events';
   import { escapeHtml } from '../../../utils/html';
 
   type TabType = 'all' | 'day' | 'week' | 'month' | 'quarter' | 'year';
@@ -1763,7 +1763,7 @@
           : (nameParts[0]?.slice(0, 2).toUpperCase() || 'PA');
 
         return `
-          <a href="/dashboard/patients/${p.id}" data-astro-history="push" class="block p-3.5 rounded-2xl bg-surface-base border border-border-subtle/30 flex items-center justify-between gap-3 shadow-2xs hover:border-rose-500/30 transition-colors">
+          <button type="button" data-unpaid-patient="${p.id}" class="block w-full text-left p-3.5 rounded-2xl bg-surface-base border border-border-subtle/30 flex items-center justify-between gap-3 shadow-2xs hover:border-rose-500/30 transition-colors cursor-pointer">
             <div class="flex items-center gap-3 min-w-0">
               <div class="w-10 h-10 rounded-xl bg-surface-card text-text-main flex items-center justify-center font-black text-sm shrink-0 shadow-sm border border-border-subtle">
                 ${initials}
@@ -1777,9 +1777,19 @@
               <div class="text-base sm:text-lg font-black text-rose-600">-${p.suma_restanta} RON</div>
               <div class="text-[10px] font-bold uppercase tracking-wider text-text-muted">Restanță</div>
             </div>
-          </a>
+          </button>
         `;
       }).join('');
+
+      // Ruta /dashboard/patients/:id nu există — deschidem fișa de plăți
+      // a pacientului direct (aceeași acțiune ca butonul de istoric din listă).
+      listEl.querySelectorAll('[data-unpaid-patient]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pid = (btn as HTMLElement).dataset.unpaidPatient;
+          closeUnpaidDetails();
+          if (pid) emit(EVENTS.openPaymentSheet, { patientId: pid });
+        });
+      });
 
     } catch (err) {
       console.error('Eroare încărcare restanțe:', err);

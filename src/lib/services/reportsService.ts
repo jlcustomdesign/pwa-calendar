@@ -559,27 +559,46 @@ export async function getUnpaidPatients(startStr?: string, endStr?: string) {
   for (const p of (oneRows || []) as any[]) oneTimeNames.set(p.id, p.name);
 
   if (oneTimeIds.length > 0) {
-    const { data: sess } = await supabase
-      .from('programari')
-      .select('pacient_id, contorizeaza, status')
-      .eq('user_id', user.id)
-      .eq('status', 'finalizat')
-      .eq('contorizeaza', true)
-      .in('pacient_id', oneTimeIds);
-    const sessCount = new Map<string, number>();
-    for (const s of (sess || []) as any[]) {
-      sessCount.set(s.pacient_id, (sessCount.get(s.pacient_id) || 0) + 1);
+    // Aceeași sursă de adevăr ca PaymentSheet / lista pacienților: o ședință
+    // e acoperită dacă are bani alocați (plata legată sau alocată din pool,
+    // cel mai vechi neacoperit primul); se datorează doar cele fără bani,
+    // la prețul curent. Formula veche (toate ședințele × preț − total plăți)
+    // re-prețuia istoricul la fiecare schimbare de preț.
+    const [{ data: appts }, { data: platiOne }] = await Promise.all([
+      supabase.from('programari').select('id, pacient_id, data, status').in('pacient_id', oneTimeIds).eq('user_id', user.id),
+      supabase.from('plati').select('pacient_id, programare_id, suma').in('pacient_id', oneTimeIds).eq('user_id', user.id),
+    ]);
+    const finalByPatient = new Map<string, any[]>();
+    for (const a of (appts || []) as any[]) {
+      if (a.status !== 'finalizat') continue;
+      if (!finalByPatient.has(a.pacient_id)) finalByPatient.set(a.pacient_id, []);
+      finalByPatient.get(a.pacient_id)!.push(a);
     }
-    const { data: platiOne } = await supabase.from('plati').select('pacient_id, suma').in('pacient_id', oneTimeIds).eq('user_id', user.id);
-    const paidByOne = new Map<string, number>();
+    const linkedByAppt = new Map<string, number>();
+    const totalByPatient = new Map<string, number>();
     for (const pl of (platiOne || []) as any[]) {
-      paidByOne.set(pl.pacient_id, (paidByOne.get(pl.pacient_id) || 0) + (Number(pl.suma) || 0));
+      totalByPatient.set(pl.pacient_id, (totalByPatient.get(pl.pacient_id) || 0) + (Number(pl.suma) || 0));
+      if (pl.programare_id) linkedByAppt.set(pl.programare_id, (linkedByAppt.get(pl.programare_id) || 0) + (Number(pl.suma) || 0));
     }
     const costById = new Map<string, number>();
     for (const p of (oneRows || []) as any[]) costById.set(p.id, Number(p.cost) || 0);
     for (const id of oneTimeIds) {
-      const datorat = (sessCount.get(id) || 0) * (costById.get(id) || 0);
-      const rest = datorat - (paidByOne.get(id) || 0);
+      const cost = costById.get(id) || 0;
+      const sessions = (finalByPatient.get(id) || []).slice()
+        .sort((a: any, b: any) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
+      const linkedTotal = sessions.reduce((t: number, a: any) => t + (linkedByAppt.get(a.id) || 0), 0);
+      let pool = (totalByPatient.get(id) || 0) - linkedTotal;
+      let paidCnt = 0;
+      for (const a of sessions) {
+        let platit = linkedByAppt.get(a.id) || 0;
+        if (platit <= 0 && cost > 0 && pool > 0) {
+          platit = Math.min(cost, pool);
+          pool -= platit;
+        }
+        if (platit > 0) paidCnt++;
+      }
+      const datorat = sessions.length * cost;
+      const rest = (sessions.length - paidCnt) * cost;
       if (rest > 0) unpaidByPatient.set(id, { rest, datorat, latest: '' });
     }
   }

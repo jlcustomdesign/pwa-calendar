@@ -148,52 +148,9 @@
         </div>
       </div>
       <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- CARD 3: CONTACT & STATUS PLATĂ                         -->
+      <!-- CARD 3: CONTACT                                        -->
       <!-- ═══════════════════════════════════════════════════════ -->
       <div class="rounded-3xl bg-black/[0.03] p-4 space-y-4 border border-black/5">
-        <!-- Status Plată -->
-        <div>
-          <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Status plată</label>
-          <input type="hidden" name="paymentStatus" id="patientPaymentStatus" value="Neachitat" />
-          <div class="grid grid-cols-3 gap-1.5 p-1 bg-black/5 rounded-2xl">
-            <button 
-              type="button" 
-              data-payment="Neachitat" 
-              class="py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-rose-100 text-rose-700 shadow-sm"
-            >
-              Neachitat
-            </button>
-            <button 
-              type="button" 
-              data-payment="Plată parțială" 
-              class="py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black"
-            >
-              Parțial
-            </button>
-            <button 
-              type="button" 
-              data-payment="Achitat" 
-              class="py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black"
-            >
-              Achitat
-            </button>
-          </div>
-
-          <!-- Parțial sum input -->
-          <div id="partial-payment-box" class="hidden mt-3">
-            <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Sumă achitată acum (RON)</label>
-            <input
-              type="number"
-              name="partialAmount"
-              id="patientPartialAmount"
-              min="1"
-              placeholder="ex: 500"
-              class="w-full px-5 py-3 rounded-2xl bg-white border border-black/10 text-base font-extrabold text-black focus:outline-none focus:border-black focus:ring-2 focus:ring-black/10 transition-all shadow-sm"
-            />
-            <p id="partial-paid-hint" class="text-[10px] font-bold text-neutral-400 mt-1 px-1"></p>
-          </div>
-        </div>
-
         <!-- Telefon -->
         <div>
           <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider">Telefon</label>
@@ -365,20 +322,6 @@
         });
       });
 
-      // Bind Payment Chips
-      const paymentChips = document.querySelectorAll<HTMLButtonElement>('[data-payment]');
-      paymentChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          const paymentVal = chip.dataset.payment || 'Neachitat';
-          if (this.form) {
-            (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = paymentVal;
-          }
-          this.updatePaymentChips(paymentVal);
-          this.togglePartialAmountBox(paymentVal);
-        });
-      });
-
-
       // Bind "Nu reînnoi" toggle
       const nuReinnoiBtn = document.getElementById('btn-nu-reinnoi');
       if (nuReinnoiBtn && nuReinnoiBtn.dataset.bound !== 'true') {
@@ -407,21 +350,6 @@
 
       const saveBtn = document.getElementById('save-patient-btn');
       saveBtn?.addEventListener('click', () => this.savePatient());
-    }
-
-    private togglePartialAmountBox(paymentVal: string) {
-      const box = document.getElementById('partial-payment-box');
-      const input = document.getElementById('patientPartialAmount') as HTMLInputElement | null;
-      const isPartial = (paymentVal || '').toLowerCase().includes('parțial') || (paymentVal || '').toLowerCase().includes('partial') || (paymentVal || '').toLowerCase().includes('par');
-      if (box) {
-        if (isPartial) {
-          box.classList.remove('hidden');
-          setTimeout(() => input?.focus(), 100);
-        } else {
-          box.classList.add('hidden');
-          if (input) input.value = '';
-        }
-      }
     }
 
     updatePlanChips(selectedPlan: string) {
@@ -561,39 +489,6 @@
       }
     }
 
-    updatePaymentChips(selectedPayment: string) {
-      const clean = (s: string) => (s || '').toLowerCase().trim();
-      const normSelected = clean(selectedPayment);
-
-      const paymentChips = document.querySelectorAll<HTMLButtonElement>('[data-payment]');
-      paymentChips.forEach(chip => {
-        const chipPayment = clean(chip.dataset.payment || '');
-        let isMatch = false;
-
-        if (normSelected === 'neachitat' || normSelected === 'unpaid') {
-          isMatch = chipPayment === 'neachitat';
-        } else if (normSelected === 'achitat' || normSelected === 'paid') {
-          isMatch = chipPayment === 'achitat';
-        } else if (normSelected.includes('par') || normSelected.includes('partial')) {
-          isMatch = chipPayment.includes('par') || chipPayment.includes('partial');
-        } else {
-          isMatch = chipPayment === normSelected;
-        }
-
-        if (isMatch) {
-          if (normSelected === 'neachitat' || normSelected === 'unpaid') {
-            chip.className = 'py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-rose-100 text-rose-700 shadow-sm';
-          } else if (normSelected.includes('par') || normSelected.includes('partial')) {
-            chip.className = 'py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-amber-100 text-amber-900 shadow-sm';
-          } else {
-            chip.className = 'py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-black transition-all text-center truncate bg-emerald-100 text-emerald-800 shadow-sm';
-          }
-        } else {
-          chip.className = 'py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-center truncate bg-transparent text-text-muted hover:text-black';
-        }
-      });
-    }
-
     async savePatient() {
       if (!this.form) return;
       if (!this.form.checkValidity()) {
@@ -606,16 +501,6 @@
 
       const formData = new FormData(this.form);
       const patientId = formData.get('patientId') as string;
-      const paymentStatus = formData.get('paymentStatus') as string;
-      const partialAmountRaw = formData.get('partialAmount') as string;
-      const partialAmount = partialAmountRaw ? Number(partialAmountRaw) : 0;
-      const isPartial = (paymentStatus || '').toLowerCase().includes('par') || (paymentStatus || '').toLowerCase().includes('partial');
-
-      if (isPartial && partialAmount <= 0) {
-        (window as any).showToast('Introdu suma plătită parțial pentru a continua.', 'warning');
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Salvează'; }
-        return;
-      }
 
       // Câmp gol nu mai cade silentios pe 10 — blocăm salvarea
       if (!formData.get('totalSessions')) {
@@ -647,40 +532,19 @@
         locatie: (formData.get('location') as any) || 'Belaqva',
         cost: formData.get('cost') ? Number(formData.get('cost')) : 0,
         sedinte_total: formData.get('totalSessions') ? Number(formData.get('totalSessions')) : 10,
-        achitat: paymentStatus === 'Achitat' || paymentStatus === 'Paid fully' || paymentStatus === 'Paid',
         nu_reinnoi: formData.get('nuReinnoi') === 'true',
         drive_link: driveVal,
       };
 
       try {
-        let savedPatientId = patientId || '';
         if (patientId) {
           await updatePatient(patientId, payload);
         } else {
-          savedPatientId = await addPatient(payload);
+          await addPatient(payload);
         }
 
-        // Înregistrăm plata reală în tabela `plati` din baza de date
-        // (și la editare — altfel istoricul per ședință rămâne „neplătit"
-        // deși cardul pacientului arată achitat).
-        if (savedPatientId) {
-          if (!patientId) {
-            if (payload.achitat && payload.cost > 0) {
-              await addPayment(savedPatientId, payload.cost, true);
-            } else if (isPartial && partialAmount > 0) {
-              await addPayment(savedPatientId, partialAmount, false);
-            }
-          } else if (payload.achitat && payload.cost > 0) {
-            const fresh = await getPatient(savedPatientId);
-            const alreadyPaid = Number((fresh as any)?.suma_incasata || 0);
-            const remaining = payload.cost - alreadyPaid;
-            if (remaining > 0) {
-              await addPayment(savedPatientId, remaining, true);
-            }
-          } else if (isPartial && partialAmount > 0) {
-            await addPayment(savedPatientId, partialAmount, false);
-          }
-        }
+        // Plățile se înregistrează exclusiv din PaymentSheet — editarea fișei
+        // nu mai atinge statusul de plată (aici au apărut datoriile fantomă).
 
         emit(EVENTS.patientsUpdated);
         this.close();
@@ -728,14 +592,6 @@
         if (isEdit && patient && this.form) {
           const cost = patient.cost != null ? Number(patient.cost) : 0;
           const sessions = patient.sedinte_total != null ? Number(patient.sedinte_total) : 0;
-          const alreadyPaid = Number(patient.suma_incasata || 0);
-          // „Achitat" și când sumele înregistrate acoperă deja costul, nu doar pe baza flagului
-          let editPaymentStatus = 'Neachitat';
-          if (patient.achitat || (cost > 0 && alreadyPaid >= cost)) {
-            editPaymentStatus = 'Achitat';
-          } else if (alreadyPaid > 0) {
-            editPaymentStatus = 'Plată parțială';
-          }
 
           (this.form.querySelector('[name="name"]') as HTMLInputElement).value = patient.name || '';
           (this.form.querySelector('[name="phone"]') as HTMLInputElement).value = patient.telefon || '';
@@ -743,20 +599,11 @@
           (this.form.querySelector('[name="location"]') as HTMLInputElement).value = patient.locatie || 'Belaqva';
           (this.form.querySelector('[name="cost"]') as HTMLInputElement).value = cost > 0 ? String(cost) : '';
           (this.form.querySelector('[name="totalSessions"]') as HTMLInputElement).value = sessions > 0 ? String(sessions) : '';
-          (this.form.querySelector('[name="paymentStatus"]') as HTMLInputElement).value = editPaymentStatus;
           (this.form.querySelector('[name="driveLink"]') as HTMLInputElement).value = patient.drive_link || '';
           this.currentPlanFilter = patient.plan || 'Abonament';
           this.updatePlanChips(patient.plan || 'Abonament');
           this.updateLocationChips(patient.locatie || 'Belaqva');
-          this.updatePaymentChips(editPaymentStatus);
           this.applyPlanDefaults(patient.plan || 'Abonament', false);
-          this.togglePartialAmountBox(editPaymentStatus);
-          const paidHint = document.getElementById('partial-paid-hint');
-          if (paidHint) {
-            paidHint.textContent = (editPaymentStatus === 'Plată parțială' && alreadyPaid > 0)
-              ? `Deja înregistrat: ${alreadyPaid} RON — suma introdusă se adaugă ca plată nouă.`
-              : '';
-          }
           this.setNuReinnoi(!!(patient as any).nu_reinnoi);
 
           // Show sticky renewal button in edit mode
@@ -782,10 +629,6 @@
           this.updatePlanChips('Ședință unică');
           this.applyPlanDefaults('Ședință unică', true);
           this.updateLocationChips('Belaqva');
-          this.updatePaymentChips('Neachitat');
-          this.togglePartialAmountBox('Neachitat');
-          const paidHintNew = document.getElementById('partial-paid-hint');
-          if (paidHintNew) paidHintNew.textContent = '';
           this.setNuReinnoi(false);
           const stickyRenewBtn = document.getElementById('btn-renew-sticky');
           if (stickyRenewBtn) stickyRenewBtn.classList.add('hidden');
@@ -796,9 +639,6 @@
             errorBanner.classList.remove('flex');
           }
         }
-
-        const partialAmountInput = document.getElementById('patientPartialAmount') as HTMLInputElement | null;
-        if (partialAmountInput) partialAmountInput.value = '';
 
         this.open();
     }
