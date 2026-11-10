@@ -1,0 +1,11 @@
+.git
+node_modules
+dist
+.vercel
+.astro
+*.log
+.env
+.env.*
+gitleaks-report.json
+semgrep-report.json
+npm-audit.json
