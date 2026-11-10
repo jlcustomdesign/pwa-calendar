@@ -58,7 +58,7 @@
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
             </div>
             <div class="text-left">
-              <div class="font-black text-sm sm:text-base text-neutral-900" id="wrapup-same-slot-label">Da, marți viitoare la 08:00</div>
+              <div class="font-black text-sm sm:text-base text-neutral-900" id="wrapup-same-slot-label">Da, peste o săptămână</div>
               <div class="text-xs font-bold text-neutral-500 mt-0.5" id="wrapup-same-slot-date">+7 zile mai târziu</div>
             </div>
           </div>
@@ -161,7 +161,7 @@
       <button type="button" id="wrapup-date-prev" class="w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center active:scale-95 transition-transform">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
       </button>
-      <h3 id="wrapup-date-month-year" class="text-lg font-extrabold tracking-tight">August 2026</h3>
+      <h3 id="wrapup-date-month-year" class="text-lg font-extrabold tracking-tight"></h3>
       <button type="button" id="wrapup-date-next" class="w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center active:scale-95 transition-transform">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
       </button>
@@ -214,6 +214,7 @@
 <script>
   import { completeSession, createAppointment, markAbsent, getFutureDemand, wouldExceedSupply } from '../../../lib/services/appointmentService';
   import { getPatient, resetPatientSubscription, addPayment } from '../../../lib/services/patientService';
+  import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { toLocalISOString } from '../../../utils/date';
   import { EVENTS, emit } from '../../../lib/events';
@@ -229,6 +230,7 @@
     private currentAppointment: any = null;
     private selectedRecurrence: 'same' | 'custom' | 'none' = 'same';
     private paidOnSpot = false;
+    private settings: any = null;
 
     private nextWeekDateStr: string = '';
     private nextWeekDayName: string = '';
@@ -377,8 +379,14 @@
         return;
       }
 
-      if (target.closest('#wrapup-time-confirm') || target.closest('#wrapup-time-picker-overlay')) {
-        this.closeTimePicker();
+      if (target.closest('#wrapup-time-confirm')) {
+        // Doar „Salvează" confirmă ora aleasă; tap pe overlay închide fără a o aplica.
+        this.closeTimePicker(true);
+        return;
+      }
+
+      if (target.closest('#wrapup-time-picker-overlay')) {
+        this.closeTimePicker(false);
         return;
       }
 
@@ -414,6 +422,11 @@
 
     private async initView() {
       if (!this.currentAppointment) return;
+
+      // Orele pickerului de reprogramare urmează programul de lucru din setări.
+      if (!this.settings) {
+        getSettings().then((s) => { this.settings = s; }).catch(() => {});
+      }
 
       const appt = this.currentAppointment;
       const patientName = appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : (appt.patientName || 'Pacient');
@@ -691,8 +704,9 @@
               if (wouldExceedSupply({ sedinte_total: total, sedinte_folosite: Number(freshPatient?.sedinte_folosite || 0) }, demand + 1)) {
                 const ramase = total - Number(freshPatient?.sedinte_folosite || 0);
                 const nume = freshPatient?.name || (appt.pacienti ? `${appt.pacienti.prenume || ''} ${appt.pacienti.nume || ''}`.trim() : 'Pacient');
-                const proceed = window.confirm(
-                  `${nume}: mai sunt ${ramase} ședințe în pachet, dar deja sunt ${demand} programate (aceasta ar fi a ${demand + 1}-a).\n\nProgramezi oricum? Excesul va fi marcat „în afara pachetului".`
+                const proceed = await (window as any).showConfirm(
+                  'În afara pachetului',
+                  `${nume}: mai sunt ${ramase} ședințe în pachet, dar deja sunt ${demand} programate (aceasta ar fi a ${demand + 1}-a). Programezi oricum? Excesul va fi marcat „în afara pachetului".`
                 );
                 if (!proceed) {
                   (window as any).showToast('Programarea viitoare nu a fost creată. Se poate adăuga după reînnoire.', 'info');
@@ -810,7 +824,7 @@
       const firstDayOfMonth = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = toLocalISOString(new Date());
 
       grid.innerHTML = '';
 
@@ -877,12 +891,14 @@
       overlay.classList.remove('opacity-0', 'pointer-events-none');
     }
 
-    private closeTimePicker() {
+    private closeTimePicker(commit = false) {
       const sheet = document.getElementById('wrapup-time-picker-sheet');
       const overlay = document.getElementById('wrapup-time-picker-overlay');
       if (!sheet || !overlay) return;
-      this.customTime = `${this.selectedHour}:${this.selectedMinute}`;
-      this.updateCustomDateTimeDisplay();
+      if (commit) {
+        this.customTime = `${this.selectedHour}:${this.selectedMinute}`;
+        this.updateCustomDateTimeDisplay();
+      }
       sheet.style.transform = '';
       sheet.classList.add('translate-y-full');
       overlay.classList.add('opacity-0', 'pointer-events-none');
@@ -1027,7 +1043,11 @@
     private renderTimeGrids() {
       const hoursGrid = document.getElementById('wrapup-time-hours-grid');
       const minutesGrid = document.getElementById('wrapup-time-minutes-grid');
-      const hoursList = ['08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23'];
+      // Orele din settings (work_start..work_end), nu un interval hardcodat.
+      const startHour = parseInt((this.settings?.work_start || '08:00').split(':')[0], 10) || 8;
+      const endHour = parseInt((this.settings?.work_end || '20:00').split(':')[0], 10) || 20;
+      const hoursList: string[] = [];
+      for (let h = startHour; h <= endHour; h++) hoursList.push(String(h).padStart(2, '0'));
       const minutesList = ['00','15','30','45'];
 
       if (hoursGrid) {

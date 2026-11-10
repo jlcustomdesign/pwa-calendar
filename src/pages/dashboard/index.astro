@@ -2,8 +2,9 @@
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import DashboardOverview from '../../components/features/dashboard/DashboardOverview.astro';
 
-// Cache the shell of the dashboard page privately so switching tabs feels instant.
-Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidate');
+// Nu memora pagina: conține "azi" calculat la SSR — un max-age ar putea servi
+// ziua veche timp de 30s după miezul nopții. no-cache permite 304 la revalidare.
+Astro.response.headers.set('Cache-Control', 'private, no-cache');
 ---
 
 <DashboardLayout title="Overview">

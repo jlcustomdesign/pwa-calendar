@@ -46,12 +46,20 @@ export async function getPatients(filter?: {
         .select('id, created_at, status_abonament')
         .eq('user_id', currentUser.id);
       if (allPatients) {
-        for (const p of allPatients as any[]) {
-          const isRecentCreated = new Date(p.created_at) >= date30DaysAgo;
-          // Dacă nu are ședințe în ultimele 30 zile și nu a fost creat în ultimele 30 zile -> inactivați
-          if (!activePatientIds.has(p.id) && !isRecentCreated && p.status_abonament !== 'inactiv') {
-            await (supabase as any).from('pacienti').update({ status_abonament: 'inactiv' }).eq('id', p.id).eq('user_id', currentUser.id);
-          }
+        // O singură actualizare în lot (nu câte una per pacient — N+1 interogări)
+        const staleIds = (allPatients as any[])
+          .filter((p: any) =>
+            !activePatientIds.has(p.id) &&
+            new Date(p.created_at) < date30DaysAgo &&
+            p.status_abonament !== 'inactiv'
+          )
+          .map((p: any) => p.id);
+        if (staleIds.length > 0) {
+          await (supabase as any)
+            .from('pacienti')
+            .update({ status_abonament: 'inactiv' })
+            .in('id', staleIds)
+            .eq('user_id', currentUser.id);
         }
       }
     } catch (e) {
@@ -69,11 +77,14 @@ export async function getPatients(filter?: {
   if (filter?.locatie)              query = query.eq('locatie', filter.locatie);
   if (filter?.achitat !== undefined) query = query.eq('achitat', filter.achitat);
   if (filter?.search) {
-    // Caută în prenume sau nume (case-insensitive)
-    query = query.ilike('name', `%${filter.search}%`);
+    // Caută în prenume sau nume (case-insensitive); %/_ din textul căutat sunt
+    // escapate ca să nu funcționeze ca wildcarduri SQL
+    const escapedSearch = filter.search.replace(/[%_]/g, '\\$&');
+    query = query.ilike('name', `%${escapedSearch}%`);
   }
 
-  // Filtrăm după starea de activitate dacă e specificat (implicit exclude inactivii)
+  // Filtrăm după starea de activitate DOAR dacă e cerut explicit; fără flag,
+  // lista include și inactivii (sweep-ul doar îi marchează, nu îi ascunde).
   if (filter?.inactivi === true) {
     query = query.eq('status_abonament', 'inactiv');
   } else if (filter?.inactivi === false) {
@@ -157,6 +168,23 @@ function normalizePlan(plan: string | undefined | null): 'Subscription' | 'One T
   return 'Subscription';
 }
 
+// ── Verificare nume duplicat (exact, case-insensitive, normal + inversat) ──
+// Valorile sunt închise între ghilimele în filtrul or() ca numele cu spații sau
+// virgule să nu spargă sintaxa PostgREST; eroarea aruncă (fail-closed, nu sare
+// verificarea în tăcere). Arhivații (sters_la) nu blochează niciodată.
+async function findPatientsByName(nameTrimmed: string, excludeId?: string): Promise<any[]> {
+  const esc = (s: string) => s.replace(/"/g, '""');
+  const reversed = nameTrimmed.split(/\s+/).reverse().join(' ');
+  let q = (supabase as any)
+    .from('pacienti_view')
+    .select('id, name')
+    .is('sters_la', null);
+  if (excludeId) q = q.neq('id', excludeId);
+  const { data, error } = await q.or(`(name.ilike."${esc(nameTrimmed)}",name.ilike."${esc(reversed)}")`);
+  if (error) throw new Error('Eroare la verificarea numelui: ' + error.message);
+  return data || [];
+}
+
 // ── Adăugare pacient nou ──────────────────────────────────────
 // UI trimite `name` ca string unic ("Maria Popescu")
 // Funcția împarte în prenume + nume pentru DB
@@ -172,19 +200,14 @@ export async function addPatient(input: {
   notite?:       string;
 }): Promise<string> { // returnează ID-ul pacientului creat
   const nameTrimmed = input.name.trim();
-  const nameReversed = nameTrimmed.split(/\s+/).reverse().join(' ');
   const parts   = nameTrimmed.split(/\s+/);
   const prenume = parts[0] ?? '';
   const nume    = parts.slice(1).join(' '); // Rămâne gol dacă este un singur cuvânt, NU se duplică prenumele
 
   // Verificare nume duplicat (inclusiv inversat, ex. "Popa Diana" vs "Diana Popa")
-  const { data: existing } = await (supabase as any)
-    .from('pacienti_view')
-    .select('id, name')
-    .is('sters_la', null) // arhivații nu blochează recrearea numelui
-    .or(`name.ilike.${nameTrimmed},name.ilike.${nameReversed}`);
+  const existing = await findPatientsByName(nameTrimmed);
 
-  if (existing && existing.length > 0) {
+  if (existing.length > 0) {
     const existingName = existing[0].name;
     throw new Error(`Există deja un pacient cu numele "${existingName}". Te rugăm să adaugi o deosebire (ex. o inițială sau locația) pentru a-l salva distinct!`);
   }
@@ -225,16 +248,11 @@ export async function updatePatient(id: string, updates: PacientUpdate & { name?
   // Dacă se trimite `name`, îl splitim în prenume + nume
   if (updates.name) {
     const nameTrimmed = updates.name.trim();
-    const nameReversed = nameTrimmed.split(/\s+/).reverse().join(' ');
-    
-    // Check duplicate name on edit (excluding current patient id, but checking both normal and reversed)
-    const { data: existing } = await (supabase as any)
-      .from('pacienti_view')
-      .select('id, name')
-      .neq('id', id)
-      .or(`name.ilike.${nameTrimmed},name.ilike.${nameReversed}`);
 
-    if (existing && existing.length > 0) {
+    // Check duplicate name on edit (excluding current patient id, but checking both normal and reversed)
+    const existing = await findPatientsByName(nameTrimmed, id);
+
+    if (existing.length > 0) {
       const existingName = existing[0].name;
       throw new Error(`Există deja un alt pacient cu numele "${existingName}". Te rugăm să adaugi o deosebire pentru a-l distinge!`);
     }
@@ -305,14 +323,15 @@ export async function addPayment(id: string, amount: number, markAchitat: boolea
 export async function resetPatientSubscription(
   id: string,
   newTotalSessions?: number,
-  newCostTotal: number = 0,
+  newCostTotal?: number,
   paymentOption: { status: 'Neachitat' | 'Parțial' | 'Achitat'; paidAmount?: number } | boolean = false,
   options: { startDate?: string } = {}
 ): Promise<void> {
   const current = await getPatient(id);
-  // ✅ costul noului abonament ÎNLOCUIEȘTE costul vechi, nu se acumulează
+  // ✅ costul noului abonament ÎNLOCUIEȘTE costul vechi, nu se acumulează.
+  // 0 explicit înseamnă reînnoire gratuită (nu mai cade pe costul vechi).
   const nextTotal = newTotalSessions ?? (current.sedinte_total || 10);
-  const nextCost = newCostTotal > 0 ? newCostTotal : (current.cost || 0);
+  const nextCost = newCostTotal != null ? newCostTotal : (current.cost || 0);
 
   let pStatus: 'Neachitat' | 'Parțial' | 'Achitat' = 'Neachitat';
   let amountToAdd = 0;

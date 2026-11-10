@@ -166,8 +166,8 @@ const navItems = [
       });
       patientsDot?.classList.toggle('hidden', !needsAttentionPatients);
     } catch {
-      homeDot?.classList.add('hidden');
-      patientsDot?.classList.add('hidden');
+      // Eșecul rețelei nu atinge badges: altfel o eroare tranzitorie le-ar
+      // ascunde fals, de parcă nu ar exista nimic de semnalat.
     }
   }
 

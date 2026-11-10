@@ -20,11 +20,13 @@ if (typeof globalThis !== 'undefined' && typeof (globalThis as any).WebSocket ==
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('❌ Lipsesc variabilele de mediu Supabase. Verifică fișierul .env');
-}
-
 export function createSupabaseServerClient(cookies: AstroCookies, headers?: Headers) {
+  // Checked at call time, not import time: an import-time throw would kill the
+  // middleware for EVERY route (incl. public ones) on a misconfigured deploy.
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('❌ Lipsesc variabilele de mediu Supabase. Verifică fișierul .env');
+  }
+
   const cookieHeader = headers?.get('cookie') ?? '';
 
   return createServerClient<Database>(supabaseUrl, supabaseKey, {

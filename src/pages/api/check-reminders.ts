@@ -75,10 +75,13 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
         const notifTag = `start_${appt.id}_${roDateStr}`;
 
         // Verifică dacă notificarea a fost deja trimisă azi
+        // (dedupe per ședință: titlu + mesaj care conține ora — pacienți cu același
+        // nume sau aceeași pacientă la ore diferite nu se mai suprimă reciproc).
         const { data: existingNotif } = await (supabase as any)
           .from('notificari')
           .select('id')
           .eq('titlu', `🔔 Începe: ${patientName}`)
+          .eq('mesaj', `Ședința de la ora ${cleanTime} începe acum.`)
           .eq('user_id', user.id)
           .gte('created_at', `${roDateStr}T00:00:00`)
           .maybeSingle();
@@ -122,6 +125,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
           .from('notificari')
           .select('id')
           .eq('titlu', `✅ Final: ${patientName}`)
+          .eq('mesaj', `Ședința de la ora ${cleanTime} cu ${patientName} s-a încheiat. Confirmă prezența.`)
           .eq('user_id', user.id)
           .gte('created_at', `${roDateStr}T00:00:00`)
           .maybeSingle();
@@ -129,7 +133,7 @@ export const ALL: APIRoute = async ({ request, cookies }) => {
         if (!existingNotif) {
           await (supabase as any).from('notificari').insert({
             titlu: `✅ Final: ${patientName}`,
-            mesaj: `Ședința cu ${patientName} s-a încheiat. Confirmă prezența.`,
+            mesaj: `Ședința de la ora ${cleanTime} cu ${patientName} s-a încheiat. Confirmă prezența.`,
             tip: 'reminder',
             citita: false,
             user_id: user.id,

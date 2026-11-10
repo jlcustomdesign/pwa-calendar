@@ -97,6 +97,7 @@ const { title, hideDock = false } = Astro.props;
       import { initErrorLogger } from '../lib/errorLogger';
       import { renewWithPrompt, dismissRenewalNotification } from '../lib/services/patientService';
       import { getAppointment, deleteAppointment, cancelAppointment, markAbsent, setSessionCounted } from '../lib/services/appointmentService';
+      import { toLocalISOString } from '../utils/date';
 
       // ═══ Scroll-guard GLOBAL ═══
       // Dupa un scroll cu degetul, browserul sintetizeaza un click la eliberare;
@@ -560,6 +561,22 @@ const { title, hideDock = false } = Astro.props;
         import('../lib/supabase').then(({ supabase }) => {
           supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_OUT') {
+              // Oprește notificările pe dispozitivul curent; rândul rămas în DB
+              // devine invalid și e curățat de cron la 404/410.
+              try {
+                navigator.serviceWorker?.ready
+                  .then((reg) => reg.pushManager.getSubscription())
+                  .then((sub) => {
+                    if (!sub) return;
+                    fetch('/api/push-subscribe', {
+                      method: 'DELETE',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ endpoint: sub.endpoint }),
+                    }).catch(() => {});
+                    return sub.unsubscribe().catch(() => {});
+                  })
+                  .catch(() => {});
+              } catch (e) {}
               // Evităm scurgerea datelor între utilizatori pe același device.
               try {
                 Object.keys(localStorage)
@@ -689,10 +706,12 @@ const { title, hideDock = false } = Astro.props;
         (window as any).cancelSession = async (input: string | HTMLElement) => {
           const sessionId = resolveSessionId(input);
           if (!sessionId) return;
-          const confirmed = await (window as any).showConfirm('Anulare programare', 'Sigur vrei să marchezi această programare ca anulată/absent?');
+          const confirmed = await (window as any).showConfirm('Anulare programare', 'Sigur vrei să marchezi această programare ca anulată?');
           if (!confirmed) return;
           try {
-            await markAbsent(sessionId, 'Anulat de la card');
+            // Status 'anulat' (anulare) — 'absent' rămâne doar pentru neprezentări,
+            // ca să nu umfle raportul de absențe (reportsService numără 'absent').
+            await cancelAppointment(sessionId, 'Anulat de la card');
             window.dispatchEvent(new CustomEvent('sessionsUpdated'));
             (window as any).showToast('Programarea a fost anulată cu succes.', 'success');
           } catch (err: any) {
@@ -719,7 +738,7 @@ const { title, hideDock = false } = Astro.props;
           if (!sessionId) return;
           try {
             const appointment = await getAppointment(sessionId);
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = toLocalISOString(new Date());
             if (appointment.data && appointment.data > todayStr) {
               (window as any).showToast('Nu poți confirma o ședință din viitor.', 'warning');
               return;
@@ -748,7 +767,7 @@ const { title, hideDock = false } = Astro.props;
         (window as any).confirmGroupSession = async (memberIds: string) => {          const ids = (memberIds || '').split(',').filter(Boolean);
           if (ids.length === 0) return;
           try {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = toLocalISOString(new Date());
             const { completeSession, getAppointment } = await import('../lib/services/appointmentService');
             for (const id of ids) {
               const appt = await getAppointment(id);
@@ -779,7 +798,8 @@ const { title, hideDock = false } = Astro.props;
         (window as any).deleteGroupSession = async (memberIds: string) => {
           const ids = (memberIds || '').split(',').filter(Boolean);
           if (ids.length === 0) return;
-          if (!window.confirm('Sigur ștergi ședința în grup pentru toți pacienții?')) return;
+          const confirmed = await (window as any).showConfirm('Ștergere programare', 'Sigur ștergi ședința în grup pentru toți pacienții?');
+          if (!confirmed) return;
           try {
             await Promise.all(ids.map(id => deleteAppointment(id)));
             (window as any).showToast('Ședința în grup a fost ștearsă.', 'info');
@@ -829,17 +849,9 @@ const { title, hideDock = false } = Astro.props;
             .register('/sw.js', { updateViaCache: 'none' })
             .then(async (registration) => {
               // Force the browser to check for a new service worker on every app open.
+              // Stale caches from previous builds are purged by the new worker's
+              // own `activate` handler, so no manual CLEAR_CACHES round-trip is needed.
               await registration.update();
-
-              // Tell a newly activated worker to clear stale caches from previous builds.
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                newWorker?.addEventListener('statechange', () => {
-                  if (newWorker?.state === 'activated') {
-                    registration.active?.postMessage({ type: 'CLEAR_CACHES' });
-                  }
-                });
-              });
             })
             .catch(() => {});
         }

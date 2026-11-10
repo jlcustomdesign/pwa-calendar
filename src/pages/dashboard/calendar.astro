@@ -12,7 +12,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
     <div class="relative z-10 space-y-6 pb-24">
     
     <!-- Top Section: Expandable Weekly/Monthly Calendar -->
-    <WeeklyCalendarCard name="Dr. Maria" />
+    <WeeklyCalendarCard />
     
     <!-- Add Session Banner -->
     <AddEventBanner variant="session" />
@@ -159,30 +159,6 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       }
     };
 
-    // Mută pauza de masă cu ±30 de minute direct din calendar.
-    (window as any).shiftLunchBreak = async (minutes: number) => {
-      try {
-        const settings = await getSettings();
-        const parseMin = (t: string) => {
-          const [h, m] = (t || '00:00').substring(0, 5).split(':').map(Number);
-          return (h || 0) * 60 + (m || 0);
-        };
-        const fmt = (total: number) => `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-
-        let newStart = parseMin(settings.lunch_start || '13:00') + minutes;
-        let newEnd = parseMin(settings.lunch_end || '14:00') + minutes;
-
-        if (newStart < 0) { newEnd -= newStart; newStart = 0; }
-        if (newEnd > 24 * 60) { newStart -= (newEnd - 24 * 60); newEnd = 24 * 60; }
-
-        await saveSettings({ lunch_start: fmt(newStart), lunch_end: fmt(newEnd) });
-        window.dispatchEvent(new CustomEvent('settingsUpdated'));
-        (window as any).showToast?.(`Pauza de masă mutată: ${fmt(newStart)} - ${fmt(newEnd)}`, 'success');
-      } catch (err: any) {
-        (window as any).showToast?.('Eroare la mutarea pauzei: ' + (err.message || err), 'error');
-      }
-    };
-
     // Editează pauza de masă direct din calendar — custom time picker.
     const lunchEditState = { start: '12:00', end: '12:30' };
     let lunchWorkStartHour = 8;
@@ -253,8 +229,13 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       getSettings().then((settings) => {
         lunchWorkStartHour = parseHour(settings.work_start, 8);
         lunchWorkEndHour = parseHour(settings.work_end, 21);
-        lunchEditState.start = (settings.lunch_start || '12:00').substring(0, 5);
-        lunchEditState.end = (settings.lunch_end || '12:30').substring(0, 5);
+        // Pre-completează cu pauza EFECTIVĂ a zilei selectate în timeline
+        // (override-ul per zi sau valoarea implicită globală) — altfel modalul
+        // ar afișa/edita altceva decât pauza randată pentru ziua respectivă.
+        const dayKey = String(new Date(currentCalendarDate + 'T00:00:00').getDay());
+        const customLunch = ((settings.lunch_breaks || {}) as Record<string, { start: string; end: string }>)[dayKey];
+        lunchEditState.start = (customLunch?.start || settings.lunch_start || '12:00').substring(0, 5);
+        lunchEditState.end = (customLunch?.end || settings.lunch_end || '12:30').substring(0, 5);
         renderLunchHourGrid('start');
         renderLunchHourGrid('end');
         updateLunchPreview('start');
@@ -285,12 +266,25 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
 
     async function saveLunchEdit() {
       const { start, end } = lunchEditState;
-      if (start >= end) {
+      const toMin = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        return (h || 0) * 60 + (m || 0);
+      };
+      if (toMin(start) >= toMin(end)) {
         (window as any).showToast?.('Ora de început trebuie să fie înainte de ora de sfârșit.', 'error');
         return;
       }
       try {
-        await saveSettings({ lunch_start: start, lunch_end: end });
+        // Scrie override-ul pauzei pentru ziua selectată din timeline; valoarea
+        // implicită globală (lunch_start/lunch_end) rămâne neschimbată pentru
+        // celelalte zile — timeline-ul citește lunch_breaks[dayKey] înaintea ei.
+        const settings = await getSettings();
+        const dayKey = String(new Date(currentCalendarDate + 'T00:00:00').getDay());
+        const lunchBreaks = {
+          ...((settings.lunch_breaks || {}) as Record<string, { start: string; end: string }>),
+          [dayKey]: { start, end },
+        };
+        await saveSettings({ lunch_breaks: lunchBreaks });
         window.dispatchEvent(new CustomEvent('settingsUpdated'));
         (window as any).showToast?.(`Pauza de masă: ${start} – ${end}`, 'success');
         closeLunchEdit();
@@ -450,6 +444,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         await applyBeyondSupplyMarks(storedSessions);
       } catch (e) {
         console.error('Eroare citire programari din DB:', e);
+        (window as any).showToast?.('Eroare la încărcarea programărilor. Verifică conexiunea și reîncearcă.', 'error');
       }
 
       if (skeleton) skeleton.classList.add('hidden');
@@ -617,17 +612,31 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
     // rendererul curent, ca scope-ul să nu devină stale între navigări.
     (window as any)._calendarRenderCurrent = renderTimeline;
 
+    // Coalescează re-randările din aceeași „tușă" de evenimente: sessionsUpdated
+    // și patientsUpdated vin împreună (ex. la wrap-up) și altfel timeline-ul s-ar
+    // re-randa de două ori pentru aceeași actualizare.
+    let timelineRenderScheduled = false;
+    function scheduleTimelineRender() {
+      if (timelineRenderScheduled) return;
+      timelineRenderScheduled = true;
+      setTimeout(() => {
+        timelineRenderScheduled = false;
+        (window as any)._calendarRenderCurrent?.();
+      }, 0);
+    }
+    (window as any)._calendarScheduleRenderCurrent = scheduleTimelineRender;
+
     if (!(window as any)._calendarEventsBound) {
       (window as any)._calendarEventsBound = true;
 
       window.addEventListener('sessionsUpdated', (e: any) => {
         // La ștergere, cardul este eliminat optimist; nu re-fetchăm întreg calendarul.
         if (e.detail?.source === 'dashboardDelete') return;
-        (window as any)._calendarRenderCurrent?.();
+        (window as any)._calendarScheduleRenderCurrent?.();
       });
-      window.addEventListener('patientsUpdated', () => (window as any)._calendarRenderCurrent?.());
+      window.addEventListener('patientsUpdated', () => (window as any)._calendarScheduleRenderCurrent?.());
       // Re-renderizează timeline când se schimbă orele de lucru sau pauza din Setări
-      window.addEventListener('settingsUpdated', () => (window as any)._calendarRenderCurrent?.());
+      window.addEventListener('settingsUpdated', () => (window as any)._calendarScheduleRenderCurrent?.());
 
       // Randare inițială + la fiecare întoarcere pe pagină (astro:page-load
       // fired și la cold load, deci nu mai e nevoie de apel imediat — altfel
@@ -655,7 +664,7 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
       let ghostOffsetX = 0;
       let ghostOffsetY = 0;
       let suppressClick = false;
-      let dropTarget: { type: 'slot' | 'day'; el: HTMLElement; value: string; targetSessionId?: string } | null = null;
+      let dropTarget: { type: 'slot' | 'day'; el: HTMLElement; value: string; targetSessionId?: string; blockedByGroup?: boolean } | null = null;
 
       function cancelPress() {
         clearTimeout(pressTimer);
@@ -721,10 +730,22 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
         if (slotEl && slotEl.closest('#timeline-slots-container')) {
           const slotTime = slotEl.getAttribute('data-slot-time');
           if (slotTime) {
+            // Cardurile de grup nu au data-session-id: drop peste ele nu poate
+            // face swap și nici nu e valid să muți o ședință peste grup — marcăm
+            // ținta ca blocată (finishDrag afișează un mesaj, nu mută nimic).
+            if (slotEl.querySelector('[data-group-id]')) {
+              dropTarget = { type: 'slot', el: slotEl, value: slotTime, blockedByGroup: true };
+              slotEl.style.outline = '2px dashed #e11d48';
+              slotEl.style.outlineOffset = '-2px';
+              slotEl.style.borderRadius = '1rem';
+              return;
+            }
             const targetCard = slotEl.querySelector('[data-session-id]') as HTMLElement | null;
             const targetSessionId = targetCard?.getAttribute('data-session-id') || undefined;
             dropTarget = { type: 'slot', el: slotEl, value: slotTime, targetSessionId };
-            slotEl.style.outline = '2px dashed #0a0a0a';
+            // Contur portocaliu = drop pe slot ocupat → schimb de pacienți,
+            // nu mutare (altfel acțiunea e imposibil de ghicit).
+            slotEl.style.outline = targetSessionId ? '2px dashed #ea580c' : '2px dashed #0a0a0a';
             slotEl.style.outlineOffset = '-2px';
             slotEl.style.borderRadius = '1rem';
           }
@@ -774,7 +795,19 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
               updates.data = target.value;
             }
 
-            await Promise.all(ids.map(id => updateAppointment(id, updates)));
+            // Mută membrii pe rând; la prima eroare revine asupra celor deja
+            // mutați — altfel grupul s-ar scinda pe două ore diferite.
+            const movedIds: string[] = [];
+            try {
+              for (const id of ids) {
+                await updateAppointment(id, updates);
+                movedIds.push(id);
+              }
+            } catch (moveErr) {
+              const revert = target.type === 'slot' ? { ora: origTime } : { data: origDate };
+              await Promise.all(movedIds.map(id => updateAppointment(id, revert).catch(() => {})));
+              throw moveErr;
+            }
             (window as any).showToast('Ședința în grup a fost mutată cu succes.', 'success');
             if (target.type === 'day') {
               (target.el as HTMLButtonElement).click();
@@ -784,6 +817,11 @@ Astro.response.headers.set('Cache-Control', 'private, max-age=30, must-revalidat
           }
 
           if (!sessionId) return;
+
+          if (target.type === 'slot' && target.blockedByGroup) {
+            (window as any).showToast('Slotul are o ședință în grup — nu pot schimba pacienții sau muta peste ea.', 'warning');
+            return;
+          }
 
           if (target.type === 'slot' && target.targetSessionId && target.targetSessionId !== sessionId) {
             // Drop pe un slot ocupat → schimbă pacienții între programări

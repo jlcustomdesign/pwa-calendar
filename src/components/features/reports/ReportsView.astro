@@ -24,7 +24,7 @@
     <!-- Antet perioadă + navigare pentru Statistici -->
     <div class="flex items-center justify-between px-1 mb-3">
       <div class="flex flex-col">
-        <h2 id="report-title" class="text-xl sm:text-2xl font-black text-text-main">Azi</h2>
+        <h2 id="report-title" role="button" tabindex="0" class="text-xl sm:text-2xl font-black text-text-main cursor-pointer">Azi</h2>
         <span id="report-date-range" class="text-sm font-bold text-text-muted">--</span>
       </div>
       <div class="flex gap-2">
@@ -274,6 +274,7 @@
     <div class="flex items-start justify-between mb-4 shrink-0">
       <div class="min-w-0 pr-2">
         <h2 id="income-details-title" class="text-xl sm:text-2xl font-black text-text-main tracking-tight truncate">Încasări</h2>
+        <div id="income-details-subtitle" class="text-xs font-bold text-text-muted mt-0.5"></div>
       </div>
     </div>
 
@@ -355,16 +356,16 @@
 
   type TabType = 'all' | 'day' | 'week' | 'month' | 'quarter' | 'year';
   let activeStatsTab: TabType = 'day';
-  let activeUnpaidTab: TabType = 'all';
   let activeChartTab: TabType = 'week';
   
   let currentBaseDate = new Date();
   let currentDayDate = new Date();
   let lastStatData: any = null;
 
-  let isDayPickerOpen = false;
-  let isIncomeDetailsOpen = false;
-  let isUnpaidDetailsOpen = false;
+  // Stare sheet-uri ținută pe window ca să supraviețuiască re-rulării scriptului
+  // la view transitions Astro (listener-ul de Escape e legat o singură dată).
+  type SheetStateKey = 'dayPicker' | 'income' | 'unpaid' | 'sessions' | 'absent';
+  const sheetState = ((window as any).__reportsSheetState ??= {}) as Record<SheetStateKey, boolean>;
 
   function removeStaleSheets(exclude?: Element) {
     document.querySelectorAll('#day-picker-sheet, #income-details-sheet, #unpaid-details-sheet, #sessions-details-sheet, #absent-details-sheet').forEach(el => {
@@ -382,9 +383,11 @@
   // Escape key handler, bound once globally
   function handleGlobalEscape(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      if (isUnpaidDetailsOpen) closeUnpaidDetails();
-      else if (isIncomeDetailsOpen) closeIncomeDetails();
-      else if (isDayPickerOpen) closeDayPicker();
+      if (sheetState.unpaid) closeUnpaidDetails();
+      else if (sheetState.income) closeIncomeDetails();
+      else if (sheetState.dayPicker) closeDayPicker();
+      else if (sheetState.sessions) closeSheet('sessions');
+      else if (sheetState.absent) closeSheet('absent');
     }
   }
   if (!(window as any)._reportsEscapeBound) {
@@ -402,6 +405,7 @@
       if (totalEl) totalEl.textContent = unpaid.totalRON.toString();
     } catch(e) {
       console.error('Eroare loading unpaid stats', e);
+      (window as any).showToast?.('Eroare la încărcarea plăților restante.', 'error');
     }
   }
 
@@ -411,13 +415,19 @@
     if (!displayBtn || displayBtn.dataset.reportsDayNavBound === 'true') return;
     displayBtn.dataset.reportsDayNavBound = 'true';
     displayBtn.addEventListener('click', () => openDayPicker());
+    displayBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openDayPicker();
+      }
+    });
   }
 
   // ── Custom day picker sheet (no native date UI) ───────────────
   let pickerViewDate = new Date();
 
   function openDayPicker() {
-    if (isDayPickerOpen) return;
+    if (sheetState.dayPicker) return;
 
     pickerViewDate = new Date(currentDayDate.getFullYear(), currentDayDate.getMonth(), currentDayDate.getDate());
     renderDayPicker();
@@ -425,7 +435,7 @@
     const sheet = document.getElementById('day-picker-sheet');
     const overlay = document.getElementById('day-picker-overlay');
     const content = document.getElementById('day-picker-content');
-    const trigger = document.getElementById('today-date-display');
+    const trigger = document.getElementById('report-title');
     if (!sheet || !overlay || !content) return;
 
     const rect = trigger?.getBoundingClientRect();
@@ -443,7 +453,7 @@
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
 
-    isDayPickerOpen = true;
+    sheetState.dayPicker = true;
     sheet.dataset.open = 'true';
     sheet.classList.remove('hidden');
     void sheet.offsetWidth;
@@ -472,7 +482,7 @@
     overlay.classList.add('opacity-0', 'pointer-events-none');
 
     setTimeout(() => {
-      isDayPickerOpen = false;
+      sheetState.dayPicker = false;
       sheet.dataset.open = 'false';
       sheet.classList.add('hidden');
       unlockBodyScroll();
@@ -531,6 +541,7 @@
 
       btn.addEventListener('click', () => {
         currentBaseDate = btnDate;
+        currentDayDate = btnDate;
         closeDayPicker();
         loadReportStats();
         loadChartStats();
@@ -619,8 +630,6 @@
     if (!sheet || !backdrop || !content || !listEl) return;
 
     if (titleEl) titleEl.textContent = title;
-
-    if (titleEl) titleEl.textContent = title;
     if (subtitleEl) subtitleEl.textContent = subtitle;
     if (totalEl) totalEl.innerHTML = `${expectedTotal !== undefined ? expectedTotal : '--'} <span class="text-sm font-sans font-black text-text-main">RON</span>`;
     if (badgeEl) badgeEl.textContent = 'Se încarcă...';
@@ -632,8 +641,16 @@
       </div>
     `;
 
+    // Hide navigation dock (la fel ca la celelalte sheet-uri)
+    const dock = document.getElementById('persistent-dock');
+    if (dock) {
+      dock.style.transition = 'opacity 0.25s ease';
+      dock.style.opacity = '0';
+      dock.style.pointerEvents = 'none';
+    }
+
     // Animate open
-    isIncomeDetailsOpen = true;
+    sheetState.income = true;
     sheet.dataset.open = 'true';
     sheet.classList.remove('hidden');
     void sheet.offsetWidth;
@@ -702,6 +719,7 @@
               </div>
               <div class="min-w-0">
                 <div class="font-black text-text-main text-sm sm:text-base truncate">${escapeHtml(p.numeComplet)}</div>
+                <div class="text-xs font-bold text-text-muted truncate">${[planRO, p.metoda, p.oraPlatii].filter(Boolean).map(s => escapeHtml(s as string)).join(' · ')}</div>
               </div>
             </div>
             <div class="text-right shrink-0">
@@ -729,14 +747,21 @@
 
     if (!sheet || !backdrop || !content) return;
 
-    isIncomeDetailsOpen = false;
+    sheetState.income = false;
     sheet.dataset.open = 'false';
     content.style.transform = ''; // reset any inline drag transform
     content.classList.remove('translate-y-0');
     content.classList.add('translate-y-full');
     backdrop.classList.remove('opacity-100', 'pointer-events-auto');
     backdrop.classList.add('opacity-0', 'pointer-events-none');
-    
+
+    // Show navigation dock again
+    const dock = document.getElementById('persistent-dock');
+    if (dock) {
+      dock.style.opacity = '1';
+      dock.style.pointerEvents = 'auto';
+    }
+
     setTimeout(() => {
       sheet.classList.add('hidden');
       unlockBodyScroll();
@@ -825,6 +850,21 @@
     }
   }
 
+  // Datele ultimei încărcări a graficului — folosite de butonul "Total perioadă"
+  let lastChartData: any = null;
+
+  function setupChartPeriodTotal() {
+    const btn = document.getElementById('chart-period-total-btn');
+    if (!btn || btn.dataset.reportsTotalBound === 'true') return;
+    btn.dataset.reportsTotalBound = 'true';
+    btn.addEventListener('click', () => {
+      const d = lastChartData;
+      if (!d || !d.startStr) return;
+      const subtitle = document.getElementById('chart-subtitle')?.textContent || '';
+      openIncomeDetails('Total perioadă', subtitle, d.startStr, d.endStr, d.venit || 0);
+    });
+  }
+
 
   
   async function loadReportStats() {
@@ -901,6 +941,7 @@
       }
     } catch (e) {
       console.error('Error loading report stats:', e);
+      (window as any).showToast?.('Eroare la încărcarea statisticilor.', 'error');
     }
   }
 
@@ -925,6 +966,8 @@
       }
 
       if (chartStatData) {
+        lastChartData = chartStatData;
+
         // Total perioadă
         const periodTotalEl = document.getElementById('chart-period-total');
         if (periodTotalEl) {
@@ -939,6 +982,7 @@
       }
     } catch (e) {
       console.error('Error loading chart stats:', e);
+      (window as any).showToast?.('Eroare la încărcarea graficului.', 'error');
     }
   }
 
@@ -971,7 +1015,7 @@
     if (!svg || !dot || !dotGlow || !valueDisplay || dayBtns.length === 0) return;
 
     const chartVals = chartData.map(d => d.val);
-    const rawMax = Math.max(...chartVals, 100);
+    const rawMax = Math.max(...chartVals, 0);
 
     function niceAnchor(max: number) {
       if (max <= 0) return 100;
@@ -1276,6 +1320,7 @@
     setupDayNavigation();
     setupDayPicker();
     setupTopIncomeCard();
+    setupChartPeriodTotal();
     setupIncomeDetailsGestures();
     
     await Promise.all([
@@ -1297,7 +1342,6 @@
     currentBaseDate = new Date();
     currentDayDate = new Date();
     activeStatsTab = 'day';
-    activeUnpaidTab = 'all';
     activeChartTab = 'week';
 
     // Setup initially
@@ -1396,6 +1440,8 @@
     content.classList.add('translate-y-0');
     lockBodyScroll();
 
+    (sheetState as any).sessions = true;
+
     setupSheetGestures('sessions');
 
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -1489,6 +1535,8 @@
     content.classList.add('translate-y-0');
     lockBodyScroll();
 
+    (sheetState as any).absent = true;
+
     setupSheetGestures('absent');
 
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -1550,6 +1598,7 @@
 
     if (!sheet || !backdrop || !content) return;
 
+    (sheetState as any)[prefix] = false;
     sheet.dataset.open = 'false';
     content.style.transform = ''; 
     content.classList.remove('translate-y-0');
@@ -1671,7 +1720,7 @@
     }
 
     // Animate open
-    isUnpaidDetailsOpen = true;
+    sheetState.unpaid = true;
     sheet.dataset.open = 'true';
     sheet.classList.remove('hidden');
     void sheet.offsetWidth;
@@ -1749,7 +1798,7 @@
 
     if (!sheet || !backdrop || !content) return;
 
-    isUnpaidDetailsOpen = false;
+    sheetState.unpaid = false;
     sheet.dataset.open = 'false';
     content.style.transform = ''; 
     content.classList.remove('translate-y-0');

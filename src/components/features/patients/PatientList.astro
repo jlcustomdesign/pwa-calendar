@@ -131,6 +131,8 @@
     currentSearchQuery: string = '';
     activeFilters: string[] = ['all'];
     currentSort: string = 'name';
+    private searchDebounceTimer: number | undefined;
+    private renderSeq = 0;
     availableCategories: string[] = ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați', 'Expirați'];
 
     readonly categoryToFilterKey: Record<string, string> = {
@@ -196,7 +198,9 @@
         searchInput.dataset.patientLocalBound = 'true';
         searchInput.addEventListener('input', (e) => {
           this.currentSearchQuery = (e.target as HTMLInputElement).value.toLowerCase();
-          this.render();
+          // Debounce: fiecare tastă nu mai declanșează un round-trip la Supabase
+          clearTimeout(this.searchDebounceTimer);
+          this.searchDebounceTimer = window.setTimeout(() => this.render(), 250);
         });
 
         // Morph the Adaugă pill into a circle while the search is active
@@ -315,7 +319,8 @@
       }
 
       // Dacă un filtru activ a devenit inactiv în settings, îl resetăm
-      const validKeys = new Set(['all', ...this.availableCategories.map((c) => this.categoryToFilterKey[c] || c)]);
+      // 'expired' e filtru built-in: rămâne valid chiar dacă lipsește din setări
+      const validKeys = new Set(['all', 'expired', ...this.availableCategories.map((c) => this.categoryToFilterKey[c] || c)]);
       this.activeFilters = this.activeFilters.filter((f) => validKeys.has(f));
       if (this.activeFilters.length === 0) this.activeFilters = ['all'];
     }
@@ -324,9 +329,15 @@
       const filterContainer = document.getElementById('filter-options');
       if (!filterContainer) return;
 
+      // „Expirați" e filtru built-in: îl afișăm mereu, chiar dacă lipsește din
+      // categoriile active ale setărilor (defaultul setărilor nu îl include).
+      const cats = this.availableCategories.includes('Expirați')
+        ? this.availableCategories
+        : [...this.availableCategories, 'Expirați'];
+
       filterContainer.innerHTML = `
         <button type="button" data-filter="all" class="filter-option-btn px-3 py-3 rounded-xl bg-brand-primary text-black font-extrabold text-sm text-center transition-all active:scale-95">Toți</button>
-        ${this.availableCategories.map((cat) => {
+        ${cats.map((cat) => {
           const key = this.categoryToFilterKey[cat] || cat;
           return `<button type="button" data-filter="${escapeHtml(key)}" class="filter-option-btn px-3 py-3 rounded-xl bg-white text-black border border-black/10 font-extrabold text-sm text-center transition-all active:scale-95">${escapeHtml(cat)}</button>`;
         }).join('')}
@@ -378,15 +389,27 @@
         progress: 'Progres',
         payment: 'Plată'
       };
+      // Un singur filtru poate fi activ (single-select), deci ramura de plural e inutilă
       let filterLabel = 'Toți';
       if (!this.activeFilters.includes('all') && this.activeFilters.length > 0) {
-        if (this.activeFilters.length === 1) {
-          filterLabel = filterLabels[this.activeFilters[0]] || this.activeFilters[0];
-        } else {
-          filterLabel = `${this.activeFilters.length} filtre`;
-        }
+        filterLabel = filterLabels[this.activeFilters[0]] || this.activeFilters[0];
       }
       label.textContent = `${filterLabel} · ${sortLabels[this.currentSort] || 'Nume'}`;
+    }
+
+    // Recunoaște planul și pe variantele legacy de tip „Sedinta unica" (fără diacritice)
+    private normalizedPlanText(plan: string | null | undefined): string {
+      return (plan || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    }
+
+    private isOneTimePlanText(plan: string | null | undefined): boolean {
+      const p = this.normalizedPlanText(plan);
+      return p.includes('sedinta') || p.includes('unica') || p.includes('one') || p.includes('single');
+    }
+
+    private isSubscriptionPlanText(plan: string | null | undefined): boolean {
+      const p = this.normalizedPlanText(plan);
+      return p.includes('abonament') || p.includes('subscrip');
     }
 
     async deletePatient(id: string) {
@@ -419,13 +442,6 @@
       });
     }
 
-    bookSession(patientName: string) {
-      emit(EVENTS.openAddSession, {
-        patientName: patientName,
-        showDateTime: true
-      });
-    }
-
     async render() {
       if (!this.container) return;
 
@@ -435,7 +451,9 @@
         skeleton.classList.remove('hidden');
       }
 
+      const seq = ++this.renderSeq;
       let patients: any[] = [];
+      let loadError = false;
       try {
         const filtersActive = !this.activeFilters.includes('all') && this.activeFilters.length > 0;
         const expiredActive = filtersActive && this.activeFilters.includes('expired');
@@ -510,10 +528,25 @@
         });
       } catch (e) {
         console.error('Eroare citire pacienti:', e);
+        loadError = true;
       }
+
+      // Un răspuns întârziat dintr-o interogare mai veche nu suprascrie lista curentă
+      if (seq !== this.renderSeq) return;
 
       if (skeleton) skeleton.classList.add('hidden');
       this.container.classList.remove('hidden');
+
+      if (loadError) {
+        this.container.innerHTML = `
+          <div class="p-8 text-center bg-surface-card rounded-2xl border border-transparent">
+            <h3 class="font-bold text-lg text-black mb-1">Eroare la încărcarea pacienților</h3>
+            <p class="text-sm text-text-muted mb-4">Verifică conexiunea la internet și încearcă din nou.</p>
+            <button type="button" id="patient-retry-btn" class="px-6 py-3 rounded-full bg-brand-primary text-black font-extrabold text-sm shadow-sm active:scale-95 transition-all cursor-pointer">Reîncearcă</button>
+          </div>`;
+        this.container.querySelector('#patient-retry-btn')?.addEventListener('click', () => this.render());
+        return;
+      }
 
       if (patients.length === 0) {
         const template = document.getElementById('patient-empty-state') as HTMLTemplateElement;
@@ -578,7 +611,9 @@
         card.className = `swipe-surface relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden transition-transform duration-300 will-change-transform ${cardClasses}`;
         card.style.touchAction = 'pan-y'; // allow vertical scroll
         
-        const planName = patient.plan === 'Subscription' || patient.plan === 'Abonament' ? 'Abonament' : (patient.plan === 'One Time' ? 'Ședință' : (patient.plan || 'Fără plan'));
+        const planName = this.isOneTimePlanText(patient.plan) ? 'Ședință'
+          : this.isSubscriptionPlanText(patient.plan) ? 'Abonament'
+          : (patient.plan || 'Fără plan');
 
         // Escape user-controlled values before inserting into HTML
         const safeName = escapeHtml(patient.name);
@@ -599,13 +634,15 @@
 
         // Ședință unică fără ședințe finalizate: nimic datorat, nimic plătit —
         // stare neutră, nu „achitat" (ședința a fost ștearsă / încă n-a venit).
-        const isSingleNoSessions = (patient.plan === 'One Time' || patient.plan === 'Ședință unică') && attendanceCount === 0;
+        const isSingleNoSessions = this.isOneTimePlanText(patient.plan) && attendanceCount === 0;
 
         if (isSingleNoSessions) {
           paymentBadgeHtml = `<span class='text-sm font-black text-neutral-500'>Fără ședințe</span>`;
           paymentBadgeBgClass = 'bg-neutral-100 hover:bg-neutral-200 border-neutral-200/60';
         } else if (paymentStatus === 'Achitat parțial' || (sumaIncasata > 0 && restDePlata > 0)) {
-          paymentBadgeHtml = `<span class='text-sm font-black text-amber-900'>${sumaIncasata}/${costTotal || sumaIncasata} RON</span>`;
+          // fără cost cunoscut afișăm doar suma, nu „X/X RON”
+          const partialLabel = costTotal > 0 ? `${sumaIncasata}/${costTotal} RON` : `${sumaIncasata} RON`;
+          paymentBadgeHtml = `<span class='text-sm font-black text-amber-900'>${partialLabel}</span>`;
           paymentBadgeBgClass = 'bg-amber-50 hover:bg-amber-100 border-amber-200/60';
         } else if (isFullyPaid) {
           paymentBadgeHtml = `<span class='text-sm font-black text-emerald-900'>Achitat</span>`;
@@ -613,7 +650,7 @@
         }
 
         const renewalDismissed = isRenewalDismissed(patient.id);
-        const isSinglePlan = patient.plan === 'One Time' || patient.plan === 'Ședință unică';
+        const isSinglePlan = this.isOneTimePlanText(patient.plan);
         const subscriptionWarningHtml = subscriptionDone && !isSinglePlan && !renewalDismissed
           ? `<div class='pt-2 pb-2 space-y-2'><button type='button' class='renew-subscription-btn w-full h-12 rounded-2xl bg-black hover:bg-neutral-800 text-white text-base font-black tracking-wide shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border border-transparent opacity-100' data-patient-id='${patient.id}' data-total-sessions='${totalSessions}'><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg><span>Reînnoiește pachetul</span></button></div>`
           : '';

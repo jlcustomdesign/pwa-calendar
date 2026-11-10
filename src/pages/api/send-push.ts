@@ -17,13 +17,26 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     };
 
     const supabase = createSupabaseServerClient(cookies, request.headers);
-
-    let query = (supabase as any).from('push_subscriptions').select('id, endpoint, p256dh, auth, user_id');
-    if (targetUserId) {
-      query = query.eq('user_id', targetUserId);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Neautentificat' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    const { data: subs, error } = await query;
+    // Notificările se trimit doar către dispozitivele utilizatorului autentificat.
+    if (targetUserId && targetUserId !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Nu poți trimite notificări altui utilizator.' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: subs, error } = await (supabase as any)
+      .from('push_subscriptions')
+      .select('id, endpoint, p256dh, auth, user_id')
+      .eq('user_id', user.id);
     if (error) {
       return new Response(
         JSON.stringify({ error: error.message }),

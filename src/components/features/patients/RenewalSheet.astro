@@ -48,7 +48,7 @@
         <div>
           <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Preț abonament</label>
           <div class="flex items-center bg-white rounded-2xl overflow-hidden shadow-sm p-1 gap-1 transition-all border border-pink-200/80">
-            <button type="button" tabindex="-1" class="px-3 py-2 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-base rounded-xl cursor-pointer shrink-0" onclick="(() => { const el = document.getElementById('renewal-price-input'); if(el){ el.value = Math.max(0, Number(el.value || 0) - 50); el.dispatchEvent(new Event('input', { bubbles: true })); } })()">-</button>
+            <button type="button" tabindex="-1" class="stepper-btn px-3 py-2 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-base rounded-xl cursor-pointer shrink-0" data-stepper-target="renewal-price-input" data-stepper-step="-50" data-stepper-min="0">-</button>
             <input
               type="number"
               id="renewal-price-input"
@@ -58,13 +58,13 @@
               placeholder="1500"
               class="w-full py-2 text-center font-extrabold text-black text-base focus:outline-none border-none bg-transparent appearance-none m-0 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
-            <button type="button" tabindex="-1" class="px-3 py-2 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-base rounded-xl cursor-pointer shrink-0" onclick="(() => { const el = document.getElementById('renewal-price-input'); if(el){ el.value = Number(el.value || 0) + 50; el.dispatchEvent(new Event('input', { bubbles: true })); } })()">+</button>
+            <button type="button" tabindex="-1" class="stepper-btn px-3 py-2 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-base rounded-xl cursor-pointer shrink-0" data-stepper-target="renewal-price-input" data-stepper-step="50" data-stepper-min="0">+</button>
           </div>
         </div>
         <div id="renewal-sessions-field">
           <label class="block text-xs font-black text-black mb-1.5 uppercase tracking-wider text-center">Nr. ședințe</label>
           <div class="flex items-center bg-white rounded-2xl overflow-hidden shadow-sm p-1 gap-1 transition-all border border-pink-200/80">
-            <button type="button" tabindex="-1" class="px-3 py-2 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-base rounded-xl cursor-pointer shrink-0" onclick="(() => { const el = document.getElementById('renewal-sessions-input'); if(el){ el.value = Math.max(1, Number(el.value || 0) - 1); el.dispatchEvent(new Event('input', { bubbles: true })); } })()">-</button>
+            <button type="button" tabindex="-1" class="stepper-btn px-3 py-2 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-base rounded-xl cursor-pointer shrink-0" data-stepper-target="renewal-sessions-input" data-stepper-step="-1" data-stepper-min="1" data-stepper-max="100">-</button>
             <input
               type="number"
               id="renewal-sessions-input"
@@ -75,7 +75,7 @@
               placeholder="10"
               class="w-full py-2 text-center font-extrabold text-black text-base focus:outline-none border-none bg-transparent appearance-none m-0 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
-            <button type="button" tabindex="-1" class="px-3 py-2 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-base rounded-xl cursor-pointer shrink-0" onclick="(() => { const el = document.getElementById('renewal-sessions-input'); if(el){ el.value = Number(el.value || 0) + 1; el.dispatchEvent(new Event('input', { bubbles: true })); } })()">+</button>
+            <button type="button" tabindex="-1" class="stepper-btn px-3 py-2 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-base rounded-xl cursor-pointer shrink-0" data-stepper-target="renewal-sessions-input" data-stepper-step="1" data-stepper-min="1" data-stepper-max="100">+</button>
           </div>
         </div>
         <div class="col-span-2">
@@ -144,10 +144,13 @@
 
 <script>
   import { resetPatientSubscription, getPatient, getPatientPackages } from '../../../lib/services/patientService';
+  import { toLocalISOString } from '../../../utils/date';
   import { createAppointment } from '../../../lib/services/appointmentService';
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
   import { EVENTS, emit } from '../../../lib/events';
+
+  const DEFAULT_PRICE_PER_SESSION = 150;
 
   class RenewalSheetManager {
     private sheet: HTMLElement | null = null;
@@ -156,7 +159,6 @@
     private priceInput: HTMLInputElement | null = null;
     private partialAmountInput: HTMLInputElement | null = null;
     private partialBox: HTMLElement | null = null;
-    private calculatedDisplay: HTMLElement | null = null;
     private selectedPaymentStatus: 'Neachitat' | 'Parțial' | 'Achitat' = 'Neachitat';
     private currentPatientId: string | null = null;
     private pendingAppointment: any = null;
@@ -182,7 +184,6 @@
       this.priceInput = document.getElementById('renewal-price-input') as HTMLInputElement;
       this.partialAmountInput = document.getElementById('renewal-partial-amount') as HTMLInputElement;
       this.partialBox = document.getElementById('renewal-partial-box');
-      this.calculatedDisplay = document.getElementById('renewal-calculated-cost');
 
       if (this.sheet?.dataset.open === 'true') this.isOpen = true;
     }
@@ -296,7 +297,8 @@
         }, { passive: true });
       }
 
-      // Input calculation listeners
+      // Input listeners: numărul de ședințe recalculează prețul DOAR dacă prețul
+      // nu a fost editat manual (altfel stepperul de ședințe îl rescria)
       if (this.sheet.dataset.inputBound !== 'true') {
         this.sheet.dataset.inputBound = 'true';
         this.sheet.addEventListener('input', (e) => {
@@ -305,16 +307,36 @@
             const mgr = (window as any).currentRenewalSheetManager || this;
             const newCount = Math.max(1, parseInt((target as HTMLInputElement).value || '1', 10));
             const pInput = document.getElementById('renewal-price-input') as HTMLInputElement | null;
-            if (pInput) {
-              pInput.value = String(newCount * (mgr.pricePerSession || 150));
+            if (pInput && !mgr.priceTouched) {
+              pInput.value = String(newCount * (mgr.pricePerSession || DEFAULT_PRICE_PER_SESSION));
             }
-            mgr.calculateTotalCost();
           } else if (target && target.id === 'renewal-price-input') {
             const mgr = (window as any).currentRenewalSheetManager || this;
-            mgr.calculateTotalCost();
+            mgr.priceTouched = true;
           }
         });
       }
+
+      // Stepper buttons legate ca în AddPatientSheet (fără onclick inline);
+      // declanșează `input` ca recalcularea de preț și flagurile să ruleze
+      this.sheet.querySelectorAll<HTMLButtonElement>('.stepper-btn').forEach((btn) => {
+        if (btn.dataset.bound === 'true') return;
+        btn.dataset.bound = 'true';
+        btn.addEventListener('click', () => {
+          const targetId = btn.dataset.stepperTarget;
+          const step = Number(btn.dataset.stepperStep || '0');
+          const minAttr = btn.dataset.stepperMin;
+          const maxAttr = btn.dataset.stepperMax;
+          const input = document.getElementById(targetId || '') as HTMLInputElement | null;
+          if (!input) return;
+          const current = Number(input.value || '0');
+          const next = current + step;
+          if (minAttr !== undefined && next < Number(minAttr)) return;
+          if (maxAttr !== undefined && next > Number(maxAttr)) return;
+          input.value = String(next);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      });
     }
 
     private handleTouchStart(e: TouchEvent) {
@@ -407,15 +429,6 @@
       }
     }
 
-    calculateTotalCost() {
-      const pInput = document.getElementById('renewal-price-input') as HTMLInputElement | null;
-      const calcEl = document.getElementById('renewal-calculated-cost');
-      const price = Math.max(0, parseFloat(pInput?.value || '0'));
-      if (calcEl) {
-        calcEl.textContent = price.toString();
-      }
-    }
-
     setPaymentStatus(status: 'Neachitat' | 'Parțial' | 'Achitat') {
       this.selectedPaymentStatus = status;
       const buttons = document.querySelectorAll('.renewal-payment-btn');
@@ -442,7 +455,10 @@
           partialBox.classList.remove('hidden');
           const pInput = document.getElementById('renewal-partial-amount') as HTMLInputElement | null;
           if (pInput && !pInput.value) {
-            pInput.value = '500';
+            // Default: jumătate din prețul curent al pachetului (nu o constantă hardcodată)
+            const priceInput = document.getElementById('renewal-price-input') as HTMLInputElement | null;
+            const price = Math.max(0, Number(priceInput?.value || 0));
+            pInput.value = String(Math.max(1, Math.round(price / 2)));
           }
         } else {
           partialBox.classList.add('hidden');
@@ -450,7 +466,9 @@
       }
     }
 
-    private pricePerSession: number = 150;
+    private pricePerSession: number = DEFAULT_PRICE_PER_SESSION;
+    private priceTouched: boolean = false;
+    private patientLocatie: string = '';
 
     private async loadPatientInfo(providedName?: string, count: number = 10) {
       const nameEl = document.getElementById('renewal-patient-name');
@@ -461,7 +479,9 @@
       const dateInput = document.getElementById('renewal-start-date') as HTMLInputElement | null;
 
       // Resetăm data la fiecare deschidere — altfel rămânea cea a pacientului anterior.
-      if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+      // toLocalISOString, nu toISOString (UTC): altfel după ~22:00 ora locală
+      // data prefilled devenea „mâine".
+      if (dateInput) dateInput.value = toLocalISOString(new Date()).slice(0, 10);
 
       if (sessionsInput) sessionsInput.value = count.toString();
 
@@ -469,11 +489,12 @@
       if (debtCard) debtCard.classList.add('hidden');
       if (debtAmountEl) debtAmountEl.textContent = '0 RON';
 
-      this.pricePerSession = 150;
+      this.pricePerSession = DEFAULT_PRICE_PER_SESSION;
+      this.priceTouched = false;
       try {
         const settings = await getSettings();
         if (settings?.default_price) {
-          this.pricePerSession = Number(settings.default_price) || 150;
+          this.pricePerSession = Number(settings.default_price) || DEFAULT_PRICE_PER_SESSION;
         }
       } catch (e) {}
 
@@ -482,6 +503,7 @@
           const patient = await getPatient(this.currentPatientId);
           if (patient) {
             if (nameEl) nameEl.textContent = `Pacient: ${patient.name}`;
+            this.patientLocatie = patient.locatie || '';
 
             if (patient.cost && patient.sedinte_total && Number(patient.sedinte_total) > 0) {
               this.pricePerSession = Math.round(Number(patient.cost) / Number(patient.sedinte_total));
@@ -508,8 +530,6 @@
       if (priceInput) {
         priceInput.value = String(count * this.pricePerSession);
       }
-
-      this.calculateTotalCost();
     }
 
     private async handleConfirm() {
@@ -523,7 +543,7 @@
       const partInput = document.getElementById('renewal-partial-amount') as HTMLInputElement | null;
       const dateInput = document.getElementById('renewal-start-date') as HTMLInputElement | null;
 
-      const count = Math.max(1, parseInt(sInput?.value || '10', 10));
+      const count = Math.min(100, Math.max(1, parseInt(sInput?.value || '10', 10)));
       const totalCost = Math.max(0, parseFloat(pInput?.value || '0'));
       const paidAmount = this.selectedPaymentStatus === 'Parțial' ? Math.max(0, parseFloat(partInput?.value || '0')) : 0;
       const startDate = dateInput?.value || undefined;
@@ -556,7 +576,7 @@
               pacient_id: this.currentPatientId,
               data: this.pendingAppointment.data,
               ora: this.pendingAppointment.ora,
-              locatie: this.pendingAppointment.locatie || 'Belaqva'
+              locatie: this.pendingAppointment.locatie || this.patientLocatie || 'Belaqva'
             });
           } catch (apptErr) {
             console.warn('Eroare creare programare la reinnoire:', apptErr);
@@ -580,7 +600,6 @@
     open() {
       if (!this.sheet || !this.overlay) return;
       this.isOpen = true;
-      this.calculateTotalCost();
       this.setPaymentStatus('Neachitat');
 
       this.sheet.style.maxHeight = `${window.innerHeight * 0.9}px`;

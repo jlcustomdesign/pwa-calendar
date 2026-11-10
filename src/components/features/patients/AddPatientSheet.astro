@@ -124,6 +124,7 @@
                 name="cost"
                 id="patientCost"
                 placeholder="1500"
+                min="0"
                 class="w-full py-2.5 text-center font-extrabold text-black text-base focus:outline-none border-none bg-transparent appearance-none m-0 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientCost" data-stepper-step="10">+</button>
@@ -138,6 +139,7 @@
                 name="totalSessions"
                 id="patientTotalSessions"
                 placeholder="10"
+                min="1"
                 class="w-full py-2.5 text-center font-extrabold text-black text-base focus:outline-none border-none bg-transparent appearance-none m-0 [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <button type="button" tabindex="-1" class="stepper-btn px-4 py-2.5 text-black font-black bg-brand-primary hover:brightness-105 transition-all active:scale-95 text-lg rounded-xl" data-stepper-target="patientTotalSessions" data-stepper-step="1" data-stepper-min="1">+</button>
@@ -188,6 +190,7 @@
               placeholder="ex: 500"
               class="w-full px-5 py-3 rounded-2xl bg-white border border-black/10 text-base font-extrabold text-black focus:outline-none focus:border-black focus:ring-2 focus:ring-black/10 transition-all shadow-sm"
             />
+            <p id="partial-paid-hint" class="text-[10px] font-bold text-neutral-400 mt-1 px-1"></p>
           </div>
         </div>
 
@@ -399,7 +402,7 @@
       });
 
       const saveBtn = document.getElementById('save-patient-btn');
-      saveBtn?.addEventListener('click', () => this.savePatient(false));
+      saveBtn?.addEventListener('click', () => this.savePatient());
     }
 
     private togglePartialAmountBox(paymentVal: string) {
@@ -521,8 +524,10 @@
       if (!totalInput || !costInput) return;
 
       // Extrage setările curente
-      let defaultPricePerSession = 150;
-      let defaultSessionsVal = 10;
+      const FALLBACK_PRICE_PER_SESSION = 150;
+      const FALLBACK_TOTAL_SESSIONS = 10;
+      let defaultPricePerSession = FALLBACK_PRICE_PER_SESSION;
+      let defaultSessionsVal = FALLBACK_TOTAL_SESSIONS;
       try {
         const cachedRaw = localStorage.getItem('kineto_settings_cache');
         if (cachedRaw) {
@@ -580,7 +585,7 @@
       });
     }
 
-    async savePatient(bookSession: boolean) {
+    async savePatient() {
       if (!this.form) return;
       if (!this.form.checkValidity()) {
         this.form.reportValidity();
@@ -592,7 +597,6 @@
 
       const formData = new FormData(this.form);
       const patientId = formData.get('patientId') as string;
-      const patientName = formData.get('name') as string;
       const paymentStatus = formData.get('paymentStatus') as string;
       const partialAmountRaw = formData.get('partialAmount') as string;
       const partialAmount = partialAmountRaw ? Number(partialAmountRaw) : 0;
@@ -604,14 +608,28 @@
         return;
       }
 
+      // Câmp gol nu mai cade silentios pe 10 — blocăm salvarea
+      if (!formData.get('totalSessions')) {
+        (window as any).showToast('Introdu numărul de ședințe pentru a continua.', 'warning');
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Salvează'; }
+        return;
+      }
+
       const phoneInput = (this.form?.querySelector('[name="phone"]') || document.getElementById('patientPhone')) as HTMLInputElement | null;
       const phoneVal = phoneInput ? phoneInput.value.trim() : ((formData.get('phone') as string) || '').trim();
 
       const driveInput = (this.form?.querySelector('[name="driveLink"]') || document.getElementById('patientDriveLink')) as HTMLInputElement | null;
       const driveVal = driveInput ? driveInput.value.trim() : ((formData.get('driveLink') as string) || '').trim();
 
+      // Doar linkuri http(s)/tel — altfel butonul de Drive rămâne mort în listă
+      if (driveVal && !isAllowedUrl(driveVal)) {
+        (window as any).showToast('Linkul de Drive trebuie să înceapă cu http:// sau https://', 'warning');
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Salvează'; }
+        return;
+      }
+
       const nameInput = (this.form?.querySelector('[name="name"]') || document.getElementById('patientName')) as HTMLInputElement | null;
-      const nameVal = nameInput ? nameInput.value.trim() : (patientName || '').trim();
+      const nameVal = nameInput ? nameInput.value.trim() : ((formData.get('name') as string) || '').trim();
 
       const payload = {
         name: nameVal,
@@ -657,15 +675,6 @@
 
         emit(EVENTS.patientsUpdated);
         this.close();
-
-        if (bookSession) {
-          setTimeout(() => {
-            emit(EVENTS.openAddSession, {
-              patientName: patientName,
-              showDateTime: true
-            });
-          }, 300);
-        }
       } catch (err: any) {
         const msg = err.message || err.toString();
         const errorBanner = document.getElementById('patient-error-banner');
@@ -708,14 +717,16 @@
         }
 
         if (isEdit && patient && this.form) {
-          let editPaymentStatus = 'Neachitat';
-          if (patient.achitat) {
-            editPaymentStatus = 'Achitat';
-          } else if ((patient.suma_incasata || 0) > 0) {
-            editPaymentStatus = 'Plată parțială';
-          }
           const cost = patient.cost != null ? Number(patient.cost) : 0;
           const sessions = patient.sedinte_total != null ? Number(patient.sedinte_total) : 0;
+          const alreadyPaid = Number(patient.suma_incasata || 0);
+          // „Achitat" și când sumele înregistrate acoperă deja costul, nu doar pe baza flagului
+          let editPaymentStatus = 'Neachitat';
+          if (patient.achitat || (cost > 0 && alreadyPaid >= cost)) {
+            editPaymentStatus = 'Achitat';
+          } else if (alreadyPaid > 0) {
+            editPaymentStatus = 'Plată parțială';
+          }
 
           (this.form.querySelector('[name="name"]') as HTMLInputElement).value = patient.name || '';
           (this.form.querySelector('[name="phone"]') as HTMLInputElement).value = patient.telefon || '';
@@ -731,6 +742,12 @@
           this.updatePaymentChips(editPaymentStatus);
           this.applyPlanDefaults(patient.plan || 'Abonament', false);
           this.togglePartialAmountBox(editPaymentStatus);
+          const paidHint = document.getElementById('partial-paid-hint');
+          if (paidHint) {
+            paidHint.textContent = (editPaymentStatus === 'Plată parțială' && alreadyPaid > 0)
+              ? `Deja înregistrat: ${alreadyPaid} RON — suma introdusă se adaugă ca plată nouă.`
+              : '';
+          }
           this.setNuReinnoi(!!(patient as any).nu_reinnoi);
 
           // Show sticky renewal button in edit mode
@@ -738,6 +755,8 @@
           if (stickyRenewBtn) {
             stickyRenewBtn.classList.remove('hidden');
             stickyRenewBtn.onclick = () => {
+              // Închidem întâi sheet-ul de editare ca să nu rămână două sheet-uri suprapuse
+              this.close();
               (window as any).renewSubscription(patient.id, sessions || 10, patient.name);
             };
           }
@@ -756,6 +775,8 @@
           this.updateLocationChips('Belaqva');
           this.updatePaymentChips('Neachitat');
           this.togglePartialAmountBox('Neachitat');
+          const paidHintNew = document.getElementById('partial-paid-hint');
+          if (paidHintNew) paidHintNew.textContent = '';
           this.setNuReinnoi(false);
           const stickyRenewBtn = document.getElementById('btn-renew-sticky');
           if (stickyRenewBtn) stickyRenewBtn.classList.add('hidden');

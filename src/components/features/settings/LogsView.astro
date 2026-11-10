@@ -25,6 +25,7 @@
       <button
         type="button"
         id="btn-test-error"
+        title="Generează o eroare de test; intrarea se sincronizează și în Supabase"
         class="px-4 py-2.5 rounded-full bg-surface-base hover:bg-brand-primary text-text-main hover:text-black font-bold text-sm transition-all active:scale-95 border border-transparent"
       >
         Eroare test
@@ -48,6 +49,9 @@
   </div>
 
   <!-- Lista de loguri -->
+  <p id="logs-cap-notice" class="hidden text-[11px] font-bold text-text-muted">
+    Jurnalul local păstrează ultimele 200 de înregistrări; intrările mai vechi se elimină automat.
+  </p>
   <div id="logs-list" class="space-y-3">
     <!-- populat din JS -->
   </div>
@@ -59,8 +63,8 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
       </svg>
     </div>
-    <h4 class="text-lg font-extrabold text-text-main">Nicio eroare capturată</h4>
-    <p class="text-sm font-semibold text-text-muted mt-1">Aplicația funcționează fără probleme deocamdată.</p>
+    <h4 id="logs-empty-title" class="text-lg font-extrabold text-text-main">Nicio eroare capturată</h4>
+    <p id="logs-empty-text" class="text-sm font-semibold text-text-muted mt-1">Aplicația funcționează fără probleme deocamdată.</p>
   </div>
 </section>
 
@@ -68,9 +72,16 @@
   import { getLogs, clearLogs, captureException, formatLogTimestamp, type LogEntry, type LogType } from '../../../lib/errorLogger';
   import { escapeHtml } from '../../../utils/html';
 
+  // Keep in sync with MAX_LOGS din errorLogger.ts — folosit pentru notița
+  // de truncare afișată când jurnalul local a atins capacitatea.
+  const MAX_LOCAL_LOGS = 200;
+
   function initLogsView() {
     const listEl = document.getElementById('logs-list');
     const emptyEl = document.getElementById('logs-empty');
+    const emptyTitleEl = document.getElementById('logs-empty-title');
+    const emptyTextEl = document.getElementById('logs-empty-text');
+    const capEl = document.getElementById('logs-cap-notice');
     const clearBtn = document.getElementById('btn-clear-logs');
     const filterBtns = document.querySelectorAll<HTMLButtonElement>('#logs-filter [data-filter]');
     if (!listEl || !emptyEl) return;
@@ -102,8 +113,17 @@
       const allLogs = getLogs();
       const logs = currentFilter === 'all' ? allLogs : allLogs.filter((l) => l.type === currentFilter);
 
+      if (capEl) capEl.classList.toggle('hidden', allLogs.length < MAX_LOCAL_LOGS);
+
       if (logs.length === 0) {
         listEl.innerHTML = '';
+        if (allLogs.length === 0) {
+          if (emptyTitleEl) emptyTitleEl.textContent = 'Nicio eroare capturată';
+          if (emptyTextEl) emptyTextEl.textContent = 'Aplicația funcționează fără probleme deocamdată.';
+        } else {
+          if (emptyTitleEl) emptyTitleEl.textContent = 'Nicio intrare pentru acest filtru';
+          if (emptyTextEl) emptyTextEl.textContent = 'Încearcă alt filtru sau „Toate”.';
+        }
         emptyEl.classList.remove('hidden');
         return;
       }
@@ -119,7 +139,7 @@
               <span class="text-xs font-bold text-text-muted">${formatLogTimestamp(log.timestamp)}</span>
             </div>
             <span class="text-[10px] font-black uppercase tracking-wider text-text-muted bg-surface-base px-2 py-1 rounded-full shrink-0">
-              ${log.source}
+              ${escapeHtml(log.source)}
             </span>
           </div>
 
@@ -157,15 +177,6 @@
       `).join('');
     }
 
-    function escapeHtml(str: string): string {
-      return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
     filterBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         currentFilter = btn.dataset.filter as LogType | 'all';
@@ -182,6 +193,11 @@
     });
 
     clearBtn?.addEventListener('click', async () => {
+      const confirmed = await (window as any).showConfirm?.(
+        'Ștergi jurnalul de erori?',
+        'Toate erorile locale și cele sincronizate în cloud vor fi șterse definitiv.'
+      );
+      if (!confirmed) return;
       await clearLogs();
       render();
     });
@@ -217,9 +233,8 @@
 
     document.getElementById('btn-test-error')?.addEventListener('click', () => {
       // Generează o eroare de test deliberată pentru validarea loggerului.
+      // Notă: intrarea se sincronizează și în tabela error_logs din Supabase.
       captureException(new Error('Eroare de test generată manual din Setări → Jurnal erori'), 'test-button');
-      // Mai generăm și o eroare prin console.error pentru a testa ambele căi.
-      console.error('Test console.error:', { foo: 'bar', numar: 42 });
       render();
     });
 

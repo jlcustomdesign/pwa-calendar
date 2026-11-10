@@ -34,11 +34,14 @@
   import { isPushSubscribed } from '../../../lib/services/pushService';
   import { getSettings } from '../../../lib/services/settingsService';
 
-  const _d = new Date();
+  // Aceeași sursă de "azi" ca în WeeklyCalendarCard (Europe/Bucharest) — altfel
+  // agenda și calendarul pot afișa zile diferite în afara fusului orar al clinicii.
+  const _d = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Bucharest" }));
   const todayStr = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
   let currentAgendaDate = todayStr;
   let currentSessionDuration = 50;
   let lastFetchedSessions: any[] = [];
+  let lastFetchFailed = false;
   const autoPromptedSessions = new Set<string>((() => {
     try {
       return JSON.parse(sessionStorage.getItem('kineto_auto_prompted') || '[]');
@@ -129,17 +132,22 @@
     const isToday = currentAgendaDate === todayStr;
 
     if (sessions.length === 0) {
+      if (lastFetchFailed) {
+        list.innerHTML = `<p class="text-sm font-bold text-rose-500 text-center py-4">Nu s-au putut încărca programările. Verifică conexiunea.</p>`;
+        return;
+      }
       const emptyDay = currentAgendaDate === todayStr ? 'azi' : 'această zi';
       list.innerHTML = `<p class="text-sm font-bold text-text-muted text-center py-4">Nicio ședință programată pentru ${emptyDay}.</p>`;
       return;
     }
 
     const getSessionCategory = (session: any) => {
-      const timeStr = session.selectedTime || "08:00";
+      // Sfârșitul ședinței = ora + session_duration (ca pe card), nu +1h fix.
+      const timeStr = (session.selectedTime || "08:00").substring(0, 5);
       const timeParts = timeStr.split(':');
-      const hourNum = parseInt(timeParts[0] || "0", 10);
-      const minute = timeParts[1] || "00";
-      const endTime = `${(hourNum + 1).toString().padStart(2, '0')}:${minute}`;
+      const totalStartMin = parseInt(timeParts[0] || "0", 10) * 60 + parseInt(timeParts[1] || "0", 10);
+      const totalEndMin = totalStartMin + currentSessionDuration;
+      const endTime = `${Math.floor(totalEndMin / 60).toString().padStart(2, '0')}:${(totalEndMin % 60).toString().padStart(2, '0')}`;
 
       const isOngoing = isToday && nowStr >= timeStr && nowStr < endTime;
       const isPast = currentAgendaDate < todayStr || (isToday && nowStr >= endTime);
@@ -168,6 +176,7 @@
   }
 
   async function renderAgendaBlock() {
+    lastFetchFailed = false;
     checkActionNotifications();
     const list = document.getElementById('agenda-sessions-list');
     const skeleton = document.getElementById('agenda-skeleton');
@@ -264,6 +273,7 @@
       // (cerere vs ofertă): poziția în lista viitoare a pacientului > ședințe rămase.
       await applyBeyondSupplyMarks(stored);
     } catch (e) {
+      lastFetchFailed = true;
       console.error('Eroare citire agenda din DB:', e);
     }
 
@@ -272,9 +282,9 @@
 
     lastFetchedSessions = stored;
     try {
-      if (stored.length > 0) {
-        localStorage.setItem(cacheKey, JSON.stringify(stored));
-      }
+      // Suprascrie mereu (și rezultatul gol) — altfel cache-ul vechi reapare
+      // după ștergerea tuturor ședințelor zilei.
+      localStorage.setItem(cacheKey, JSON.stringify(stored));
     } catch (e) {}
 
     // Calculate selected day's progress dynamically — grupul contează ca o singură ședință

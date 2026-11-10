@@ -333,7 +333,8 @@ export function createSessionCardHTML(session: any, isContinuation: boolean, ctx
   const safePatientName = escapeHtml(patientNameStr);
   const safePatientNameJs = escapeJsString(session.patientName || '');
   const safeLocation = escapeHtml(locationStr);
-  const safePhone = escapeHtml(session.patientPhone || '+1234567890');
+  const safePhone = escapeHtml(session.patientPhone || '');
+  const hasPhone = Boolean(session.patientPhone);
   const timeParts = cleanTimeStr.split(':');
   const startH = parseInt(timeParts[0] || '8', 10);
   const startM = parseInt(timeParts[1] || '0', 10);
@@ -438,7 +439,7 @@ export function createSessionCardHTML(session: any, isContinuation: boolean, ctx
               data-action-btn
               class="relative z-20 w-12 h-12 rounded-full bg-orange-500 shadow-sm text-white flex items-center justify-center active:scale-95 transition-transform" 
               onclick="event.stopPropagation(); event.preventDefault(); window.cancelSession('${session.id}');"
-              title="Marchează ca Anulat/Absent"
+              title="Marchează ca anulată"
             >
               <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
             </button>
@@ -508,11 +509,17 @@ export function createSessionCardHTML(session: any, isContinuation: boolean, ctx
                   </button>
 
                   <div class="flex items-center gap-2">
-                    <a href="tel:${safePhone}" class="w-11 h-11 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Sună pacientul" onclick="event.stopPropagation()">
+                    ${hasPhone
+                      ? `<a href="tel:${safePhone}" class="w-11 h-11 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Sună pacientul" onclick="event.stopPropagation()">
                       <svg class="w-5 h-5 text-black opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
-                    </a>
+                    </a>`
+                      : `<span class="w-11 h-11 rounded-2xl bg-white border border-transparent shadow-sm flex items-center justify-center text-black opacity-40 cursor-not-allowed" title="Pacientul nu are număr de telefon salvat" onclick="event.stopPropagation()">
+                      <svg class="w-5 h-5 text-black opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </span>`}
 
                     <a href="${safeDriveLink}" target="${hasDriveLink ? '_blank' : '_self'}" rel="noopener noreferrer" class="w-11 h-11 rounded-2xl bg-white hover:bg-neutral-50 border border-transparent shadow-sm active:scale-95 transition-all flex items-center justify-center text-black cursor-pointer" title="Deschide Dosar/Drive" onclick="event.stopPropagation(); if (!${hasDriveLink}) { event.preventDefault(); if (window.showToast) { window.showToast('Pacientul nu are un link de dosar/Drive salvat.', 'info'); } else { alert('Pacientul nu are un link de dosar/Drive salvat.'); } }">
                       <svg class="w-5 h-5 text-black opacity-85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -523,7 +530,7 @@ export function createSessionCardHTML(session: any, isContinuation: boolean, ctx
                 </div>
               </div>
 
-              ${sessionStatus !== 'finalizat' && sessionStatus !== 'anulat' && sessionStatus !== 'absent' && (!session.selectedDate || session.selectedDate < todayStr || (session.selectedDate === todayStr && nowStr >= formattedEnd)) ? `
+              ${sessionStatus !== 'finalizat' && sessionStatus !== 'anulat' && sessionStatus !== 'absent' && (!session.selectedDate || session.selectedDate < todayStr || (session.selectedDate === todayStr && nowStr >= formattedStart)) ? `
                 <div class="px-6 pb-6 pt-2">
                   <button type="button" class="w-full h-11 rounded-2xl ${isGhimbav ? 'bg-brand-primary text-black' : 'bg-brand-secondary text-white'} font-black text-xs sm:text-sm tracking-wider uppercase active:scale-95 transition-transform shadow-md flex items-center justify-center cursor-pointer border border-transparent hover:opacity-95" onclick="event.stopPropagation(); window.confirmSession('${session.id}')">
                     <span>CONFIRMĂ ȘEDINȚA</span>
@@ -561,6 +568,7 @@ function createGroupMemberCardHTML(m: any, ctx: { isGhimbav: boolean; progressBa
   const progress = m.totalSessions > 0 ? Math.min(100, Math.round(((m.attendanceCount || 0) / m.totalSessions) * 100)) : 0;
   const safeName = escapeHtml(m.patientName);
   const safePhone = escapeHtml(m.patientPhone || '');
+  const hasPhone = Boolean(m.patientPhone);
   const driveLink = m.driveLink || m.patientDriveLink || '';
   const safeDriveLink = escapeHtml(driveLink || '#');
   const hasDriveLink = Boolean(driveLink);
@@ -634,7 +642,8 @@ function createGroupMemberCardHTML(m: any, ctx: { isGhimbav: boolean; progressBa
             </button>
 
             <div class="flex items-center gap-1.5 shrink-0">
-              <a
+              ${hasPhone
+                ? `<a
                 href="tel:${safePhone}"
                 class="w-9 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-2xs"
                 title="Sună pacientul"
@@ -643,7 +652,16 @@ function createGroupMemberCardHTML(m: any, ctx: { isGhimbav: boolean; progressBa
                 <svg class="w-4 h-4 text-neutral-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-              </a>
+              </a>`
+                : `<span
+                class="w-9 h-9 rounded-xl bg-neutral-100 text-neutral-800 flex items-center justify-center opacity-40 cursor-not-allowed shadow-2xs"
+                title="Pacientul nu are număr de telefon salvat"
+                onclick="event.stopPropagation()"
+              >
+                <svg class="w-4 h-4 text-neutral-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </span>`}
 
               <a
                 href="${safeDriveLink}"
@@ -670,7 +688,8 @@ function createGroupMemberCardHTML(m: any, ctx: { isGhimbav: boolean; progressBa
       <div class="flex items-center justify-between gap-2">
         <span class="font-black text-sm text-neutral-900 truncate flex-1">${safeName}</span>
         <div class="flex items-center gap-1 shrink-0">
-          <a 
+          ${hasPhone
+            ? `<a 
             href="tel:${safePhone}" 
             class="w-8 h-8 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 flex items-center justify-center active:scale-95 transition-all cursor-pointer" 
             title="Sună pacientul" 
@@ -679,7 +698,16 @@ function createGroupMemberCardHTML(m: any, ctx: { isGhimbav: boolean; progressBa
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
-          </a>
+          </a>`
+            : `<span 
+            class="w-8 h-8 rounded-lg bg-neutral-100 text-neutral-700 flex items-center justify-center opacity-40 cursor-not-allowed" 
+            title="Pacientul nu are număr de telefon salvat" 
+            onclick="event.stopPropagation()"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+          </span>`}
 
           <a 
             href="${safeDriveLink}" 
@@ -732,13 +760,14 @@ export function createGroupCardHTML(group: any, ctx: SessionCardContext): string
   const startM = parseInt(timeParts[1] || '0', 10);
   const totalStartMin = startH * 60 + startM;
   const totalEndMin = totalStartMin + sessionDuration;
+  const formattedStart = `${startH.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
   const endH = Math.floor(totalEndMin / 60);
   const endM = totalEndMin % 60;
   const formattedEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
   
   const now = new Date();
   const nowStr = now.toTimeString().slice(0, 5);
-  const isPastGroup = !group.selectedDate || group.selectedDate < todayStr || (group.selectedDate === todayStr && nowStr >= formattedEnd);
+  const isStartedGroup = !group.selectedDate || group.selectedDate < todayStr || (group.selectedDate === todayStr && nowStr >= formattedStart);
 
   const locationStr = group.location || 'Belaqva';
   const isGhimbav = locationStr.toLowerCase() === 'ghimbav';
@@ -847,7 +876,7 @@ export function createGroupCardHTML(group: any, ctx: SessionCardContext): string
               <div class="group-members flex flex-col gap-2.5 mb-3">
                 ${memberCards}
               </div>
-              ${anyStatus !== 'finalizat' && anyStatus !== 'anulat' && anyStatus !== 'absent' && isPastGroup ? `
+              ${anyStatus !== 'finalizat' && anyStatus !== 'anulat' && anyStatus !== 'absent' && isStartedGroup ? `
                 <div class="pt-1 pb-1">
                   <button 
                     type="button" 

@@ -425,8 +425,13 @@
 
           // Fallback direct WhatsApp URL
           let cleanPhone = (this.currentPatientPhone || '').replace(/[^0-9]/g, '');
-          if (cleanPhone.startsWith('07')) {
-            cleanPhone = '4' + cleanPhone; // Romania prefix +40
+          // Normalizează numerele românești la format internațional fără '+':
+          // 07xx…→407xx…, 02xx…→402xx…, 0040…→40…; restul rămân neschimbate.
+          if (cleanPhone.startsWith('00')) {
+            cleanPhone = cleanPhone.slice(2);
+          }
+          if (cleanPhone.startsWith('0')) {
+            cleanPhone = '4' + cleanPhone;
           }
           const waUrl = cleanPhone 
             ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`

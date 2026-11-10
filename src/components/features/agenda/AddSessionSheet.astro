@@ -1,23 +1,5 @@
 ---
-const todayStr = new Date().toISOString().split('T')[0];
-
-// Generating upcoming work dates (Monday to Friday only)
-const upcomingDates: Array<{ value: string; displayDay: string; displayDate: number }> = [];
-let dayCounter = 0;
-while (upcomingDates.length < 14 && dayCounter < 30) {
-  const d = new Date();
-  d.setDate(d.getDate() + dayCounter);
-  const dayOfWeek = d.getDay();
-  // Include only working days: Monday (1) through Friday (5)
-  if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-    upcomingDates.push({
-      value: d.toISOString().split('T')[0],
-      displayDay: upcomingDates.length === 0 && dayCounter === 0 ? 'Azi' : d.toLocaleDateString('ro-RO', { weekday: 'short' }),
-      displayDate: d.getDate()
-    });
-  }
-  dayCounter++;
-}
+// Sheet de programare: creare / editare / editare grup.
 ---
 
 <div id="add-session-sheet" data-sheet-root class="fixed inset-0 z-[100] pointer-events-none">
@@ -82,7 +64,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
         <!-- Date/Time Selectors (Butoane Principale) -->
         <div id="date-time-selectors" class="space-y-3 pt-2">
-          <input type="hidden" name="selectedDate" id="selectedDate" value={todayStr} />
+          <input type="hidden" name="selectedDate" id="selectedDate" value="" />
           <input type="hidden" name="selectedTime" id="selectedTime" value="08:00" />
 
           <!-- Button 1: Alege Data -->
@@ -206,7 +188,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     <button type="button" id="date-picker-prev" class="w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center active:scale-95 transition-transform">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
     </button>
-    <h3 id="date-picker-month-year" class="text-lg font-extrabold tracking-tight">August 2026</h3>
+    <h3 id="date-picker-month-year" class="text-lg font-extrabold tracking-tight"></h3>
     <button type="button" id="date-picker-next" class="w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center active:scale-95 transition-transform">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
     </button>
@@ -249,9 +231,11 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 <script>
   import { getSettings } from '../../../lib/services/settingsService';
   import { lockBodyScroll, unlockBodyScroll } from '../../../utils/scrollLock';
+  import { toLocalISOString } from '../../../utils/date';
 
   import { getPatients } from '../../../lib/services/patientService';
   import { createAppointment, updateAppointment, deleteAppointment, getFutureDemand, wouldExceedSupply } from '../../../lib/services/appointmentService';
+  import { fetchOpenPackages } from '../../../lib/render/sessionCard';
   import { escapeHtml } from '../../../utils/html';
   import { EVENTS, emit } from '../../../lib/events';
 
@@ -301,10 +285,14 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       this.startY = 0;
       this.currentY = 0;
       this.settings = null;
+      // Data implicită e setată client-side, în fusul local (toISOString ar
+      // fi putut da ziua anterioară spre seară).
+      if (this.dateInput && !this.dateInput.value) {
+        this.dateInput.value = toLocalISOString(new Date());
+      }
       this.loadSettings();
 
       this.bindEvents();
-      this.bindDateTimeSelectors();
       this.bindDatePicker();
       this.bindCustomTimeModal();
       this.bindGroupLocation();
@@ -317,39 +305,10 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     async loadSettings() {
       try {
         this.settings = await getSettings();
-        this.populateDynamicContent();
+        this.populatePatients();
       } catch (e) {
         console.warn('Could not load settings in AddSessionSheet:', e);
       }
-    }
-
-    populateDynamicContent() {
-      // Populate time slots
-      const timeContainer = document.getElementById('time-slots-container');
-      if (timeContainer) {
-        timeContainer.innerHTML = '';
-        const workStartStr = this.settings?.work_start || '08:00';
-        const workEndStr   = this.settings?.work_end   || '20:00';
-
-        const startHour = parseInt(workStartStr.split(':')[0], 10) || 8;
-        const endHour   = parseInt(workEndStr.split(':')[0], 10)   || 20;
-        
-        let i = 0;
-        for (let h = startHour; h <= endHour; h++) {
-          ['00', '30'].forEach(m => {
-            if (h === endHour && m !== '00') return;
-            const timeStr = `${h.toString().padStart(2, '0')}:${m}`;
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.dataset.timeBtn = timeStr;
-            btn.className = `shrink-0 flex flex-col items-center justify-center px-2 py-1 transition-all duration-300 ${i === 0 ? 'text-brand-secondary' : 'text-black opacity-70 hover:opacity-100'}`;
-            btn.innerHTML = `<span class="text-xl font-extrabold">${timeStr}</span>`;
-            timeContainer.appendChild(btn);
-            i++;
-          });
-        }
-      }
-      this.populatePatients();
     }
 
     async populatePatients() {
@@ -410,7 +369,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
         // Re-bind change listeners for new radios/checkboxes
         const patientInputs = this.form?.querySelectorAll('input[name="patientId"]');
-        const settingsContainer = document.getElementById('settings-container');
 
         patientInputs?.forEach(input => {
           input.addEventListener('change', (e: any) => {
@@ -425,9 +383,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
                 const names = Array.from(checked).map(r => r.getAttribute('data-patient-name') || '').filter(Boolean);
                 searchInput.value = names.join(', ');
               }
-
-              settingsContainer?.classList.remove('hidden');
-              settingsContainer?.classList.add('flex');
             } else {
               // Mod individual: radio — un singur pacient
               if (e.target.checked) {
@@ -455,9 +410,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
                 }
 
                 if (patientList) patientList.style.gridTemplateRows = '0fr';
-
-                settingsContainer?.classList.remove('hidden');
-                settingsContainer?.classList.add('flex');
               }
             }
           });
@@ -465,117 +417,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       }
     }
 
-    updateCustomTimeDisplay(totalMinutes: number) {
-      const clamped = Math.max(360, Math.min(1320, totalMinutes));
-      const h = Math.floor(clamped / 60);
-      const m = clamped % 60;
-
-      this.currentHour = h;
-      this.currentMin = m;
-
-      const hourStr = h.toString().padStart(2, '0');
-      const minStr = m.toString().padStart(2, '0');
-      const fullTimeStr = `${hourStr}:${minStr}`;
-
-      const sliderTimeDisplay = document.getElementById('slider-time-display');
-      const badgePreview = document.getElementById('custom-time-badge-preview');
-      const displayTime = document.getElementById('display-selected-time');
-      const rangeSlider = document.getElementById('time-range-slider') as HTMLInputElement;
-
-      if (sliderTimeDisplay) sliderTimeDisplay.textContent = fullTimeStr;
-      if (badgePreview) badgePreview.textContent = fullTimeStr;
-      if (displayTime) displayTime.textContent = fullTimeStr;
-      if (rangeSlider) rangeSlider.value = clamped.toString();
-      if (this.timeInput) this.timeInput.value = fullTimeStr;
-
-      // Update minute chips highlighting
-      const minChips = document.querySelectorAll<HTMLButtonElement>('[data-min-chip]');
-      minChips.forEach(chip => {
-        if (chip.dataset.minChip === minStr) {
-          chip.classList.add('bg-black', 'text-white', 'border-black');
-          chip.classList.remove('bg-white', 'text-black', 'border-transparent');
-        } else {
-          chip.classList.remove('bg-black', 'text-white', 'border-black');
-          chip.classList.add('bg-white', 'text-black', 'border-transparent');
-        }
-      });
-    }
-    
-    bindDateTimeSelectors() {
-      const container = document.getElementById('date-time-selectors');
-      if (!container || container.dataset.addSessionDateTimeBound === 'true') return;
-      container.dataset.addSessionDateTimeBound = 'true';
-
-      const dateBtns = document.querySelectorAll<HTMLButtonElement>('[data-date-btn]');
-      const timeBtns = document.querySelectorAll<HTMLButtonElement>('[data-time-btn]');
-      const nativeDatePicker = document.getElementById('native-date-picker') as HTMLInputElement;
-      const otherDateBtn = document.getElementById('other-date-btn');
-
-      const nativeTimePicker = document.getElementById('native-time-picker') as HTMLInputElement;
-      const timeScrollLeftBtn = document.getElementById('time-scroll-left');
-      const timeSlotsContainer = document.getElementById('time-slots-container');
-
-      dateBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          dateBtns.forEach(b => {
-            b.classList.remove('text-brand-secondary');
-            b.classList.add('text-black', 'opacity-70');
-          });
-          
-          if (otherDateBtn) {
-             otherDateBtn.classList.remove('text-brand-secondary');
-             otherDateBtn.classList.add('text-black');
-          }
-          
-          btn.classList.add('text-brand-secondary');
-          btn.classList.remove('text-black', 'opacity-70');
-          
-          if (this.dateInput) this.dateInput.value = btn.dataset.dateBtn || '';
-          
-          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        });
-      });
-      
-      if (nativeDatePicker && otherDateBtn) {
-         // Nu mai e nevoie de schimbat selectedVal pt nativeDatePicker (date picker e custom sheet momentan pt alte zile, 
-         // dar dacă se folosește native-date-picker, păstrăm logica)
-         nativeDatePicker.addEventListener('change', (e: any) => {
-             const selectedVal = e.target.value;
-             if (!selectedVal) return;
-             
-             dateBtns.forEach(b => {
-                b.classList.remove('text-brand-secondary');
-                b.classList.add('text-black', 'opacity-70');
-             });
-             
-             otherDateBtn.classList.add('text-brand-secondary');
-             otherDateBtn.classList.remove('text-black');
-             
-             if (this.dateInput) this.dateInput.value = selectedVal;
-             
-             otherDateBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-         });
-      }
-
-      otherDateBtn?.addEventListener('click', () => {
-        this.openDatePicker();
-      });
-
-      // ---- TIME SELECTORS LOGIC ----
-      
-      timeScrollLeftBtn?.addEventListener('click', () => {
-        if (timeSlotsContainer) {
-          timeSlotsContainer.scrollBy({ left: -100, behavior: 'smooth' });
-        }
-      });
-
-      timeBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          this.selectTime(btn.dataset.timeBtn || '08:00');
-        });
-      });
-    }
-    
     selectDate(dateStr: string) {
       if (!dateStr || !this.dateInput) return;
       const parsed = new Date(dateStr + 'T00:00:00');
@@ -716,7 +557,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Monday-first
 
       const selectedValue = this.dateInput?.value;
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = toLocalISOString(new Date());
 
       grid.innerHTML = '';
 
@@ -789,7 +630,11 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     renderTimeGrids() {
       const hoursGrid = document.getElementById('session-hours-grid');
       const minutesGrid = document.getElementById('session-minutes-grid');
-      const hoursList = ['08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23'];
+      // Orele din settings (work_start..work_end), nu un interval hardcodat.
+      const startHour = parseInt((this.settings?.work_start || '08:00').split(':')[0], 10) || 8;
+      const endHour = parseInt((this.settings?.work_end || '20:00').split(':')[0], 10) || 20;
+      const hoursList: string[] = [];
+      for (let h = startHour; h <= endHour; h++) hoursList.push(String(h).padStart(2, '0'));
       const minutesList = ['00','15','30','45'];
 
       if (hoursGrid) {
@@ -852,15 +697,11 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       if (!modal || modal.dataset.addSessionTimeModalBound === 'true') return;
       modal.dataset.addSessionTimeModalBound = 'true';
 
-      const btnOpen = document.getElementById('btn-open-session-time');
       const btnTimeSheet = document.getElementById('btn-trigger-time-sheet');
       const btnConfirm = document.getElementById('btn-confirm-session-time');
 
       const closeModal = () => (window as any).currentAddSessionSheetManager?.closeCustomTimeModal();
 
-      if (btnOpen) {
-        btnOpen.addEventListener('click', () => (window as any).currentAddSessionSheetManager?.openCustomTimeModal());
-      }
       if (btnTimeSheet) {
         btnTimeSheet.addEventListener('click', (e) => {
           e.preventDefault();
@@ -977,17 +818,33 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
     // depășesc ședințele rămase în pachet. Returnează false dacă utilizatorul renunță.
     // Popup mic la programare: pachet epuizat → 3 opțiuni.
     // 'proceed' = reînnoit cu aceleași setări sau fără reînnoire; 'abort' = anulat.
+    // Sursa de adevăr pentru X/Y e pachet_curent (ca pe carduri), cu fallback pe
+    // coloanele pacientului — altfel popup-ul de reînnoire putea apărea (sau nu)
+    // în dezacord cu marcajul „Abonament terminat" de pe timeline.
+    private async getPackageUsage(pid: string): Promise<{ total: number; used: number }> {
+      const p = this.patientsCache.find(x => x.id === pid);
+      let total = Number(p?.sedinte_total || 0);
+      let used = Number(p?.sedinte_folosite || 0);
+      try {
+        const pkg = (await fetchOpenPackages([pid])).get(pid);
+        if (pkg) {
+          total = Number(pkg.nr_sedinte) || 0;
+          used = Number(pkg.sedinte_folosite) || 0;
+        }
+      } catch (e) {}
+      return { total, used };
+    }
+
     private askRenewIfExhausted(pid: string): Promise<'proceed' | 'abort'> {
       const p = this.patientsCache.find(x => x.id === pid);
       if (!p) return Promise.resolve('proceed');
       const plan = (p as any).plan || '';
       const isSingle = plan === 'One Time' || plan === 'Ședință unică';
       if (isSingle || (p as any).nu_reinnoi === true) return Promise.resolve('proceed');
-      const total = Number(p.sedinte_total || 0);
-      const used = Number(p.sedinte_folosite || 0);
-      if (total <= 0 || used < total) return Promise.resolve('proceed');
+      return this.getPackageUsage(pid).then(({ total, used }) => {
+        if (total <= 0 || used < total) return 'proceed';
 
-      return new Promise((resolve) => {
+        return new Promise((resolve) => {
         const popup = document.getElementById('renew-mini-popup');
         const text = document.getElementById('renew-mini-text');
         const nume = (p as any).name || `${(p as any).prenume || ''} ${(p as any).nume || ''}`.trim() || 'Pacient';
@@ -1041,6 +898,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         setupBtn?.addEventListener('click', onSetup);
         noBtn?.addEventListener('click', onNo);
         backdrop?.addEventListener('click', onNo);
+        });
       });
     }
 
@@ -1048,14 +906,15 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       try {
         const p = this.patientsCache.find(x => x.id === pid);
         if (!p) return true;
-        const total = Number(p.sedinte_total || 0);
+        const { total, used } = await this.getPackageUsage(pid);
         if (total <= 0) return true;
         const demand = await getFutureDemand(pid);
-        if (wouldExceedSupply({ sedinte_total: total, sedinte_folosite: Number(p.sedinte_folosite || 0) }, demand + 1)) {
-          const ramase = total - Number(p.sedinte_folosite || 0);
+        if (wouldExceedSupply({ sedinte_total: total, sedinte_folosite: used }, demand + 1)) {
+          const ramase = total - used;
           const nume = (p as any).name || `${(p as any).prenume || ''} ${(p as any).nume || ''}`.trim() || 'Pacient';
-          return window.confirm(
-            `${nume}: mai sunt ${ramase} ședințe în pachet, dar deja sunt ${demand} programate (aceasta ar fi a ${demand + 1}-a).\n\nProgramezi oricum? Excesul va fi marcat „în afara pachetului".`
+          return (window as any).showConfirm(
+            'În afara pachetului',
+            `${nume}: mai sunt ${ramase} ședințe în pachet, dar deja sunt ${demand} programate (aceasta ar fi a ${demand + 1}-a). Programezi oricum? Excesul va fi marcat „în afara pachetului".`
           );
         }
       } catch (e) {
@@ -1078,7 +937,7 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const dateVal = (document.getElementById('selectedDate') as HTMLInputElement)?.value;
 
       const selectedTime = timeVal || (formData?.get('selectedTime') as string) || '08:00';
-      const selectedDate = dateVal || (formData?.get('selectedDate') as string) || new Date().toISOString().split('T')[0];
+      const selectedDate = dateVal || (formData?.get('selectedDate') as string) || toLocalISOString(new Date());
 
       const patientIds = this.isGroupSession
         ? this.selectedPatientIds
@@ -1111,8 +970,9 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
 
       const isLunchOverlap = (sessionStartMin < lunchEndMin) && (sessionEndMin > lunchStartMin);
       if (isLunchOverlap) {
-        const proceed = window.confirm(
-          `Ora ${selectedTime} se suprapune cu pauza de masă (${lunchStart} - ${lunchEnd}).\n\nDorești să programezi oricum?`
+        const proceed = await (window as any).showConfirm(
+          'Suprapunere cu pauza de masă',
+          `Ora ${selectedTime} se suprapune cu pauza de masă (${lunchStart} - ${lunchEnd}). Dorești să programezi oricum?`
         );
         if (!proceed) return;
       }
@@ -1196,16 +1056,25 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
           const groupLocInput = document.getElementById('groupLocation') as HTMLInputElement | null;
           const groupLocation = (groupLocInput?.value || 'Belaqva') as 'Belaqva' | 'Ghimbav';
 
-          for (const pid of patientIds) {
-            const p = this.patientsCache.find(x => x.id === pid);
-            const locatie = this.isGroupSession ? groupLocation : (p?.locatie || 'Belaqva');
-            await createAppointment({
-              pacient_id: pid,
-              data: selectedDate,
-              ora: selectedTime,
-              locatie: locatie as 'Belaqva' | 'Ghimbav',
-              group_id: groupId,
-            });
+          const createdIds: string[] = [];
+          try {
+            for (const pid of patientIds) {
+              const p = this.patientsCache.find(x => x.id === pid);
+              const locatie = this.isGroupSession ? groupLocation : (p?.locatie || 'Belaqva');
+              const newId = await createAppointment({
+                pacient_id: pid,
+                data: selectedDate,
+                ora: selectedTime,
+                locatie: locatie as 'Belaqva' | 'Ghimbav',
+                group_id: groupId,
+              });
+              createdIds.push(newId);
+            }
+          } catch (createErr) {
+            // Rollback best-effort: la ședințele în grup o eroare la jumătate
+            // ar lăsa un grup parțial programat.
+            await Promise.all(createdIds.map(id => deleteAppointment(id).catch(() => {})));
+            throw createErr;
           }
 
           if (this.isGroupSession && patientIds.length > 1) {
@@ -1235,15 +1104,15 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       const timeStr = detail.time || session?.selectedTime || '08:00';
       const dateStr = detail.date || session?.selectedDate;
       const patientName = detail.patientName || session?.patientName;
-      let effectiveDate = dateStr || (window as any).currentCalendarDate || new Date().toISOString().split('T')[0];
+      let effectiveDate = dateStr || (window as any).currentCalendarDate || toLocalISOString(new Date());
       const effDateObj = new Date(effectiveDate + 'T00:00:00');
       if (!isNaN(effDateObj.getTime())) {
         if (effDateObj.getDay() === 6) { // Saturday -> Monday
           effDateObj.setDate(effDateObj.getDate() + 2);
-          effectiveDate = effDateObj.toISOString().split('T')[0];
+          effectiveDate = toLocalISOString(effDateObj);
         } else if (effDateObj.getDay() === 0) { // Sunday -> Monday
           effDateObj.setDate(effDateObj.getDate() + 1);
-          effectiveDate = effDateObj.toISOString().split('T')[0];
+          effectiveDate = toLocalISOString(effDateObj);
         }
       }
 
@@ -1314,7 +1183,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       // Reset patient selector state
       const pList = document.getElementById('patient-list');
       const searchInput = document.getElementById('search-patient-input') as HTMLInputElement;
-      const settingsContainer = document.getElementById('settings-container');
 
       const patientRadios = this.form?.querySelectorAll('input[name="patientId"]') as NodeListOf<HTMLInputElement>;
       patientRadios?.forEach(r => r.checked = false);
@@ -1334,17 +1202,6 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
       if (!patientName) {
         if (searchInput) searchInput.value = '';
         if (pList) pList.style.gridTemplateRows = '0fr';
-        if (settingsContainer) {
-          settingsContainer.classList.add('hidden');
-          settingsContainer.classList.remove('flex');
-        }
-      }
-
-      if (isEdit && session) {
-        const recurringCb = this.form?.querySelector('input[name="recurring"]') as HTMLInputElement;
-        const reminderCb = this.form?.querySelector('input[name="reminder"]') as HTMLInputElement;
-        if (recurringCb) recurringCb.checked = !!session.recurring;
-        if (reminderCb) reminderCb.checked = !!session.reminder;
       }
 
       // Open the sheet immediately for smooth feedback
@@ -1511,14 +1368,26 @@ while (upcomingDates.length < 14 && dayCounter < 30) {
         this.groupEditMembers = [];
         this.groupEditMemberCount = 0;
         this.groupEditGroupId = null;
+        // Resetează complet și modul grup — altfel rămâne activ (checkboxuri,
+        // selector de locație, label) la următoarea deschidere a sheet-ului.
+        this.isGroupSession = false;
+        this.selectedPatientIds = [];
+        this.selectedPatientId = null;
         const subscriptionWarning = document.getElementById('patient-subscription-warning');
         if (subscriptionWarning) subscriptionWarning.classList.add('hidden');
         const groupEditNotice = document.getElementById('group-edit-notice');
         const patientSearchWrap = document.getElementById('search-patient-input')?.parentElement;
         const groupToggleBtn = document.getElementById('btn-group-session-toggle');
+        const groupToggleLabel = document.getElementById('group-toggle-label');
         if (groupEditNotice) groupEditNotice.classList.add('hidden');
         if (patientSearchWrap) patientSearchWrap.classList.remove('hidden');
-        if (groupToggleBtn) groupToggleBtn.classList.remove('hidden');
+        if (groupToggleBtn) {
+          groupToggleBtn.classList.remove('hidden');
+          groupToggleBtn.className = 'w-full px-6 py-3.5 rounded-2xl border-2 border-dashed border-neutral-200 bg-transparent text-sm font-bold text-neutral-600 flex items-center justify-center gap-2 transition-all active:scale-[0.98]';
+        }
+        if (groupToggleLabel) groupToggleLabel.textContent = 'Adaugă ca ședință în grup';
+        const locSelector = document.getElementById('group-location-selector');
+        if (locSelector) locSelector.classList.add('hidden');
       }, 500);
     }
 

@@ -4,6 +4,8 @@ Full map of every interactive element (buttons, inputs, links, sheets, gestures)
 
 Generated: 2026-11-10 · Method: per-element code trace + mental flow/edge-case testing (no live browser run).
 
+> **Status (2026-11-10):** all issues below were fixed in the follow-up commit "Fix all UI audit findings" and deployed, except those explicitly marked SKIP (intentional single-client design: signup stub, `/` gateway stub, per-instance rate-limit ceiling) and items noted as deferred by section.
+
 ## Consolidated issue index (quick view)
 
 ### High severity

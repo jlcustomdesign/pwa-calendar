@@ -151,7 +151,12 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'CLEAR_CACHES') {
     event.waitUntil(
       caches.keys().then((cacheNames) => {
-        return Promise.all(cacheNames.map((name) => caches.delete(name)));
+        // Ca la activate: doar cache-urile vechi — cache-ul curent rămâne activ.
+        return Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => caches.delete(name))
+        );
       }).then(() => {
         event.source?.postMessage({ type: 'CACHES_CLEARED' });
       })
@@ -168,7 +173,15 @@ self.addEventListener('notificationclick', (event) => {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if (client.url.includes('/dashboard') && 'focus' in client) {
-          return client.focus();
+          client.focus();
+          // Deep-link: navigate the focused window to the notification's URL
+          // (start/end reminders point to /dashboard/calendar).
+          try {
+            if ('navigate' in client && new URL(client.url).pathname !== urlToOpen) {
+              client.navigate(urlToOpen);
+            }
+          } catch (e) { /* focus only */ }
+          return;
         }
       }
       if (self.clients.openWindow) {

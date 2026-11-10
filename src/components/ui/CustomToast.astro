@@ -156,9 +156,10 @@
       return Promise.resolve(fallback);
     }
 
-    // Guard against overlapping showConfirm() calls: close any already-open modal
+    // Guard against overlapping showConfirm() calls: ignore the new request while
+    // one is open — force-closing would silently abort a pending user decision.
     if (activeConfirmCleanup) {
-      closeCurrentConfirm(false);
+      return Promise.resolve(false);
     }
 
     if (titleEl) titleEl.textContent = title;

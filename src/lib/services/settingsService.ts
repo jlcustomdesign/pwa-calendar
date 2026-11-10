@@ -3,6 +3,7 @@
  * Folosit în: SettingsView.astro
  */
 import { supabase } from '../supabase';
+import { EVENTS, emit } from '../events';
 import type { Settings } from '../database.types';
 
 export interface PricingPreset {
@@ -14,9 +15,9 @@ export interface PricingPreset {
 }
 
 const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
-  therapist_name: 'Roxana',
+  therapist_name: '',
   work_start: '08:00',
-  work_end: '18:00',
+  work_end: '19:00',
   lunch_start: '13:00',
   lunch_end: '14:00',
   session_duration: 50,
@@ -24,8 +25,8 @@ const DEFAULT_SETTINGS: Settings & { pricing_presets?: PricingPreset[] } = {
   zile_lucratoare: [1, 2, 3, 4, 5],
   default_price: 150,
   default_total_sessions: 10,
-  categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'],
-  active_categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați'],
+  categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați', 'Expirați'],
+  active_categories: ['Belaqva', 'Ghimbav', 'Neachitați', 'Achitați', 'Expirați'],
   lunch_breaks: {},
 } as any;
 
@@ -72,8 +73,8 @@ export async function getSettings(): Promise<Settings> {
       ...data,
       work_start: (data.work_start || '08:00').substring(0, 5),
       work_end: (data.work_end || '18:00').substring(0, 5),
-      lunch_start: (data.lunch_start || '12:00').substring(0, 5),
-      lunch_end: (data.lunch_end || '12:30').substring(0, 5),
+      lunch_start: (data.lunch_start || '13:00').substring(0, 5),
+      lunch_end: (data.lunch_end || '14:00').substring(0, 5),
     };
 
     if (typeof window !== 'undefined') {
@@ -188,6 +189,8 @@ export async function saveProfile(updates: {
   }
 
   // 2. Salvare și în user_metadata Supabase Auth (garanție dublă de persistență)
+  let emailChanged = false;
+  let emailError: string | undefined;
   try {
     const authUpdatePayload: any = {
       data: {
@@ -199,9 +202,15 @@ export async function saveProfile(updates: {
     };
     if (updates.email && updates.email.trim() && updates.email.trim() !== user.email) {
       authUpdatePayload.email = updates.email.trim();
+      emailChanged = true;
     }
-    await supabase.auth.updateUser(authUpdatePayload);
+    const { error: authUpdateError } = await supabase.auth.updateUser(authUpdatePayload);
+    if (authUpdateError) {
+      emailError = authUpdateError.message;
+      console.warn('Actualizare profil în auth metadata:', authUpdateError.message);
+    }
   } catch (authErr: any) {
+    emailError = authErr?.message;
     console.warn('Actualizare profil în auth metadata:', authErr?.message);
   }
 
@@ -223,7 +232,7 @@ export async function saveProfile(updates: {
     } catch (e) {}
   }
 
-  return fullProfile;
+  return { ...fullProfile, email_changed: emailChanged, email_error: emailError };
 }
 
 // ── Citire profil terapeut ─────────────────────────────────────

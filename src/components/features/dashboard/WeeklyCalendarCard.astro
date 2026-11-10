@@ -159,6 +159,8 @@ for (const week of allWeeksFlat) {
 }
 
 const currentMonthData = allMonths.find(m => m.isCurrentMonth);
+const currentMonthNum = now.getMonth() + 1;
+const currentYearNum = now.getFullYear();
 
 const serverDate = new Date();
 let initialDate = serverDate;
@@ -183,7 +185,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
   <div class="flex flex-col gap-1 mb-6 relative z-10">
     <div class="flex items-center justify-between">
       <span id="header-date-suffix" class="text-2xl sm:text-3xl font-black text-black tracking-tight whitespace-nowrap">{initialDateNumMonthYear}</span>
-      <button id="calendar-expand-btn" aria-label="Comută vizualizarea lunii" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm z-30">
+      <button id="calendar-expand-btn" aria-label="Comută vizualizarea lunii" aria-expanded="false" class="w-11 h-11 rounded-full bg-brand-primary text-black flex items-center justify-center active:scale-95 transition-transform shrink-0 shadow-sm z-30">
         <svg class="w-5 h-5 transition-transform duration-500 ease-in-out" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
           </svg>
@@ -230,8 +232,9 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                 data-month={item.monthNum}
                 data-year={item.year}
                 data-date={item.date}
-                data-is-current-month="true"
+                data-is-current-month={item.monthNum === currentMonthNum && item.year === currentYearNum ? "true" : "false"}
                 data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
+                aria-label={`${item.fullDay}, ${item.date} ${item.shortMonthName} ${item.year}`}
                 class={`relative z-20 flex flex-col items-center justify-center w-14 h-12 mx-auto rounded-2xl transition-colors duration-300 ${
                   item.active
                     ? "text-black font-bold"
@@ -287,6 +290,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                       data-date={item.date}
                       data-is-current-month={isCurrentMonth ? "true" : "false"}
                       data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
+                      aria-label={`${item.fullDay}, ${item.date} ${item.shortMonthName} ${item.year}`}
                       class={`relative z-20 flex flex-col items-center justify-center w-14 h-[46px] mx-auto rounded-2xl transition-colors duration-300 ${
                         item.active
                           ? "text-black font-bold"
@@ -346,6 +350,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                       data-date={item.date}
                       data-is-current-month={isCurrentMonth ? "true" : "false"}
                       data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
+                      aria-label={`${item.fullDay}, ${item.date} ${item.shortMonthName} ${item.year}`}
                       class={`relative z-20 flex flex-col items-center justify-center w-14 h-[46px] mx-auto rounded-2xl transition-colors duration-300 ${
                         item.active
                           ? "text-black font-bold"
@@ -405,6 +410,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
                       data-date={item.date}
                       data-is-current-month={isCurrentMonth ? "true" : "false"}
                       data-full-date={`${item.fullDay}, ${item.shortMonthName} ${item.date}`}
+                      aria-label={`${item.fullDay}, ${item.date} ${item.shortMonthName} ${item.year}`}
                       class={`relative z-20 flex flex-col items-center justify-center w-14 h-[46px] mx-auto rounded-2xl transition-colors duration-300 ${
                         item.active
                           ? "text-black font-bold"
@@ -759,10 +765,6 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       const y = button.getAttribute("data-year");
       const m = button.getAttribute("data-month");
       const d = button.getAttribute("data-date");
-      const fullDate = button.getAttribute("data-full-date");
-
-      const headerText = document.getElementById("calendar-selected-date");
-      if (headerText && fullDate) headerText.textContent = fullDate;
 
       const headerSuffix = document.getElementById("header-date-suffix");
       if (headerSuffix && y && m && d) {
@@ -825,7 +827,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
       if (y && m && d) {
         const dateStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
         (window as any).currentCalendarDate = dateStr;
-        localStorage.setItem('selectedCalendarDate', `${y}-${m}-${d}`);
+        localStorage.setItem('selectedCalendarDate', dateStr);
         emit(EVENTS.calendarDateSelected, { date: dateStr });
       }
 
@@ -863,7 +865,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
             return;
           }
         }
-        const d = new Date(parseInt(y || "2026", 10), mNum - 1, 1);
+        const d = new Date(parseInt(y || String(new Date().getFullYear()), 10), mNum - 1, 1);
         const mName = d.toLocaleString('ro-RO', { month: 'long' });
         monthYearLabel.textContent = `${mName.charAt(0).toUpperCase() + mName.slice(1)} ${y}`;
       }
@@ -930,6 +932,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
       isExpanded = !isExpanded;
       card.dataset.expanded = isExpanded ? "true" : "false";
+      expandBtn.setAttribute("aria-expanded", isExpanded ? "true" : "false");
 
       const icon = expandBtn.querySelector("svg");
       if (icon) {
@@ -1000,7 +1003,10 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
 
     requestAnimationFrame(() => {
       const savedDate = localStorage.getItem('selectedCalendarDate');
-      const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
+      // Aceeași sursă de "azi" ca la SSR (Europe/Bucharest), ca restaurarea să
+      // compare mereu cu ziua afișată de calendar.
+      const bootNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Bucharest" }));
+      const todayStr = bootNow.getFullYear() + '-' + String(bootNow.getMonth() + 1).padStart(2, '0') + '-' + String(bootNow.getDate()).padStart(2, '0');
       let activeBtn = getVisibleActiveButton();
 
       if (savedDate && savedDate === todayStr) {
@@ -1009,7 +1015,7 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
           const m = b.getAttribute("data-month");
           const d = b.getAttribute("data-date");
           if (!y || !m || !d) return false;
-          const dateStr = `${y}-${(parseInt(m)+1).toString().padStart(2, '0')}-${d.padStart(2, '0')}`;
+          const dateStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
           return dateStr === savedDate;
         });
         if (targetBtn) {
@@ -1079,7 +1085,11 @@ const initialDateNumMonthYear = `${initialDayName}, ${initialDate.getDate()} ${f
     function handleWeeksScroll() {
       if (isProgrammaticScroll) return;
       if (scrollTimer) clearTimeout(scrollTimer);
+      const frozenScrollLeft = weeksStrip.scrollLeft;
       scrollTimer = window.setTimeout(() => {
+        // Selectează abia după ce glisarea s-a oprit — altcum alege o săptămână
+        // intermediară în timpul animației de snap.
+        if (weeksStrip.scrollLeft !== frozenScrollLeft) return;
         const allWeeks = Array.from(weeksStrip.querySelectorAll<HTMLElement>(".week-section"));
         if (allWeeks.length === 0) return;
 

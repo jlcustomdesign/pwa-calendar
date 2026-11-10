@@ -141,6 +141,8 @@
     private currentPatientId: string | null = null;
     private previousAmount: number = 0;
     private patientCost: number = 0;
+    private alreadyPaid: number = 0;
+    private pendingSessionId: string | null = null;
     private isOpen = false;
     private suppressNextClick = false;
     private touchStartForSuppression: number | null = null;
@@ -304,7 +306,7 @@
         e.stopPropagation();
         const action = actionEl.dataset.payAction;
         if (action === 'pay-session') {
-          this.handlePaySession(actionEl.dataset.session || '', Number(actionEl.dataset.amount || 0));
+          this.handlePaySession(actionEl.dataset.session || '');
         } else if (action === 'del-session-payments') {
           this.handleDeletePlati((actionEl.dataset.ids || '').split(',').filter(Boolean));
         } else if (action === 'pay-package') {
@@ -370,33 +372,38 @@
       }
     }
     
-    private async showCustomView() {
+    private async showCustomView(sessionId?: string) {
       if (!this.currentPatientId || !this.optionsView || !this.customView) return;
 
       try {
         const patient = await getPatient(this.currentPatientId);
         this.patientCost = patient.cost || 0;
+        this.alreadyPaid = Number((patient as any).suma_incasata || 0);
       } catch (e) {
         this.patientCost = 0;
+        this.alreadyPaid = 0;
       }
 
       this.previousAmount = 0;
+      this.pendingSessionId = sessionId || null;
 
       // Update UI text
       if (this.customLabel) {
-        this.customLabel.textContent = 'Introdu suma achitată:';
+        this.customLabel.textContent = sessionId
+          ? 'Introdu suma plătită pentru ședință:'
+          : 'Introdu suma achitată:';
       }
       if (this.subtitleText) {
-        this.subtitleText.textContent = 'Suma parțială';
+        this.subtitleText.textContent = sessionId ? 'Plată ședință' : 'Suma parțială';
       }
 
       // Swap views
       this.optionsView.classList.add('hidden');
       this.customView.classList.remove('hidden');
 
-      // Focus input
+      // Focus input; pentru ședință precompletăm cu prețul curent (dacă există)
       if (this.customInput) {
-        this.customInput.value = '';
+        this.customInput.value = sessionId && this.patientCost > 0 ? String(this.patientCost) : '';
         setTimeout(() => this.customInput?.focus(), 100);
       }
     }
@@ -404,20 +411,44 @@
     private async handleCustomConfirm() {
       if (!this.customInput || !this.currentPatientId) return;
 
-      const amountStr = this.customInput.value;
-      if (amountStr !== null && amountStr.trim() !== '') {
-        const parsed = parseInt(amountStr, 10);
-        if (!isNaN(parsed) && parsed > 0) {
-          try {
-            await addPayment(this.currentPatientId, parsed, false);
-            emit(EVENTS.patientsUpdated);
-            emit(EVENTS.sessionsUpdated);
-            emit(EVENTS.paymentsUpdated, { patientId: this.currentPatientId });
-            this.close();
-          } catch (err: any) {
-            (window as any).showToast('Eroare la adăugarea plății: ' + (err.message || err), 'error');
-          }
+      const amountStr = this.customInput.value.trim();
+      if (amountStr === '') {
+        (window as any).showToast('Introdu suma plătită pentru a continua.', 'warning');
+        return;
+      }
+      const parsed = Math.round(Number(amountStr) * 100) / 100;
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        (window as any).showToast('Sumă invalidă. Introdu un număr pozitiv.', 'error');
+        return;
+      }
+
+      // Plățile pe pachet: avertizăm la depășirea restului, fără a bloca intenția
+      if (!this.pendingSessionId) {
+        const remaining = Math.max(0, this.patientCost - this.alreadyPaid);
+        if (this.patientCost > 0 && parsed > remaining) {
+          const ok = await (window as any).showConfirm(
+            'Sumă mai mare decât restul',
+            `Restul de plată este ${remaining} RON. Vrei să înregistrezi ${parsed} RON oricum?`
+          );
+          if (!ok) return;
         }
+      }
+
+      try {
+        if (this.pendingSessionId) {
+          await addPayment(this.currentPatientId, parsed, false, this.pendingSessionId);
+          this.pendingSessionId = null;
+          this.refreshAfterPaymentChange('Ședința a fost marcată ca plătită.');
+          this.resetView();
+        } else {
+          await addPayment(this.currentPatientId, parsed, false);
+          emit(EVENTS.patientsUpdated);
+          emit(EVENTS.sessionsUpdated);
+          emit(EVENTS.paymentsUpdated, { patientId: this.currentPatientId });
+          this.close();
+        }
+      } catch (err: any) {
+        (window as any).showToast('Eroare la adăugarea plății: ' + (err.message || err), 'error');
       }
     }
     
@@ -455,18 +486,17 @@
       this.loadPatientFinancials();
     }
 
-    private async handlePaySession(programareId: string, amount: number) {
-      if (!this.currentPatientId || !programareId || amount <= 0) return;
-      try {
-        await addPayment(this.currentPatientId, amount, false, programareId);
-        this.refreshAfterPaymentChange('Ședința a fost marcată ca plătită.');
-      } catch (err: any) {
-        (window as any).showToast('Eroare: ' + (err?.message || err), 'error');
-      }
+    private handlePaySession(programareId: string) {
+      if (!this.currentPatientId || !programareId) return;
+      // Suma se cere explicit în view-ul de sumă custom: ședințele vechi nu se mai
+      // marchează automat la prețul curent al pacientului
+      this.showCustomView(programareId);
     }
 
     private async handleDeletePlati(ids: string[]) {
       if (!this.currentPatientId || ids.length === 0) return;
+      const confirmed = await (window as any).showConfirm('Ștergere plată', 'Sigur dorești să ștergi plata acestei ședințe?');
+      if (!confirmed) return;
       try {
         for (const id of ids) await deletePlata(id);
         this.refreshAfterPaymentChange('Plata ședinței a fost ștearsă.');
@@ -489,6 +519,8 @@
 
     private async handleDeletePackagePlati(abonamentId: string) {
       if (!this.currentPatientId || !abonamentId) return;
+      const confirmed = await (window as any).showConfirm('Marchează neachitat', 'Toate plățile acestui pachet vor fi șterse. Continui?');
+      if (!confirmed) return;
       try {
         await deletePackagePlati(abonamentId);
         this.refreshAfterPaymentChange('Pachetul a fost marcat ca neachitat.');
@@ -499,6 +531,11 @@
 
     private async handleResetPayment() {
       if (!this.currentPatientId) return;
+      const confirmed = await (window as any).showConfirm(
+        'Resetare plăți',
+        'Toate plățile pachetului deschis vor fi șterse. Istoricul pachetelor închise se păstrează. Continui?'
+      );
+      if (!confirmed) return;
       try {
         await resetPayments(this.currentPatientId);
         (window as any).showToast('Plățile pacientului au fost resetate.', 'info');
@@ -519,6 +556,7 @@
       if (this.subtitleText) {
         this.subtitleText.textContent = 'Selectează modalitatea de plată';
       }
+      this.pendingSessionId = null;
       if (this.customInput) {
         this.customInput.value = '';
       }
@@ -721,7 +759,7 @@
                         <div class="pt-2 flex gap-2">
                           ${s.platit > 0
                             ? `<button type="button" data-pay-action="del-session-payments" data-ids="${s.plati_ids.join(',')}" class="flex-1 py-2 rounded-xl bg-rose-50 text-rose-700 text-[11px] font-black active:scale-[0.98] transition-transform cursor-pointer">Șterge plata</button>`
-                            : `<button type="button" data-pay-action="pay-session" data-session="${s.programare_id}" data-amount="${cost}" class="flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-black active:scale-[0.98] transition-transform cursor-pointer">Marchează plătită (${cost} RON)</button>`}
+                            : `<button type="button" data-pay-action="pay-session" data-session="${s.programare_id}" class="flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-black active:scale-[0.98] transition-transform cursor-pointer">${cost > 0 ? `Marchează plătită (${cost} RON)` : 'Marchează plătită…'}</button>`}
                         </div>` : ''}
                       </div>
                     `;

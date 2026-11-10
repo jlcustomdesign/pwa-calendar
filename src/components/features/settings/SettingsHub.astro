@@ -12,7 +12,7 @@
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3.5">
         <div id="settings-profile-avatar" class="w-12 h-12 rounded-full bg-brand-secondary text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-brand-secondary/25 shrink-0">
-          RV
+          P
         </div>
         <h3 id="settings-profile-name" class="text-xl font-bold text-text-main group-hover:text-brand-secondary transition-colors">Profil</h3>
       </div>
@@ -203,9 +203,31 @@
     if (logoutBtn && logoutBtn.dataset.settingsHubBound !== 'true') {
       logoutBtn.dataset.settingsHubBound = 'true';
       logoutBtn.addEventListener('click', async () => {
+        // Ștergem mai întâi abonamentul push al dispozitivului din DB (neautentificat,
+        // DELETE-ul ar returna 401) — altfel rămâne o înregistrare orfană.
+        try {
+          const reg = await navigator.serviceWorker?.ready;
+          const sub = await reg?.pushManager?.getSubscription();
+          if (sub) {
+            await fetch('/api/push-subscribe', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ endpoint: sub.endpoint }),
+            });
+          }
+        } catch (e) {}
         try {
           await logout();
-        } catch (e) {}
+        } catch (e) {
+          // Offline sau eroare de rețea: signOut nu a putut șterge sesiunea,
+          // deci o eliminăm manual — altfel utilizatorul ar rămâne de fapt
+          // autentificat după redirect (tokenul sb-* supraviețuiește).
+          try {
+            Object.keys(localStorage)
+              .filter((key) => key.startsWith('sb-'))
+              .forEach((key) => localStorage.removeItem(key));
+          } catch (e) {}
+        }
         // Curățăm datele locale indiferent dacă logout-ul a reușit sau nu.
         try {
           Object.keys(localStorage)
@@ -231,12 +253,15 @@
           const keys = await caches.keys();
           await Promise.all(keys.map((k) => caches.delete(k)));
         }
-        // 3. Clear localStorage except critical auth data
-        const authToken = localStorage.getItem('sb-dlklegayibhgnrxnqapm-auth-token');
+        // 3. Clear localStorage but preserve Supabase session keys — matched
+        //    by shape (sb-*-auth-token), not by hardcoded project ref.
+        const authEntries = Object.keys(localStorage)
+          .filter((key) => /^sb-.+-auth-token$/.test(key))
+          .map((key) => [key, localStorage.getItem(key)] as [string, string | null]);
         localStorage.clear();
-        if (authToken) {
-          localStorage.setItem('sb-dlklegayibhgnrxnqapm-auth-token', authToken);
-        }
+        authEntries.forEach(([key, value]) => {
+          if (value !== null) localStorage.setItem(key, value);
+        });
       } catch (e) {
         console.error('Eroare la ștergerea cache-ului:', e);
       } finally {

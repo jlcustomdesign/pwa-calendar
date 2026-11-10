@@ -3,7 +3,6 @@
  * Folosit în: ReportsView.astro
  */
 import { supabase, getCurrentUser } from '../supabase';
-import type { IstericSaptamanal } from '../database.types';
 import { toLocalISOString } from '../../utils/date';
 
 interface PaymentRecord {
@@ -27,7 +26,9 @@ async function fetchAllEffectivePayments(startStr?: string, endStr?: string): Pr
       data_platii: (p.data_platii || '').split('T')[0]
     }));
 
-    // Căutăm pacienții cu `achitat = true` care nu au încă rânduri în tabela `plati`
+    // Fallback legacy: pacienții cu `achitat = true` care nu au NICIODATĂ rânduri în `plati`.
+    // Verificarea e globală (nu doar pe intervalul curent) — altfel costul pachetului
+    // s-ar adăuga din nou peste plățile reale și s-ar dubla încasările.
     const patientsWithPlati = new Set(allPayments.map(p => p.pacient_id));
 
     let patientsQuery = (supabase as any)
@@ -40,15 +41,27 @@ async function fetchAllEffectivePayments(startStr?: string, endStr?: string): Pr
     if (endStr)   patientsQuery = patientsQuery.lte('created_at', endStr + 'T23:59:59');
 
     const { data: patientsData } = await patientsQuery;
-    (patientsData || []).forEach((p: any) => {
-      if (!patientsWithPlati.has(p.id) && Number(p.cost || 0) > 0) {
-        allPayments.push({
-          pacient_id: p.id,
-          suma: Number(p.cost || 0),
-          data_platii: (p.created_at || '').split('T')[0]
-        });
-      }
-    });
+    const candidates = (patientsData || []).filter(
+      (p: any) => !patientsWithPlati.has(p.id) && Number(p.cost || 0) > 0
+    );
+
+    if (candidates.length > 0) {
+      const { data: anyPlati } = await (supabase as any)
+        .from('plati')
+        .select('pacient_id')
+        .in('pacient_id', candidates.map((p: any) => p.id))
+        .eq('user_id', user.id);
+      const everPaid = new Set(((anyPlati || []) as any[]).map((r: any) => r.pacient_id));
+      candidates.forEach((p: any) => {
+        if (!everPaid.has(p.id)) {
+          allPayments.push({
+            pacient_id: p.id,
+            suma: Number(p.cost || 0),
+            data_platii: (p.created_at || '').split('T')[0]
+          });
+        }
+      });
+    }
 
     return allPayments;
   } catch (e) {
@@ -66,7 +79,7 @@ export async function getTodayStats(date?: string) {
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('status, ora, data, pacient_id, pacienti(cost, achitat, sedinte_total)')
+    .select('status, ora, data, pacient_id')
     .eq('data', targetDate)
     .eq('user_id', user.id);
 
@@ -86,8 +99,7 @@ export async function getTodayStats(date?: string) {
 
 // ── Statistici SĂPTĂMÂNALE (Luni - Duminică) ─────────────────────
 export async function getWeekStats(baseDate?: string) {
-  const realNow = new Date();
-  const refDate = baseDate ? new Date(baseDate) : realNow;
+  const refDate = baseDate ? new Date(baseDate) : new Date();
 
   const day = refDate.getDay(); // 0 = Duminică, 1 = Luni...
   const distanceToMonday = (day === 0 ? -6 : 1) - day;
@@ -105,7 +117,7 @@ export async function getWeekStats(baseDate?: string) {
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('data, ora, status, pacient_id, pacienti(cost, sedinte_total, achitat)')
+    .select('data, ora, status')
     .gte('data', startStr)
     .lte('data', endStr)
     .eq('user_id', user.id);
@@ -166,8 +178,7 @@ export async function getWeekStats(baseDate?: string) {
 
 // ── Statistici LUNARE ─────────────────────────────────────────
 export async function getMonthStats(baseDate?: string) {
-  const realNow = new Date();
-  const refDate = baseDate ? new Date(baseDate) : realNow;
+  const refDate = baseDate ? new Date(baseDate) : new Date();
 
   const startStr = toLocalISOString(new Date(refDate.getFullYear(), refDate.getMonth(), 1));
   const endStr = toLocalISOString(new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0));
@@ -175,7 +186,7 @@ export async function getMonthStats(baseDate?: string) {
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('data, ora, status, pacienti(cost, sedinte_total, achitat)')
+    .select('data, ora, status')
     .gte('data', startStr)
     .lte('data', endStr)
     .eq('user_id', user.id);
@@ -225,8 +236,7 @@ export async function getMonthStats(baseDate?: string) {
 
 // ── Statistici TRIMESTRIALE ───────────────────────────────────
 export async function getQuarterStats(baseDate?: string) {
-  const realNow = new Date();
-  const refDate = baseDate ? new Date(baseDate) : realNow;
+  const refDate = baseDate ? new Date(baseDate) : new Date();
   const currentQuarter = Math.floor(refDate.getMonth() / 3);
   const startStr = toLocalISOString(new Date(refDate.getFullYear(), currentQuarter * 3, 1));
   const endStr = toLocalISOString(new Date(refDate.getFullYear(), currentQuarter * 3 + 3, 0));
@@ -234,7 +244,7 @@ export async function getQuarterStats(baseDate?: string) {
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('data, ora, status, pacienti(cost, sedinte_total, achitat)')
+    .select('data, ora, status')
     .gte('data', startStr)
     .lte('data', endStr)
     .eq('user_id', user.id);
@@ -281,15 +291,14 @@ export async function getQuarterStats(baseDate?: string) {
 
 // ── Statistici ANUALE ─────────────────────────────────────────
 export async function getYearStats(baseDate?: string) {
-  const realNow = new Date();
-  const refDate = baseDate ? new Date(baseDate) : realNow;
+  const refDate = baseDate ? new Date(baseDate) : new Date();
   const startStr = toLocalISOString(new Date(refDate.getFullYear(), 0, 1));
   const endStr = toLocalISOString(new Date(refDate.getFullYear(), 12, 0));
   const user = await getCurrentUser();
 
   const { data: programariData, error: programariError } = await supabase
     .from('programari')
-    .select('data, ora, status, pacienti(cost, sedinte_total, achitat)')
+    .select('data, ora, status')
     .gte('data', startStr)
     .lte('data', endStr)
     .eq('user_id', user.id);
@@ -353,7 +362,7 @@ export async function getDetailedPayments(startStr: string, endStr?: string): Pr
     const user = await getCurrentUser();
     const { data: platiData, error: platiErr } = await (supabase as any)
       .from('plati')
-      .select('id, pacient_id, suma, data_platii, metoda, created_at, pacienti(id, nume, prenume, telefon, plan, locatie)')
+      .select('id, pacient_id, suma, data_platii, metoda, created_at, pacienti(id, nume, prenume, plan, locatie)')
       .gte('data_platii', startStr)
       .lte('data_platii', endDate)
       .eq('user_id', user.id)
@@ -393,17 +402,30 @@ export async function getDetailedPayments(startStr: string, endStr?: string): Pr
       });
     });
 
-    // Căutăm și pacienții cu achitat = true creați în acest interval dacă nu au rând în plati
+    // Căutăm și pacienții cu achitat = true creați în acest interval; îi adăugăm DOAR pe cei
+    // fără NICIODATĂ rânduri în `plati` (verificare globală — altfel dublăm încasările).
     const { data: pacientiData } = await (supabase as any)
       .from('pacienti')
-      .select('id, nume, prenume, telefon, plan, locatie, cost, created_at, achitat')
+      .select('id, nume, prenume, plan, locatie, cost, created_at, achitat')
       .eq('achitat', true)
       .eq('user_id', user.id)
       .gte('created_at', startStr)
       .lte('created_at', endDate + 'T23:59:59');
 
-    (pacientiData || []).forEach((p: any) => {
-      if (!patientIdsWithPlati.has(p.id) && Number(p.cost || 0) > 0) {
+    const candidates = (pacientiData || []).filter(
+      (p: any) => !patientIdsWithPlati.has(p.id) && Number(p.cost || 0) > 0
+    );
+
+    if (candidates.length > 0) {
+      const { data: anyPlati } = await (supabase as any)
+        .from('plati')
+        .select('pacient_id')
+        .in('pacient_id', candidates.map((p: any) => p.id))
+        .eq('user_id', user.id);
+      const everPaid = new Set(((anyPlati || []) as any[]).map((r: any) => r.pacient_id));
+
+      candidates.forEach((p: any) => {
+        if (everPaid.has(p.id)) return;
         const numeComplet = `${p.prenume || ''} ${p.nume || ''}`.trim() || 'Pacient';
         let ora = '';
         if (p.created_at) {
@@ -425,8 +447,8 @@ export async function getDetailedPayments(startStr: string, endStr?: string): Pr
           plan: p.plan || '',
           locatie: p.locatie || ''
         });
-      }
-    });
+      });
+    }
 
     return results;
   } catch (err) {
@@ -477,9 +499,14 @@ export async function getDetailedSessions(startStr: string, endStr?: string, sta
 // Adevărul e pe PACHETE: pret pachet vs plățile legate de acel pachet.
 // (pacienti_view.suma_incasata e pe toată istoria — acolo oricine arată achitat.)
 export async function getUnpaidPatients(startStr?: string, endStr?: string) {
+  const user = await getCurrentUser();
+
+  // Pachetele anulate nu mai contează ca restanță.
   let pkgQuery = supabase
     .from('abonamente')
-    .select('id, pacient_id, pret, status, tip, created_at');
+    .select('id, pacient_id, pret, status, tip, created_at')
+    .eq('user_id', user.id)
+    .neq('status', 'anulat');
   if (startStr) pkgQuery = pkgQuery.gte('created_at', startStr);
   if (endStr) pkgQuery = pkgQuery.lte('created_at', endStr + 'T23:59:59');
   const { data: pkgs, error: pkgErr } = await pkgQuery;
@@ -490,7 +517,7 @@ export async function getUnpaidPatients(startStr?: string, endStr?: string) {
 
   let platiPkg: any[] = [];
   if (pkgIds.length > 0) {
-    const { data } = await supabase.from('plati').select('abonament_id, suma').in('abonament_id', pkgIds);
+    const { data } = await supabase.from('plati').select('abonament_id, suma').in('abonament_id', pkgIds).eq('user_id', user.id);
     platiPkg = data || [];
   }
   const paidByPkg = new Map<string, number>();
@@ -517,7 +544,8 @@ export async function getUnpaidPatients(startStr?: string, endStr?: string) {
   // Restanțe individuale (ședință unică, fără pachete): ședințe × preț − plăți
   let oneQuery = supabase
     .from('pacienti_view')
-    .select('id, name, cost, plan, created_at');
+    .select('id, name, cost, plan, created_at')
+    .eq('user_id', user.id);
   if (startStr) oneQuery = oneQuery.gte('created_at', startStr);
   if (endStr) oneQuery = oneQuery.lte('created_at', endStr + 'T23:59:59');
   const { data: oneRows } = await oneQuery;
@@ -534,6 +562,7 @@ export async function getUnpaidPatients(startStr?: string, endStr?: string) {
     const { data: sess } = await supabase
       .from('programari')
       .select('pacient_id, contorizeaza, status')
+      .eq('user_id', user.id)
       .eq('status', 'finalizat')
       .eq('contorizeaza', true)
       .in('pacient_id', oneTimeIds);
@@ -541,7 +570,7 @@ export async function getUnpaidPatients(startStr?: string, endStr?: string) {
     for (const s of (sess || []) as any[]) {
       sessCount.set(s.pacient_id, (sessCount.get(s.pacient_id) || 0) + 1);
     }
-    const { data: platiOne } = await supabase.from('plati').select('pacient_id, suma').in('pacient_id', oneTimeIds);
+    const { data: platiOne } = await supabase.from('plati').select('pacient_id, suma').in('pacient_id', oneTimeIds).eq('user_id', user.id);
     const paidByOne = new Map<string, number>();
     for (const pl of (platiOne || []) as any[]) {
       paidByOne.set(pl.pacient_id, (paidByOne.get(pl.pacient_id) || 0) + (Number(pl.suma) || 0));
@@ -558,7 +587,7 @@ export async function getUnpaidPatients(startStr?: string, endStr?: string) {
   const ids = [...unpaidByPatient.keys()];
   let names = new Map<string, string>();
   if (ids.length > 0) {
-    const { data: nameRows } = await supabase.from('pacienti_view').select('id, name').in('id', ids);
+    const { data: nameRows } = await supabase.from('pacienti_view').select('id, name').eq('user_id', user.id).in('id', ids);
     for (const r of (nameRows || []) as any[]) names.set(r.id, r.name);
     for (const p of (oneRows || []) as any[]) if (!names.has(p.id)) names.set(p.id, p.name);
   }
@@ -571,25 +600,4 @@ export async function getUnpaidPatients(startStr?: string, endStr?: string) {
   });
 
   return { count: unpaidPatients.length, totalRON: totalDatorat, patients: unpaidPatients };
-}
-
-// ── Istoricul săptămânal ──────────────────────────────────────
-export async function getWeeklyHistory(limit = 8): Promise<IstericSaptamanal[]> {
-  const { data, error } = await supabase
-    .from('istoric_saptamanal')
-    .select('*')
-    .order('saptamana_start', { ascending: false })
-    .limit(limit);
-
-  if (error) throw new Error('Eroare la citirea istoricului: ' + error.message);
-  return data ?? [];
-}
-
-// ── Arhivare manuală ──────────────────────────────────────────
-export async function recalculateWeek(startDate?: string) {
-  const { error } = await (supabase as any).rpc('arhiveaza_saptamana', {
-    saptamana_start: startDate ?? null
-  } as any);
-
-  if (error) throw new Error('Eroare la arhivarea săptămânii: ' + error.message);
 }
