@@ -67,3 +67,4 @@ gitleaks-report.json
 semgrep-report.json
 npm-audit.json
 db archives/
+backups/

@@ -483,12 +483,16 @@
 
     private movePillTo(pillId: string, target: HTMLElement | null) {
       const pill = document.getElementById(pillId);
-      if (!pill || !target) return;
-      const parent = target.offsetParent as HTMLElement;
-      if (!parent) return;
+      if (!pill || !target || !pill.parentElement) return;
+      // Măsurare pe rect-uri relative la părintele pill-ului — imun la
+      // offsetParent / transformări pe strămoși (sheet-ul e translate-y-full
+      // când se măsoară înainte de open, iar la cold start fonturile nu sunt
+      // încă încărcate la prima măsurare).
+      const parentRect = pill.parentElement.getBoundingClientRect();
+      const r = target.getBoundingClientRect();
       pill.style.opacity = '1';
-      pill.style.width = `${target.offsetWidth}px`;
-      pill.style.transform = `translateX(${target.offsetLeft}px)`;
+      pill.style.width = `${r.width}px`;
+      pill.style.transform = `translateX(${r.left - parentRect.left}px)`;
     }
 
     updateLocationChips(selectedLoc: string) {
@@ -811,6 +815,17 @@
       this.sheet.classList.remove('translate-y-full');
       this.overlay.classList.remove('opacity-0', 'pointer-events-none');
       lockBodyScroll();
+      // La cold start prima măsurare a pill-urilor (în handleOpenEvent) pică
+      // pe layout nefinalizat / fonturi neîncărcate — re-poziționăm după ce
+      // sheet-ul a intrat complet în ecran (2 rAF acoperă tranziția de start).
+      requestAnimationFrame(() => requestAnimationFrame(() => this.repositionPills()));
+    }
+
+    private repositionPills() {
+      if (this.sheet?.dataset.open !== 'true') return;
+      this.updatePlanChips(this.currentPlanFilter);
+      const loc = (this.form?.querySelector('[name="location"]') as HTMLInputElement | null)?.value || 'Belaqva';
+      this.updateLocationChips(loc);
     }
 
     close() {
