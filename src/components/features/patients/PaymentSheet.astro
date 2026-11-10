@@ -670,16 +670,20 @@
 
         const isOneTime = !openPkg && ((patient as any).plan === 'One Time' || (patient as any).plan === 'Ședință unică');
 
-        // Ședințe unice: datoria = ședințe finalizate × preț, iar același total
-        // de bani acreditează istoricul (pool) — cardul și istoricul nu mai pot
-        // contrazice „Rest de plată 0".
+        // Ședințe unice: datoria = doar sesiunile neacoperite, la prețul curent.
+        // Istoricul plătit e blocat la sumele reale — cardul și istoricul nu mai
+        // pot contrazice „Rest de plată 0".
         if (isOneTime) {
           try {
             const costNum = Number(cost) || 0;
             const sessions = await getSingleSessionsHistory(this.currentPatientId!, costNum);
             const done = sessions.filter(s => s.status === 'finalizat');
-            const paidCnt = done.filter(s => s.platit > 0).length;
-            remaining = Math.max(0, done.length * costNum - totalPaid);
+            // Istoricul e blocat la sumele plătite; prețul curent se aplică DOAR
+            // sesiunilor neacoperite — dacă mâine prețul trece de la 100 la 130,
+            // ședințele plătite la 100 rămân plătite, fără datorie fantomă.
+            const covered = (s: any) => costNum === 0 || (s.platit || 0) >= costNum;
+            const paidCnt = done.filter(covered).length;
+            remaining = done.reduce((t, s) => t + (covered(s) ? 0 : costNum), 0);
             if (done.length === 0) {
               displayStatusLabel = 'Fără ședințe finalizate';
             } else if (remaining <= 0 || costNum === 0) {

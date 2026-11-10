@@ -492,11 +492,12 @@ export async function getSingleSessionsHistory(patientId: string, sessionCost = 
       const linkedTotal = rows.reduce((t, r) => t + r.platit, 0);
       let pool = (allPlati ?? []).reduce((t: number, p: any) => t + (Number(p.suma) || 0), 0) - linkedTotal;
       for (const r of rows) {
-        if (r.status !== 'finalizat' || r.platit > 0 || pool <= 0) continue;
-        const use = Math.min(sessionCost, pool);
-        r.platit = use;
+        // Doar sesiuni acoperite INTEGRAL — un credit parțial ar lăsa o
+        // ședință „pe jumătate plătită", stare pe care UI-ul nu o reprezintă.
+        if (r.status !== 'finalizat' || r.platit > 0 || pool < sessionCost) continue;
+        r.platit = sessionCost;
         r.poolPaid = true;
-        pool -= use;
+        pool -= sessionCost;
       }
     } catch {}
   }
