@@ -228,9 +228,7 @@
     private isBodyScrollLocked = false;
 
     private currentAppointment: any = null;
-    // Reprogramarea e EXPLICITĂ: implicit „none" — „peste o săptămână"
-    // doar dacă alege userul.
-    private selectedRecurrence: 'same' | 'custom' | 'none' = 'none';
+    private selectedRecurrence: 'same' | 'custom' | 'none' = 'same';
     private paidOnSpot = false;
     private settings: any = null;
 
@@ -513,8 +511,7 @@
       }
 
       // Default option is ALWAYS "Da, peste o săptămână"
-      this.selectedRecurrence = 'none'; // la fiecare deschidere: fără reprogramare implicită
-      this.setRecurrenceOption('none');
+      this.setRecurrenceOption('same');
 
       // Reset submit button state so it works on every open
       const btnConfirm = document.getElementById('btn-confirm-wrapup') as HTMLButtonElement | null;

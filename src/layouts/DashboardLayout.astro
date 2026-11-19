@@ -768,14 +768,25 @@ const { title, hideDock = false } = Astro.props;
           if (ids.length === 0) return;
           try {
             const todayStr = toLocalISOString(new Date());
-            const { completeSession, getAppointment } = await import('../lib/services/appointmentService');
+            const { completeSession, createAppointment, getAppointment } = await import('../lib/services/appointmentService');
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            const nextWeekStr = toLocalISOString(nextWeek);
             for (const id of ids) {
               const appt = await getAppointment(id);
               if (appt && (!appt.data || appt.data <= todayStr)) {
                 await completeSession(id);
+                // Reprogramează automat fiecare membru peste o săptămână,
+                // aceeași zi/oră/locație — ca la wrap-up (default „peste o săptămână").
+                await createAppointment({
+                  pacient_id: appt.pacient_id,
+                  data: nextWeekStr,
+                  ora: appt.ora || '08:00',
+                  locatie: (appt.location || appt.pacienti?.locatie || 'Belaqva') as 'Belaqva' | 'Ghimbav',
+                });
               }
             }
-            (window as any).showToast('Ședințele din grup au fost confirmate!', 'success');
+            (window as any).showToast('Ședințele din grup au fost confirmate și reprogramate peste o săptămână!', 'success');
             window.dispatchEvent(new CustomEvent('sessionsUpdated'));
             window.dispatchEvent(new CustomEvent('patientsUpdated'));
           } catch (err: any) {

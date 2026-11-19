@@ -646,6 +646,16 @@ function createGroupMemberCardHTML(m: any, ctx: { isGhimbav: boolean; progressBa
               <span>${payment.label}</span>
             </button>
 
+            ${m.status === 'programat' ? `
+            <button
+              type="button"
+              class="h-9 px-3 rounded-xl ${isGhimbav ? 'bg-brand-secondary text-white' : 'bg-brand-primary text-black'} text-xs font-black tracking-wider uppercase transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center justify-center"
+              onclick="event.stopPropagation(); if (typeof window.confirmSession === 'function') { window.confirmSession('${m.id}'); }"
+            >
+              <span>Confirmă</span>
+            </button>
+            ` : ''}
+
             <div class="flex items-center gap-1.5 shrink-0">
               ${hasPhone
                 ? `<a
@@ -734,6 +744,17 @@ function createGroupMemberCardHTML(m: any, ctx: { isGhimbav: boolean; progressBa
         ${statusBadge || '<span></span>'}${beyondBadge}
         <span class="text-xs font-black text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-lg font-mono">${m.attendanceCount || 0}/${m.totalSessions || 10}</span>
       </div>
+
+      ${m.status === 'programat' ? `
+      <!-- Confirmare individuală: deschide wrap-up-ul doar pentru acest membru -->
+      <button
+        type="button"
+        class="w-full h-9 rounded-xl ${isGhimbav ? 'bg-brand-secondary text-white' : 'bg-brand-primary text-black'} text-xs font-black tracking-wider uppercase transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center justify-center"
+        onclick="event.stopPropagation(); if (typeof window.confirmSession === 'function') { window.confirmSession('${m.id}'); }"
+      >
+        <span>Confirmă ședința</span>
+      </button>
+      ` : ''}
 
       <!-- Row 3: Progres -->
       <div class="h-1.5 w-full ${progressBarTrack} rounded-full overflow-hidden">
